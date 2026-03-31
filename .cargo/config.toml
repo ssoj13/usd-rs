@@ -1,0 +1,4 @@
+# Disable LTO on Windows to avoid LLVM COMDAT error when building fuzz
+# (cargo-fuzz forces -C lto; this overrides it so mesh_decode/point_cloud_decode compile)
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "lto=false"]

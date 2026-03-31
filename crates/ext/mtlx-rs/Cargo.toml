@@ -1,0 +1,27 @@
+[package]
+name = "mtlx-rs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "MaterialX library - Rust port. Material and look-dev content exchange."
+keywords = ["materialx", "material", "shader", "vfx", "cg"]
+categories = ["graphics", "rendering"]
+
+[features]
+default = ["ocio"]
+ocio = ["dep:vfx-ocio"]
+# Native WGSL output via naga transpilation (GLSL 450 -> WGSL).
+wgsl-native = ["dep:naga"]
+
+[dependencies]
+quick-xml = { workspace = true }
+thiserror = { workspace = true }
+indexmap = { workspace = true }
+vfx-ocio = { workspace = true, optional = true }
+naga = { version = "24", features = ["glsl-in", "wgsl-out"], optional = true }
+log = { version = "0.4" }
+
+[dev-dependencies]
+tempfile = { workspace = true }

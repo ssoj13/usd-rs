@@ -1,0 +1,24 @@
+[package]
+name = "usd-hydra"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_hydra"
+path = "src/lib.rs"
+
+[dependencies]
+usd_core = { package = "usd-core", path = "../usd-core" }
+usd_sdf = { package = "usd-sdf", path = "../usd-sdf" }
+usd_sdr = { package = "usd-sdr", path = "../usd-sdr" }
+usd_shade = { package = "usd-shade", path = "../usd-shade" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+usd_vt = { package = "usd-vt", path = "../../base/usd-vt" }
+log = "0.4"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

@@ -1,0 +1,17 @@
+[package]
+name = "draco-cli"
+version = "0.1.0"
+edition = "2021"
+description = "Combined Draco CLI tools (encoder/decoder/transcoder)"
+license = "Apache-2.0"
+repository = "https://github.com/user/usd-rs"
+keywords = ["draco", "compression", "cli", "mesh", "pointcloud"]
+categories = ["compression", "graphics"]
+
+[dependencies]
+draco_rs = { package = "draco-rs", path = "../.." }
+draco-bitstream = { path = "../draco-bitstream" }
+
+[[bin]]
+name = "draco"
+path = "src/main.rs"

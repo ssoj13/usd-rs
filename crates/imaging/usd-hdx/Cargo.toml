@@ -1,0 +1,28 @@
+[package]
+name = "usd-hdx"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_hdx"
+path = "src/lib.rs"
+
+[dependencies]
+usd_camera_util = { package = "usd-camera-util", path = "../usd-camera-util" }
+usd_gf = { package = "usd-gf", path = "../../base/usd-gf" }
+usd_glf = { package = "usd-glf", path = "../usd-glf" }
+usd_hd = { package = "usd-hd", path = "../usd-hd" }
+usd_hgi = { package = "usd-hgi", path = "../usd-hgi" }
+usd_hio = { package = "usd-hio", path = "../usd-hio" }
+usd_sdf = { package = "usd-sdf", path = "../../usd/usd-sdf" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+usd_vt = { package = "usd-vt", path = "../../base/usd-vt" }
+log = "0.4"
+parking_lot = "0.12"
+
+[lints.rust]
+unsafe_code = "allow" # GPU readback requires raw pointer pass to HGI blit ops
+
+[lints.clippy]
+all = "warn"

@@ -1,0 +1,231 @@
+[workspace]
+members = [
+    ".",
+    "crates/ext/draco-rs/crates/draco-bitstream",
+    "crates/ext/draco-rs/crates/draco-core",
+    "crates/ext/draco-rs/crates/draco-js",
+    "crates/ext/draco-rs/crates/draco-cli",
+    "crates/ext/draco-rs/crates/draco-maya",
+    "crates/ext/draco-rs/crates/draco-unity",
+    "crates/ext/draco-rs/crates/draco-fuzz",
+    "crates/ext/draco-rs/fuzz",
+    "crates/ext/draco-rs",
+    "crates/ext/osl-rs",
+    "crates/ext/pxr-lz4",
+    "crates/usd/usd-derive-macros",
+
+    "crates/ext/mtlx-rs",
+    "crates/ext/opensubdiv-rs",
+    "crates/usd-view",
+    "crates/ext/gltf-rs",
+    "crates/ext/gltf-rs/gltf-derive",
+    "crates/ext/gltf-rs/gltf-json",
+    # ---- Base crates ----
+    "crates/base/usd-arch",
+    "crates/base/usd-gf",
+    "crates/base/usd-js",
+    "crates/base/usd-tf",
+    "crates/base/usd-trace",
+    "crates/base/usd-ts",
+    "crates/base/usd-vt",
+    "crates/base/usd-plug",
+    "crates/base/usd-work",
+    # ---- USD core crates ----
+    "crates/usd/usd-kind",
+    "crates/usd/usd-ar",
+    "crates/usd/usd-sdf",
+    "crates/usd/usd-pcp",
+    "crates/usd/usd-sdr",
+    "crates/usd/usd-core",
+    # ---- USD schema crates ----
+    "crates/usd/usd-geom",
+    "crates/usd/usd-shade",
+    "crates/usd/usd-lux",
+    "crates/usd/usd-skel",
+    "crates/usd/usd-hydra",
+    "crates/usd/usd-media",
+    "crates/usd/usd-mtlx",
+    "crates/usd/usd-physics",
+    "crates/usd/usd-proc",
+    "crates/usd/usd-render",
+    "crates/usd/usd-ri",
+    "crates/usd/usd-semantics",
+    "crates/usd/usd-ui",
+    "crates/usd/usd-utils",
+    "crates/usd/usd-vol",
+    # ---- Imaging crates ----
+    "crates/imaging/usd-camera-util",
+    "crates/imaging/usd-geom-util",
+    "crates/imaging/usd-px-osd",
+    "crates/imaging/usd-hio",
+    "crates/imaging/usd-hf",
+    "crates/imaging/usd-hgi",
+    "crates/imaging/usd-glf",
+    "crates/imaging/usd-hd",
+    "crates/imaging/usd-hdsi",
+    "crates/imaging/usd-hdar",
+    "crates/imaging/usd-hd-gp",
+    "crates/imaging/usd-hd-mtlx",
+    "crates/imaging/usd-hd-st",
+    "crates/imaging/usd-hdx",
+    "crates/imaging/usd-hgi-wgpu",
+    "crates/imaging/usd-hgi-interop",
+    "crates/imaging/usd-hgi-metal",
+    "crates/imaging/usd-hgi-vulkan",
+    "crates/imaging/usd-app-utils",
+    # ---- Top-level crates ----
+    "crates/usd-imaging",
+    "crates/usd-validation",
+]
+
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/vfx-rs/vfx-rs"
+rust-version = "1.85"
+
+[workspace.dependencies]
+# vfx-rs crates (from git)
+vfx-core = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+vfx-math = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+vfx-lut = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+vfx-transfer = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+vfx-primaries = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+vfx-icc = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+vfx-io = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+vfx-ocio = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+vfx-exr = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+vfx-compute = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+murmur3 = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+vcv-rs = { git = "ssh://git@github.com/ssoj13/vcv-rs.git", branch = "main" }
+
+# Shared external deps (used by vfx-rs crates via workspace = true)
+approx = "0.5"
+glam = "0.31"
+glob = "0.3"
+half = "2.7"
+indexmap = "2.13"
+lcms2 = "6.1"
+quick-xml = "0.39"
+rayon = "1.11"
+regex = "1.12"
+rustfft = "6.4"
+serde = { version = "1.0", features = ["derive"] }
+tempfile = "3.25"
+criterion = "0.5"
+thiserror = "2.0"
+wide = "0.7"
+
+[package]
+name = "usd-rs"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+authors = ["Alex Khalyavin <joss13@gmail.com>"]
+description = "Rust port of OpenUSD (Universal Scene Description)"
+repository = "https://github.com/user/usd-rs"
+keywords = ["usd", "openusd", "3d", "graphics", "vfx"]
+categories = ["graphics", "rendering", "game-development"]
+
+[dependencies]
+# ---- Base crates ----
+usd-arch = { path = "crates/base/usd-arch" }
+usd-tf = { path = "crates/base/usd-tf" }
+usd-gf = { path = "crates/base/usd-gf" }
+usd-vt = { path = "crates/base/usd-vt" }
+usd-js = { path = "crates/base/usd-js" }
+usd-plug = { path = "crates/base/usd-plug" }
+usd-trace = { path = "crates/base/usd-trace" }
+usd-ts = { path = "crates/base/usd-ts" }
+usd-work = { path = "crates/base/usd-work" }
+
+# ---- USD core crates ----
+usd-kind = { path = "crates/usd/usd-kind" }
+usd-ar = { path = "crates/usd/usd-ar" }
+usd-sdf = { path = "crates/usd/usd-sdf" }
+usd-pcp = { path = "crates/usd/usd-pcp" }
+usd-sdr = { path = "crates/usd/usd-sdr" }
+usd-core = { path = "crates/usd/usd-core" }
+
+# ---- USD schema crates ----
+usd-geom = { path = "crates/usd/usd-geom" }
+usd-shade = { path = "crates/usd/usd-shade" }
+usd-lux = { path = "crates/usd/usd-lux" }
+usd-skel = { path = "crates/usd/usd-skel" }
+usd-hydra = { path = "crates/usd/usd-hydra" }
+usd-media = { path = "crates/usd/usd-media" }
+usd-mtlx = { path = "crates/usd/usd-mtlx" }
+usd-physics = { path = "crates/usd/usd-physics" }
+usd-proc = { path = "crates/usd/usd-proc" }
+usd-render = { path = "crates/usd/usd-render" }
+usd-ri = { path = "crates/usd/usd-ri" }
+usd-semantics = { path = "crates/usd/usd-semantics" }
+usd-ui = { path = "crates/usd/usd-ui" }
+usd-utils = { path = "crates/usd/usd-utils" }
+usd-vol = { path = "crates/usd/usd-vol" }
+
+# ---- Imaging crates ----
+usd-camera-util = { path = "crates/imaging/usd-camera-util" }
+usd-geom-util = { path = "crates/imaging/usd-geom-util" }
+usd-px-osd = { path = "crates/imaging/usd-px-osd" }
+usd-hio = { path = "crates/imaging/usd-hio" }
+usd-hf = { path = "crates/imaging/usd-hf" }
+usd-hgi = { path = "crates/imaging/usd-hgi" }
+usd-glf = { path = "crates/imaging/usd-glf" }
+usd-hd = { path = "crates/imaging/usd-hd" }
+usd-hdsi = { path = "crates/imaging/usd-hdsi" }
+usd-hdar = { path = "crates/imaging/usd-hdar" }
+usd-hd-gp = { path = "crates/imaging/usd-hd-gp" }
+usd-hd-mtlx = { path = "crates/imaging/usd-hd-mtlx" }
+usd-hd-st = { path = "crates/imaging/usd-hd-st" }
+usd-hdx = { path = "crates/imaging/usd-hdx" }
+usd-hgi-wgpu = { path = "crates/imaging/usd-hgi-wgpu" }
+usd-hgi-interop = { path = "crates/imaging/usd-hgi-interop" }
+usd-hgi-metal = { path = "crates/imaging/usd-hgi-metal" }
+usd-hgi-vulkan = { path = "crates/imaging/usd-hgi-vulkan" }
+usd-app-utils = { path = "crates/imaging/usd-app-utils" }
+
+# ---- Top-level crates ----
+usd-imaging = { path = "crates/usd-imaging" }
+usd-validation = { path = "crates/usd-validation" }
+
+# ---- External deps used by facade ----
+gltf_crate = { path = "crates/ext/gltf-rs", package = "gltf-rs" }
+
+# ---- Viewer (for `usd view` subcommand) ----
+usd-view = { path = "crates/usd-view", default-features = false }
+
+# ---- Deps used by bin targets ----
+draco-bitstream = { path = "crates/ext/draco-rs/crates/draco-bitstream" }
+draco-core = { path = "crates/ext/draco-rs/crates/draco-core" }
+log = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+regex = "1.12"
+osl-rs = { path = "crates/ext/osl-rs", default-features = false }
+
+[dev-dependencies]
+tempfile = "3.25"
+backtrace = "0.3"
+
+[lib]
+name = "usd"
+path = "src/lib.rs"
+
+[features]
+default = ["wgpu"]
+nightly = []
+dev_build = []
+jemalloc = []
+wgpu = ["usd-imaging/wgpu", "usd-view/wgpu"]
+mtlx-rs = ["usd-hd-st/mtlx"]
+
+[profile.release]
+lto = false
+codegen-units = 1
+
+[patch.crates-io]
+egui-wgpu = { path = "vendor/egui-wgpu-0.33.3" }

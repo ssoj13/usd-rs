@@ -1,0 +1,19 @@
+[package]
+name = "usd-hgi-metal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_hgi_metal"
+path = "src/lib.rs"
+
+[dependencies]
+usd_gf = { package = "usd-gf", path = "../../base/usd-gf" }
+usd_hgi = { package = "usd-hgi", path = "../usd-hgi" }
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

@@ -1,0 +1,59 @@
+[package]
+name = "usd-imaging"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_imaging"
+path = "src/lib.rs"
+
+[dependencies]
+usd_camera_util = { package = "usd-camera-util", path = "../imaging/usd-camera-util" }
+usd_core = { package = "usd-core", path = "../usd/usd-core" }
+usd_px_osd = { package = "usd-px-osd", path = "../imaging/usd-px-osd" }
+usd_geom = { package = "usd-geom", path = "../usd/usd-geom" }
+usd_geom_util = { package = "usd-geom-util", path = "../imaging/usd-geom-util" }
+usd_gf = { package = "usd-gf", path = "../base/usd-gf" }
+
+usd_hd = { package = "usd-hd", path = "../imaging/usd-hd" }
+usd_hd_st = { package = "usd-hd-st", path = "../imaging/usd-hd-st" }
+usd_hdx = { package = "usd-hdx", path = "../imaging/usd-hdx" }
+usd_proc = { package = "usd-proc", path = "../usd/usd-proc" }
+usd_render = { package = "usd-render", path = "../usd/usd-render" }
+usd_sdf = { package = "usd-sdf", path = "../usd/usd-sdf" }
+usd_shade = { package = "usd-shade", path = "../usd/usd-shade" }
+usd_sdr = { package = "usd-sdr", path = "../usd/usd-sdr" }
+usd_lux = { package = "usd-lux", path = "../usd/usd-lux" }
+usd_skel = { package = "usd-skel", path = "../usd/usd-skel" }
+usd_vol = { package = "usd-vol", path = "../usd/usd-vol" }
+usd_tf = { package = "usd-tf", path = "../base/usd-tf" }
+usd_trace = { package = "usd-trace", path = "../base/usd-trace" }
+usd_vt = { package = "usd-vt", path = "../base/usd-vt" }
+indexmap = "2"
+image = "0.25"
+log = "0.4"
+once_cell = "1"
+parking_lot = "0.12"
+serde_json = "1"
+half = "2"
+ bytemuck = { version = "1", features = ["derive"] }
+vfx-exr = { workspace = true }
+ vfx-ocio = { workspace = true }
+
+# HGI backend deps (optional per feature)
+usd_hgi = { package = "usd-hgi", path = "../imaging/usd-hgi" }
+usd_hgi_wgpu = { package = "usd-hgi-wgpu", path = "../imaging/usd-hgi-wgpu", optional = true }
+usd_hio = { package = "usd-hio", path = "../imaging/usd-hio", optional = true }
+wgpu = { version = "27", features = ["dx12", "vulkan"], optional = true }
+pollster = { version = "0.4", optional = true }
+
+[features]
+default = ["wgpu"]
+wgpu = ["dep:usd_hgi_wgpu", "dep:usd_hio", "dep:wgpu", "dep:pollster"]
+
+[lints.rust]
+unsafe_code = "allow" # GL engine requires unsafe
+
+[lints.clippy]
+all = "warn"

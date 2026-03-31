@@ -1,0 +1,26 @@
+[package]
+name = "usd-lux"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_lux"
+path = "src/lib.rs"
+
+[dependencies]
+usd_core = { package = "usd-core", path = "../usd-core" }
+usd_geom = { package = "usd-geom", path = "../usd-geom" }
+usd_gf = { package = "usd-gf", path = "../../base/usd-gf" }
+usd_sdf = { package = "usd-sdf", path = "../usd-sdf" }
+usd_shade = { package = "usd-shade", path = "../usd-shade" }
+usd_sdr = { package = "usd-sdr", path = "../usd-sdr" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+usd_vt = { package = "usd-vt", path = "../../base/usd-vt" }
+log = "0.4"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

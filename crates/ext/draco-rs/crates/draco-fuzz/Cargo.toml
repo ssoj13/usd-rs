@@ -1,0 +1,19 @@
+# Fuzz targets for draco-rs (libFuzzer).
+# Build fuzz targets with: cargo fuzz run -p draco-fuzz mesh_decode (or point_cloud_decode).
+# Requires: cargo install cargo-fuzz
+[package]
+name = "draco-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+libfuzzer-sys = "0.4"
+draco-bitstream = { path = "../draco-bitstream" }
+draco-core = { path = "../draco-core" }

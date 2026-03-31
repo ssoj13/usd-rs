@@ -1,0 +1,29 @@
+[package]
+name = "usd-geom"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_geom"
+path = "src/lib.rs"
+
+[dependencies]
+usd_core = { package = "usd-core", path = "../usd-core" }
+usd_gf = { package = "usd-gf", path = "../../base/usd-gf" }
+usd_sdf = { package = "usd-sdf", path = "../usd-sdf" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+usd_plug = { package = "usd-plug", path = "../../base/usd-plug" }
+usd_vt = { package = "usd-vt", path = "../../base/usd-vt" }
+log = "0.4"
+once_cell = "1"
+
+[dev-dependencies]
+paste = "1"
+usd_vt = { package = "usd-vt", path = "../../base/usd-vt" }
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

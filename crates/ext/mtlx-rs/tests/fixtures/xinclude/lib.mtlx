@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodedef name="ND_IncludedTest" node="includedtest">
+    <output name="out" type="float" />
+  </nodedef>
+</materialx>

@@ -1,0 +1,22 @@
+[package]
+name = "usd-garch"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_garch"
+path = "src/lib.rs"
+
+[dependencies]
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+once_cell = "1"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Graphics_Gdi", "Win32_Graphics_OpenGL"] }
+
+[lints.rust]
+unsafe_code = "allow" # GL/glutin FFI requires unsafe
+
+[lints.clippy]
+all = "warn"

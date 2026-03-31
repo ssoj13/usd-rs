@@ -1,0 +1,19 @@
+[package]
+name = "usd-hf"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_hf"
+path = "src/lib.rs"
+
+[dependencies]
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+log = "0.4"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

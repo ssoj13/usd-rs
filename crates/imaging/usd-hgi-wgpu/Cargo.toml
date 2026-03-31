@@ -1,0 +1,27 @@
+[package]
+name = "usd-hgi-wgpu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "wgpu backend for Hydra Graphics Interface (HGI)"
+
+[lib]
+name = "usd_hgi_wgpu"
+path = "src/lib.rs"
+
+[dependencies]
+usd_hgi = { package = "usd-hgi", path = "../usd-hgi" }
+usd_gf = { package = "usd-gf", path = "../../base/usd-gf" }
+wgpu = { version = "27", features = ["dx12", "vulkan"] }
+log = "0.4"
+pollster = "0.4"
+bytemuck = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+env_logger = "0.11"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

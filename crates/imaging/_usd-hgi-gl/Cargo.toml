@@ -1,0 +1,24 @@
+[package]
+name = "usd-hgi-gl"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_hgi_gl"
+path = "src/lib.rs"
+
+[dependencies]
+usd_gf = { package = "usd-gf", path = "../../base/usd-gf" }
+usd_hgi = { package = "usd-hgi", path = "../usd-hgi" }
+gl = "0.14"
+log = "0.4"
+
+[features]
+opengl = []
+
+[lints.rust]
+unsafe_code = "allow" # GL FFI requires unsafe
+
+[lints.clippy]
+all = "warn"

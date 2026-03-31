@@ -1,0 +1,19 @@
+[package]
+name = "usd-work"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_work"
+path = "src/lib.rs"
+
+[dependencies]
+parking_lot = "0.12"
+rayon = "1"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

@@ -1,0 +1,10 @@
+[package]
+name = "draco-bitstream"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Draco bitstream encode/decode for meshes and point clouds"
+
+[dependencies]
+draco-core = { path = "../draco-core" }
+num-traits = "0.2"

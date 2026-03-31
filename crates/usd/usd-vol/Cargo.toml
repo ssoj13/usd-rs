@@ -1,0 +1,20 @@
+[package]
+name = "usd-vol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_vol"
+path = "src/lib.rs"
+
+[dependencies]
+usd_core = { package = "usd-core", path = "../usd-core" }
+usd_sdf = { package = "usd-sdf", path = "../usd-sdf" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

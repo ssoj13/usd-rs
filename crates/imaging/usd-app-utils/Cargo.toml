@@ -1,0 +1,23 @@
+[package]
+name = "usd-app-utils"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_app_utils"
+path = "src/lib.rs"
+
+[dependencies]
+usd_core = { package = "usd-core", path = "../../usd/usd-core" }
+usd_geom = { package = "usd-geom", path = "../../usd/usd-geom" }
+usd_imaging = { package = "usd-imaging", path = "../../usd-imaging" }
+usd_sdf = { package = "usd-sdf", path = "../../usd/usd-sdf" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+log = "0.4"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

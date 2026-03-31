@@ -1,0 +1,14 @@
+[package]
+name = "draco-js"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "WASM/JavaScript bindings for the Draco Rust port"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+draco-core = { path = "../draco-core" }
+draco-bitstream = { path = "../draco-bitstream" }
+wasm-bindgen = "0.2"

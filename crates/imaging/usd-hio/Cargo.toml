@@ -1,0 +1,25 @@
+[package]
+name = "usd-hio"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_hio"
+path = "src/lib.rs"
+
+[dependencies]
+log = "0.4"
+serde_json = "1"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "bmp", "tga", "gif", "hdr"] }
+vfx-exr = { git = "https://github.com/ssoj13/vfx-rs.git", branch = "main" }
+usd_gf = { package = "usd-gf", path = "../../base/usd-gf" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+usd_vt = { package = "usd-vt", path = "../../base/usd-vt" }
+usd_ar = { package = "usd-ar", path = "../../usd/usd-ar" }
+
+[lints.rust]
+unsafe_code = "allow" # StorageSpec uses raw pointers for pixel data (C++ interop)
+
+[lints.clippy]
+all = "warn"

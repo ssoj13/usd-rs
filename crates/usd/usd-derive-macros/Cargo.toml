@@ -1,0 +1,22 @@
+[package]
+name = "usd-derive-macros"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Alex Khalyavin <joss13@gmail.com>"]
+description = "Procedural derive macros for USD schema definitions"
+repository = "https://github.com/user/usd-rs"
+keywords = ["usd", "openusd", "macros", "derive"]
+categories = ["development-tools::procedural-macro-helpers"]
+rust-version = "1.85"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[dev-dependencies]
+trybuild = "1.0"

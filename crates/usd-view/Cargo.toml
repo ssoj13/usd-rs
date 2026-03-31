@@ -1,0 +1,113 @@
+# =============================================================================
+# usd-view — USD Scene Viewer (Rust/egui)
+# =============================================================================
+#
+# usdviewr: Rust/egui alternative to usdviewq (Python/Qt).
+# Viewer for Universal Scene Description (USD) with:
+# - 3D viewport (UsdImagingGL)
+# - Prim tree
+# - Attribute inspection
+# - Layer stack
+# - Dockable panels (egui_dock)
+#
+# =============================================================================
+
+[package]
+name = "usd-view"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "USD scene viewer — Rust/egui alternative to usdview (usdviewq)"
+keywords = ["usd", "viewer", "3d", "egui", "openusd"]
+categories = ["graphics", "gui", "visualization"]
+autobins = false
+
+[dependencies]
+# USD subcrates (direct deps to avoid circular dependency with usd-rs facade)
+usd-sdf = { path = "../../crates/usd/usd-sdf" }
+usd-core = { path = "../../crates/usd/usd-core" }
+usd-gf = { path = "../../crates/base/usd-gf" }
+usd-tf = { path = "../../crates/base/usd-tf" }
+usd-vt = { path = "../../crates/base/usd-vt" }
+usd-geom = { path = "../../crates/usd/usd-geom" }
+usd-shade = { path = "../../crates/usd/usd-shade" }
+usd-utils = { path = "../../crates/usd/usd-utils" }
+usd-semantics = { path = "../../crates/usd/usd-semantics" }
+usd-validation = { path = "../../crates/usd-validation" }
+usd-imaging = { path = "../../crates/usd-imaging", default-features = false }
+usd-app-utils = { path = "../../crates/imaging/usd-app-utils" }
+usd-camera-util = { path = "../../crates/imaging/usd-camera-util" }
+usd-trace = { path = "../../crates/base/usd-trace" }
+vfx-ocio = { workspace = true }
+
+# GUI framework (backend selected via features)
+eframe = { version = "0.33", default-features = false, features = [
+    "default_fonts",
+    "persistence",
+    "x11",
+    "wayland",
+] }
+egui = "0.33"
+egui-wgpu = { version = "0.33", optional = true }
+egui_dock = { version = "0.18", features = ["serde"] }
+
+# File dialogs
+rfd = "0.17"
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "tracing-log"] }
+tracing-log = "0.2"
+log = "0.4"
+
+# Serialization for persistence
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ron = "0.8"
+
+# Regex for prim tree search
+regex = "1.12"
+
+# Platform directories for config
+dirs = "6"
+
+# Screenshot export (PNG/JPEG)
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+vfx-exr = { workspace = true }
+
+# File system watcher for hot-reload (F5 auto-triggers on file change)
+notify = { version = "7", default-features = false, features = ["macos_kqueue"] }
+bytemuck = { version = "1", features = ["derive"], optional = true }
+usd-hgi-wgpu = { path = "../../crates/imaging/usd-hgi-wgpu", optional = true }
+
+[lib]
+name = "usd_view"
+path = "src/lib.rs"
+
+[[bin]]
+name = "usdview"
+path = "src/main.rs"
+
+[dev-dependencies]
+tempfile = "3.25"
+
+[features]
+default = ["wgpu"]
+wgpu = [
+    "usd-imaging/wgpu",
+    "eframe/wgpu",
+    "dep:egui-wgpu",
+    "dep:bytemuck",
+    "dep:usd-hgi-wgpu",
+]
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"

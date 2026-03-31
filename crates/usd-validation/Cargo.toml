@@ -1,0 +1,31 @@
+[package]
+name = "usd-validation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_validation"
+path = "src/lib.rs"
+
+[dependencies]
+usd_ar = { package = "usd-ar", path = "../usd/usd-ar" }
+usd_core = { package = "usd-core", path = "../usd/usd-core" }
+usd_geom = { package = "usd-geom", path = "../usd/usd-geom" }
+usd_gf = { package = "usd-gf", path = "../base/usd-gf" }
+usd_sdf = { package = "usd-sdf", path = "../usd/usd-sdf" }
+usd_shade = { package = "usd-shade", path = "../usd/usd-shade" }
+usd_physics = { package = "usd-physics", path = "../usd/usd-physics" }
+usd_sdr = { package = "usd-sdr", path = "../usd/usd-sdr" }
+usd_skel = { package = "usd-skel", path = "../usd/usd-skel" }
+usd_tf = { package = "usd-tf", path = "../base/usd-tf" }
+usd_utils = { package = "usd-utils", path = "../usd/usd-utils" }
+usd_vt = { package = "usd-vt", path = "../base/usd-vt" }
+parking_lot = "0.12"
+rayon = "1"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

@@ -1,0 +1,20 @@
+[package]
+name = "usd-kind"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_kind"
+path = "src/lib.rs"
+
+[dependencies]
+log = "0.4"
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+usd_plug = { package = "usd-plug", path = "../../base/usd-plug" }
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

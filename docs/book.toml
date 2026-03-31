@@ -1,0 +1,16 @@
+[book]
+authors = ["Alex Khalyavin"]
+language = "en"
+src = "src"
+title = "usd-rs - Pure Rust OpenUSD"
+description = "Comprehensive guide to usd-rs, a ground-up Rust rewrite of Pixar's OpenUSD"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/vfx-rs/usd-rs"
+edit-url-template = "https://github.com/vfx-rs/usd-rs/edit/main/docs/{path}"

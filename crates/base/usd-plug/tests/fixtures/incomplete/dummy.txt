@@ -1,0 +1,2 @@
+This directory intentionally has no plugInfo.json.
+Matches C++ TestPlugDsoIncomplete / TestPlugModuleIncomplete.

@@ -1,0 +1,35 @@
+# Fuzz targets for draco-rs (libFuzzer). Run from draco-rs: cargo fuzz run <target>
+[package]
+name = "draco-rs-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[[bin]]
+name = "mesh_decode"
+path = "fuzz_targets/mesh_decode.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "point_cloud_decode"
+path = "fuzz_targets/point_cloud_decode.rs"
+test = false
+doc = false
+
+# Standalone corpus runners (no libFuzzer entry point); used on Windows when avoiding ASan DLL.
+[[bin]]
+name = "mesh_decode_corpus"
+path = "fuzz_targets/mesh_decode_corpus.rs"
+
+[[bin]]
+name = "point_cloud_decode_corpus"
+path = "fuzz_targets/point_cloud_decode_corpus.rs"
+
+[dependencies]
+libfuzzer-sys = "0.4"
+draco-bitstream = { path = "../crates/draco-bitstream" }
+draco-core = { path = "../crates/draco-core" }

@@ -1,0 +1,53 @@
+[package]
+name = "usd-hd-st"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_hd_st"
+path = "src/lib.rs"
+
+[dependencies]
+usd_gf   = { package = "usd-gf",   path = "../../base/usd-gf" }
+usd_glf  = { package = "usd-glf",  path = "../usd-glf" }
+usd_px_osd = { package = "usd-px-osd", path = "../usd-px-osd" }
+usd_hd   = { package = "usd-hd",   path = "../usd-hd" }
+usd_hdsi = { package = "usd-hdsi", path = "../usd-hdsi" }
+usd_hgi  = { package = "usd-hgi",  path = "../usd-hgi" }
+usd_hio  = { package = "usd-hio",  path = "../usd-hio" }
+usd_sdf  = { package = "usd-sdf",  path = "../../usd/usd-sdf" }
+usd_tf   = { package = "usd-tf",   path = "../../base/usd-tf" }
+usd_trace = { package = "usd-trace", path = "../../base/usd-trace" }
+usd_vt   = { package = "usd-vt",   path = "../../base/usd-vt" }
+log = "0.4"
+parking_lot = "0.12"
+rayon = "1"
+once_cell = "1"
+wgpu = { version = "27", features = ["dx12", "vulkan"], optional = true }
+usd_hgi_wgpu = { package = "usd-hgi-wgpu", path = "../usd-hgi-wgpu", optional = true }
+opensubdiv_rs = { package = "opensubdiv-rs", path = "../../ext/opensubdiv-rs", optional = true }
+usd_hd_mtlx = { package = "usd-hd-mtlx", path = "../usd-hd-mtlx", optional = true }
+mtlx_rs = { package = "mtlx-rs", path = "../../ext/mtlx-rs", default-features = false, features = ["wgsl-native"], optional = true }
+
+[dev-dependencies]
+# Used only in tests to create synthetic PNG images for verification
+image = { version = "0.25", default-features = false, features = ["png"] }
+# Block-on helper for async wgpu calls in GPU compute tests.
+pollster = "0.4"
+
+[features]
+default = ["gpu-culling", "subdivision", "mtlx"]
+# MaterialX material network support (optional, requires mtlx-rs crate).
+mtlx = ["dep:usd_hd_mtlx", "dep:mtlx_rs"]
+# GPU frustum culling via wgpu compute shader.
+# Enabled by default; disable when building without a GPU or for CPU-only testing.
+gpu-culling = ["dep:wgpu", "dep:usd_hgi_wgpu"]
+# OpenSubdiv CPU subdivision surface tessellation.
+subdivision = ["dep:opensubdiv_rs"]
+
+[lints.rust]
+unsafe_code = "allow" # GL draw commands require unsafe
+
+[lints.clippy]
+all = "warn"

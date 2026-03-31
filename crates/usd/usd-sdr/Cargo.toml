@@ -1,0 +1,24 @@
+[package]
+name = "usd-sdr"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_sdr"
+path = "src/lib.rs"
+
+[dependencies]
+usd_gf = { package = "usd-gf", path = "../../base/usd-gf" }
+usd_sdf = { package = "usd-sdf", path = "../usd-sdf" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+usd_vt = { package = "usd-vt", path = "../../base/usd-vt" }
+osl-rs = { path = "../../ext/osl-rs", default-features = false }
+log = "0.4"
+once_cell = "1"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

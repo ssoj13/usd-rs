@@ -1,0 +1,24 @@
+[package]
+name = "usd-hd-gp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_hd_gp"
+path = "src/lib.rs"
+
+[dependencies]
+parking_lot = "0.12"
+usd_hd = { package = "usd-hd", path = "../usd-hd" }
+usd_hf = { package = "usd-hf", path = "../usd-hf" }
+usd_sdf = { package = "usd-sdf", path = "../../usd/usd-sdf" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+once_cell = "1"
+rayon = { workspace = true }
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

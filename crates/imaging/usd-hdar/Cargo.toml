@@ -1,0 +1,22 @@
+[package]
+name = "usd-hdar"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_hdar"
+path = "src/lib.rs"
+
+[dependencies]
+usd_ar = { package = "usd-ar", path = "../../usd/usd-ar" }
+usd_hd = { package = "usd-hd", path = "../usd-hd" }
+usd_sdf = { package = "usd-sdf", path = "../../usd/usd-sdf" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+once_cell = "1"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

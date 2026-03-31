@@ -1,0 +1,23 @@
+[package]
+name = "usd-ri"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_ri"
+path = "src/lib.rs"
+
+[dependencies]
+log = "0.4"
+usd_core = { package = "usd-core", path = "../usd-core" }
+usd_sdf = { package = "usd-sdf", path = "../usd-sdf" }
+usd_shade = { package = "usd-shade", path = "../usd-shade" }
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+usd_vt = { package = "usd-vt", path = "../../base/usd-vt" }
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

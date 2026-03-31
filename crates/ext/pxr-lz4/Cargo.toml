@@ -1,0 +1,12 @@
+[package]
+name = "pxr-lz4"
+version = "0.1.0"
+edition = "2021"
+description = "Pure Rust LZ4 decompression compatible with OpenUSD TfFastCompression"
+license = "BSD-2-Clause"
+repository = "https://github.com/user/usd-rs"
+
+[dependencies]
+
+[dev-dependencies]
+lz4_flex = "0.12"  # For testing compatibility

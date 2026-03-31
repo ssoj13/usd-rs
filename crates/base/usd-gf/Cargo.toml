@@ -1,0 +1,20 @@
+[package]
+name = "usd-gf"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_gf"
+path = "src/lib.rs"
+
+[dependencies]
+usd_tf = { package = "usd-tf", path = "../usd-tf" }
+half = "2.7"
+num-traits = "0.2"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

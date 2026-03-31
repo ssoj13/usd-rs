@@ -1,0 +1,36 @@
+[package]
+name = "usd-hgi-vulkan"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_hgi_vulkan"
+path = "src/lib.rs"
+
+[dependencies]
+usd_gf = { package = "usd-gf", path = "../../base/usd-gf" }
+usd_hgi = { package = "usd-hgi", path = "../usd-hgi" }
+
+# Vulkan bindings
+ash = { version = "0.38", default-features = false, features = ["std", "debug", "loaded"] }
+
+# GPU memory allocator (VMA equivalent)
+gpu-allocator = { version = "0.27", default-features = false, features = ["vulkan"] }
+
+# GLSL to SPIR-V compilation
+shaderc = "0.10"
+
+# Logging (TF_CODING_ERROR / TF_WARN equivalent)
+log = "0.4"
+
+[dev-dependencies]
+env_logger = "0.11"
+image = "0.25"
+
+[lints.rust]
+# Vulkan FFI requires extensive unsafe — allow it for this crate
+unsafe_code = "allow"
+
+[lints.clippy]
+all = "warn"

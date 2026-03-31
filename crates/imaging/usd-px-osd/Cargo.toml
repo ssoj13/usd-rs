@@ -1,0 +1,18 @@
+[package]
+name = "usd-px-osd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_px_osd"
+path = "src/lib.rs"
+
+[dependencies]
+usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

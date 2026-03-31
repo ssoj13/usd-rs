@@ -1,0 +1,15 @@
+[package]
+name = "draco-unity"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "C-ABI Unity plugin bridge for the Draco Rust port"
+
+[lib]
+name = "draco_unity"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+draco-core = { path = "../draco-core" }
+draco-bitstream = { path = "../draco-bitstream" }
+libc = "0.2"

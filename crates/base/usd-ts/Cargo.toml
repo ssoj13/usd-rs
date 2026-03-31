@@ -1,0 +1,20 @@
+[package]
+name = "usd-ts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_ts"
+path = "src/lib.rs"
+
+[dependencies]
+usd_gf = { package = "usd-gf", path = "../usd-gf" }
+usd_vt = { package = "usd-vt", path = "../usd-vt" }
+num-traits = "0.2"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"

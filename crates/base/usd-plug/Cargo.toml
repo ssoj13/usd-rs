@@ -1,0 +1,23 @@
+[package]
+name = "usd-plug"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "usd_plug"
+path = "src/lib.rs"
+
+[dependencies]
+log = "0.4"
+glob = "0.3"
+regex = "1"
+libloading = "0.8"
+usd-tf = { path = "../usd-tf" }
+usd-js = { path = "../usd-js" }
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"
