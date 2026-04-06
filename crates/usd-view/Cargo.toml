@@ -88,10 +88,6 @@ usd-hgi-wgpu = { path = "../../crates/imaging/usd-hgi-wgpu", optional = true }
 name = "usd_view"
 path = "src/lib.rs"
 
-[[bin]]
-name = "usdview"
-path = "src/main.rs"
-
 [dev-dependencies]
 tempfile = "3.25"
 

@@ -13,13 +13,25 @@ pub fn run(args: &[String]) -> i32 {
             }
         };
 
+    // Enable profiling if --profile flag is set
+    let profiling = config.profile;
+    if profiling {
+        usd_trace::profiling::init();
+    }
+
     usd_view::launcher::init_logging(&config);
 
-    match usd_view::launcher::run(config) {
+    let result = match usd_view::launcher::run(config) {
         Ok(()) => 0,
         Err(e) => {
             eprintln!("usd view: {e}");
             1
         }
+    };
+
+    if profiling {
+        usd_trace::profiling::shutdown("trace.json");
     }
+
+    result
 }
