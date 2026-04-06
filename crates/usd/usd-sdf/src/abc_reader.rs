@@ -4133,7 +4133,7 @@ mod tests {
 
     #[test]
     fn test_open_bed_archive_sanitizes_root_child_names() {
-        let Some(bed_path) = require_fixture("../alembic-rs/data/Abc/bed.abc") else { return };
+        let Some(bed_path) = require_fixture("data/abc/bed.abc") else { return };
         let mut reader = AlembicDataReader::new();
         let args = FileFormatArguments::new();
 
@@ -4152,7 +4152,7 @@ mod tests {
 
     #[test]
     fn test_open_bed_archive_keeps_nested_child_paths_consistent() {
-        let Some(bed_path) = require_fixture("../alembic-rs/data/Abc/bed.abc") else { return };
+        let Some(bed_path) = require_fixture("data/abc/bed.abc") else { return };
         let mut reader = AlembicDataReader::new();
         let args = FileFormatArguments::new();
 
@@ -4174,7 +4174,7 @@ mod tests {
 
     #[test]
     fn test_open_cache_archive_collapses_single_curves_child_into_parent() {
-        let Some(cache_path) = require_fixture("../alembic-rs/data/Abc/cache.abc") else { return };
+        let Some(cache_path) = require_fixture("data/abc/cache.abc") else { return };
         let mut reader = AlembicDataReader::new();
         let args = FileFormatArguments::new();
 
