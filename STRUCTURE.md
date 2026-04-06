@@ -13,8 +13,11 @@ the same architecture, APIs, and behavior as the C++ reference at `_ref/OpenUSD/
 - **Platform**: Windows 11, MSYS2/bash shell
 - **Renderer**: wgpu (not OpenGL/Vulkan directly)
 - **UI**: egui (not Qt)
-- **Build**: Cargo workspace, vcpkg at `c:/vcpkg`
+- **Build**: Cargo workspace (71 members), vcpkg at `c:/vcpkg`
+- **Python**: PyO3/maturin bindings (`pxr_rs` package)
+- **Build tool**: `bootstrap.py` (build, test, check, Python bindings)
 - **Reference**: `_ref/OpenUSD/pxr/` — always consult before implementing
+- **Stats**: ~2480 `.rs` files, ~130k lines of Rust (crates + src + vendor)
 
 ## Repository Layout
 
@@ -79,25 +82,104 @@ usd-rs/
       usd-geom-util/         # Geometry utilities (subdivision, triangulation)
       usd-px-osd/            # OpenSubdiv integration
       usd-app-utils/         # Application utilities
+      _usd-garch/            # (placeholder, not in workspace)
+      _usd-hgi-gl/           # (placeholder, not in workspace)
     usd-imaging/             # USD scene delegate for Hydra
     usd-validation/          # USD validation framework
     usd-view/                # Viewer application (egui + wgpu)
-    usd-pyo3/                # Python bindings (pyo3/maturin, mirrors pxr package)
+    usd-pyo3/                # Python bindings (PyO3/maturin)
+      src/                   # 18 .rs files: lib, tf, gf/*, sdf, pcp, ar, vt, usd, ...
+      pxr_rs/                # Python package root (pxr_rs._usd)
+      pyproject.toml         # maturin build config
     ext/                     # External/vendored libraries
-      alembic-rs/            # Alembic I/O
-      draco-rs/              # Google Draco mesh compression
-      gltf-rs/               # glTF I/O
+      draco-rs/              # Google Draco mesh compression (7 sub-crates + fuzz)
+      gltf-rs/               # glTF I/O (+ gltf-derive, gltf-json)
       mtlx-rs/               # MaterialX
       opensubdiv-rs/         # OpenSubdiv (CPU subdivision)
       osl-rs/                # Open Shading Language
       pxr-lz4/               # LZ4 compression (Pixar variant)
-      vcv-rs/                # Video codec support
-      vfx-rs/                # VFX foundations (OCIO, OIIO, EXR, math)
   src/                       # Workspace root lib (re-exports all crates)
+    lib.rs                   # Facade crate (usd)
+    test_utils.rs            # Shared test utilities
+    bin/                     # Binary targets
+      usd/                   # CLI subcommands (cat, diff, tree, view, dump, etc.)
+        main.rs              # Entry point
+        cat.rs, compress.rs, diff.rs, dump.rs, dumpcrate.rs, edit.rs,
+        filter.rs, fixbrokenpixarschemas.rs, genschemafromsdr.rs,
+        meshdump.rs, resolve.rs, stitch.rs, stitchclips.rs, tree.rs,
+        view.rs, zip.rs
+      debug_parse.rs         # Debug USDA parsing
+      profile_parse.rs       # Profile USDA parsing
+      profile_render.rs      # Profile rendering
+  vendor/                    # Vendored patches
+    egui-wgpu-0.33.3/        # Patched egui-wgpu for wgpu 27
+  bootstrap.py               # Build script (build, test, check, Python bindings)
   md/                        # Plans, reports, agent analysis docs
 ```
 
-## C++ → Rust Mapping
+## Workspace Members (71 total)
+
+### Base crates (9)
+`usd-arch`, `usd-gf`, `usd-js`, `usd-tf`, `usd-plug`, `usd-trace`, `usd-ts`, `usd-vt`, `usd-work`
+
+### USD core crates (6)
+`usd-kind`, `usd-ar`, `usd-sdf`, `usd-pcp`, `usd-sdr`, `usd-core`
+
+### USD schema crates (16)
+`usd-geom`, `usd-shade`, `usd-lux`, `usd-skel`, `usd-hydra`, `usd-media`, `usd-mtlx`, `usd-physics`, `usd-proc`, `usd-render`, `usd-ri`, `usd-semantics`, `usd-ui`, `usd-utils`, `usd-vol`, `usd-derive-macros`
+
+### Imaging crates (19)
+`usd-camera-util`, `usd-geom-util`, `usd-px-osd`, `usd-hio`, `usd-hf`, `usd-hgi`, `usd-glf`, `usd-hd`, `usd-hdsi`, `usd-hdar`, `usd-hd-gp`, `usd-hd-mtlx`, `usd-hd-st`, `usd-hdx`, `usd-hgi-wgpu`, `usd-hgi-interop`, `usd-hgi-metal`, `usd-hgi-vulkan`, `usd-app-utils`
+
+### Top-level crates (4)
+`usd-imaging`, `usd-validation`, `usd-view`, `usd-pyo3`
+
+### External crates (16)
+`draco-rs` (+ `draco-bitstream`, `draco-core`, `draco-js`, `draco-cli`, `draco-maya`, `draco-unity`, `draco-fuzz`, `draco-rs/fuzz`), `osl-rs`, `pxr-lz4`, `mtlx-rs`, `opensubdiv-rs`, `gltf-rs` (+ `gltf-derive`, `gltf-json`)
+
+### Root (1)
+`.` — the `usd-rs` facade crate
+
+## Python Bindings (usd-pyo3)
+
+PyO3/maturin-based Python bindings exposing USD-RS as a `pxr_rs` Python package.
+
+- **Crate**: `crates/usd-pyo3/` — builds native extension `_usd` (cdylib)
+- **Python package**: `pxr_rs` — importable as `from pxr_rs import _usd`
+- **PyO3 version**: 0.28
+- **Build**: `maturin develop` or `python bootstrap.py b p`
+- **Module structure** (18 source files):
+  - `lib.rs` — PyO3 module registration
+  - `tf.rs` — Token, TfType bindings
+  - `gf/` — Vec2/3/4, Matrix, Quat, BBox, Ray, Range, Frustum (`vec.rs`, `matrix.rs`, `quat.rs`, `geo.rs`)
+  - `vt.rs` — VtValue, VtArray, VtDictionary
+  - `sdf.rs` — SdfPath, SdfLayer, SdfValueTypeName
+  - `pcp.rs` — PcpCache, PcpPrimIndex
+  - `ar.rs` — Asset resolution
+  - `kind.rs` — Kind registry
+  - `usd.rs` — Stage, Prim, Attribute, Relationship
+  - `geom.rs` — Geometry schemas
+  - `shade.rs` — Shading schemas
+  - `lux.rs` — Lighting schemas
+  - `skel.rs` — Skeleton/skinning schemas
+  - `cli.rs` — CLI integration helpers
+- **Dependencies**: all base + core + schema crates, glam, half
+
+## bootstrap.py Build Tool
+
+Python build script (366 lines) for the project.
+
+```
+python bootstrap.py b             # Build everything (release)
+python bootstrap.py b p           # Build Python bindings (maturin)
+python bootstrap.py b -d          # Build all in debug
+python bootstrap.py t             # Run tests
+python bootstrap.py t p           # Run Python binding tests
+python bootstrap.py ch            # Clippy + fmt check
+python bootstrap.py clean         # Clean build artifacts
+```
+
+## C++ to Rust Mapping
 
 | C++ module | Rust crate | C++ path |
 |---|---|---|
@@ -455,6 +537,7 @@ usd-hd <- usd-sdf, usd-vt, usd-gf, usd-tf
 usd-hgi <- usd-gf, usd-tf
 usd-hd-st <- usd-hd, usd-hgi, usd-glf
 usd-imaging <- usd-core, usd-hd, usd-geom, ...
+usd-pyo3 <- usd-tf, usd-gf, usd-vt, usd-sdf, usd-pcp, usd-ar, usd-core, usd-geom, usd-shade, ...
 ```
 
 ## Key Architectural Notes
@@ -494,10 +577,13 @@ usd-imaging <- usd-core, usd-hd, usd-geom, ...
 - Don't build tests repeatedly to debug — analyze code statically first.
 - Don't use agents excessively — max 1-3 for research, then verify.
 
-## Current State (2026-03-20)
+## Current State (2026-04-06)
 
-- Branch: `dev`, build: targeted `usd-hd`, `usd-imaging`, `usd-app-utils`, `usd-view` checks passing
+- Branch: `main`, build: 0 errors, 0 warnings
+- 71 workspace members, ~2480 `.rs` files, ~130k LOC Rust
 - Imaging pipeline functional (wgpu backend) with GPU display color path and HDR-capable present preference
+- `usd-pyo3` Python bindings added (PyO3 0.28, maturin, `pxr_rs` package) — covers Tf, Gf, Vt, Sdf, Pcp, Ar, Kind, Usd, Geom, Shade, Lux, Skel
+- `bootstrap.py` build tool added — unified build/test/check/Python commands
 - `usd-imaging` scene-index parity tightened for xform flattening, render settings/products, root overrides, `ri_pxr`, and skel legacy adapters
 - `usd-app-utils::FrameRecorder` placeholder removed; recording now routes through `usd-imaging` engine and supports `.exr`
 - `usd-view` no longer relies on CPU color correction for normal viewport present; export path keeps HDR `.exr`

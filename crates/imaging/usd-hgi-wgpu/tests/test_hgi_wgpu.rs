@@ -428,6 +428,14 @@ fn test_wgpu_texture_readback() {
     let Some(mut hgi) = try_create_hgi() else {
         return;
     };
+
+    // Skip on headless CI where Rgba32Float + RENDER_ATTACHMENT may not be
+    // supported (software rasteriser / downlevel limits).
+    if !hgi.is_format_supported(HgiFormat::Float32Vec4, HgiTextureUsage::COLOR_TARGET) {
+        eprintln!("skip: Rgba32Float + COLOR_TARGET not supported on this adapter");
+        return;
+    }
+
     hgi.start_frame();
 
     let (w, h) = (8i32, 8i32);

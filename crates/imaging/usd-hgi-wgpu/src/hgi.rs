@@ -270,6 +270,24 @@ impl HgiWgpu {
         &self.adapter
     }
 
+    /// Check whether a given HGI format + usage combination is supported by
+    /// the physical adapter.  Uses `get_texture_format_features()` to query
+    /// the actual driver/downlevel capabilities rather than assuming support.
+    pub fn is_format_supported(
+        &self,
+        format: usd_hgi::HgiFormat,
+        usage: usd_hgi::HgiTextureUsage,
+    ) -> bool {
+        use crate::conversions::{to_wgpu_texture_format, to_wgpu_texture_usages};
+        #[allow(unused_imports)]
+        use usd_hgi::{HgiFormat, HgiTextureUsage};
+        let wgpu_fmt = to_wgpu_texture_format(format);
+        let wgpu_usage = to_wgpu_texture_usages(usage);
+        let caps = self.adapter.get_texture_format_features(wgpu_fmt);
+        // Check that every requested usage bit is allowed by the adapter
+        caps.allowed_usages.contains(wgpu_usage)
+    }
+
     /// Get shared reference to the mipmap generator
     pub fn mipmap_gen(&self) -> &Arc<MipmapGenerator> {
         &self.mipmap_gen
