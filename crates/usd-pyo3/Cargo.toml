@@ -10,7 +10,7 @@ name = "_usd"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.24", features = ["extension-module"] }
+pyo3 = { version = "0.28", features = ["extension-module"] }
 
 # Base crates
 usd-tf = { path = "../base/usd-tf" }

@@ -1201,6 +1201,8 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let _ = py;
 
     m.add_class::<PyValue>()?;
+    // Alias: Vt.Value = Vt._ValueWrapper (matches C++ OpenUSD convention)
+    m.setattr("Value", m.getattr("_ValueWrapper")?)?;
     m.add_class::<PyDictionary>()?;
 
     // Scalar arrays
