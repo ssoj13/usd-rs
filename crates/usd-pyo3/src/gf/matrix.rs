@@ -2,14 +2,16 @@
 //!
 //! All matrices are row-major, matching C++ GfMatrix layout.
 //! Python indexing returns rows as lists, matching pxr.Gf behaviour.
+//!
+//! Note: `inverse()` returns `Option<Self>` — we fall back to identity on singular matrices,
+//! matching the C++ behaviour of `GetInverse(double* det = NULL)`.
 
 use pyo3::prelude::*;
 use pyo3::exceptions::{PyIndexError, PyZeroDivisionError};
 use usd_gf::{Matrix2d, Matrix2f, Matrix3d, Matrix3f, Matrix4d, Matrix4f};
-use usd_gf::vec3::{Vec3d, Vec3f};
 
 // ---------------------------------------------------------------------------
-// Index helpers
+// Row index helpers
 // ---------------------------------------------------------------------------
 
 fn idx2(i: isize) -> PyResult<usize> {
@@ -98,7 +100,7 @@ impl PyMatrix2d {
         Self(self.0.inverse().unwrap_or_else(Matrix2d::identity))
     }
     #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transpose()) }
-    #[pyo3(name = "Transpose")] fn transpose(&mut self) { self.0 = self.0.transpose(); }
+    #[pyo3(name = "Transpose")] fn transpose_mut(&mut self) { self.0 = self.0.transpose(); }
     #[pyo3(name = "GetRow")] fn get_row(&self, i: usize) -> PyResult<Vec<f64>> {
         if i >= 2 { return Err(PyIndexError::new_err("row index out of range")); }
         Ok(vec![self.0[i][0], self.0[i][1]])
@@ -158,9 +160,11 @@ impl PyMatrix2f {
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix2f::zero(); }
     #[pyo3(name = "SetIdentity")] fn set_identity(&mut self) { self.0 = Matrix2f::identity(); }
     #[pyo3(name = "GetDeterminant")] fn get_determinant(&self) -> f32 { self.0.determinant() }
-    #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self { Self(self.0.inverse()) }
-    #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transposed()) }
-    #[pyo3(name = "Transpose")] fn transpose(&mut self) { self.0 = self.0.transposed(); }
+    #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self {
+        Self(self.0.inverse().unwrap_or_else(Matrix2f::identity))
+    }
+    #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transpose()) }
+    #[pyo3(name = "Transpose")] fn transpose_mut(&mut self) { self.0 = self.0.transpose(); }
 }
 
 // ---------------------------------------------------------------------------
@@ -217,9 +221,11 @@ impl PyMatrix3d {
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix3d::zero(); }
     #[pyo3(name = "SetIdentity")] fn set_identity(&mut self) { self.0 = Matrix3d::identity(); }
     #[pyo3(name = "GetDeterminant")] fn get_determinant(&self) -> f64 { self.0.determinant() }
-    #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self { Self(self.0.inverse()) }
-    #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transposed()) }
-    #[pyo3(name = "Transpose")] fn transpose(&mut self) { self.0 = self.0.transposed(); }
+    #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self {
+        Self(self.0.inverse().unwrap_or_else(Matrix3d::identity))
+    }
+    #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transpose()) }
+    #[pyo3(name = "Transpose")] fn transpose_mut(&mut self) { self.0 = self.0.transpose(); }
 
     #[pyo3(name = "GetRow")] fn get_row(&self, i: usize) -> PyResult<Vec<f64>> {
         if i >= 3 { return Err(PyIndexError::new_err("row index out of range")); }
@@ -244,7 +250,7 @@ impl PyMatrix3d {
 
     #[pyo3(name = "ExtractRotation")]
     fn extract_rotation(&self) -> super::geo::PyRotation {
-        super::geo::PyRotation(usd_gf::Rotation::from_matrix3(&self.0))
+        super::geo::PyRotation(self.0.extract_rotation())
     }
 
     #[staticmethod]
@@ -314,9 +320,11 @@ impl PyMatrix3f {
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix3f::zero(); }
     #[pyo3(name = "SetIdentity")] fn set_identity(&mut self) { self.0 = Matrix3f::identity(); }
     #[pyo3(name = "GetDeterminant")] fn get_determinant(&self) -> f32 { self.0.determinant() }
-    #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self { Self(self.0.inverse()) }
-    #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transposed()) }
-    #[pyo3(name = "Transpose")] fn transpose(&mut self) { self.0 = self.0.transposed(); }
+    #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self {
+        Self(self.0.inverse().unwrap_or_else(Matrix3f::identity))
+    }
+    #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transpose()) }
+    #[pyo3(name = "Transpose")] fn transpose_mut(&mut self) { self.0 = self.0.transpose(); }
 }
 
 // ---------------------------------------------------------------------------
@@ -375,10 +383,14 @@ impl PyMatrix4d {
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix4d::zero(); }
     #[pyo3(name = "SetIdentity")] fn set_identity(&mut self) { self.0 = Matrix4d::identity(); }
     #[pyo3(name = "GetDeterminant")] fn get_determinant(&self) -> f64 { self.0.determinant() }
-    #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self { Self(self.0.inverse()) }
-    #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transposed()) }
-    #[pyo3(name = "Transpose")] fn transpose(&mut self) { self.0 = self.0.transposed(); }
-    #[pyo3(name = "Invert")] fn invert(&mut self) { self.0 = self.0.inverse(); }
+    #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self {
+        Self(self.0.inverse().unwrap_or_else(Matrix4d::identity))
+    }
+    #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transpose()) }
+    #[pyo3(name = "Transpose")] fn transpose_mut(&mut self) { self.0 = self.0.transpose(); }
+    #[pyo3(name = "Invert")] fn invert(&mut self) {
+        if let Some(inv) = self.0.inverse() { self.0 = inv; }
+    }
 
     #[pyo3(name = "GetRow")] fn get_row(&self, i: usize) -> PyResult<Vec<f64>> {
         if i >= 4 { return Err(PyIndexError::new_err("row index out of range")); }
@@ -493,10 +505,14 @@ impl PyMatrix4f {
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix4f::zero(); }
     #[pyo3(name = "SetIdentity")] fn set_identity(&mut self) { self.0 = Matrix4f::identity(); }
     #[pyo3(name = "GetDeterminant")] fn get_determinant(&self) -> f32 { self.0.determinant() }
-    #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self { Self(self.0.inverse()) }
-    #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transposed()) }
-    #[pyo3(name = "Transpose")] fn transpose(&mut self) { self.0 = self.0.transposed(); }
-    #[pyo3(name = "Invert")] fn invert(&mut self) { self.0 = self.0.inverse(); }
+    #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self {
+        Self(self.0.inverse().unwrap_or_else(Matrix4f::identity))
+    }
+    #[pyo3(name = "GetTranspose")] fn get_transpose(&self) -> Self { Self(self.0.transpose()) }
+    #[pyo3(name = "Transpose")] fn transpose_mut(&mut self) { self.0 = self.0.transpose(); }
+    #[pyo3(name = "Invert")] fn invert(&mut self) {
+        if let Some(inv) = self.0.inverse() { self.0 = inv; }
+    }
 }
 
 // ---------------------------------------------------------------------------

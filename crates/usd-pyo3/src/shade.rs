@@ -24,10 +24,6 @@ fn path_from_str(s: &str) -> PyResult<Path> {
     Path::from_string(s).ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: {s}")))
 }
 
-fn token_or_empty(opt: Option<&str>) -> Token {
-    Token::new(opt.unwrap_or(""))
-}
-
 // ---------------------------------------------------------------------------
 // Shared PyStage wrapper
 // We carry Arc<Stage> so the stage stays alive as long as any Python object holds it.

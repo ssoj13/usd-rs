@@ -35,28 +35,30 @@ fn path_from_str(s: &str) -> PyResult<Path> {
     Path::from_string(s).ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: {s}")))
 }
 
+#[allow(deprecated)]
 fn value_to_py(py: Python<'_>, val: &Value) -> PyObject {
+    use pyo3::IntoPy;
     // Try common types; fall back to string repr
     if let Some(v) = val.downcast_clone::<bool>() {
-        return v.into_pyobject(py).map(|o| o.into()).unwrap_or_else(|_| py.None());
+        return v.into_py(py);
     }
     if let Some(v) = val.downcast_clone::<i32>() {
-        return v.into_pyobject(py).map(|o| o.into()).unwrap_or_else(|_| py.None());
+        return v.into_py(py);
     }
     if let Some(v) = val.downcast_clone::<i64>() {
-        return v.into_pyobject(py).map(|o| o.into()).unwrap_or_else(|_| py.None());
+        return v.into_py(py);
     }
     if let Some(v) = val.downcast_clone::<f32>() {
-        return (v as f64).into_pyobject(py).map(|o| o.into()).unwrap_or_else(|_| py.None());
+        return (v as f64).into_py(py);
     }
     if let Some(v) = val.downcast_clone::<f64>() {
-        return v.into_pyobject(py).map(|o| o.into()).unwrap_or_else(|_| py.None());
+        return v.into_py(py);
     }
     if let Some(v) = val.downcast_clone::<String>() {
-        return v.into_pyobject(py).map(|o| o.into()).unwrap_or_else(|_| py.None());
+        return v.into_py(py);
     }
     if let Some(v) = val.downcast_clone::<Token>() {
-        return v.as_str().to_string().into_pyobject(py).map(|o| o.into()).unwrap_or_else(|_| py.None());
+        return v.as_str().to_string().into_py(py);
     }
     if let Some(v) = val.downcast_clone::<Vec<f32>>() {
         return PyList::new(py, v).map(|l| l.into()).unwrap_or_else(|_| py.None());
@@ -71,18 +73,20 @@ fn value_to_py(py: Python<'_>, val: &Value) -> PyObject {
         return PyList::new(py, v).map(|l| l.into()).unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<glam::Vec3>() {
-        let tup = PyTuple::new(py, [v.x as f64, v.y as f64, v.z as f64]);
-        return tup.map(|t| t.into()).unwrap_or_else(|_| py.None());
+        return PyTuple::new(py, [v.x as f64, v.y as f64, v.z as f64])
+            .map(|t| t.into())
+            .unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<glam::Vec2>() {
-        let tup = PyTuple::new(py, [v.x as f64, v.y as f64]);
-        return tup.map(|t| t.into()).unwrap_or_else(|_| py.None());
+        return PyTuple::new(py, [v.x as f64, v.y as f64])
+            .map(|t| t.into())
+            .unwrap_or_else(|_| py.None());
     }
     if val.is_empty() {
         return py.None();
     }
     // Fallback: debug string
-    format!("{val:?}").into_pyobject(py).map(|o| o.into()).unwrap_or_else(|_| py.None())
+    format!("{val:?}").into_py(py)
 }
 
 fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
@@ -169,11 +173,11 @@ impl PyTimeCode {
 
     #[allow(non_snake_case)]
     fn GetValue(&self) -> f64 {
-        self.inner.value
+        if self.inner.is_default() { f64::NAN } else { self.inner.value() }
     }
 
     fn __float__(&self) -> f64 {
-        self.inner.value
+        if self.inner.is_default() { f64::NAN } else { self.inner.value() }
     }
 
     fn __repr__(&self) -> String {
@@ -182,7 +186,7 @@ impl PyTimeCode {
         } else if self.inner.is_earliest_time() {
             "Usd.TimeCode.EarliestTime()".to_string()
         } else {
-            format!("Usd.TimeCode({})", self.inner.value)
+            format!("Usd.TimeCode({})", self.inner.value())
         }
     }
 
@@ -222,26 +226,32 @@ impl PyTimeCode {
     }
 
     fn __add__(&self, rhs: f64) -> Self {
-        Self { inner: TimeCode::new(self.inner.value + rhs) }
+        // Use __float__ conversion for raw numeric value
+        let v = self.__float__();
+        Self { inner: TimeCode::new(v + rhs) }
     }
 
     fn __radd__(&self, lhs: f64) -> Self {
-        Self { inner: TimeCode::new(lhs + self.inner.value) }
+        let v = self.__float__();
+        Self { inner: TimeCode::new(lhs + v) }
     }
 
     fn __sub__(&self, rhs: f64) -> Self {
-        Self { inner: TimeCode::new(self.inner.value - rhs) }
+        let v = self.__float__();
+        Self { inner: TimeCode::new(v - rhs) }
     }
 
     fn __mul__(&self, rhs: f64) -> Self {
-        Self { inner: TimeCode::new(self.inner.value * rhs) }
+        let v = self.__float__();
+        Self { inner: TimeCode::new(v * rhs) }
     }
 
     fn __truediv__(&self, rhs: f64) -> PyResult<Self> {
         if rhs == 0.0 {
             return Err(PyValueError::new_err("division by zero"));
         }
-        Ok(Self { inner: TimeCode::new(self.inner.value / rhs) })
+        let v = self.__float__();
+        Ok(Self { inner: TimeCode::new(v / rhs) })
     }
 }
 
@@ -370,7 +380,7 @@ impl PyEditTarget {
         if self.inner.is_valid() {
             format!(
                 "Usd.EditTarget(layer='{}')",
-                self.inner.layer().map(|l| l.identifier()).unwrap_or_default()
+                self.inner.layer().map(|l| l.identifier().to_string()).unwrap_or_default()
             )
         } else {
             "Usd.EditTarget()".to_string()
@@ -453,10 +463,15 @@ impl PyPrimRange {
 }
 
 impl PyPrimRange {
+    #[allow(deprecated)]
     fn from_prims(py: Python<'_>, prims: Vec<Prim>, stage_arc: Arc<Stage>) -> Self {
+        use pyo3::IntoPy;
         let objs = prims
             .into_iter()
-            .map(|p| PyPrim::from_prim(p, stage_arc.clone()).into_pyobject(py).map(|o| o.into()).unwrap_or_else(|_| py.None()))
+            .map(|p| {
+                let py_prim = PyPrim::from_prim(p, stage_arc.clone());
+                py_prim.into_py(py)
+            })
             .collect();
         Self { prims: objs, index: 0 }
     }
@@ -1713,14 +1728,14 @@ impl PyStage {
     #[allow(non_snake_case)]
     fn Traverse(&self, py: Python<'_>) -> PyPrimRange {
         let range = self.inner.traverse();
-        let prims: Vec<Prim> = range.collect();
+        let prims: Vec<Prim> = range.into_iter().collect();
         PyPrimRange::from_prims(py, prims, self.inner.clone())
     }
 
     #[allow(non_snake_case)]
     fn TraverseAll(&self, py: Python<'_>) -> PyPrimRange {
         let range = self.inner.traverse_all();
-        let prims: Vec<Prim> = range.collect();
+        let prims: Vec<Prim> = range.into_iter().collect();
         PyPrimRange::from_prims(py, prims, self.inner.clone())
     }
 
@@ -1734,17 +1749,17 @@ impl PyStage {
 
     #[allow(non_snake_case)]
     fn GetRootLayerIdentifier(&self) -> String {
-        self.inner.get_root_layer().identifier()
+        self.inner.get_root_layer().identifier().to_string()
     }
 
     #[allow(non_snake_case)]
     fn GetSessionLayer(&self) -> Option<String> {
-        self.inner.get_session_layer().map(|l| l.identifier())
+        self.inner.get_session_layer().map(|l| l.identifier().to_string())
     }
 
     #[allow(non_snake_case)]
     fn GetLayerStack(&self, py: Python<'_>) -> PyObject {
-        let layers: Vec<String> = self.inner.layer_stack().iter().map(|l| l.identifier()).collect();
+        let layers: Vec<String> = self.inner.layer_stack().iter().map(|l| l.identifier().to_string()).collect();
         PyList::new(py, layers).map(|l| l.into()).unwrap_or_else(|_| py.None())
     }
 
@@ -1956,7 +1971,7 @@ impl PyStage {
     // -- Repr --------------------------------------------------------------
 
     fn __repr__(&self) -> String {
-        format!("Usd.Stage({})", self.inner.get_root_layer().identifier())
+        format!("Usd.Stage({})", self.inner.get_root_layer().identifier().to_string())
     }
 
     fn __str__(&self) -> String {

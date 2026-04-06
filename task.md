@@ -1,5 +1,4 @@
-﻿
-* Задачи сессии:
+﻿* Задачи сессии:
   - создать порт Python API через PyO3 и Maturin
   - референс: C:\projects\projects.rust.cg\usd-refs\OpenUSD
   - создать bootstrap.py с нужными опциями: 

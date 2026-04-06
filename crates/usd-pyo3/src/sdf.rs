@@ -1126,6 +1126,171 @@ impl PyLayer {
             .collect()
     }
 
+    // --- Additional metadata properties ------------------------------------
+
+    #[getter]
+    fn documentation(&self) -> String {
+        // Documentation stored as "documentation" field on pseudo-root
+        self.inner.get_pseudo_root()
+            .documentation()
+    }
+
+    #[setter]
+    fn set_documentation(&self, doc: &str) {
+        // Mirror C++ SetDocumentation
+        let mut root = self.inner.get_pseudo_root();
+        root.set_documentation(doc);
+    }
+
+    #[getter]
+    #[allow(non_snake_case)]
+    fn realPath(&self) -> String {
+        self.inner.get_resolved_path().unwrap_or_default()
+    }
+
+    #[getter]
+    #[allow(non_snake_case)]
+    fn fileExtension(&self) -> String {
+        self.inner.get_file_extension()
+    }
+
+    #[getter]
+    fn version(&self) -> Option<String> {
+        self.inner.get_version()
+    }
+
+    #[getter]
+    #[allow(non_snake_case)]
+    fn repositoryPath(&self) -> Option<String> {
+        self.inner.get_repository_path()
+    }
+
+    #[allow(non_snake_case)]
+    fn GetDisplayName(&self) -> String {
+        self.inner.get_display_name()
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn GetDisplayNameFromIdentifier(identifier: &str) -> String {
+        Layer::get_display_name_from_identifier(identifier)
+    }
+
+    #[allow(non_snake_case)]
+    fn GetAssetName(&self) -> String {
+        self.inner.get_asset_name()
+    }
+
+    #[allow(non_snake_case)]
+    fn ComputeAbsolutePath(&self, asset_path: &str) -> String {
+        self.inner.compute_absolute_path(asset_path)
+    }
+
+    #[allow(non_snake_case)]
+    fn TransferContent(&self, source: &PyLayer) {
+        self.inner.transfer_content(&source.inner);
+    }
+
+    #[allow(non_snake_case)]
+    fn Import(&self, layer_path: &str) -> PyResult<bool> {
+        self.inner.import(layer_path)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+
+    #[allow(non_snake_case)]
+    fn StreamsData(&self) -> bool {
+        self.inner.streams_data()
+    }
+
+    #[allow(non_snake_case)]
+    fn IsDetached(&self) -> bool {
+        self.inner.is_detached()
+    }
+
+    // --- Default prim extended ----------------------------------------------
+
+    #[allow(non_snake_case)]
+    fn GetDefaultPrimAsPath(&self) -> PyPath {
+        PyPath { inner: self.inner.get_default_prim_as_path() }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn ConvertDefaultPrimTokenToPath(default_prim: &str) -> PyPath {
+        PyPath { inner: Layer::convert_default_prim_token_to_path(&Token::new(default_prim)) }
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn ConvertDefaultPrimPathToToken(prim_path: &PyPath) -> String {
+        Layer::convert_default_prim_path_to_token(&prim_path.inner)
+            .as_str()
+            .to_string()
+    }
+
+    // --- Time code properties -----------------------------------------------
+
+    #[allow(non_snake_case)]
+    fn HasStartTimeCode(&self) -> bool {
+        self.inner.has_start_time_code()
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearStartTimeCode(&self) {
+        self.inner.clear_start_time_code();
+    }
+
+    #[allow(non_snake_case)]
+    fn HasEndTimeCode(&self) -> bool {
+        self.inner.has_end_time_code()
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearEndTimeCode(&self) {
+        self.inner.clear_end_time_code();
+    }
+
+    #[allow(non_snake_case)]
+    fn HasTimeCodesPerSecond(&self) -> bool {
+        self.inner.has_time_codes_per_second()
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearTimeCodesPerSecond(&self) {
+        self.inner.clear_time_codes_per_second();
+    }
+
+    #[getter]
+    #[allow(non_snake_case)]
+    fn framesPerSecond(&self) -> f64 {
+        self.inner.get_frames_per_second()
+    }
+
+    #[setter]
+    #[allow(non_snake_case)]
+    fn set_framesPerSecond(&self, fps: f64) {
+        self.inner.set_frames_per_second(fps);
+    }
+
+    // --- Custom layer data --------------------------------------------------
+
+    #[allow(non_snake_case)]
+    fn HasCustomLayerData(&self) -> bool {
+        self.inner.has_custom_layer_data()
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearCustomLayerData(&self) {
+        self.inner.clear_custom_layer_data();
+    }
+
+    // --- Scene modification helpers -----------------------------------------
+
+    #[allow(non_snake_case)]
+    fn RemoveInertSceneDescription(&self) {
+        self.inner.remove_inert_scene_description();
+    }
+
     // --- Permission ---------------------------------------------------------
 
     #[getter]

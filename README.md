@@ -2,11 +2,16 @@
 
 ![usd-rs viewer](data/usdview.jpg)
 
-Pure Rust port of OpenUSD.
+Pure Rust port of OpenUSD:
 
-This repository is an experimental ground-up rewrite of Pixar's OpenUSD architecture in Rust.
-It is not a binding layer. The C++ reference lives at [PixarAnimationStudios/OpenUSD](https://github.com/PixarAnimationStudios/OpenUSD) and remains the behavior target for composition, imaging, Hydra, and viewer semantics.
-It not supposed to be used by anyone.
+- This repository is a pure experimental ground-up rewrite of Pixar's OpenUSD architecture in Rust.
+- It is not a binding layer, but a pure Rust implementation.
+- The C++ reference lives at [PixarAnimationStudios/OpenUSD](https://github.com/PixarAnimationStudios/OpenUSD) and remains the behavior target for composition, imaging, Hydra, and viewer semantics.
+- This repo is large and still under active parity work against OpenUSD.
+- For architectural details and crate mapping, see [`STRUCTURE.md`](./STRUCTURE.md).
+- It's not production ready and is not supposed to be used by anyone.
+- Sudden changes and API rewrites are possible at any moment.
+
 
 ## Workspace
 
@@ -42,12 +47,6 @@ cargo check --quiet -p usd-view
 cargo check --quiet -p usd-imaging --lib
 cargo check --quiet -p usd-hd-st --lib
 ```
-
-## Notes
-
-- This repo is large and still under active parity work against OpenUSD.
-- For architectural details and crate mapping, see [`STRUCTURE.md`](./STRUCTURE.md).
-
 
 ## References:
   - [ssoj13/usd-refs](https://github.com/ssoj13/usd-refs)

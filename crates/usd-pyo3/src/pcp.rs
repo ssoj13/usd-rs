@@ -227,7 +227,7 @@ impl PySite {
     #[new]
     fn new(layer_stack_id: &PyLayerStackIdentifier, path: &str) -> PyResult<Self> {
         let sdf_path = Path::from_string(path)
-            .map_err(|e| PyValueError::new_err(format!("Invalid SdfPath '{}': {}", path, e)))?;
+            .ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: '{}'", path)))?;
         Ok(Self {
             inner: Site::new(layer_stack_id.inner.clone(), sdf_path),
         })
@@ -308,7 +308,7 @@ impl PyMapFunction {
     #[pyo3(name = "MapSourceToTarget")]
     fn map_source_to_target(&self, path: &str) -> PyResult<Option<String>> {
         let sdf_path = Path::from_string(path)
-            .map_err(|e| PyValueError::new_err(format!("Invalid path '{}': {}", path, e)))?;
+            .ok_or_else(|| PyValueError::new_err(format!("Invalid path: '{}'", path)))?;
         Ok(self.inner.map_source_to_target(&sdf_path).map(|p| p.as_str().to_string()))
     }
 
@@ -316,7 +316,7 @@ impl PyMapFunction {
     #[pyo3(name = "MapTargetToSource")]
     fn map_target_to_source(&self, path: &str) -> PyResult<Option<String>> {
         let sdf_path = Path::from_string(path)
-            .map_err(|e| PyValueError::new_err(format!("Invalid path '{}': {}", path, e)))?;
+            .ok_or_else(|| PyValueError::new_err(format!("Invalid path: '{}'", path)))?;
         Ok(self.inner.map_target_to_source(&sdf_path).map(|p| p.as_str().to_string()))
     }
 
@@ -680,7 +680,7 @@ impl PyCache {
     #[pyo3(name = "ComputePrimIndex")]
     fn compute_prim_index(&self, path: &str) -> PyResult<PyPrimIndex> {
         let sdf_path = Path::from_string(path)
-            .map_err(|e| PyValueError::new_err(format!("Invalid SdfPath '{}': {}", path, e)))?;
+            .ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: '{}'", path)))?;
         let (index, _errors) = self.inner.compute_prim_index(&sdf_path);
         Ok(PyPrimIndex { inner: index })
     }
@@ -689,7 +689,7 @@ impl PyCache {
     #[pyo3(name = "FindPrimIndex")]
     fn find_prim_index(&self, path: &str) -> PyResult<Option<PyPrimIndex>> {
         let sdf_path = Path::from_string(path)
-            .map_err(|e| PyValueError::new_err(format!("Invalid SdfPath '{}': {}", path, e)))?;
+            .ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: '{}'", path)))?;
         Ok(self.inner.find_prim_index(&sdf_path).map(|idx| PyPrimIndex { inner: idx }))
     }
 
@@ -705,17 +705,15 @@ impl PyCache {
     /// `exclude` is a list of path strings to exclude.
     #[pyo3(name = "RequestPayloads")]
     #[pyo3(signature = (include, exclude))]
-    fn request_payloads(&self, include: Vec<&str>, exclude: Vec<&str>) -> PyResult<()> {
-        let include_paths: Result<Vec<Path>, _> = include.iter()
-            .map(|p| Path::from_string(p))
-            .collect();
-        let exclude_paths: Result<Vec<Path>, _> = exclude.iter()
-            .map(|p| Path::from_string(p))
-            .collect();
-        let include_paths = include_paths
-            .map_err(|e| PyValueError::new_err(format!("Invalid include path: {}", e)))?;
-        let exclude_paths = exclude_paths
-            .map_err(|e| PyValueError::new_err(format!("Invalid exclude path: {}", e)))?;
+    fn request_payloads(&self, include: Vec<String>, exclude: Vec<String>) -> PyResult<()> {
+        let include_paths: Vec<Path> = include.iter()
+            .map(|p| Path::from_string(p)
+                .ok_or_else(|| PyValueError::new_err(format!("Invalid include path: '{}'", p))))
+            .collect::<PyResult<Vec<_>>>()?;
+        let exclude_paths: Vec<Path> = exclude.iter()
+            .map(|p| Path::from_string(p)
+                .ok_or_else(|| PyValueError::new_err(format!("Invalid exclude path: '{}'", p))))
+            .collect::<PyResult<Vec<_>>>()?;
         // None = apply changes immediately (no external CacheChanges tracking).
         self.inner.request_payloads(&include_paths, &exclude_paths, None);
         Ok(())
@@ -727,18 +725,16 @@ impl PyCache {
     /// `unmute` is a list to unmute.
     #[pyo3(name = "RequestLayerMuting")]
     #[pyo3(signature = (mute, unmute))]
-    fn request_layer_muting(&self, mute: Vec<&str>, unmute: Vec<&str>) {
-        let mute_vec: Vec<String> = mute.iter().map(|s| s.to_string()).collect();
-        let unmute_vec: Vec<String> = unmute.iter().map(|s| s.to_string()).collect();
+    fn request_layer_muting(&self, mute: Vec<String>, unmute: Vec<String>) {
         // None for all optional args: apply changes immediately, discard newly muted/unmuted lists.
-        self.inner.request_layer_muting(&mute_vec, &unmute_vec, None, None, None);
+        self.inner.request_layer_muting(&mute, &unmute, None, None, None);
     }
 
     /// Return true if the payload for the given path is included.
     #[pyo3(name = "IsPayloadIncluded")]
     fn is_payload_included(&self, path: &str) -> PyResult<bool> {
         let sdf_path = Path::from_string(path)
-            .map_err(|e| PyValueError::new_err(format!("Invalid SdfPath '{}': {}", path, e)))?;
+            .ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: '{}'", path)))?;
         Ok(self.inner.is_payload_included(&sdf_path))
     }
 

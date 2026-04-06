@@ -43,7 +43,19 @@ fn parse_path(s: &str) -> PyResult<Path> {
 }
 
 fn mat4_to_flat(m: &usd_gf::Matrix4d) -> Vec<f64> {
-    m.to_cols_array().to_vec()
+    // Matrix4 stores data as [[T; 4]; 4] in row-major order.
+    let mut out = Vec::with_capacity(16);
+    for row in 0..4 {
+        for col in 0..4 {
+            out.push(m.row(row)[col]);
+        }
+    }
+    out
+}
+
+fn bbox_to_flat(bbox: &usd_gf::BBox3d) -> Vec<f64> {
+    let r = bbox.range();
+    vec![r.min().x, r.min().y, r.min().z, r.max().x, r.max().y, r.max().z]
 }
 
 fn parse_xform_op_type(s: &str) -> PyResult<XformOpType> {
@@ -244,23 +256,16 @@ impl PyBBoxCache {
         Self(BBoxCache::new(TimeCode::new(time), purposes, use_extents_hint, ignore_visibility))
     }
 
-    pub fn compute_world_bound(&mut self, prim: &PyPrim) -> PyResult<Vec<f64>> {
-        let bbox = self.0.compute_world_bound(&prim.0)
-            .map_err(|e| PyValueError::new_err(format!("BBoxCache: {e}")))?;
-        let r = bbox.range();
-        Ok(vec![r.min().x, r.min().y, r.min().z, r.max().x, r.max().y, r.max().z])
+    pub fn compute_world_bound(&mut self, prim: &PyPrim) -> Vec<f64> {
+        bbox_to_flat(&self.0.compute_world_bound(&prim.0))
     }
 
-    pub fn compute_local_bound(&mut self, prim: &PyPrim) -> PyResult<Vec<f64>> {
-        let bbox = self.0.compute_local_bound(&prim.0)
-            .map_err(|e| PyValueError::new_err(format!("BBoxCache: {e}")))?;
-        let r = bbox.range();
-        Ok(vec![r.min().x, r.min().y, r.min().z, r.max().x, r.max().y, r.max().z])
+    pub fn compute_local_bound(&mut self, prim: &PyPrim) -> Vec<f64> {
+        bbox_to_flat(&self.0.compute_local_bound(&prim.0))
     }
 
-    pub fn set_time(&mut self, time: f64) -> PyResult<()> {
-        self.0.set_time(TimeCode::new(time))
-            .map_err(|e| PyValueError::new_err(format!("{e}")))
+    pub fn set_time(&mut self, time: f64) {
+        self.0.set_time(TimeCode::new(time));
     }
 
     pub fn clear(&mut self) { self.0.clear(); }
@@ -286,6 +291,10 @@ impl PyXformCache {
 
     pub fn get_parent_to_world_transform(&mut self, prim: &PyPrim) -> Vec<f64> {
         mat4_to_flat(&self.0.get_parent_to_world_transform(&prim.0))
+    }
+
+    pub fn set_time(&mut self, time: f64) {
+        self.0.set_time(TimeCode::new(time));
     }
 
     pub fn clear(&mut self) { self.0.clear(); }
@@ -325,14 +334,11 @@ impl PyImageable {
     pub fn make_visible(&self, time: Option<f64>) { self.0.make_visible(tc(time)); }
     pub fn make_invisible(&self, time: Option<f64>) { self.0.make_invisible(tc(time)); }
 
-    pub fn compute_world_bound(&self, time: f64, purpose: &str) -> PyResult<Vec<f64>> {
+    pub fn compute_world_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
         let mut cache = BBoxCache::new(
             TimeCode::new(time), vec![Token::new(purpose)], false, false,
         );
-        let bbox = cache.compute_world_bound(self.0.prim())
-            .map_err(|e| PyValueError::new_err(format!("{e}")))?;
-        let r = bbox.range();
-        Ok(vec![r.min().x, r.min().y, r.min().z, r.max().x, r.max().y, r.max().z])
+        bbox_to_flat(&cache.compute_world_bound(self.0.prim()))
     }
 
     pub fn compute_local_to_world_transform(&self, time: Option<f64>) -> Vec<f64> {
@@ -418,8 +424,9 @@ impl PyXformable {
         self.0.get_ordered_xform_ops().into_iter().map(PyXformOp).collect()
     }
 
+    /// Returns (matrix_flat_16, resets_xform_stack).
     pub fn get_local_transformation(&self, time: Option<f64>) -> (Vec<f64>, bool) {
-        let (mat, resets) = self.0.get_local_transformation(tc(time));
+        let (mat, resets) = self.0.get_local_transformation_with_reset(tc(time));
         (mat4_to_flat(&mat), resets)
     }
 

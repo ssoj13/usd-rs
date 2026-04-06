@@ -308,32 +308,9 @@ impl PyNonboundableLightBase {
 }
 
 // ---------------------------------------------------------------------------
-// Concrete light types
-// Each has: get(&Stage, path), define(&Arc<Stage>, path)->Option<Self>
-// DiskLight.get uses &Stage; most others too.
-// GeometryLight, PortalLight, PluginLight use &Arc<Stage>->Option.
+// Concrete light types — each written out explicitly since pyo3 forbids
+// macros inside #[pymethods] blocks.
 // ---------------------------------------------------------------------------
-
-// Helper: common light methods
-macro_rules! light_methods {
-    () => {
-        fn is_valid(&self) -> bool {
-            self.inner.is_valid()
-        }
-
-        fn get_path(&self) -> String {
-            self.inner.get_prim().path().get_string()
-        }
-
-        fn light_api(&self) -> PyLightAPI {
-            PyLightAPI { inner: self.inner.light_api() }
-        }
-
-        fn __bool__(&self) -> bool {
-            self.inner.is_valid()
-        }
-    };
-}
 
 // --- DiskLight ---
 
@@ -354,7 +331,10 @@ impl PyDiskLight {
         Ok(DiskLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    light_methods!();
+    fn is_valid(&self) -> bool { self.inner.is_valid() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
+    fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
         format!("UsdLux.DiskLight('{}')", self.inner.get_prim().path().get_string())
@@ -380,7 +360,10 @@ impl PyRectLight {
         Ok(RectLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    light_methods!();
+    fn is_valid(&self) -> bool { self.inner.is_valid() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
+    fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
         format!("UsdLux.RectLight('{}')", self.inner.get_prim().path().get_string())
@@ -406,11 +389,12 @@ impl PySphereLight {
         Ok(SphereLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    light_methods!();
-
-    fn get_light_api(&self) -> PyLightAPI {
-        PyLightAPI { inner: self.inner.get_light_api() }
-    }
+    fn is_valid(&self) -> bool { self.inner.is_valid() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    // SphereLight exposes both light_api() and get_light_api() names
+    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.get_light_api() } }
+    fn get_light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.get_light_api() } }
+    fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
         format!("UsdLux.SphereLight('{}')", self.inner.get_prim().path().get_string())
@@ -436,7 +420,10 @@ impl PyCylinderLight {
         Ok(CylinderLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    light_methods!();
+    fn is_valid(&self) -> bool { self.inner.is_valid() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
+    fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
         format!("UsdLux.CylinderLight('{}')", self.inner.get_prim().path().get_string())
@@ -462,7 +449,10 @@ impl PyDistantLight {
         Ok(DistantLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    light_methods!();
+    fn is_valid(&self) -> bool { self.inner.is_valid() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
+    fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
         format!("UsdLux.DistantLight('{}')", self.inner.get_prim().path().get_string())
@@ -488,7 +478,10 @@ impl PyDomeLight {
         Ok(DomeLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    light_methods!();
+    fn is_valid(&self) -> bool { self.inner.is_valid() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
+    fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
         format!("UsdLux.DomeLight('{}')", self.inner.get_prim().path().get_string())
