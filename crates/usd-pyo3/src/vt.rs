@@ -11,7 +11,7 @@ use pyo3::types::{PyBool, PyDict, PyFloat, PyList, PySlice, PyString, PyTuple};
 
 use usd_vt::{Array, ArrayEdit, ArrayEditBuilder, Dictionary, Value};
 
-use crate::gf::matrix::{PyMatrix4d, PyMatrix4f};
+use crate::gf::matrix::{PyMatrix4d};
 
 // ============================================================================
 // Helpers
@@ -46,6 +46,7 @@ fn slice_indices(step: isize, start: isize, stop: isize) -> Vec<usize> {
 
 fn is_ellipsis(obj: &Bound<'_, PyAny>) -> bool { obj.py().Ellipsis().is(&obj) }
 
+#[allow(dead_code)]
 fn repr_f64(v: f64) -> String {
     if v.is_infinite() { return if v > 0.0 { "float('inf')".into() } else { "float('-inf')".into() }; }
     if v.is_nan() { return "float('nan')".into(); }
@@ -58,6 +59,7 @@ fn repr_f64(v: f64) -> String {
     format!("{v}")
 }
 
+#[allow(dead_code)]
 fn repr_f32(v: f32) -> String {
     if v.is_infinite() { return if v > 0.0 { "float('inf')".into() } else { "float('-inf')".into() }; }
     if v.is_nan() { return "float('nan')".into(); }
@@ -86,7 +88,7 @@ where T: Clone + Send + Sync + for<'a, 'py> FromPyObject<'a, 'py> + 'static {
             Ok(())
         }
         Err(_) => {
-            if value.downcast::<PyTuple>().is_ok() || value.downcast::<PyList>().is_ok() {
+            if value.cast::<PyTuple>().is_ok() || value.cast::<PyList>().is_ok() {
                 Err(PyTypeError::new_err("array element type mismatch"))
             } else {
                 Err(PyValueError::new_err("not enough iterable elements"))
@@ -407,7 +409,7 @@ macro_rules! vt_array {
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                if let Ok(o) = other.downcast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
+                if let Ok(o) = other.cast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
                 if let Ok(list) = other.extract::<Vec<$elem>>() { return Ok(self.inner.as_slice() == list.as_slice()); }
                 Ok(false)
             }
@@ -515,7 +517,7 @@ macro_rules! vt_array {
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                if let Ok(o) = other.downcast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
+                if let Ok(o) = other.cast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
                 if let Ok(list) = other.extract::<Vec<$elem>>() { return Ok(self.inner.as_slice() == list.as_slice()); }
                 Ok(false)
             }
@@ -618,7 +620,7 @@ macro_rules! vt_array {
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                if let Ok(o) = other.downcast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
+                if let Ok(o) = other.cast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
                 if let Ok(list) = other.extract::<Vec<$elem>>() { return Ok(self.inner.as_slice() == list.as_slice()); }
                 Ok(false)
             }
@@ -696,7 +698,7 @@ macro_rules! vt_array {
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                if let Ok(o) = other.downcast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
+                if let Ok(o) = other.cast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
                 if let Ok(list) = other.extract::<Vec<$elem>>() { return Ok(self.inner.as_slice() == list.as_slice()); }
                 Ok(false)
             }
@@ -785,7 +787,7 @@ macro_rules! vt_array {
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                if let Ok(o) = other.downcast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
+                if let Ok(o) = other.cast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
                 Ok(false)
             }
             fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> { self.__eq__(py, other).map(|eq| !eq) }
@@ -1090,7 +1092,7 @@ impl PyMatrix4dArray {
             let mut all_mat = true;
             for item_res in iter {
                 let item = item_res?;
-                if let Ok(m) = item.downcast::<PyMatrix4d>() { mats.push(m.borrow().0); }
+                if let Ok(m) = item.cast::<PyMatrix4d>() { mats.push(m.borrow().0); }
                 else { all_mat = false; break; }
             }
             if all_mat { return Ok(Self { inner: Array::from(mats) }); }
@@ -1255,7 +1257,7 @@ pub fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
         return Ok(Value::from_dictionary(py_dict_to_dict(d)?.to_hash_map()));
     }
     // Handle Python lists — store as Vec<Value>
-    if let Ok(list) = obj.downcast::<PyList>() {
+    if let Ok(list) = obj.cast::<PyList>() {
         let mut values = Vec::new();
         for item in list.iter() {
             values.push(py_to_value(&item)?);
@@ -1442,10 +1444,10 @@ impl PyIntArrayEdit {
 
     #[pyo3(name = "ComposeOver")]
     fn compose_over(&self, py: Python<'_>, weaker: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
-        if let Ok(w) = weaker.downcast::<PyIntArrayEdit>() {
+        if let Ok(w) = weaker.cast::<PyIntArrayEdit>() {
             return Ok(PyIntArrayEdit { inner: self.inner.compose_over(&w.borrow().inner) }.into_pyobject(py)?.into_any().unbind());
         }
-        if let Ok(arr) = weaker.downcast::<PyIntArray>() {
+        if let Ok(arr) = weaker.cast::<PyIntArray>() {
             return Ok(PyIntArray { inner: self.inner.apply_to(arr.borrow().inner.clone()) }.into_pyobject(py)?.into_any().unbind());
         }
         if let Ok(list) = weaker.extract::<Vec<i32>>() {
@@ -1535,21 +1537,21 @@ fn value_type_name_from_tag(v: &Value, tag: &str) -> String {
 
 #[pyfunction]
 fn _test_ValueTypeName(obj: &Bound<'_, PyAny>) -> PyResult<String> {
-    if let Ok(w) = obj.downcast::<PyValue>() { let w = w.borrow(); return Ok(value_type_name_from_tag(&w.inner, w.tag)); }
-    if obj.downcast::<PyIntArrayEdit>().is_ok() { return Ok("VtArrayEdit<int>".into()); }
-    if obj.downcast::<PyStringArrayEdit>().is_ok() { return Ok("VtArrayEdit<string>".into()); }
-    if obj.downcast::<PyFloatArrayEdit>().is_ok() { return Ok("VtArrayEdit<float>".into()); }
-    if obj.downcast::<PyBool>().is_ok() { return Ok("bool".into()); }
+    if let Ok(w) = obj.cast::<PyValue>() { let w = w.borrow(); return Ok(value_type_name_from_tag(&w.inner, w.tag)); }
+    if obj.cast::<PyIntArrayEdit>().is_ok() { return Ok("VtArrayEdit<int>".into()); }
+    if obj.cast::<PyStringArrayEdit>().is_ok() { return Ok("VtArrayEdit<string>".into()); }
+    if obj.cast::<PyFloatArrayEdit>().is_ok() { return Ok("VtArrayEdit<float>".into()); }
+    if obj.cast::<PyBool>().is_ok() { return Ok("bool".into()); }
     if let Ok(i) = obj.extract::<i64>() { return Ok(if i >= i64::from(i32::MIN) && i <= i64::from(i32::MAX) { "int" } else { "long" }.into()); }
-    if obj.downcast::<PyFloat>().is_ok() { return Ok("double".into()); }
-    if obj.downcast::<PyString>().is_ok() { return Ok("string".into()); }
+    if obj.cast::<PyFloat>().is_ok() { return Ok("double".into()); }
+    if obj.cast::<PyString>().is_ok() { return Ok("string".into()); }
     Ok("TfPyObjWrapper".into())
 }
 
 #[pyfunction]
 fn _test_Ident(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
-    if let Ok(d) = obj.downcast::<PyDict>() { return dict_to_py(py, &py_dict_to_dict(d)?); }
-    if let Ok(list) = obj.downcast::<PyList>() {
+    if let Ok(d) = obj.cast::<PyDict>() { return dict_to_py(py, &py_dict_to_dict(d)?); }
+    if let Ok(list) = obj.cast::<PyList>() {
         let r = PyList::empty(py);
         for item in list.iter() { r.append(_test_Ident(py, &item)?)?; }
         return Ok(r.into_any().unbind());
@@ -1559,13 +1561,13 @@ fn _test_Ident(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
 
 #[pyfunction]
 fn _test_Str(_py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<String> {
-    if let Ok(w) = obj.downcast::<PyValue>() { return Ok(format_value(&w.borrow().inner)); }
+    if let Ok(w) = obj.cast::<PyValue>() { return Ok(format_value(&w.borrow().inner)); }
     Ok(format!("{}", obj.str()?))
 }
 
 #[pyfunction]
 fn _ReturnDictionary(py: Python<'_>, d: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
-    let dict_obj = d.downcast::<PyDict>().map_err(|_| PyTypeError::new_err("expected dict"))?;
+    let dict_obj = d.cast::<PyDict>().map_err(|_| PyTypeError::new_err("expected dict"))?;
     for (k, v) in dict_obj.iter() {
         let _: String = k.extract().map_err(|_| PyTypeError::new_err("keys must be strings"))?;
         if is_ellipsis(&v) { return Err(PyTypeError::new_err("cannot convert Ellipsis")); }
@@ -1575,10 +1577,10 @@ fn _ReturnDictionary(py: Python<'_>, d: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>
 
 #[pyfunction]
 fn _DictionaryArrayIdent(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
-    let list = obj.downcast::<PyList>().map_err(|_| PyTypeError::new_err("expected list"))?;
+    let list = obj.cast::<PyList>().map_err(|_| PyTypeError::new_err("expected list"))?;
     let result = PyList::empty(py);
     for item in list.iter() {
-        let d = item.downcast::<PyDict>().map_err(|_| PyTypeError::new_err("expected list of dicts"))?;
+        let d = item.cast::<PyDict>().map_err(|_| PyTypeError::new_err("expected list of dicts"))?;
         for (k, _) in d.iter() { let _: String = k.extract().map_err(|_| PyTypeError::new_err("keys must be strings"))?; }
         result.append(dict_to_py(py, &py_dict_to_dict(d)?)?)?;
     }
@@ -1587,6 +1589,6 @@ fn _DictionaryArrayIdent(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<Py<
 
 #[pyfunction]
 fn _test_ValueRefFromPython(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
-    if let Ok(w) = obj.downcast::<PyValue>() { return value_to_py(py, &w.borrow().inner); }
+    if let Ok(w) = obj.cast::<PyValue>() { return value_to_py(py, &w.borrow().inner); }
     value_to_py(py, &py_to_value(obj)?)
 }
