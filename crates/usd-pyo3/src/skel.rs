@@ -10,7 +10,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::sync::Arc;
 
-use usd_core::{Prim, Stage};
+use usd_core::Stage;
 use usd_sdf::{Path, TimeCode};
 use usd_skel::{
     anim_mapper::AnimMapper,

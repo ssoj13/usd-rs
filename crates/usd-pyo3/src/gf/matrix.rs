@@ -90,8 +90,8 @@ impl PyMatrix2d {
     }
 
     #[staticmethod]
-    #[pyo3(name = "SetIdentity")]
-    fn identity() -> Self { Self(Matrix2d::identity()) }
+    #[pyo3(name = "GetIdentity")]
+    fn get_identity() -> Self { Self(Matrix2d::identity()) }
 
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix2d::zero(); }
     #[pyo3(name = "SetIdentity")] fn set_identity(&mut self) { self.0 = Matrix2d::identity(); }
@@ -179,7 +179,7 @@ pub struct PyMatrix3d(pub Matrix3d);
 impl PyMatrix3d {
     #[new]
     #[pyo3(signature = (s=1.0))]
-    fn new(s: f64) -> Self { Self(Matrix3d::from_diagonal(s, s, s)) }
+    fn new(s: f64) -> Self { Self(Matrix3d::from_diagonal_values(s, s, s)) }
 
     fn __repr__(&self) -> String {
         format!("Gf.Matrix3d(({},{},{}),({},{},{}),({},{},{}))",
@@ -262,7 +262,7 @@ impl PyMatrix3d {
     #[staticmethod]
     #[pyo3(name = "ScaleMatrix")]
     fn scale_matrix(scale: f64) -> Self {
-        Self(Matrix3d::from_diagonal(scale, scale, scale))
+        Self(Matrix3d::from_diagonal_values(scale, scale, scale))
     }
 }
 
@@ -278,7 +278,7 @@ pub struct PyMatrix3f(pub Matrix3f);
 impl PyMatrix3f {
     #[new]
     #[pyo3(signature = (s=1.0))]
-    fn new(s: f32) -> Self { Self(Matrix3f::from_diagonal(s, s, s)) }
+    fn new(s: f32) -> Self { Self(Matrix3f::from_diagonal_values(s, s, s)) }
 
     fn __repr__(&self) -> String {
         format!("Gf.Matrix3f(({},{},{}),({},{},{}),({},{},{}))",

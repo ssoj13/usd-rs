@@ -1,0 +1,21 @@
+{
+    "Plugins": [{
+        "Type": "resource",
+        "Name": "TestMetadataPlugin",
+        "Info": {
+            "Types": {
+                "TestTypeWithMetadata": {
+                    "bases": ["TestBase1"],
+                    "description": "type with rich metadata",
+                    "vectorInt": [1, 2, 3],
+                    "vectorString": ["a", "b", "c"],
+                    "Int": 42,
+                    "Double": 3.14
+                }
+            },
+            "Kinds": {
+                "testKind": {"baseKind": "model"}
+            }
+        }
+    }]
+}

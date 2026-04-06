@@ -4,6 +4,3 @@ cdx*.cmd
 cld*.cmd
 ca.cmd
 *.log
-*.json
-!.planning/**/*.json
-!.planning/*.json

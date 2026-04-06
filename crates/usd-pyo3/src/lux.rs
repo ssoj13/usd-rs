@@ -9,6 +9,8 @@ use pyo3::prelude::*;
 use std::sync::Arc;
 
 use usd_core::{Prim, Stage};
+#[allow(deprecated)]
+use usd_lux::geometry_light::GeometryLight;
 use usd_lux::{
     blackbody::blackbody_temperature_as_rgb,
     boundable_light_base::BoundableLightBase,
@@ -17,7 +19,6 @@ use usd_lux::{
     distant_light::DistantLight,
     dome_light::DomeLight,
     dome_light_1::DomeLight1,
-    geometry_light::GeometryLight,
     light_api::LightAPI,
     light_filter::LightFilter,
     light_list_api::{ComputeMode, LightListAPI},
@@ -89,41 +90,42 @@ impl PyLightAPI {
     }
 
     fn get_intensity_attr(&self) -> Option<String> {
-        self.inner.get_intensity_attr().map(|a| a.path().get_string())
+        self.inner.get_intensity_attr().map(|a| a.path().to_string())
     }
 
     fn get_exposure_attr(&self) -> Option<String> {
-        self.inner.get_exposure_attr().map(|a| a.path().get_string())
+        self.inner.get_exposure_attr().map(|a| a.path().to_string())
     }
 
     fn get_color_attr(&self) -> Option<String> {
-        self.inner.get_color_attr().map(|a| a.path().get_string())
+        self.inner.get_color_attr().map(|a| a.path().to_string())
     }
 
     fn get_normalize_attr(&self) -> Option<String> {
-        self.inner.get_normalize_attr().map(|a| a.path().get_string())
+        self.inner.get_normalize_attr().map(|a| a.path().to_string())
     }
 
     fn get_enable_color_temperature_attr(&self) -> Option<String> {
-        self.inner.get_enable_color_temperature_attr().map(|a| a.path().get_string())
+        self.inner.get_enable_color_temperature_attr().map(|a| a.path().to_string())
     }
 
     fn get_color_temperature_attr(&self) -> Option<String> {
-        self.inner.get_color_temperature_attr().map(|a| a.path().get_string())
+        self.inner.get_color_temperature_attr().map(|a| a.path().to_string())
     }
 
     fn get_diffuse_attr(&self) -> Option<String> {
-        self.inner.get_diffuse_attr().map(|a| a.path().get_string())
+        self.inner.get_diffuse_attr().map(|a| a.path().to_string())
     }
 
     fn get_specular_attr(&self) -> Option<String> {
-        self.inner.get_specular_attr().map(|a| a.path().get_string())
+        self.inner.get_specular_attr().map(|a| a.path().to_string())
     }
 
-    /// CreateInput(name, type_name) -> input attribute path string (stub)
-    fn create_input(&self, name: &str, type_name: &str) -> String {
+    /// CreateInput(name, type_name) -> full input name string or None
+    fn create_input(&self, name: &str, type_name: &str) -> Option<String> {
         let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        self.inner.create_input(&Token::new(name), &tn).get_full_name().as_str().to_string()
+        self.inner.create_input(&Token::new(name), &tn)
+            .map(|inp| inp.get_full_name().as_str().to_string())
     }
 
     fn __repr__(&self) -> String {
@@ -163,19 +165,19 @@ impl PyShapingAPI {
     }
 
     fn get_shaping_focus_attr(&self) -> Option<String> {
-        self.inner.get_shaping_focus_attr().map(|a| a.path().get_string())
+        self.inner.get_shaping_focus_attr().map(|a| a.path().to_string())
     }
 
     fn get_shaping_cone_angle_attr(&self) -> Option<String> {
-        self.inner.get_shaping_cone_angle_attr().map(|a| a.path().get_string())
+        self.inner.get_shaping_cone_angle_attr().map(|a| a.path().to_string())
     }
 
     fn get_shaping_cone_softness_attr(&self) -> Option<String> {
-        self.inner.get_shaping_cone_softness_attr().map(|a| a.path().get_string())
+        self.inner.get_shaping_cone_softness_attr().map(|a| a.path().to_string())
     }
 
     fn get_shaping_ies_file_attr(&self) -> Option<String> {
-        self.inner.get_shaping_ies_file_attr().map(|a| a.path().get_string())
+        self.inner.get_shaping_ies_file_attr().map(|a| a.path().to_string())
     }
 
     fn __repr__(&self) -> String {
@@ -215,19 +217,19 @@ impl PyShadowAPI {
     }
 
     fn get_shadow_enable_attr(&self) -> Option<String> {
-        self.inner.get_shadow_enable_attr().map(|a| a.path().get_string())
+        self.inner.get_shadow_enable_attr().map(|a| a.path().to_string())
     }
 
     fn get_shadow_color_attr(&self) -> Option<String> {
-        self.inner.get_shadow_color_attr().map(|a| a.path().get_string())
+        self.inner.get_shadow_color_attr().map(|a| a.path().to_string())
     }
 
     fn get_shadow_distance_attr(&self) -> Option<String> {
-        self.inner.get_shadow_distance_attr().map(|a| a.path().get_string())
+        self.inner.get_shadow_distance_attr().map(|a| a.path().to_string())
     }
 
     fn get_shadow_falloff_attr(&self) -> Option<String> {
-        self.inner.get_shadow_falloff_attr().map(|a| a.path().get_string())
+        self.inner.get_shadow_falloff_attr().map(|a| a.path().to_string())
     }
 
     fn __repr__(&self) -> String {
@@ -332,12 +334,12 @@ impl PyDiskLight {
     }
 
     fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
     fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
     fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.DiskLight('{}')", self.inner.get_prim().path().get_string())
+        format!("UsdLux.DiskLight('{}')", self.inner.get_prim().path().to_string())
     }
 }
 
@@ -361,12 +363,12 @@ impl PyRectLight {
     }
 
     fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
     fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
     fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.RectLight('{}')", self.inner.get_prim().path().get_string())
+        format!("UsdLux.RectLight('{}')", self.inner.get_prim().path().to_string())
     }
 }
 
@@ -390,14 +392,14 @@ impl PySphereLight {
     }
 
     fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
     // SphereLight exposes both light_api() and get_light_api() names
     fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.get_light_api() } }
     fn get_light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.get_light_api() } }
     fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.SphereLight('{}')", self.inner.get_prim().path().get_string())
+        format!("UsdLux.SphereLight('{}')", self.inner.get_prim().path().to_string())
     }
 }
 
@@ -421,12 +423,12 @@ impl PyCylinderLight {
     }
 
     fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
     fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
     fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.CylinderLight('{}')", self.inner.get_prim().path().get_string())
+        format!("UsdLux.CylinderLight('{}')", self.inner.get_prim().path().to_string())
     }
 }
 
@@ -450,12 +452,12 @@ impl PyDistantLight {
     }
 
     fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
     fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
     fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.DistantLight('{}')", self.inner.get_prim().path().get_string())
+        format!("UsdLux.DistantLight('{}')", self.inner.get_prim().path().to_string())
     }
 }
 
@@ -479,12 +481,12 @@ impl PyDomeLight {
     }
 
     fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().get_string() }
+    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
     fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
     fn __bool__(&self) -> bool { self.inner.is_valid() }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.DomeLight('{}')", self.inner.get_prim().path().get_string())
+        format!("UsdLux.DomeLight('{}')", self.inner.get_prim().path().to_string())
     }
 }
 
@@ -512,7 +514,7 @@ impl PyDomeLight1 {
     }
 
     fn get_path(&self) -> String {
-        self.inner.get_prim().path().get_string()
+        self.inner.get_prim().path().to_string()
     }
 
     fn light_api(&self) -> PyLightAPI {
@@ -520,7 +522,7 @@ impl PyDomeLight1 {
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.DomeLight_1('{}')", self.inner.get_prim().path().get_string())
+        format!("UsdLux.DomeLight_1('{}')", self.inner.get_prim().path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -529,10 +531,13 @@ impl PyDomeLight1 {
 }
 
 // --- GeometryLight (Arc<Stage>->Option) ---
+// Deprecated upstream in favour of MeshLightAPI, kept for API parity.
 
+#[allow(deprecated)]
 #[pyclass(name = "GeometryLight", module = "pxr.UsdLux")]
 struct PyGeometryLight { inner: GeometryLight }
 
+#[allow(deprecated)]
 #[pymethods]
 impl PyGeometryLight {
     #[staticmethod]
@@ -552,7 +557,7 @@ impl PyGeometryLight {
     }
 
     fn get_path(&self) -> String {
-        self.inner.get_prim().path().get_string()
+        self.inner.get_prim().path().to_string()
     }
 
     // GeometryLight doesn't have light_api() — use LightAPI::new separately if needed
@@ -561,7 +566,7 @@ impl PyGeometryLight {
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.GeometryLight('{}')", self.inner.get_prim().path().get_string())
+        format!("UsdLux.GeometryLight('{}')", self.inner.get_prim().path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -593,7 +598,7 @@ impl PyPortalLight {
     }
 
     fn get_path(&self) -> String {
-        self.inner.get_prim().path().get_string()
+        self.inner.get_prim().path().to_string()
     }
 
     fn light_api(&self) -> PyLightAPI {
@@ -601,7 +606,7 @@ impl PyPortalLight {
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.PortalLight('{}')", self.inner.get_prim().path().get_string())
+        format!("UsdLux.PortalLight('{}')", self.inner.get_prim().path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -633,7 +638,7 @@ impl PyPluginLight {
     }
 
     fn get_path(&self) -> String {
-        self.inner.get_prim().path().get_string()
+        self.inner.get_prim().path().to_string()
     }
 
     fn light_api(&self) -> PyLightAPI {
@@ -641,7 +646,7 @@ impl PyPluginLight {
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.PluginLight('{}')", self.inner.get_prim().path().get_string())
+        format!("UsdLux.PluginLight('{}')", self.inner.get_prim().path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -676,11 +681,11 @@ impl PyLightFilter {
 
     fn get_path(&self) -> String {
         // LightFilter uses prim() not get_prim()
-        self.inner.prim().path().get_string()
+        self.inner.prim().path().to_string()
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.LightFilter('{}')", self.inner.prim().path().get_string())
+        format!("UsdLux.LightFilter('{}')", self.inner.prim().path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -826,7 +831,7 @@ impl PyLightListAPI {
         self.inner
             .compute_light_list(compute_mode)
             .into_iter()
-            .map(|p| p.get_string())
+            .map(|p| p.to_string())
             .collect()
     }
 

@@ -1,0 +1,18 @@
+{
+    "Plugins": [
+        {
+            "Type": "resource",
+            "Name": "TestDepBadDep",
+            "Info": {
+                "PluginDependencies": {
+                    "_TestPlugBase<2>": ["UnknownBase3Derived"]
+                },
+                "Types": {
+                    "TestPlugPythonDepBadDep": {
+                        "bases": ["_TestPlugBase<3>"]
+                    }
+                }
+            }
+        }
+    ]
+}

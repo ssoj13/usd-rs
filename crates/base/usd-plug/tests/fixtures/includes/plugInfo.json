@@ -1,0 +1,8 @@
+{
+    "Includes": ["subdir/"],
+    "Plugins": [{
+        "Type": "resource",
+        "Name": "TestIncludeParent",
+        "Info": {"Types": {"ParentType": {"bases": []}}}
+    }]
+}

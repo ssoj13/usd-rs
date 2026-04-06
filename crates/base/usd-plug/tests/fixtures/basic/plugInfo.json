@@ -1,0 +1,14 @@
+{
+    "Plugins": [{
+        "Type": "resource",
+        "Name": "TestBasicPlugin",
+        "Info": {
+            "Types": {
+                "TestDerived1": {
+                    "bases": ["TestBase1"],
+                    "description": "A test derived type"
+                }
+            }
+        }
+    }]
+}

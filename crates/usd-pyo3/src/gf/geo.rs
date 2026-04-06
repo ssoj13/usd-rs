@@ -1,5 +1,5 @@
 //! Geometric Python types: Rotation, BBox3d, Plane, Line, LineSeg, Ray,
-//! Interval, MultiInterval, Rect2i, Size2, Size3, Transform, Camera, Frustum.
+//! Interval, MultiInterval, Rect2i, Size2, Size3, Transform, Camera.
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyIndexError;
@@ -7,8 +7,6 @@ use usd_gf::{
     BBox3d, Rotation, Interval, MultiInterval, Rect2i, Size2, Size3,
     Range1d, Range1f, Range2d, Range2f, Range3d, Range3f,
 };
-use usd_gf::vec3::Vec3d;
-use usd_gf::matrix4::Matrix4d;
 
 // ---------------------------------------------------------------------------
 // Rotation
@@ -99,7 +97,7 @@ impl PyRange1d {
     #[getter] fn min(&self) -> f64 { self.0.min() }
     #[getter] fn max(&self) -> f64 { self.0.max() }
     #[getter] fn size(&self) -> f64 { self.0.size() }
-    #[getter] fn isEmpty(&self) -> bool { self.0.is_empty() }  // pxr uses camelCase
+    #[getter] fn isEmpty(&self) -> bool { self.0.is_empty() }  // pxr camelCase
     #[setter] fn set_min_prop(&mut self, v: f64) { self.0.set_min(v); }
     #[setter] fn set_max_prop(&mut self, v: f64) { self.0.set_max(v); }
 }
@@ -135,7 +133,7 @@ impl PyRange1f {
 }
 
 // ---------------------------------------------------------------------------
-// Range2d / Range2f
+// Range2d / Range2f  — min()/max() return &Vec2<T>, copy with *
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "Range2d", module = "pxr.Gf")]
@@ -154,8 +152,8 @@ impl PyRange2d {
     }
 
     fn __repr__(&self) -> String {
-        format!("Gf.Range2d(({},{}), ({},{}))",
-            self.0.min().x, self.0.min().y, self.0.max().x, self.0.max().y)
+        let mn = *self.0.min(); let mx = *self.0.max();
+        format!("Gf.Range2d(({},{}), ({},{}))", mn.x, mn.y, mx.x, mx.y)
     }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
@@ -166,12 +164,12 @@ impl PyRange2d {
         self.0.contains_point(&p.0)
     }
     #[pyo3(name = "IsEmpty")]  fn is_empty(&self) -> bool { self.0.is_empty() }
-    #[pyo3(name = "GetMin")]   fn get_min(&self) -> super::vec::PyVec2d { super::vec::PyVec2d(self.0.min()) }
-    #[pyo3(name = "GetMax")]   fn get_max(&self) -> super::vec::PyVec2d { super::vec::PyVec2d(self.0.max()) }
+    #[pyo3(name = "GetMin")]   fn get_min(&self) -> super::vec::PyVec2d { super::vec::PyVec2d(*self.0.min()) }
+    #[pyo3(name = "GetMax")]   fn get_max(&self) -> super::vec::PyVec2d { super::vec::PyVec2d(*self.0.max()) }
     #[pyo3(name = "GetSize")]  fn get_size(&self) -> super::vec::PyVec2d { super::vec::PyVec2d(self.0.size()) }
 
-    #[getter] fn min(&self) -> super::vec::PyVec2d { super::vec::PyVec2d(self.0.min()) }
-    #[getter] fn max(&self) -> super::vec::PyVec2d { super::vec::PyVec2d(self.0.max()) }
+    #[getter] fn min(&self) -> super::vec::PyVec2d { super::vec::PyVec2d(*self.0.min()) }
+    #[getter] fn max(&self) -> super::vec::PyVec2d { super::vec::PyVec2d(*self.0.max()) }
     #[getter] fn size(&self) -> super::vec::PyVec2d { super::vec::PyVec2d(self.0.size()) }
     #[getter] fn isEmpty(&self) -> bool { self.0.is_empty() }
 }
@@ -192,8 +190,8 @@ impl PyRange2f {
     }
 
     fn __repr__(&self) -> String {
-        format!("Gf.Range2f(({},{}), ({},{}))",
-            self.0.min().x, self.0.min().y, self.0.max().x, self.0.max().y)
+        let mn = *self.0.min(); let mx = *self.0.max();
+        format!("Gf.Range2f(({},{}), ({},{}))", mn.x, mn.y, mx.x, mx.y)
     }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
@@ -204,12 +202,12 @@ impl PyRange2f {
         self.0.contains_point(&p.0)
     }
     #[pyo3(name = "IsEmpty")] fn is_empty(&self) -> bool { self.0.is_empty() }
-    #[pyo3(name = "GetMin")]  fn get_min(&self) -> super::vec::PyVec2f { super::vec::PyVec2f(self.0.min()) }
-    #[pyo3(name = "GetMax")]  fn get_max(&self) -> super::vec::PyVec2f { super::vec::PyVec2f(self.0.max()) }
+    #[pyo3(name = "GetMin")]  fn get_min(&self) -> super::vec::PyVec2f { super::vec::PyVec2f(*self.0.min()) }
+    #[pyo3(name = "GetMax")]  fn get_max(&self) -> super::vec::PyVec2f { super::vec::PyVec2f(*self.0.max()) }
     #[pyo3(name = "GetSize")] fn get_size(&self) -> super::vec::PyVec2f { super::vec::PyVec2f(self.0.size()) }
 
-    #[getter] fn min(&self) -> super::vec::PyVec2f { super::vec::PyVec2f(self.0.min()) }
-    #[getter] fn max(&self) -> super::vec::PyVec2f { super::vec::PyVec2f(self.0.max()) }
+    #[getter] fn min(&self) -> super::vec::PyVec2f { super::vec::PyVec2f(*self.0.min()) }
+    #[getter] fn max(&self) -> super::vec::PyVec2f { super::vec::PyVec2f(*self.0.max()) }
     #[getter] fn isEmpty(&self) -> bool { self.0.is_empty() }
 }
 
@@ -233,7 +231,7 @@ impl PyRange3d {
     }
 
     fn __repr__(&self) -> String {
-        let mn = self.0.min(); let mx = self.0.max();
+        let mn = *self.0.min(); let mx = *self.0.max();
         format!("Gf.Range3d(({},{},{}), ({},{},{}))", mn.x,mn.y,mn.z, mx.x,mx.y,mx.z)
     }
     fn __str__(&self) -> String { self.__repr__() }
@@ -244,17 +242,18 @@ impl PyRange3d {
     #[pyo3(name = "Contains")] fn contains(&self, p: &super::vec::PyVec3d) -> bool {
         self.0.contains_point(&p.0)
     }
-    #[pyo3(name = "Intersects")] fn intersects(&self, o: &Self) -> bool { self.0.intersects(&o.0) }
+    // Range3 has no intersects(); use !is_outside() as the equivalent
+    #[pyo3(name = "Intersects")] fn intersects(&self, o: &Self) -> bool { !self.0.is_outside(&o.0) }
     #[pyo3(name = "IsEmpty")]  fn is_empty(&self) -> bool { self.0.is_empty() }
-    #[pyo3(name = "GetMin")]   fn get_min(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.min()) }
-    #[pyo3(name = "GetMax")]   fn get_max(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.max()) }
+    #[pyo3(name = "GetMin")]   fn get_min(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.min()) }
+    #[pyo3(name = "GetMax")]   fn get_max(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.max()) }
     #[pyo3(name = "GetSize")]  fn get_size(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.size()) }
     #[pyo3(name = "GetMidpoint")] fn get_midpoint(&self) -> super::vec::PyVec3d {
         super::vec::PyVec3d(self.0.midpoint())
     }
 
-    #[getter] fn min(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.min()) }
-    #[getter] fn max(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.max()) }
+    #[getter] fn min(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.min()) }
+    #[getter] fn max(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.max()) }
     #[getter] fn size(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.size()) }
     #[getter] fn isEmpty(&self) -> bool { self.0.is_empty() }
     #[setter] fn set_min_prop(&mut self, v: &super::vec::PyVec3d) { self.0.set_min(v.0); }
@@ -277,7 +276,7 @@ impl PyRange3f {
     }
 
     fn __repr__(&self) -> String {
-        let mn = self.0.min(); let mx = self.0.max();
+        let mn = *self.0.min(); let mx = *self.0.max();
         format!("Gf.Range3f(({},{},{}), ({},{},{}))", mn.x,mn.y,mn.z, mx.x,mx.y,mx.z)
     }
     fn __str__(&self) -> String { self.__repr__() }
@@ -289,17 +288,17 @@ impl PyRange3f {
         self.0.contains_point(&p.0)
     }
     #[pyo3(name = "IsEmpty")]  fn is_empty(&self) -> bool { self.0.is_empty() }
-    #[pyo3(name = "GetMin")]   fn get_min(&self) -> super::vec::PyVec3f { super::vec::PyVec3f(self.0.min()) }
-    #[pyo3(name = "GetMax")]   fn get_max(&self) -> super::vec::PyVec3f { super::vec::PyVec3f(self.0.max()) }
+    #[pyo3(name = "GetMin")]   fn get_min(&self) -> super::vec::PyVec3f { super::vec::PyVec3f(*self.0.min()) }
+    #[pyo3(name = "GetMax")]   fn get_max(&self) -> super::vec::PyVec3f { super::vec::PyVec3f(*self.0.max()) }
     #[pyo3(name = "GetSize")]  fn get_size(&self) -> super::vec::PyVec3f { super::vec::PyVec3f(self.0.size()) }
 
-    #[getter] fn min(&self) -> super::vec::PyVec3f { super::vec::PyVec3f(self.0.min()) }
-    #[getter] fn max(&self) -> super::vec::PyVec3f { super::vec::PyVec3f(self.0.max()) }
+    #[getter] fn min(&self) -> super::vec::PyVec3f { super::vec::PyVec3f(*self.0.min()) }
+    #[getter] fn max(&self) -> super::vec::PyVec3f { super::vec::PyVec3f(*self.0.max()) }
     #[getter] fn isEmpty(&self) -> bool { self.0.is_empty() }
 }
 
 // ---------------------------------------------------------------------------
-// BBox3d
+// BBox3d — range()/matrix()/inverse_matrix() return references, dereference
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "BBox3d", module = "pxr.Gf")]
@@ -312,24 +311,26 @@ impl PyBBox3d {
     #[pyo3(signature = (range=None, matrix=None))]
     fn new(range: Option<&PyRange3d>, matrix: Option<&super::matrix::PyMatrix4d>) -> Self {
         match (range, matrix) {
-            (Some(r), Some(m)) => Self(BBox3d::from_range_and_matrix(r.0, m.0)),
-            (Some(r), None) => Self(BBox3d::from_range(r.0)),
+            (Some(r), Some(m)) => Self(BBox3d::from_range_matrix(r.0.clone(), m.0)),
+            (Some(r), None) => Self(BBox3d::from_range(r.0.clone())),
             _ => Self(BBox3d::default()),
         }
     }
 
-    fn __repr__(&self) -> String { format!("Gf.BBox3d(...)") }
+    fn __repr__(&self) -> String { "Gf.BBox3d(...)".to_string() }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
 
-    #[pyo3(name = "GetRange")]    fn get_range(&self) -> PyRange3d { PyRange3d(self.0.range()) }
-    #[pyo3(name = "GetBox")]      fn get_box(&self) -> PyRange3d { PyRange3d(self.0.range()) }
-    #[pyo3(name = "GetMatrix")]   fn get_matrix(&self) -> super::matrix::PyMatrix4d { super::matrix::PyMatrix4d(self.0.matrix()) }
-    #[pyo3(name = "GetInverseMatrix")] fn get_inverse_matrix(&self) -> super::matrix::PyMatrix4d {
-        super::matrix::PyMatrix4d(self.0.inverse_matrix())
+    #[pyo3(name = "GetRange")]    fn get_range(&self) -> PyRange3d { PyRange3d(self.0.range().clone()) }
+    #[pyo3(name = "GetBox")]      fn get_box(&self) -> PyRange3d { PyRange3d(self.0.range().clone()) }
+    #[pyo3(name = "GetMatrix")]   fn get_matrix(&self) -> super::matrix::PyMatrix4d {
+        super::matrix::PyMatrix4d(*self.0.matrix())
     }
-    #[pyo3(name = "SetRange")] fn set_range(&mut self, r: &PyRange3d) { self.0.set_range(r.0); }
+    #[pyo3(name = "GetInverseMatrix")] fn get_inverse_matrix(&self) -> super::matrix::PyMatrix4d {
+        super::matrix::PyMatrix4d(*self.0.inverse_matrix())
+    }
+    #[pyo3(name = "SetRange")] fn set_range(&mut self, r: &PyRange3d) { self.0.set_range(r.0.clone()); }
     #[pyo3(name = "SetMatrix")] fn set_matrix(&mut self, m: &super::matrix::PyMatrix4d) { self.0.set_matrix(m.0); }
     #[pyo3(name = "HasZeroAreaPrimitives")] fn has_zero_area_primitives(&self) -> bool {
         self.0.has_zero_area_primitives()
@@ -348,7 +349,7 @@ impl PyBBox3d {
     }
     #[pyo3(name = "GetVolume")] fn get_volume(&self) -> f64 { self.0.volume() }
     #[pyo3(name = "Transform")] fn transform(&self, m: &super::matrix::PyMatrix4d) -> Self {
-        let mut b = self.0;
+        let mut b = self.0.clone();
         b.transform(&m.0);
         Self(b)
     }
@@ -356,16 +357,16 @@ impl PyBBox3d {
     #[pyo3(name = "Combine")]
     fn combine(a: &Self, b: &Self) -> Self { Self(BBox3d::combine(&a.0, &b.0)) }
 
-    #[getter] fn box_(&self) -> PyRange3d { PyRange3d(self.0.range()) }
-    #[getter] fn matrix(&self) -> super::matrix::PyMatrix4d { super::matrix::PyMatrix4d(self.0.matrix()) }
+    #[getter] fn box_(&self) -> PyRange3d { PyRange3d(self.0.range().clone()) }
+    #[getter] fn matrix(&self) -> super::matrix::PyMatrix4d { super::matrix::PyMatrix4d(*self.0.matrix()) }
     #[getter] fn hasZeroAreaPrimitives(&self) -> bool { self.0.has_zero_area_primitives() }
-    #[setter] fn set_box(&mut self, r: &PyRange3d) { self.0.set_range(r.0); }
+    #[setter] fn set_box(&mut self, r: &PyRange3d) { self.0.set_range(r.0.clone()); }
     #[setter] fn set_matrix_prop(&mut self, m: &super::matrix::PyMatrix4d) { self.0.set_matrix(m.0); }
     #[setter] fn set_has_zero_area_primitives_prop(&mut self, v: bool) { self.0.set_has_zero_area_primitives(v); }
 }
 
 // ---------------------------------------------------------------------------
-// Interval
+// Interval — is_min_closed()/is_max_closed() (not min_closed()/max_closed())
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "Interval", module = "pxr.Gf")]
@@ -390,8 +391,8 @@ impl PyInterval {
     #[pyo3(name = "Contains")] fn contains(&self, v: f64) -> bool { self.0.contains(v) }
     #[pyo3(name = "IsEmpty")]  fn is_empty(&self) -> bool { self.0.is_empty() }
     #[pyo3(name = "IsFinite")] fn is_finite(&self) -> bool { self.0.is_finite() }
-    #[pyo3(name = "GetMin")]   fn get_min(&self) -> f64 { self.0.min() }
-    #[pyo3(name = "GetMax")]   fn get_max(&self) -> f64 { self.0.max() }
+    #[pyo3(name = "GetMin")]   fn get_min(&self) -> f64 { self.0.get_min() }
+    #[pyo3(name = "GetMax")]   fn get_max(&self) -> f64 { self.0.get_max() }
     #[pyo3(name = "GetSize")]  fn get_size(&self) -> f64 { self.0.size() }
     #[pyo3(name = "Intersects")] fn intersects(&self, o: &Self) -> bool { self.0.intersects(&o.0) }
 
@@ -399,19 +400,20 @@ impl PyInterval {
     #[pyo3(name = "GetFullInterval")]
     fn get_full_interval() -> Self { Self(Interval::full()) }
 
-    #[getter] fn min(&self) -> f64 { self.0.min() }
-    #[getter] fn max(&self) -> f64 { self.0.max() }
-    #[getter] fn minClosed(&self) -> bool { self.0.min_closed() }
-    #[getter] fn maxClosed(&self) -> bool { self.0.max_closed() }
-    #[getter] fn minOpen(&self) -> bool { !self.0.min_closed() }
-    #[getter] fn maxOpen(&self) -> bool { !self.0.max_closed() }
+    #[getter] fn min(&self) -> f64 { self.0.get_min() }
+    #[getter] fn max(&self) -> f64 { self.0.get_max() }
+    // pxr uses camelCase property names
+    #[getter] fn minClosed(&self) -> bool { self.0.is_min_closed() }
+    #[getter] fn maxClosed(&self) -> bool { self.0.is_max_closed() }
+    #[getter] fn minOpen(&self) -> bool { self.0.is_min_open() }
+    #[getter] fn maxOpen(&self) -> bool { self.0.is_max_open() }
     #[getter] fn isEmpty(&self) -> bool { self.0.is_empty() }
     #[getter] fn size(&self) -> f64 { self.0.size() }
     #[getter] fn finite(&self) -> bool { self.0.is_finite() }
 }
 
 // ---------------------------------------------------------------------------
-// MultiInterval
+// MultiInterval — no & or | operators; use add/remove/intersect methods
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "MultiInterval", module = "pxr.Gf")]
@@ -423,20 +425,36 @@ impl PyMultiInterval {
     #[new]
     fn new() -> Self { Self(MultiInterval::new()) }
 
-    fn __repr__(&self) -> String { format!("Gf.MultiInterval(...)") }
+    fn __repr__(&self) -> String { "Gf.MultiInterval(...)".to_string() }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
     fn __bool__(&self) -> bool { !self.0.is_empty() }
-    fn __and__(&self, o: &Self) -> Self { Self(self.0.clone() & o.0.clone()) }
-    fn __or__(&self, o: &Self) -> Self { Self(self.0.clone() | o.0.clone()) }
+
+    // Union via add_multi
+    fn __or__(&self, o: &Self) -> Self {
+        let mut result = self.0.clone();
+        result.add_multi(&o.0);
+        Self(result)
+    }
+    // Intersection via intersect_multi
+    fn __and__(&self, o: &Self) -> Self {
+        let mut result = self.0.clone();
+        result.intersect_multi(&o.0);
+        Self(result)
+    }
 
     #[pyo3(name = "IsEmpty")]     fn is_empty(&self) -> bool { self.0.is_empty() }
-    #[pyo3(name = "IsFinite")]    fn is_finite(&self) -> bool { self.0.is_finite() }
-    #[pyo3(name = "Contains")]    fn contains(&self, v: f64) -> bool { self.0.contains(v) }
-    #[pyo3(name = "GetSize")]     fn get_size(&self) -> f64 { self.0.size() }
-    #[pyo3(name = "Union")]       fn union_with(&self, o: &Self) -> Self { Self(self.0.clone() | o.0.clone()) }
-    #[pyo3(name = "Intersection")] fn intersection(&self, o: &Self) -> Self { Self(self.0.clone() & o.0.clone()) }
+    #[pyo3(name = "Contains")]    fn contains(&self, v: f64) -> bool { self.0.contains_value(v) }
+    #[pyo3(name = "GetSize")]     fn get_size(&self) -> usize { self.0.len() }
+    #[pyo3(name = "Add")]         fn add(&mut self, i: &PyInterval) { self.0.add(i.0.clone()); }
+    #[pyo3(name = "Remove")]      fn remove(&mut self, i: &PyInterval) { self.0.remove(i.0.clone()); }
+    #[pyo3(name = "Intersect")]   fn intersect(&mut self, i: &PyInterval) { self.0.intersect(i.0.clone()); }
+    #[pyo3(name = "Clear")]       fn clear(&mut self) { self.0.clear(); }
+    #[pyo3(name = "Union")]       fn union_with(&mut self, o: &Self) { self.0.add_multi(&o.0); }
+    #[pyo3(name = "Intersection")] fn intersection(&mut self, o: &Self) { self.0.intersect_multi(&o.0); }
+    #[pyo3(name = "GetBounds")]   fn get_bounds(&self) -> PyInterval { PyInterval(self.0.bounds()) }
+    #[pyo3(name = "Complement")]  fn complement(&self) -> Self { Self(self.0.complement()) }
 
     #[staticmethod]
     #[pyo3(name = "GetFullInterval")]
@@ -444,7 +462,7 @@ impl PyMultiInterval {
 }
 
 // ---------------------------------------------------------------------------
-// Rect2i
+// Rect2i — area() returns u64, cast to i64 for Python int compat
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "Rect2i", module = "pxr.Gf")]
@@ -476,7 +494,7 @@ impl PyRect2i {
     #[pyo3(name = "GetWidth")]  fn get_width(&self) -> i32 { self.0.width() }
     #[pyo3(name = "GetHeight")] fn get_height(&self) -> i32 { self.0.height() }
     #[pyo3(name = "GetSize")]   fn get_size(&self) -> (i32,i32) { (self.0.width(), self.0.height()) }
-    #[pyo3(name = "GetArea")]   fn get_area(&self) -> i64 { self.0.area() }
+    #[pyo3(name = "GetArea")]   fn get_area(&self) -> u64 { self.0.area() }
     #[pyo3(name = "Contains")]  fn contains(&self, p: (i32,i32)) -> bool {
         self.0.contains(&usd_gf::Vec2i::new(p.0, p.1))
     }
@@ -491,7 +509,7 @@ impl PyRect2i {
     #[getter] fn max(&self) -> (i32,i32) { (self.0.max().x, self.0.max().y) }
     #[getter] fn width(&self) -> i32 { self.0.width() }
     #[getter] fn height(&self) -> i32 { self.0.height() }
-    #[getter] fn area(&self) -> i64 { self.0.area() }
+    #[getter] fn area(&self) -> u64 { self.0.area() }
     #[setter] fn set_min_prop(&mut self, p: (i32,i32)) { self.0.set_min(usd_gf::Vec2i::new(p.0,p.1)); }
     #[setter] fn set_max_prop(&mut self, p: (i32,i32)) { self.0.set_max(usd_gf::Vec2i::new(p.0,p.1)); }
 }
@@ -528,10 +546,6 @@ impl PySize2 {
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
     fn __mul__(&self, s: usize) -> Self { Self(self.0 * s) }
-    fn __neg__(&self) -> Self {
-        // Size2 uses usize — wrap via isize cast for API compat (edge case)
-        Self(Size2::new(0usize.wrapping_sub(self.0[0]), 0usize.wrapping_sub(self.0[1])))
-    }
     #[pyo3(name = "Get")] fn get(&self) -> (usize, usize) { (self.0[0], self.0[1]) }
     #[pyo3(name = "Set")] fn set(&mut self, x: usize, y: usize) {
         self.0[0] = x; self.0[1] = y;
@@ -573,7 +587,7 @@ impl PySize3 {
 }
 
 // ---------------------------------------------------------------------------
-// Transform (thin wrapper — delegates to GfTransform)
+// Transform
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "Transform", module = "pxr.Gf")]
@@ -585,7 +599,7 @@ impl PyTransform {
     #[new]
     fn new() -> Self { Self(usd_gf::Transform::default()) }
 
-    fn __repr__(&self) -> String { format!("Gf.Transform(...)") }
+    fn __repr__(&self) -> String { "Gf.Transform(...)".to_string() }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
@@ -599,11 +613,13 @@ impl PyTransform {
         self.0.set_matrix(&m.0);
     }
     #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> super::matrix::PyMatrix4d {
-        // GfTransform::GetInverse returns a matrix, not a Transform
-        super::matrix::PyMatrix4d(self.0.matrix().inverse())
+        // GfTransform::GetInverse returns the inverse matrix
+        let inv = self.0.matrix().inverse().unwrap_or_else(usd_gf::Matrix4d::identity);
+        super::matrix::PyMatrix4d(inv)
     }
     #[pyo3(name = "GetInverseMatrix")] fn get_inverse_matrix(&self) -> super::matrix::PyMatrix4d {
-        super::matrix::PyMatrix4d(self.0.matrix().inverse())
+        let inv = self.0.matrix().inverse().unwrap_or_else(usd_gf::Matrix4d::identity);
+        super::matrix::PyMatrix4d(inv)
     }
     #[pyo3(name = "GetTranslation")] fn get_translation(&self) -> super::vec::PyVec3d {
         super::vec::PyVec3d(self.0.translation())
@@ -626,7 +642,7 @@ impl PyTransform {
 }
 
 // ---------------------------------------------------------------------------
-// Camera (thin wrapper — exposes common properties)
+// Camera
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "Camera", module = "pxr.Gf")]
@@ -638,7 +654,7 @@ impl PyCamera {
     #[new]
     fn new() -> Self { Self(usd_gf::Camera::default()) }
 
-    fn __repr__(&self) -> String { format!("Gf.Camera(...)") }
+    fn __repr__(&self) -> String { "Gf.Camera(...)".to_string() }
     fn __str__(&self) -> String { self.__repr__() }
 
     #[pyo3(name = "GetFieldOfView")] fn get_fov(&self, direction: i32) -> f64 {
@@ -701,7 +717,7 @@ impl PyCamera {
 }
 
 // ---------------------------------------------------------------------------
-// Plane
+// Plane — no set_normal/set_distance; rebuild via from_normal_distance
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "Plane", module = "pxr.Gf")]
@@ -728,17 +744,39 @@ impl PyPlane {
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
 
-    #[pyo3(name = "GetNormal")]   fn get_normal(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.normal()) }
-    #[pyo3(name = "GetDistanceFromOrigin")] fn get_distance_from_origin(&self) -> f64 { self.0.distance_from_origin() }
+    #[pyo3(name = "GetNormal")]   fn get_normal(&self) -> super::vec::PyVec3d {
+        super::vec::PyVec3d(*self.0.normal())
+    }
+    #[pyo3(name = "GetDistanceFromOrigin")] fn get_distance_from_origin(&self) -> f64 {
+        self.0.distance_from_origin()
+    }
     #[pyo3(name = "GetDistance")] fn get_distance(&self, p: &super::vec::PyVec3d) -> f64 {
         self.0.distance(&p.0)
     }
-    #[pyo3(name = "SetNormal")]   fn set_normal(&mut self, n: &super::vec::PyVec3d) { self.0.set_normal(n.0); }
-    #[pyo3(name = "SetDistance")] fn set_distance(&mut self, d: f64) { self.0.set_distance_from_origin(d); }
+    // Rebuild from new normal keeping old distance
+    #[pyo3(name = "SetNormal")]   fn set_normal(&mut self, n: &super::vec::PyVec3d) {
+        self.0 = usd_gf::Plane::from_normal_distance(n.0, self.0.distance_from_origin());
+    }
+    // Rebuild from new distance keeping old normal
+    #[pyo3(name = "SetDistance")] fn set_distance(&mut self, d: f64) {
+        self.0 = usd_gf::Plane::from_normal_distance(*self.0.normal(), d);
+    }
+    #[pyo3(name = "Reorient")] fn reorient(&mut self, p: &super::vec::PyVec3d) {
+        self.0.reorient(&p.0);
+    }
+    #[pyo3(name = "Project")] fn project(&self, p: &super::vec::PyVec3d) -> super::vec::PyVec3d {
+        super::vec::PyVec3d(self.0.project(&p.0))
+    }
+    #[pyo3(name = "Transform")] fn transform(&mut self, m: &super::matrix::PyMatrix4d) {
+        self.0.transform(&m.0);
+    }
+
+    #[getter] fn normal(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.normal()) }
+    #[getter] fn distanceFromOrigin(&self) -> f64 { self.0.distance_from_origin() }
 }
 
 // ---------------------------------------------------------------------------
-// Line
+// Line — set() takes values by value; direction()/origin() return &Vec3d
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "Line", module = "pxr.Gf")]
@@ -750,20 +788,27 @@ impl PyLine {
     #[new]
     fn new() -> Self { Self(usd_gf::Line::default()) }
 
-    fn __repr__(&self) -> String { format!("Gf.Line(...)") }
+    fn __repr__(&self) -> String { "Gf.Line(...)".to_string() }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
 
-    #[pyo3(name = "Set")] fn set(&mut self, p0: &super::vec::PyVec3d, p1: &super::vec::PyVec3d) -> bool {
-        self.0.set(&p0.0, &p1.0)
+    // set() returns the length of the direction vector
+    #[pyo3(name = "Set")] fn set(&mut self, p0: &super::vec::PyVec3d, direction: &super::vec::PyVec3d) -> f64 {
+        self.0.set(p0.0, direction.0)
     }
     #[pyo3(name = "GetPoint")] fn get_point(&self, t: f64) -> super::vec::PyVec3d {
         super::vec::PyVec3d(self.0.point(t))
     }
     #[pyo3(name = "GetDirection")] fn get_direction(&self) -> super::vec::PyVec3d {
-        super::vec::PyVec3d(self.0.direction())
+        super::vec::PyVec3d(*self.0.direction())
     }
+    #[pyo3(name = "FindClosestPoint")] fn find_closest_point(&self, p: &super::vec::PyVec3d) -> (super::vec::PyVec3d, f64) {
+        let (pt, t) = self.0.find_closest_point(&p.0);
+        (super::vec::PyVec3d(pt), t)
+    }
+
+    #[getter] fn direction(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.direction()) }
 }
 
 // ---------------------------------------------------------------------------
@@ -785,7 +830,7 @@ impl PyLineSeg {
         }
     }
 
-    fn __repr__(&self) -> String { format!("Gf.LineSeg(...)") }
+    fn __repr__(&self) -> String { "Gf.LineSeg(...)".to_string() }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
@@ -794,16 +839,20 @@ impl PyLineSeg {
         super::vec::PyVec3d(self.0.point(t))
     }
     #[pyo3(name = "GetDirection")] fn get_direction(&self) -> super::vec::PyVec3d {
-        super::vec::PyVec3d(self.0.direction())
+        super::vec::PyVec3d(*self.0.direction())
     }
     #[pyo3(name = "GetLength")] fn get_length(&self) -> f64 { self.0.length() }
+    #[pyo3(name = "FindClosestPoint")] fn find_closest_point(&self, p: &super::vec::PyVec3d) -> (super::vec::PyVec3d, f64) {
+        let (pt, t) = self.0.find_closest_point(&p.0);
+        (super::vec::PyVec3d(pt), t)
+    }
 
-    #[getter] fn direction(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.direction()) }
+    #[getter] fn direction(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.direction()) }
     #[getter] fn length(&self) -> f64 { self.0.length() }
 }
 
 // ---------------------------------------------------------------------------
-// Ray
+// Ray — set() takes values, transform() mutates; use transformed() for immut
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "Ray", module = "pxr.Gf")]
@@ -821,13 +870,14 @@ impl PyRay {
         }
     }
 
-    fn __repr__(&self) -> String { format!("Gf.Ray(...)") }
+    fn __repr__(&self) -> String { "Gf.Ray(...)".to_string() }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
 
+    // Ray::set() takes values by value; no set_point_and_direction method
     #[pyo3(name = "SetPointAndDirection")] fn set_point_and_dir(&mut self, p: &super::vec::PyVec3d, d: &super::vec::PyVec3d) {
-        self.0.set_point_and_direction(p.0, d.0);
+        self.0.set(p.0, d.0);
     }
     #[pyo3(name = "GetPoint")] fn get_point(&self, t: f64) -> super::vec::PyVec3d {
         super::vec::PyVec3d(self.0.point(t))
@@ -837,13 +887,11 @@ impl PyRay {
         (super::vec::PyVec3d(pt), t)
     }
     #[pyo3(name = "Transform")] fn transform(&self, m: &super::matrix::PyMatrix4d) -> Self {
-        Self(self.0.transform(&m.0))
+        Self(self.0.transformed(&m.0))
     }
 
-    #[getter] fn startPoint(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.start_point()) }
-    #[getter] fn direction(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.direction()) }
-    #[setter] fn set_start_point(&mut self, p: &super::vec::PyVec3d) { self.0.set_start_point(p.0); }
-    #[setter] fn set_direction(&mut self, d: &super::vec::PyVec3d) { self.0.set_direction(d.0); }
+    #[getter] fn startPoint(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.start_point()) }
+    #[getter] fn direction(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.direction()) }
 }
 
 // ---------------------------------------------------------------------------

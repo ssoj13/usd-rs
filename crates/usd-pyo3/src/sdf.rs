@@ -1260,18 +1260,6 @@ impl PyLayer {
         self.inner.clear_time_codes_per_second();
     }
 
-    #[getter]
-    #[allow(non_snake_case)]
-    fn framesPerSecond(&self) -> f64 {
-        self.inner.get_frames_per_second()
-    }
-
-    #[setter]
-    #[allow(non_snake_case)]
-    fn set_framesPerSecond(&self, fps: f64) {
-        self.inner.set_frames_per_second(fps);
-    }
-
     // --- Custom layer data --------------------------------------------------
 
     #[allow(non_snake_case)]

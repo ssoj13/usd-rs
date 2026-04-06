@@ -1,0 +1,81 @@
+{
+    "Plugins": [
+        {
+            "Type": "resource",
+            "Name": "TestPlugDso1",
+            "Info": {
+                "Types": {
+                    "TestPlugDerived1": {
+                        "bases": ["_TestPlugBase<1>"]
+                    }
+                }
+            }
+        },
+        {
+            "Type": "resource",
+            "Name": "TestPlugDso2",
+            "Info": {
+                "Types": {
+                    "TestPlugDerived2": {
+                        "bases": ["_TestPlugBase<2>"]
+                    }
+                }
+            }
+        },
+        {
+            "Type": "resource",
+            "Name": "TestPlugDso3",
+            "Info": {
+                "PluginDependencies": {
+                    "_TestPlugBase<3>": ["TestPlugModule3.TestPlugPythonDerived3_3"]
+                },
+                "Types": {
+                    "TestPlugDerived3_3": {
+                        "bases": ["_TestPlugBase<3>"]
+                    },
+                    "TestPlugDerived3_4": {
+                        "bases": ["_TestPlugBase<4>"]
+                    }
+                }
+            }
+        },
+        {
+            "Type": "resource",
+            "Name": "TestPlugModule1",
+            "Info": {
+                "_TestPlugBaseBool": true,
+                "Types": {
+                    "TestPlugModule1.TestPlugPythonDerived1": {
+                        "bases": ["_TestPlugBase<1>"]
+                    }
+                }
+            }
+        },
+        {
+            "Type": "resource",
+            "Name": "TestPlugModule2",
+            "Info": {
+                "Types": {
+                    "TestPlugModule2.TestPlugPythonDerived2": {
+                        "bases": ["_TestPlugBase<2>"]
+                    }
+                }
+            }
+        },
+        {
+            "Type": "resource",
+            "Name": "TestPlugModule3",
+            "Info": {
+                "Types": {
+                    "TestPlugModule3.TestPlugPythonDerived3_3": {
+                        "bases": ["_TestPlugBase<3>"],
+                        "alias": {"TfRefBase": "PluginDerived3_3"}
+                    },
+                    "TestPlugModule3.TestPlugPythonDerived3_4": {
+                        "bases": ["_TestPlugBase<4>"]
+                    }
+                }
+            }
+        }
+    ]
+}

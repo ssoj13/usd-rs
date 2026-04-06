@@ -1,0 +1,7 @@
+{
+    "Plugins": [{
+        "Type": "resource",
+        "Name": "DupPlugin",
+        "Info": {"Types": {"DupType2": {"bases": []}}}
+    }]
+}

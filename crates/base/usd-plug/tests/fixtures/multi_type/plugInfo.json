@@ -1,0 +1,13 @@
+{
+    "Plugins": [{
+        "Type": "resource",
+        "Name": "TestMultiTypePlugin",
+        "Info": {
+            "Types": {
+                "DerivedA": {"bases": ["BaseA"]},
+                "DerivedB": {"bases": ["BaseA", "BaseB"]},
+                "DerivedC": {"bases": ["DerivedA"]}
+            }
+        }
+    }]
+}

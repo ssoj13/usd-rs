@@ -652,13 +652,16 @@ macro_rules! vt_array {
             fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<PyObject> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
-                    Ok(($to_py)(self.inner.as_slice()[idx].clone()).into_py(py))
+                    let elem: $py_elem = ($to_py)(self.inner.as_slice()[idx].clone());
+                    Ok(elem.into_py(py))
                 } else if let Ok(slice) = key.downcast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
                     let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let list = PyList::empty(py);
                     for i in indices {
-                        list.append(($to_py)(self.inner.as_slice()[i].clone()).into_py(py))?;
+                        let elem: $py_elem = ($to_py)(self.inner.as_slice()[i].clone());
+                        let py_obj: PyObject = elem.into_py(py);
+                        list.append(py_obj)?;
                     }
                     Ok(list.into())
                 } else {

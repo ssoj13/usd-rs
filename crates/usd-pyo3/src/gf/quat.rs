@@ -174,8 +174,9 @@ impl PyQuath {
         use std::hash::{Hash, Hasher};
         let im = self.0.imaginary();
         let mut h = std::collections::hash_map::DefaultHasher::new();
-        self.0.real().to_bits().hash(&mut h);
-        im.x.to_bits().hash(&mut h); im.y.to_bits().hash(&mut h); im.z.to_bits().hash(&mut h);
+        // Half uses .bits() not .to_bits()
+        self.0.real().bits().hash(&mut h);
+        im.x.bits().hash(&mut h); im.y.bits().hash(&mut h); im.z.bits().hash(&mut h);
         h.finish()
     }
 
@@ -232,10 +233,15 @@ impl PyQuaternion {
         self.0.set_imaginary(v.0);
     }
     #[pyo3(name = "GetLength")]    fn get_length(&self) -> f64 { self.0.length() }
-    #[pyo3(name = "GetNormalized")] fn get_normalized(&self) -> Self { Self(self.0.normalized()) }
-    #[pyo3(name = "Normalize")]    fn normalize(&mut self) -> f64 { self.0.normalize() }
-    #[pyo3(name = "GetInverse")]   fn get_inverse(&self) -> Self { Self(self.0.inverse()) }
-    #[pyo3(name = "GetConjugate")] fn get_conjugate(&self) -> Self { Self(self.0.conjugate()) }
+    // Quaternion::normalized/normalize take an eps parameter
+    #[pyo3(name = "GetNormalized")] fn get_normalized(&self) -> Self { Self(self.0.get_normalized()) }
+    #[pyo3(name = "Normalize")]    fn normalize(&mut self) -> f64 { self.0.normalize(1e-10) }
+    #[pyo3(name = "GetInverse")]   fn get_inverse(&self) -> Self { Self(self.0.get_inverse()) }
+    // Quaternion (legacy) has no conjugate method; implement manually
+    #[pyo3(name = "GetConjugate")] fn get_conjugate(&self) -> Self {
+        let im = self.0.imaginary();
+        Self(Quaternion::new(self.0.real(), usd_gf::vec3::Vec3d::new(-im.x, -im.y, -im.z)))
+    }
 
     fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }

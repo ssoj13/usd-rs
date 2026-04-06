@@ -1,0 +1,42 @@
+{
+    "Plugins": [
+        {
+            "Type": "resource",
+            "Name": "TestDepBase",
+            "Info": {
+                "Types": {
+                    "DepBase3": {},
+                    "DepBase4": {}
+                }
+            }
+        },
+        {
+            "Type": "resource",
+            "Name": "TestDepDerived",
+            "Info": {
+                "PluginDependencies": {
+                    "DepBase3": ["DepModule.DepPythonDerived3"]
+                },
+                "Types": {
+                    "DepDerived3": {
+                        "bases": ["DepBase3"]
+                    },
+                    "DepDerived4": {
+                        "bases": ["DepBase4"]
+                    }
+                }
+            }
+        },
+        {
+            "Type": "resource",
+            "Name": "TestDepModule",
+            "Info": {
+                "Types": {
+                    "DepModule.DepPythonDerived3": {
+                        "bases": ["DepBase3"]
+                    }
+                }
+            }
+        }
+    ]
+}
