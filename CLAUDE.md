@@ -22,8 +22,8 @@ A ground-up pure Rust port of Pixar's OpenUSD (Universal Scene Description) — 
 ## Language & Runtime
 - **Language:** Rust (Edition 2024, MSRV 1.85, Nightly toolchain)
 - **Platform:** Windows 11 primary, cross-platform CI (Ubuntu, macOS, Windows)
-- **Build:** Cargo workspace (61 crates)
-- **Total LOC:** ~600k+ Rust across 2400+ files
+- **Build:** Cargo workspace (72 crates)
+- **Total LOC:** ~1.1M+ Rust across 2480+ files
 ## Core Dependencies
 ### Graphics & GPU
 - `wgpu` 27 — GPU abstraction (dx12 + vulkan backends)
@@ -69,6 +69,10 @@ A ground-up pure Rust port of Pixar's OpenUSD (Universal Scene Description) — 
 ### Image I/O
 - `image` 0.25 — PNG/JPEG screenshot export
 - `vfx-exr` — EXR image I/O
+### Python Bindings
+- `pyo3` 0.28 — Rust↔Python FFI (extension-module mode)
+- `maturin` 1.x — build backend for Python wheels from Rust cdylib
+- Python package: `pxr_rs` — drop-in replacement for Pixar's `pxr` (`import pxr_rs as pxr`)
 ### Miscellaneous
 - `rfd` 0.17 — native file dialogs
 - `dirs` 6 — platform config directories
@@ -81,6 +85,8 @@ A ground-up pure Rust port of Pixar's OpenUSD (Universal Scene Description) — 
 - vcpkg at `$VCPKG_ROOT` (c:/vcpkg) for native deps
 - Feature flags: `wgpu` (default), `mtlx-rs`, `nightly`, `dev_build`, `jemalloc`
 - Release profile: `lto = false`, `codegen-units = 1`
+- `bootstrap.py` — unified build script: `b` (build all), `b p` (build Python wheel via maturin), `t` (test), `t p` (Python tests via pytest), `ch` (clippy+fmt)
+- Python bindings: `maturin build -m crates/usd-pyo3/Cargo.toml --release` produces `pxr_rs` wheel; `pyproject.toml` in `crates/usd-pyo3/`
 ## CI/CD
 - GitHub Actions (`.github/workflows/`)
 - Matrix: ubuntu-latest, macos-latest, windows-latest
@@ -106,6 +112,7 @@ A ground-up pure Rust port of Pixar's OpenUSD (Universal Scene Description) — 
 - **USD core crates:** Custom `pub enum Error` / `pub enum ErrorType` per crate — no thiserror
 - **Viewer (usd-view):** `anyhow::Result` + `thiserror` for typed errors
 - **Ext crates:** `thiserror` (mtlx-rs, opensubdiv-rs, gltf-rs)
+- **Python bindings (usd-pyo3):** `PyResult<T>` + `PyErr` conversion at FFI boundary
 - **Propagation:** `?` operator throughout, `.context()` in viewer
 ## Patterns
 ### Token System
@@ -175,6 +182,16 @@ A ground-up pure Rust port of Pixar's OpenUSD (Universal Scene Description) — 
 - Event bus for decoupled communication
 - File watcher for hot-reload
 - Persistence via RON serialization
+### Python Bindings (usd-pyo3)
+- `usd-pyo3` — PyO3 cdylib crate exposing USD API to Python as `pxr_rs._usd`
+- Modules: Tf, Gf (vec/matrix/quat/geo), Vt, Ar, Kind, Sdf, Pcp, Usd, UsdGeom, UsdShade, UsdLux, UsdSkel, Cli
+- 18 source files (~15.7k LOC), wraps base + core + schema crates
+- Python package `pxr_rs/` with `__init__.py` re-exports — drop-in for `pxr`
+- Build: `maturin build` / `maturin develop` (requires Python 3.9+)
+### Proc Macro Crate
+- `usd-derive-macros` — custom derive macros for USD schema types
+### Validation
+- `usd-validation` — USD scene validation framework
 ## Data Flow
 ```
 ```
@@ -182,6 +199,8 @@ A ground-up pure Rust port of Pixar's OpenUSD (Universal Scene Description) — 
 - **CLI binary:** `src/bin/usd/main.rs` — subcommands (cat, diff, tree, view, dump, etc.)
 - **Viewer binary:** `crates/usd-view/src/main.rs` → `launcher.rs` → egui app loop
 - **Library facade:** `src/lib.rs` — re-exports all sub-crates
+- **Python bindings:** `crates/usd-pyo3/` — maturin-built wheel, `import pxr_rs`
+- **Build script:** `bootstrap.py` — unified build/test/check CLI
 - **Test data:** `data/usd/`, `data/abc/`, `data/hdr/`
 <!-- GSD:architecture-end -->
 

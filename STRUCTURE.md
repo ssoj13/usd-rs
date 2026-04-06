@@ -82,6 +82,7 @@ usd-rs/
     usd-imaging/             # USD scene delegate for Hydra
     usd-validation/          # USD validation framework
     usd-view/                # Viewer application (egui + wgpu)
+    usd-pyo3/                # Python bindings (pyo3/maturin, mirrors pxr package)
     ext/                     # External/vendored libraries
       alembic-rs/            # Alembic I/O
       draco-rs/              # Google Draco mesh compression

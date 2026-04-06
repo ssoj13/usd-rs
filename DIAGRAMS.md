@@ -140,6 +140,32 @@ flowchart LR
     updateDraw -->|state unchanged| drawItemsReuse[reuse cached draw-item vector]
 ```
 
+## Python Bindings (usd-pyo3) Layer
+
+```mermaid
+flowchart TD
+    A["Python: import pxr_rs"] --> B["pxr_rs._usd (native extension)"]
+    B --> C["register_sub per module"]
+    C --> D["pxr.Tf → usd-tf"]
+    C --> E["pxr.Gf → usd-gf"]
+    C --> F["pxr.Vt → usd-vt"]
+    C --> G["pxr.Sdf → usd-sdf"]
+    C --> H["pxr.Pcp → usd-pcp"]
+    C --> I["pxr.Ar → usd-ar"]
+    C --> J["pxr.Usd → usd-core"]
+    C --> K["pxr.UsdGeom → usd-geom"]
+    C --> L["pxr.UsdShade → usd-shade"]
+    C --> M["pxr.UsdLux → usd-lux"]
+    C --> N["pxr.UsdSkel → usd-skel"]
+    C --> O["pxr.Kind → usd-kind"]
+    C --> P["pxr.Cli → CLI tools"]
+
+    subgraph build ["Build: maturin + pyo3"]
+        Q["pyproject.toml"] --> R["maturin build"]
+        R --> S["pxr_rs wheel (CPython ≥3.9)"]
+    end
+```
+
 ## Flo Divergence Map
 
 ```mermaid
