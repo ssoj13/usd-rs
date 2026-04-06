@@ -16,7 +16,7 @@ use usd_tf::Token;
 /// Static tokens for built-in USD model kinds.
 ///
 /// Mirrors `pxr.Kind.Tokens` / `KindTokens`.
-#[pyclass(name = "Tokens", module = "pxr.Kind")]
+#[pyclass(name = "Tokens", module = "pxr_rs.Kind")]
 pub struct PyKindTokens;
 
 #[pymethods]
@@ -61,7 +61,7 @@ impl PyKindTokens {
 /// functions `HasKind`, `GetBaseKind`, `IsA`, etc.
 ///
 /// Mirrors `pxr.Kind.Registry` / `KindRegistry`.
-#[pyclass(name = "Registry", module = "pxr.Kind")]
+#[pyclass(name = "Registry", module = "pxr_rs.Kind")]
 pub struct PyKindRegistry;
 
 #[pymethods]

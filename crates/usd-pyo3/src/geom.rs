@@ -110,15 +110,15 @@ fn parse_rotation_order(s: &str) -> PyResult<RotationOrder> {
 // ============================================================================
 
 /// Opaque wrapper for Arc<Stage> — passed in from pxr.Usd.Stage.
-#[pyclass(name = "Stage", module = "pxr.Usd")]
+#[pyclass(name = "Stage", module = "pxr_rs.Usd")]
 pub struct PyStage(pub std::sync::Arc<usd_core::Stage>);
 
 /// Opaque wrapper for Prim.
-#[pyclass(name = "Prim", module = "pxr.Usd")]
+#[pyclass(name = "Prim", module = "pxr_rs.Usd")]
 pub struct PyPrim(pub usd_core::Prim);
 
 /// Opaque wrapper for Attribute.
-#[pyclass(name = "Attribute", module = "pxr.Usd")]
+#[pyclass(name = "Attribute", module = "pxr_rs.Usd")]
 pub struct PyAttribute(pub usd_core::Attribute);
 
 #[pymethods]
@@ -133,7 +133,7 @@ impl PyAttribute {
 // Tokens
 // ============================================================================
 
-#[pyclass(name = "Tokens", module = "pxr.UsdGeom")]
+#[pyclass(name = "Tokens", module = "pxr_rs.UsdGeom")]
 pub struct PyTokens;
 
 #[pymethods]
@@ -198,7 +198,7 @@ impl PyTokens {
 // XformOp
 // ============================================================================
 
-#[pyclass(name = "XformOp", module = "pxr.UsdGeom")]
+#[pyclass(name = "XformOp", module = "pxr_rs.UsdGeom")]
 pub struct PyXformOp(pub XformOp);
 
 #[pymethods]
@@ -216,7 +216,7 @@ impl PyXformOp {
 // Primvar
 // ============================================================================
 
-#[pyclass(name = "Primvar", module = "pxr.UsdGeom")]
+#[pyclass(name = "Primvar", module = "pxr_rs.UsdGeom")]
 pub struct PyPrimvar(pub Primvar);
 
 #[pymethods]
@@ -240,7 +240,7 @@ impl PyPrimvar {
 // BBoxCache
 // ============================================================================
 
-#[pyclass(name = "BBoxCache", module = "pxr.UsdGeom")]
+#[pyclass(name = "BBoxCache", module = "pxr_rs.UsdGeom")]
 pub struct PyBBoxCache(pub BBoxCache);
 
 #[pymethods]
@@ -277,7 +277,7 @@ impl PyBBoxCache {
 // XformCache
 // ============================================================================
 
-#[pyclass(name = "XformCache", module = "pxr.UsdGeom")]
+#[pyclass(name = "XformCache", module = "pxr_rs.UsdGeom")]
 pub struct PyXformCache(pub XformCache);
 
 #[pymethods]
@@ -306,7 +306,7 @@ impl PyXformCache {
 // Imageable
 // ============================================================================
 
-#[pyclass(name = "Imageable", module = "pxr.UsdGeom")]
+#[pyclass(name = "Imageable", module = "pxr_rs.UsdGeom")]
 pub struct PyImageable(pub Imageable);
 
 #[pymethods]
@@ -368,7 +368,7 @@ impl PyImageable {
 // Xformable
 // ============================================================================
 
-#[pyclass(name = "Xformable", module = "pxr.UsdGeom")]
+#[pyclass(name = "Xformable", module = "pxr_rs.UsdGeom")]
 pub struct PyXformable(pub Xformable);
 
 #[pymethods]
@@ -451,7 +451,7 @@ impl PyXformable {
 // Xform
 // ============================================================================
 
-#[pyclass(name = "Xform", module = "pxr.UsdGeom")]
+#[pyclass(name = "Xform", module = "pxr_rs.UsdGeom")]
 pub struct PyXform(pub Xform);
 
 #[pymethods]
@@ -488,7 +488,7 @@ impl PyXform {
 // Boundable
 // ============================================================================
 
-#[pyclass(name = "Boundable", module = "pxr.UsdGeom")]
+#[pyclass(name = "Boundable", module = "pxr_rs.UsdGeom")]
 pub struct PyBoundable(pub Boundable);
 
 #[pymethods]
@@ -515,7 +515,7 @@ impl PyBoundable {
 // Scope
 // ============================================================================
 
-#[pyclass(name = "Scope", module = "pxr.UsdGeom")]
+#[pyclass(name = "Scope", module = "pxr_rs.UsdGeom")]
 pub struct PyScope(pub Scope);
 
 #[pymethods]
@@ -552,7 +552,7 @@ impl PyScope {
 // Gprim
 // ============================================================================
 
-#[pyclass(name = "Gprim", module = "pxr.UsdGeom")]
+#[pyclass(name = "Gprim", module = "pxr_rs.UsdGeom")]
 pub struct PyGprim(pub Gprim);
 
 #[pymethods]
@@ -587,7 +587,7 @@ impl PyGprim {
 // Mesh
 // ============================================================================
 
-#[pyclass(name = "Mesh", module = "pxr.UsdGeom")]
+#[pyclass(name = "Mesh", module = "pxr_rs.UsdGeom")]
 pub struct PyMesh(pub Mesh);
 
 #[pymethods]
@@ -677,7 +677,7 @@ impl PyMesh {
 // Sphere
 // ============================================================================
 
-#[pyclass(name = "Sphere", module = "pxr.UsdGeom")]
+#[pyclass(name = "Sphere", module = "pxr_rs.UsdGeom")]
 pub struct PySphere(pub Sphere);
 
 #[pymethods]
@@ -716,7 +716,7 @@ impl PySphere {
 // Cube
 // ============================================================================
 
-#[pyclass(name = "Cube", module = "pxr.UsdGeom")]
+#[pyclass(name = "Cube", module = "pxr_rs.UsdGeom")]
 pub struct PyCube(pub Cube);
 
 #[pymethods]
@@ -755,7 +755,7 @@ impl PyCube {
 // Cone
 // ============================================================================
 
-#[pyclass(name = "Cone", module = "pxr.UsdGeom")]
+#[pyclass(name = "Cone", module = "pxr_rs.UsdGeom")]
 pub struct PyCone(pub Cone);
 
 #[pymethods]
@@ -798,7 +798,7 @@ impl PyCone {
 // Cylinder
 // ============================================================================
 
-#[pyclass(name = "Cylinder", module = "pxr.UsdGeom")]
+#[pyclass(name = "Cylinder", module = "pxr_rs.UsdGeom")]
 pub struct PyCylinder(pub Cylinder);
 
 #[pymethods]
@@ -841,7 +841,7 @@ impl PyCylinder {
 // Cylinder_1
 // ============================================================================
 
-#[pyclass(name = "Cylinder_1", module = "pxr.UsdGeom")]
+#[pyclass(name = "Cylinder_1", module = "pxr_rs.UsdGeom")]
 pub struct PyCylinder1(pub Cylinder1);
 
 #[pymethods]
@@ -887,7 +887,7 @@ impl PyCylinder1 {
 // Capsule
 // ============================================================================
 
-#[pyclass(name = "Capsule", module = "pxr.UsdGeom")]
+#[pyclass(name = "Capsule", module = "pxr_rs.UsdGeom")]
 pub struct PyCapsule(pub Capsule);
 
 #[pymethods]
@@ -930,7 +930,7 @@ impl PyCapsule {
 // Capsule_1
 // ============================================================================
 
-#[pyclass(name = "Capsule_1", module = "pxr.UsdGeom")]
+#[pyclass(name = "Capsule_1", module = "pxr_rs.UsdGeom")]
 pub struct PyCapsule1(pub Capsule1);
 
 #[pymethods]
@@ -976,7 +976,7 @@ impl PyCapsule1 {
 // Plane
 // ============================================================================
 
-#[pyclass(name = "Plane", module = "pxr.UsdGeom")]
+#[pyclass(name = "Plane", module = "pxr_rs.UsdGeom")]
 pub struct PyPlane(pub Plane);
 
 #[pymethods]
@@ -1020,7 +1020,7 @@ impl PyPlane {
 // PointBased
 // ============================================================================
 
-#[pyclass(name = "PointBased", module = "pxr.UsdGeom")]
+#[pyclass(name = "PointBased", module = "pxr_rs.UsdGeom")]
 pub struct PyPointBased(pub PointBased);
 
 #[pymethods]
@@ -1056,7 +1056,7 @@ impl PyPointBased {
 // Points
 // ============================================================================
 
-#[pyclass(name = "Points", module = "pxr.UsdGeom")]
+#[pyclass(name = "Points", module = "pxr_rs.UsdGeom")]
 pub struct PyPoints(pub Points);
 
 #[pymethods]
@@ -1098,7 +1098,7 @@ impl PyPoints {
 // Curves
 // ============================================================================
 
-#[pyclass(name = "Curves", module = "pxr.UsdGeom")]
+#[pyclass(name = "Curves", module = "pxr_rs.UsdGeom")]
 pub struct PyCurves(pub Curves);
 
 #[pymethods]
@@ -1128,7 +1128,7 @@ impl PyCurves {
 // BasisCurves
 // ============================================================================
 
-#[pyclass(name = "BasisCurves", module = "pxr.UsdGeom")]
+#[pyclass(name = "BasisCurves", module = "pxr_rs.UsdGeom")]
 pub struct PyBasisCurves(pub BasisCurves);
 
 #[pymethods]
@@ -1171,7 +1171,7 @@ impl PyBasisCurves {
 // NurbsCurves
 // ============================================================================
 
-#[pyclass(name = "NurbsCurves", module = "pxr.UsdGeom")]
+#[pyclass(name = "NurbsCurves", module = "pxr_rs.UsdGeom")]
 pub struct PyNurbsCurves(pub NurbsCurves);
 
 #[pymethods]
@@ -1214,7 +1214,7 @@ impl PyNurbsCurves {
 // HermiteCurves
 // ============================================================================
 
-#[pyclass(name = "HermiteCurves", module = "pxr.UsdGeom")]
+#[pyclass(name = "HermiteCurves", module = "pxr_rs.UsdGeom")]
 pub struct PyHermiteCurves(pub HermiteCurves);
 
 #[pymethods]
@@ -1253,7 +1253,7 @@ impl PyHermiteCurves {
 // NurbsPatch
 // ============================================================================
 
-#[pyclass(name = "NurbsPatch", module = "pxr.UsdGeom")]
+#[pyclass(name = "NurbsPatch", module = "pxr_rs.UsdGeom")]
 pub struct PyNurbsPatch(pub NurbsPatch);
 
 #[pymethods]
@@ -1302,7 +1302,7 @@ impl PyNurbsPatch {
 // TetMesh
 // ============================================================================
 
-#[pyclass(name = "TetMesh", module = "pxr.UsdGeom")]
+#[pyclass(name = "TetMesh", module = "pxr_rs.UsdGeom")]
 pub struct PyTetMesh(pub TetMesh);
 
 #[pymethods]
@@ -1342,7 +1342,7 @@ impl PyTetMesh {
 // PointInstancer
 // ============================================================================
 
-#[pyclass(name = "PointInstancer", module = "pxr.UsdGeom")]
+#[pyclass(name = "PointInstancer", module = "pxr_rs.UsdGeom")]
 pub struct PyPointInstancer(pub PointInstancer);
 
 #[pymethods]
@@ -1427,7 +1427,7 @@ impl PyPointInstancer {
 // Camera
 // ============================================================================
 
-#[pyclass(name = "Camera", module = "pxr.UsdGeom")]
+#[pyclass(name = "Camera", module = "pxr_rs.UsdGeom")]
 pub struct PyCamera(pub Camera);
 
 #[pymethods]
@@ -1501,7 +1501,7 @@ impl PyCamera {
 // PrimvarsAPI
 // ============================================================================
 
-#[pyclass(name = "PrimvarsAPI", module = "pxr.UsdGeom")]
+#[pyclass(name = "PrimvarsAPI", module = "pxr_rs.UsdGeom")]
 pub struct PyPrimvarsAPI(pub PrimvarsAPI);
 
 #[pymethods]
@@ -1542,7 +1542,7 @@ impl PyPrimvarsAPI {
 // VisibilityAPI
 // ============================================================================
 
-#[pyclass(name = "VisibilityAPI", module = "pxr.UsdGeom")]
+#[pyclass(name = "VisibilityAPI", module = "pxr_rs.UsdGeom")]
 pub struct PyVisibilityAPI(pub VisibilityAPI);
 
 #[pymethods]
@@ -1573,7 +1573,7 @@ impl PyVisibilityAPI {
 // ModelAPI
 // ============================================================================
 
-#[pyclass(name = "ModelAPI", module = "pxr.UsdGeom")]
+#[pyclass(name = "ModelAPI", module = "pxr_rs.UsdGeom")]
 pub struct PyModelAPI(pub ModelAPI);
 
 #[pymethods]
@@ -1619,7 +1619,7 @@ impl PyModelAPI {
 // MotionAPI
 // ============================================================================
 
-#[pyclass(name = "MotionAPI", module = "pxr.UsdGeom")]
+#[pyclass(name = "MotionAPI", module = "pxr_rs.UsdGeom")]
 pub struct PyMotionAPI(pub MotionAPI);
 
 #[pymethods]
@@ -1651,7 +1651,7 @@ impl PyMotionAPI {
 // XformCommonAPI
 // ============================================================================
 
-#[pyclass(name = "XformCommonAPI", module = "pxr.UsdGeom")]
+#[pyclass(name = "XformCommonAPI", module = "pxr_rs.UsdGeom")]
 pub struct PyXformCommonAPI(pub XformCommonAPI);
 
 #[pymethods]
@@ -1710,7 +1710,7 @@ impl PyXformCommonAPI {
 // Subset
 // ============================================================================
 
-#[pyclass(name = "Subset", module = "pxr.UsdGeom")]
+#[pyclass(name = "Subset", module = "pxr_rs.UsdGeom")]
 pub struct PySubset(pub Subset);
 
 #[pymethods]

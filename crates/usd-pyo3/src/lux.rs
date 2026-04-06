@@ -55,7 +55,7 @@ fn get_prim(stage: &Arc<Stage>, path: &str) -> PyResult<Prim> {
 // Shared stage wrapper
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Stage", module = "pxr.UsdLux")]
+#[pyclass(name = "Stage", module = "pxr_rs.UsdLux")]
 struct PyStage {
     inner: Arc<Stage>,
 }
@@ -64,7 +64,7 @@ struct PyStage {
 // PyLightAPI
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "LightAPI", module = "pxr.UsdLux")]
+#[pyclass(name = "LightAPI", module = "pxr_rs.UsdLux")]
 struct PyLightAPI {
     inner: LightAPI,
 }
@@ -141,7 +141,7 @@ impl PyLightAPI {
 // PyShapingAPI
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "ShapingAPI", module = "pxr.UsdLux")]
+#[pyclass(name = "ShapingAPI", module = "pxr_rs.UsdLux")]
 struct PyShapingAPI {
     inner: ShapingAPI,
 }
@@ -193,7 +193,7 @@ impl PyShapingAPI {
 // PyShadowAPI
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "ShadowAPI", module = "pxr.UsdLux")]
+#[pyclass(name = "ShadowAPI", module = "pxr_rs.UsdLux")]
 struct PyShadowAPI {
     inner: ShadowAPI,
 }
@@ -245,7 +245,7 @@ impl PyShadowAPI {
 // PyBoundableLightBase
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "BoundableLightBase", module = "pxr.UsdLux")]
+#[pyclass(name = "BoundableLightBase", module = "pxr_rs.UsdLux")]
 struct PyBoundableLightBase {
     inner: BoundableLightBase,
 }
@@ -279,7 +279,7 @@ impl PyBoundableLightBase {
 // PyNonboundableLightBase
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "NonboundableLightBase", module = "pxr.UsdLux")]
+#[pyclass(name = "NonboundableLightBase", module = "pxr_rs.UsdLux")]
 struct PyNonboundableLightBase {
     inner: NonboundableLightBase,
 }
@@ -316,7 +316,7 @@ impl PyNonboundableLightBase {
 
 // --- DiskLight ---
 
-#[pyclass(name = "DiskLight", module = "pxr.UsdLux")]
+#[pyclass(name = "DiskLight", module = "pxr_rs.UsdLux")]
 struct PyDiskLight { inner: DiskLight }
 
 #[pymethods]
@@ -345,7 +345,7 @@ impl PyDiskLight {
 
 // --- RectLight ---
 
-#[pyclass(name = "RectLight", module = "pxr.UsdLux")]
+#[pyclass(name = "RectLight", module = "pxr_rs.UsdLux")]
 struct PyRectLight { inner: RectLight }
 
 #[pymethods]
@@ -374,7 +374,7 @@ impl PyRectLight {
 
 // --- SphereLight ---
 
-#[pyclass(name = "SphereLight", module = "pxr.UsdLux")]
+#[pyclass(name = "SphereLight", module = "pxr_rs.UsdLux")]
 struct PySphereLight { inner: SphereLight }
 
 #[pymethods]
@@ -405,7 +405,7 @@ impl PySphereLight {
 
 // --- CylinderLight ---
 
-#[pyclass(name = "CylinderLight", module = "pxr.UsdLux")]
+#[pyclass(name = "CylinderLight", module = "pxr_rs.UsdLux")]
 struct PyCylinderLight { inner: CylinderLight }
 
 #[pymethods]
@@ -434,7 +434,7 @@ impl PyCylinderLight {
 
 // --- DistantLight ---
 
-#[pyclass(name = "DistantLight", module = "pxr.UsdLux")]
+#[pyclass(name = "DistantLight", module = "pxr_rs.UsdLux")]
 struct PyDistantLight { inner: DistantLight }
 
 #[pymethods]
@@ -463,7 +463,7 @@ impl PyDistantLight {
 
 // --- DomeLight ---
 
-#[pyclass(name = "DomeLight", module = "pxr.UsdLux")]
+#[pyclass(name = "DomeLight", module = "pxr_rs.UsdLux")]
 struct PyDomeLight { inner: DomeLight }
 
 #[pymethods]
@@ -492,7 +492,7 @@ impl PyDomeLight {
 
 // --- DomeLight_1 (uses Arc<Stage> -> Option) ---
 
-#[pyclass(name = "DomeLight_1", module = "pxr.UsdLux")]
+#[pyclass(name = "DomeLight_1", module = "pxr_rs.UsdLux")]
 struct PyDomeLight1 { inner: DomeLight1 }
 
 #[pymethods]
@@ -534,7 +534,7 @@ impl PyDomeLight1 {
 // Deprecated upstream in favour of MeshLightAPI, kept for API parity.
 
 #[allow(deprecated)]
-#[pyclass(name = "GeometryLight", module = "pxr.UsdLux")]
+#[pyclass(name = "GeometryLight", module = "pxr_rs.UsdLux")]
 struct PyGeometryLight { inner: GeometryLight }
 
 #[allow(deprecated)]
@@ -576,7 +576,7 @@ impl PyGeometryLight {
 
 // --- PortalLight (Arc<Stage>->Option) ---
 
-#[pyclass(name = "PortalLight", module = "pxr.UsdLux")]
+#[pyclass(name = "PortalLight", module = "pxr_rs.UsdLux")]
 struct PyPortalLight { inner: PortalLight }
 
 #[pymethods]
@@ -616,7 +616,7 @@ impl PyPortalLight {
 
 // --- PluginLight (Arc<Stage>->Option) ---
 
-#[pyclass(name = "PluginLight", module = "pxr.UsdLux")]
+#[pyclass(name = "PluginLight", module = "pxr_rs.UsdLux")]
 struct PyPluginLight { inner: PluginLight }
 
 #[pymethods]
@@ -658,7 +658,7 @@ impl PyPluginLight {
 // PyLightFilter
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "LightFilter", module = "pxr.UsdLux")]
+#[pyclass(name = "LightFilter", module = "pxr_rs.UsdLux")]
 struct PyLightFilter { inner: LightFilter }
 
 #[pymethods]
@@ -697,7 +697,7 @@ impl PyLightFilter {
 // PyPluginLightFilter
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "PluginLightFilter", module = "pxr.UsdLux")]
+#[pyclass(name = "PluginLightFilter", module = "pxr_rs.UsdLux")]
 struct PyPluginLightFilter { inner: PluginLightFilter }
 
 #[pymethods]
@@ -731,7 +731,7 @@ impl PyPluginLightFilter {
 // PyMeshLightAPI
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "MeshLightAPI", module = "pxr.UsdLux")]
+#[pyclass(name = "MeshLightAPI", module = "pxr_rs.UsdLux")]
 struct PyMeshLightAPI { inner: MeshLightAPI }
 
 #[pymethods]
@@ -765,7 +765,7 @@ impl PyMeshLightAPI {
 // PyVolumeLightAPI
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "VolumeLightAPI", module = "pxr.UsdLux")]
+#[pyclass(name = "VolumeLightAPI", module = "pxr_rs.UsdLux")]
 struct PyVolumeLightAPI { inner: VolumeLightAPI }
 
 #[pymethods]
@@ -799,7 +799,7 @@ impl PyVolumeLightAPI {
 // PyLightListAPI
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "LightListAPI", module = "pxr.UsdLux")]
+#[pyclass(name = "LightListAPI", module = "pxr_rs.UsdLux")]
 struct PyLightListAPI { inner: LightListAPI }
 
 #[pymethods]
@@ -848,7 +848,7 @@ impl PyLightListAPI {
 // Tokens — mirrors UsdLuxTokens
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Tokens", module = "pxr.UsdLux")]
+#[pyclass(name = "Tokens", module = "pxr_rs.UsdLux")]
 struct PyTokens;
 
 #[pymethods]

@@ -3,7 +3,7 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "pxr"
+name = "pxr-rs"
 version = "0.1.0"
 description = "Pure Rust OpenUSD Python bindings"
 requires-python = ">=3.9"
@@ -19,5 +19,5 @@ classifiers = [
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
-module-name = "pxr._usd"
-python-source = "."
+module-name = "pxr_rs._usd"
+python-packages = ["pxr_rs"]

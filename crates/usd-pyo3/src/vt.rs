@@ -47,7 +47,7 @@ fn slice_indices(step: isize, start: isize, stop: isize) -> Vec<usize> {
 // ============================================================================
 
 /// Explicit typed wrapper over `Value` — mirrors C++ `Vt._ValueWrapper`.
-#[pyclass(skip_from_py_object,name = "_ValueWrapper", module = "pxr.Vt")]
+#[pyclass(skip_from_py_object,name = "_ValueWrapper", module = "pxr_rs.Vt")]
 #[derive(Clone)]
 pub struct PyValue {
     inner: Value,
@@ -711,68 +711,68 @@ macro_rules! vt_array {
 // ============================================================================
 
 vt_array!(no_arith,
-    name = "BoolArray", module = "pxr.Vt",
+    name = "BoolArray", module = "pxr_rs.Vt",
     rust = PyBoolArray, elem = bool,
     iter_ty = VtBoolIter
 );
 
 vt_array!(numeric_unsigned,
-    name = "UCharArray", module = "pxr.Vt",
+    name = "UCharArray", module = "pxr_rs.Vt",
     rust = PyUCharArray, elem = u8,
     iter_ty = VtU8Iter
 );
 
 vt_array!(numeric_signed,
-    name = "ShortArray", module = "pxr.Vt",
+    name = "ShortArray", module = "pxr_rs.Vt",
     rust = PyShortArray, elem = i16,
     iter_ty = VtI16Iter
 );
 
 vt_array!(numeric_unsigned,
-    name = "UShortArray", module = "pxr.Vt",
+    name = "UShortArray", module = "pxr_rs.Vt",
     rust = PyUShortArray, elem = u16,
     iter_ty = VtU16Iter
 );
 
 vt_array!(numeric_signed,
-    name = "IntArray", module = "pxr.Vt",
+    name = "IntArray", module = "pxr_rs.Vt",
     rust = PyIntArray, elem = i32,
     iter_ty = VtI32Iter
 );
 
 vt_array!(numeric_unsigned,
-    name = "UIntArray", module = "pxr.Vt",
+    name = "UIntArray", module = "pxr_rs.Vt",
     rust = PyUIntArray, elem = u32,
     iter_ty = VtU32Iter
 );
 
 vt_array!(numeric_signed,
-    name = "Int64Array", module = "pxr.Vt",
+    name = "Int64Array", module = "pxr_rs.Vt",
     rust = PyInt64Array, elem = i64,
     iter_ty = VtI64Iter
 );
 
 vt_array!(numeric_unsigned,
-    name = "UInt64Array", module = "pxr.Vt",
+    name = "UInt64Array", module = "pxr_rs.Vt",
     rust = PyUInt64Array, elem = u64,
     iter_ty = VtU64Iter
 );
 
 vt_array!(numeric_signed,
-    name = "FloatArray", module = "pxr.Vt",
+    name = "FloatArray", module = "pxr_rs.Vt",
     rust = PyFloatArray, elem = f32,
     iter_ty = VtF32Iter
 );
 
 vt_array!(numeric_signed,
-    name = "DoubleArray", module = "pxr.Vt",
+    name = "DoubleArray", module = "pxr_rs.Vt",
     rust = PyDoubleArray, elem = f64,
     iter_ty = VtF64Iter
 );
 
 // Half stored as f32 — no native Python half type
 vt_array!(numeric_signed,
-    name = "HalfArray", module = "pxr.Vt",
+    name = "HalfArray", module = "pxr_rs.Vt",
     rust = PyHalfArray, elem = f32,
     iter_ty = VtF32Iter
 );
@@ -782,12 +782,12 @@ vt_array!(numeric_signed,
 // ============================================================================
 
 vt_array!(string_like,
-    name = "StringArray", module = "pxr.Vt",
+    name = "StringArray", module = "pxr_rs.Vt",
     rust = PyStringArray, elem = String
 );
 
 /// `TokenArray` — each token exposed to Python as a `str`.
-#[pyclass(skip_from_py_object,name = "TokenArray", module = "pxr.Vt")]
+#[pyclass(skip_from_py_object,name = "TokenArray", module = "pxr_rs.Vt")]
 #[derive(Clone)]
 pub struct PyTokenArray { inner: Array<usd_tf::Token> }
 
@@ -864,7 +864,7 @@ impl PyTokenArray {
 // ============================================================================
 
 vt_array!(vec_like,
-    name = "Vec2fArray", module = "pxr.Vt",
+    name = "Vec2fArray", module = "pxr_rs.Vt",
     rust = PyVec2fArray,
     elem = usd_gf::Vec2f, py_elem = (f32, f32),
     from_py = |(x, y): (f32, f32)| usd_gf::Vec2f::new(x, y),
@@ -872,7 +872,7 @@ vt_array!(vec_like,
 );
 
 vt_array!(vec_like,
-    name = "Vec3fArray", module = "pxr.Vt",
+    name = "Vec3fArray", module = "pxr_rs.Vt",
     rust = PyVec3fArray,
     elem = usd_gf::Vec3f, py_elem = (f32, f32, f32),
     from_py = |(x, y, z): (f32, f32, f32)| usd_gf::Vec3f::new(x, y, z),
@@ -880,7 +880,7 @@ vt_array!(vec_like,
 );
 
 vt_array!(vec_like,
-    name = "Vec4fArray", module = "pxr.Vt",
+    name = "Vec4fArray", module = "pxr_rs.Vt",
     rust = PyVec4fArray,
     elem = usd_gf::Vec4f, py_elem = (f32, f32, f32, f32),
     from_py = |(x, y, z, w): (f32, f32, f32, f32)| usd_gf::Vec4f::new(x, y, z, w),
@@ -888,7 +888,7 @@ vt_array!(vec_like,
 );
 
 vt_array!(vec_like,
-    name = "Vec2dArray", module = "pxr.Vt",
+    name = "Vec2dArray", module = "pxr_rs.Vt",
     rust = PyVec2dArray,
     elem = usd_gf::Vec2d, py_elem = (f64, f64),
     from_py = |(x, y): (f64, f64)| usd_gf::Vec2d::new(x, y),
@@ -896,7 +896,7 @@ vt_array!(vec_like,
 );
 
 vt_array!(vec_like,
-    name = "Vec3dArray", module = "pxr.Vt",
+    name = "Vec3dArray", module = "pxr_rs.Vt",
     rust = PyVec3dArray,
     elem = usd_gf::Vec3d, py_elem = (f64, f64, f64),
     from_py = |(x, y, z): (f64, f64, f64)| usd_gf::Vec3d::new(x, y, z),
@@ -904,7 +904,7 @@ vt_array!(vec_like,
 );
 
 vt_array!(vec_like,
-    name = "Vec4dArray", module = "pxr.Vt",
+    name = "Vec4dArray", module = "pxr_rs.Vt",
     rust = PyVec4dArray,
     elem = usd_gf::Vec4d, py_elem = (f64, f64, f64, f64),
     from_py = |(x, y, z, w): (f64, f64, f64, f64)| usd_gf::Vec4d::new(x, y, z, w),
@@ -912,7 +912,7 @@ vt_array!(vec_like,
 );
 
 vt_array!(vec_like,
-    name = "Vec2iArray", module = "pxr.Vt",
+    name = "Vec2iArray", module = "pxr_rs.Vt",
     rust = PyVec2iArray,
     elem = usd_gf::Vec2i, py_elem = (i32, i32),
     from_py = |(x, y): (i32, i32)| usd_gf::Vec2i::new(x, y),
@@ -920,7 +920,7 @@ vt_array!(vec_like,
 );
 
 vt_array!(vec_like,
-    name = "Vec3iArray", module = "pxr.Vt",
+    name = "Vec3iArray", module = "pxr_rs.Vt",
     rust = PyVec3iArray,
     elem = usd_gf::Vec3i, py_elem = (i32, i32, i32),
     from_py = |(x, y, z): (i32, i32, i32)| usd_gf::Vec3i::new(x, y, z),
@@ -928,7 +928,7 @@ vt_array!(vec_like,
 );
 
 vt_array!(vec_like,
-    name = "Vec4iArray", module = "pxr.Vt",
+    name = "Vec4iArray", module = "pxr_rs.Vt",
     rust = PyVec4iArray,
     elem = usd_gf::Vec4i, py_elem = (i32, i32, i32, i32),
     from_py = |(x, y, z, w): (i32, i32, i32, i32)| usd_gf::Vec4i::new(x, y, z, w),
@@ -970,7 +970,7 @@ fn flat_to_mat4f(flat: &[f32]) -> Option<usd_gf::Matrix4f> {
     ]))
 }
 
-#[pyclass(skip_from_py_object,name = "Matrix4dArray", module = "pxr.Vt")]
+#[pyclass(skip_from_py_object,name = "Matrix4dArray", module = "pxr_rs.Vt")]
 #[derive(Clone)]
 pub struct PyMatrix4dArray { inner: Array<usd_gf::Matrix4d> }
 
@@ -1032,7 +1032,7 @@ impl PyMatrix4dArray {
     fn __str__(&self) -> String { format!("[{} Matrix4d]", self.inner.len()) }
 }
 
-#[pyclass(skip_from_py_object,name = "Matrix4fArray", module = "pxr.Vt")]
+#[pyclass(skip_from_py_object,name = "Matrix4fArray", module = "pxr_rs.Vt")]
 #[derive(Clone)]
 pub struct PyMatrix4fArray { inner: Array<usd_gf::Matrix4f> }
 
@@ -1150,7 +1150,7 @@ fn value_to_py(py: Python<'_>, v: &Value) -> PyResult<Py<PyAny>> {
 }
 
 /// Python-facing `VtDictionary` — wraps `Dictionary` and round-trips as Python dict.
-#[pyclass(skip_from_py_object,name = "Dictionary", module = "pxr.Vt")]
+#[pyclass(skip_from_py_object,name = "Dictionary", module = "pxr_rs.Vt")]
 #[derive(Clone, Default)]
 pub struct PyDictionary { inner: Dictionary }
 

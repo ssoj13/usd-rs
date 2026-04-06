@@ -29,7 +29,7 @@ fn path_from_str(s: &str) -> PyResult<Path> {
 // We carry Arc<Stage> so the stage stays alive as long as any Python object holds it.
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Stage", module = "pxr.UsdShade")]
+#[pyclass(name = "Stage", module = "pxr_rs.UsdShade")]
 struct PyStage {
     inner: Arc<Stage>,
 }
@@ -38,7 +38,7 @@ struct PyStage {
 // PyMaterial — wraps UsdShadeMaterial
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Material", module = "pxr.UsdShade")]
+#[pyclass(name = "Material", module = "pxr_rs.UsdShade")]
 struct PyMaterial {
     inner: Material,
 }
@@ -143,7 +143,7 @@ impl PyMaterial {
 // PyShader — wraps UsdShadeShader
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Shader", module = "pxr.UsdShade")]
+#[pyclass(name = "Shader", module = "pxr_rs.UsdShade")]
 struct PyShader {
     inner: Shader,
 }
@@ -235,7 +235,7 @@ impl PyShader {
 // PyNodeGraph — wraps UsdShadeNodeGraph
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "NodeGraph", module = "pxr.UsdShade")]
+#[pyclass(name = "NodeGraph", module = "pxr_rs.UsdShade")]
 struct PyNodeGraph {
     inner: NodeGraph,
 }
@@ -312,7 +312,7 @@ impl PyNodeGraph {
 // PyInput — wraps UsdShadeInput
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Input", module = "pxr.UsdShade")]
+#[pyclass(name = "Input", module = "pxr_rs.UsdShade")]
 struct PyInput {
     inner: Input,
 }
@@ -381,7 +381,7 @@ impl PyInput {
 // PyOutput — wraps UsdShadeOutput
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Output", module = "pxr.UsdShade")]
+#[pyclass(name = "Output", module = "pxr_rs.UsdShade")]
 struct PyOutput {
     inner: Output,
 }
@@ -437,7 +437,7 @@ impl PyOutput {
 // PyConnectableAPI — wraps UsdShadeConnectableAPI
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "ConnectableAPI", module = "pxr.UsdShade")]
+#[pyclass(name = "ConnectableAPI", module = "pxr_rs.UsdShade")]
 struct PyConnectableAPI {
     inner: ConnectableAPI,
 }
@@ -482,7 +482,7 @@ impl PyConnectableAPI {
 // PyMaterialBindingAPI — wraps UsdShadeMaterialBindingAPI
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "MaterialBindingAPI", module = "pxr.UsdShade")]
+#[pyclass(name = "MaterialBindingAPI", module = "pxr_rs.UsdShade")]
 struct PyMaterialBindingAPI {
     inner: MaterialBindingAPI,
 }
@@ -562,7 +562,7 @@ impl PyMaterialBindingAPI {
 // PyCoordSysAPI — wraps UsdShadeCoordSysAPI (MultipleApply)
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "CoordSysAPI", module = "pxr.UsdShade")]
+#[pyclass(name = "CoordSysAPI", module = "pxr_rs.UsdShade")]
 struct PyCoordSysAPI {
     inner: CoordSysAPI,
 }
@@ -620,7 +620,7 @@ impl PyCoordSysAPI {
 // Tokens — mirrors UsdShadeTokens
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Tokens", module = "pxr.UsdShade")]
+#[pyclass(name = "Tokens", module = "pxr_rs.UsdShade")]
 struct PyTokens;
 
 #[pymethods]

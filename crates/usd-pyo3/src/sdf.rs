@@ -24,7 +24,7 @@ use usd_tf::Token;
 /// Path addressing a location in a USD scene graph.
 ///
 /// Wraps `usd_sdf::Path`. Mirrors C++ `SdfPath` as exposed by `wrapPath.cpp`.
-#[pyclass(from_py_object,name = "Path", module = "pxr.Sdf")]
+#[pyclass(from_py_object,name = "Path", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
 pub struct PyPath {
     inner: Path,
@@ -589,7 +589,7 @@ impl PyPath {
 /// Time offset and scale applied when referencing layers.
 ///
 /// Wraps `usd_sdf::LayerOffset`. Mirrors C++ `SdfLayerOffset`.
-#[pyclass(skip_from_py_object,name = "LayerOffset", module = "pxr.Sdf")]
+#[pyclass(skip_from_py_object,name = "LayerOffset", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
 pub struct PyLayerOffset {
     inner: LayerOffset,
@@ -657,7 +657,7 @@ impl PyLayerOffset {
 /// Container for scene description (prims, properties, metadata).
 ///
 /// Wraps `Arc<usd_sdf::Layer>`. Mirrors C++ `SdfLayer` as exposed by `wrapLayer.cpp`.
-#[pyclass(from_py_object,name = "Layer", module = "pxr.Sdf")]
+#[pyclass(from_py_object,name = "Layer", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
 pub struct PyLayer {
     inner: Arc<Layer>,
@@ -1357,7 +1357,7 @@ impl PyLayer {
 /// Scene description for a single prim in a layer.
 ///
 /// Wraps `usd_sdf::PrimSpec`. Mirrors C++ `SdfPrimSpec`.
-#[pyclass(skip_from_py_object,name = "PrimSpec", module = "pxr.Sdf")]
+#[pyclass(skip_from_py_object,name = "PrimSpec", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
 pub struct PyPrimSpec {
     inner: PrimSpec,
@@ -1529,7 +1529,7 @@ impl PyPrimSpec {
 /// Scene description for an attribute in a layer.
 ///
 /// Wraps `usd_sdf::AttributeSpec`. Mirrors C++ `SdfAttributeSpec`.
-#[pyclass(skip_from_py_object,name = "AttributeSpec", module = "pxr.Sdf")]
+#[pyclass(skip_from_py_object,name = "AttributeSpec", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
 pub struct PyAttributeSpec {
     inner: AttributeSpec,
@@ -1597,7 +1597,7 @@ impl PyAttributeSpec {
 /// Specifier for a prim: `Def`, `Over`, or `Class`.
 ///
 /// Wraps `usd_sdf::Specifier`. Mirrors C++ `SdfSpecifier`.
-#[pyclass(skip_from_py_object,name = "Specifier", module = "pxr.Sdf")]
+#[pyclass(skip_from_py_object,name = "Specifier", module = "pxr_rs.Sdf")]
 #[derive(Clone, Copy)]
 pub struct PySpecifier {
     inner: Specifier,
@@ -1657,7 +1657,7 @@ impl PySpecifier {
 /// with Sdf.ChangeBlock():
 ///     # make many changes...
 /// ```
-#[pyclass(skip_from_py_object,name = "ChangeBlock", module = "pxr.Sdf")]
+#[pyclass(skip_from_py_object,name = "ChangeBlock", module = "pxr_rs.Sdf")]
 pub struct PyChangeBlock {
     // Held alive for the duration of the with-block; drop triggers flush.
     _block: usd_sdf::ChangeBlock,

@@ -16,7 +16,7 @@ use std::sync::Mutex;
 /// Interned string for fast O(1) comparison and hashing.
 ///
 /// Mirrors `pxr.Tf.Token` / `TfToken` from C++ OpenUSD.
-#[pyclass(skip_from_py_object,name = "Token", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "Token", module = "pxr_rs.Tf")]
 #[derive(Clone)]
 pub struct PyToken {
     inner: usd_tf::Token,
@@ -84,7 +84,7 @@ impl PyToken {
 /// Runtime type handle — mirrors `pxr.Tf.Type` / `TfType`.
 ///
 /// Use `Type.Find()` / `Type.FindByName()` to look up registered types.
-#[pyclass(skip_from_py_object,name = "Type", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "Type", module = "pxr_rs.Tf")]
 #[derive(Clone)]
 pub struct PyType {
     inner: usd_tf::TfType,
@@ -256,7 +256,7 @@ impl PyType {
 /// A listener registration key — holds the revoke handle.
 ///
 /// Mirrors `pxr.Tf.Notice.Listener` / `TfNotice::Key`.
-#[pyclass(skip_from_py_object,name = "NoticeListener", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "NoticeListener", module = "pxr_rs.Tf")]
 pub struct PyNoticeListener {
     /// The revoke handle from the Rust registry; None after `Revoke()`.
     key: Option<usd_tf::notice::ListenerKey>,
@@ -297,7 +297,7 @@ impl PyNoticeListener {
 /// Python-level notice types (subclasses of this) carry a string type tag
 /// so they can be dispatched through the Rust notice system via a
 /// string-keyed shim registry.
-#[pyclass(skip_from_py_object,name = "Notice", module = "pxr.Tf", subclass)]
+#[pyclass(skip_from_py_object,name = "Notice", module = "pxr_rs.Tf", subclass)]
 pub struct PyNotice {
     /// Logical type name set by the concrete Python notice subclass.
     notice_type: String,
@@ -444,7 +444,7 @@ impl PythonNoticeShim {
 // ============================================================================
 
 /// High-resolution timer — mirrors `pxr.Tf.Stopwatch` / `TfStopwatch`.
-#[pyclass(skip_from_py_object,name = "Stopwatch", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "Stopwatch", module = "pxr_rs.Tf")]
 pub struct PyStopwatch {
     inner: usd_tf::stopwatch::Stopwatch,
 }
@@ -541,7 +541,7 @@ impl PyStopwatch {
 ///
 /// Debug symbols are named boolean flags that gate diagnostic output.
 /// They can be toggled at runtime or via the `TF_DEBUG` environment variable.
-#[pyclass(skip_from_py_object,name = "Debug", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "Debug", module = "pxr_rs.Tf")]
 pub struct PyDebug;
 
 #[pymethods]
@@ -765,7 +765,7 @@ fn format_msg(template: &str, args: &Bound<'_, PyTuple>) -> PyResult<String> {
 /// Mirrors `Tf.Enum` / `TfEnum` usage in Python where int subclasses carry
 /// a type tag.  In practice pxr uses Python ints directly — this wrapper
 /// preserves the `typeName` attribute for introspection.
-#[pyclass(skip_from_py_object,name = "Enum", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "Enum", module = "pxr_rs.Tf")]
 #[derive(Clone)]
 pub struct PyEnum {
     value: i64,
