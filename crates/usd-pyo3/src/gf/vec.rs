@@ -25,7 +25,7 @@ pub(super) fn norm_idx(i: isize, len: usize) -> PyResult<usize> {
 // Vec2d
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec2d", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec2d", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec2d(pub usd_gf::Vec2d);
 
@@ -96,7 +96,7 @@ impl PyVec2d {
 // Vec2f
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec2f", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec2f", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec2f(pub usd_gf::Vec2f);
 
@@ -166,7 +166,7 @@ impl PyVec2f {
 // Vec2h (half-precision — Python boundary uses f32)
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec2h", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec2h", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec2h(pub usd_gf::Vec2h);
 
@@ -229,7 +229,7 @@ impl PyVec2h {
 // Vec2i
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec2i", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec2i", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec2i(pub usd_gf::Vec2i);
 
@@ -267,7 +267,7 @@ impl PyVec2i {
 // Vec3d
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec3d", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec3d", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec3d(pub usd_gf::Vec3d);
 
@@ -341,7 +341,7 @@ impl PyVec3d {
 // Vec3f
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec3f", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec3f", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec3f(pub usd_gf::Vec3f);
 
@@ -415,7 +415,7 @@ impl PyVec3f {
 // Vec3h
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec3h", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec3h", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec3h(pub usd_gf::Vec3h);
 
@@ -470,7 +470,7 @@ impl PyVec3h {
 // Vec3i
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec3i", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec3i", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec3i(pub usd_gf::Vec3i);
 
@@ -507,7 +507,7 @@ impl PyVec3i {
 // Vec4d
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec4d", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec4d", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec4d(pub usd_gf::Vec4d);
 
@@ -578,7 +578,7 @@ impl PyVec4d {
 // Vec4f
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec4f", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec4f", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec4f(pub usd_gf::Vec4f);
 
@@ -649,7 +649,7 @@ impl PyVec4f {
 // Vec4h
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec4h", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec4h", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec4h(pub usd_gf::Vec4h);
 
@@ -703,7 +703,7 @@ impl PyVec4h {
 // Vec4i
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Vec4i", module = "pxr.Gf")]
+#[pyclass(skip_from_py_object,name = "Vec4i", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyVec4i(pub usd_gf::Vec4i);
 

@@ -24,7 +24,7 @@ use usd_tf::Token;
 /// Path addressing a location in a USD scene graph.
 ///
 /// Wraps `usd_sdf::Path`. Mirrors C++ `SdfPath` as exposed by `wrapPath.cpp`.
-#[pyclass(name = "Path", module = "pxr.Sdf")]
+#[pyclass(from_py_object,name = "Path", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPath {
     inner: Path,
@@ -279,7 +279,7 @@ impl PyPath {
 
     /// Returns (variantSet, variant) tuple if this is a variant selection path.
     #[allow(non_snake_case)]
-    fn GetVariantSelection(&self, py: Python<'_>) -> PyObject {
+    fn GetVariantSelection(&self, py: Python<'_>) -> Py<PyAny> {
         match self.inner.get_variant_selection() {
             Some((set, variant)) => PyTuple::new(py, [set, variant])
                 .expect("tuple creation")
@@ -415,7 +415,7 @@ impl PyPath {
     /// Returns (pathA, pathB) with common suffix removed.
     #[allow(non_snake_case)]
     #[pyo3(signature = (other, stop_at_root_prim = false))]
-    fn RemoveCommonSuffix(&self, other: &PyPath, stop_at_root_prim: bool, py: Python<'_>) -> PyObject {
+    fn RemoveCommonSuffix(&self, other: &PyPath, stop_at_root_prim: bool, py: Python<'_>) -> Py<PyAny> {
         let (a, b) = self.inner.remove_common_suffix(&other.inner, stop_at_root_prim);
         PyTuple::new(py, [
             PyPath { inner: a }.into_pyobject(py).expect("ok"),
@@ -493,10 +493,10 @@ impl PyPath {
     /// Returns (strippedName, prefix) splitting off the given prefix namespace.
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn StripPrefixNamespace(name: &str, prefix: &str, py: Python<'_>) -> PyObject {
+    fn StripPrefixNamespace(name: &str, prefix: &str, py: Python<'_>) -> Py<PyAny> {
         let (stripped, had_prefix) = Path::strip_prefix_namespace(name, prefix);
-        let s_obj: PyObject = stripped.into_pyobject(py).expect("ok").into_any().unbind();
-        let b_obj: PyObject = had_prefix.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
+        let s_obj: Py<PyAny> = stripped.into_pyobject(py).expect("ok").into_any().unbind();
+        let b_obj: Py<PyAny> = had_prefix.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
         PyTuple::new(py, [s_obj, b_obj])
             .expect("tuple")
             .into_any()
@@ -589,7 +589,7 @@ impl PyPath {
 /// Time offset and scale applied when referencing layers.
 ///
 /// Wraps `usd_sdf::LayerOffset`. Mirrors C++ `SdfLayerOffset`.
-#[pyclass(name = "LayerOffset", module = "pxr.Sdf")]
+#[pyclass(skip_from_py_object,name = "LayerOffset", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyLayerOffset {
     inner: LayerOffset,
@@ -657,7 +657,7 @@ impl PyLayerOffset {
 /// Container for scene description (prims, properties, metadata).
 ///
 /// Wraps `Arc<usd_sdf::Layer>`. Mirrors C++ `SdfLayer` as exposed by `wrapLayer.cpp`.
-#[pyclass(name = "Layer", module = "pxr.Sdf")]
+#[pyclass(from_py_object,name = "Layer", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyLayer {
     inner: Arc<Layer>,
@@ -901,7 +901,7 @@ impl PyLayer {
 
     #[getter]
     #[allow(non_snake_case)]
-    fn customLayerData(&self, py: Python<'_>) -> PyObject {
+    fn customLayerData(&self, py: Python<'_>) -> Py<PyAny> {
         let data = self.inner.get_custom_layer_data();
         let dict = PyDict::new(py);
         for (k, v) in &data {
@@ -976,7 +976,7 @@ impl PyLayer {
 
     /// Returns the value at `time` for the attribute at `path`, or None.
     #[allow(non_snake_case)]
-    fn QueryTimeSample(&self, path: &PyPath, time: f64, py: Python<'_>) -> PyObject {
+    fn QueryTimeSample(&self, path: &PyPath, time: f64, py: Python<'_>) -> Py<PyAny> {
         match self.inner.query_time_sample(&path.inner, time) {
             Some(val) => vt_value_to_pyobject(py, &val),
             None => py.None(),
@@ -985,7 +985,7 @@ impl PyLayer {
 
     /// Sets the time sample at `time` for the attribute at `path`.
     #[allow(non_snake_case)]
-    fn SetTimeSample(&self, path: &PyPath, time: f64, value: PyObject, py: Python<'_>) -> bool {
+    fn SetTimeSample(&self, path: &PyPath, time: f64, value: Py<PyAny>, py: Python<'_>) -> bool {
         let val = pyobject_to_vt_value(py, &value);
         self.inner.set_time_sample(&path.inner, time, val)
     }
@@ -1003,21 +1003,21 @@ impl PyLayer {
         path: &PyPath,
         time: f64,
         py: Python<'_>,
-    ) -> PyObject {
+    ) -> Py<PyAny> {
         match self.inner.get_bracketing_time_samples_for_path(&path.inner, time) {
             Some((lo, hi)) => {
-                let found: PyObject = true.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
-                let lo_obj: PyObject = lo.into_pyobject(py).expect("ok").into_any().unbind();
-                let hi_obj: PyObject = hi.into_pyobject(py).expect("ok").into_any().unbind();
+                let found: Py<PyAny> = true.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
+                let lo_obj: Py<PyAny> = lo.into_pyobject(py).expect("ok").into_any().unbind();
+                let hi_obj: Py<PyAny> = hi.into_pyobject(py).expect("ok").into_any().unbind();
                 PyTuple::new(py, [found, lo_obj, hi_obj])
                     .expect("tuple")
                     .into_any()
                     .unbind()
             }
             None => {
-                let found: PyObject = false.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
-                let lo_obj: PyObject = 0.0_f64.into_pyobject(py).expect("ok").into_any().unbind();
-                let hi_obj: PyObject = 0.0_f64.into_pyobject(py).expect("ok").into_any().unbind();
+                let found: Py<PyAny> = false.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
+                let lo_obj: Py<PyAny> = 0.0_f64.into_pyobject(py).expect("ok").into_any().unbind();
+                let hi_obj: Py<PyAny> = 0.0_f64.into_pyobject(py).expect("ok").into_any().unbind();
                 PyTuple::new(py, [found, lo_obj, hi_obj])
                     .expect("tuple")
                     .into_any()
@@ -1305,7 +1305,7 @@ impl PyLayer {
     /// Splits `identifier` into (layerPath, args).
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn SplitIdentifier(identifier: &str, py: Python<'_>) -> PyObject {
+    fn SplitIdentifier(identifier: &str, py: Python<'_>) -> Py<PyAny> {
         let mut layer_path = String::new();
         let mut args: HashMap<String, String> = HashMap::new();
         Layer::split_identifier(identifier, &mut layer_path, &mut args);
@@ -1357,7 +1357,7 @@ impl PyLayer {
 /// Scene description for a single prim in a layer.
 ///
 /// Wraps `usd_sdf::PrimSpec`. Mirrors C++ `SdfPrimSpec`.
-#[pyclass(name = "PrimSpec", module = "pxr.Sdf")]
+#[pyclass(skip_from_py_object,name = "PrimSpec", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPrimSpec {
     inner: PrimSpec,
@@ -1529,7 +1529,7 @@ impl PyPrimSpec {
 /// Scene description for an attribute in a layer.
 ///
 /// Wraps `usd_sdf::AttributeSpec`. Mirrors C++ `SdfAttributeSpec`.
-#[pyclass(name = "AttributeSpec", module = "pxr.Sdf")]
+#[pyclass(skip_from_py_object,name = "AttributeSpec", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyAttributeSpec {
     inner: AttributeSpec,
@@ -1568,7 +1568,7 @@ impl PyAttributeSpec {
 
     #[getter]
     #[allow(non_snake_case)]
-    fn default_(&self, py: Python<'_>) -> PyObject {
+    fn default_(&self, py: Python<'_>) -> Py<PyAny> {
         // default_value() returns Value (not Option); check has_default_value() first
         if self.inner.has_default_value() {
             vt_value_to_pyobject(py, &self.inner.default_value())
@@ -1597,7 +1597,7 @@ impl PyAttributeSpec {
 /// Specifier for a prim: `Def`, `Over`, or `Class`.
 ///
 /// Wraps `usd_sdf::Specifier`. Mirrors C++ `SdfSpecifier`.
-#[pyclass(name = "Specifier", module = "pxr.Sdf")]
+#[pyclass(skip_from_py_object,name = "Specifier", module = "pxr.Sdf")]
 #[derive(Clone, Copy)]
 pub struct PySpecifier {
     inner: Specifier,
@@ -1657,7 +1657,7 @@ impl PySpecifier {
 /// with Sdf.ChangeBlock():
 ///     # make many changes...
 /// ```
-#[pyclass(name = "ChangeBlock", module = "pxr.Sdf")]
+#[pyclass(skip_from_py_object,name = "ChangeBlock", module = "pxr.Sdf")]
 pub struct PyChangeBlock {
     // Held alive for the duration of the with-block; drop triggers flush.
     _block: usd_sdf::ChangeBlock,
@@ -1674,7 +1674,7 @@ impl PyChangeBlock {
         slf
     }
 
-    fn __exit__(&mut self, _exc_type: PyObject, _exc_val: PyObject, _exc_tb: PyObject) -> bool {
+    fn __exit__(&mut self, _exc_type: Py<PyAny>, _exc_val: Py<PyAny>, _exc_tb: Py<PyAny>) -> bool {
         // Block is dropped when this object is dropped (end of with-statement).
         // Return false to propagate any exception.
         false
@@ -1689,7 +1689,7 @@ impl PyChangeBlock {
 ///
 /// Falls back to `repr()` string for unsupported types so Python callers
 /// always get something usable rather than None.
-fn vt_value_to_pyobject(py: Python<'_>, val: &usd_vt::Value) -> PyObject {
+fn vt_value_to_pyobject(py: Python<'_>, val: &usd_vt::Value) -> Py<PyAny> {
     if let Some(b) = val.get::<bool>() {
         return b.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
     }
@@ -1730,7 +1730,7 @@ fn vt_value_to_pyobject(py: Python<'_>, val: &usd_vt::Value) -> PyObject {
 /// Converts a Python object to a `usd_vt::Value`.
 ///
 /// Supports the most common scalar types. Unknown types become empty Value.
-fn pyobject_to_vt_value(py: Python<'_>, obj: &PyObject) -> usd_vt::Value {
+fn pyobject_to_vt_value(py: Python<'_>, obj: &Py<PyAny>) -> usd_vt::Value {
     let bound = obj.bind(py);
     if let Ok(b) = bound.extract::<bool>() {
         return usd_vt::Value::new(b);

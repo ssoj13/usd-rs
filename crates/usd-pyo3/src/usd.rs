@@ -35,58 +35,56 @@ fn path_from_str(s: &str) -> PyResult<Path> {
     Path::from_string(s).ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: {s}")))
 }
 
-#[allow(deprecated)]
-fn value_to_py(py: Python<'_>, val: &Value) -> PyObject {
-    use pyo3::IntoPy;
+fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
     // Try common types; fall back to string repr
     if let Some(v) = val.downcast_clone::<bool>() {
-        return v.into_py(py);
+        return v.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
     }
     if let Some(v) = val.downcast_clone::<i32>() {
-        return v.into_py(py);
+        return v.into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(v) = val.downcast_clone::<i64>() {
-        return v.into_py(py);
+        return v.into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(v) = val.downcast_clone::<f32>() {
-        return (v as f64).into_py(py);
+        return (v as f64).into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(v) = val.downcast_clone::<f64>() {
-        return v.into_py(py);
+        return v.into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(v) = val.downcast_clone::<String>() {
-        return v.into_py(py);
+        return v.as_str().into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(v) = val.downcast_clone::<Token>() {
-        return v.as_str().to_string().into_py(py);
+        return v.as_str().to_string().into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(v) = val.downcast_clone::<Vec<f32>>() {
-        return PyList::new(py, v).map(|l| l.into()).unwrap_or_else(|_| py.None());
+        return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<Vec<f64>>() {
-        return PyList::new(py, v).map(|l| l.into()).unwrap_or_else(|_| py.None());
+        return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<Vec<i32>>() {
-        return PyList::new(py, v).map(|l| l.into()).unwrap_or_else(|_| py.None());
+        return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<Vec<String>>() {
-        return PyList::new(py, v).map(|l| l.into()).unwrap_or_else(|_| py.None());
+        return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<glam::Vec3>() {
         return PyTuple::new(py, [v.x as f64, v.y as f64, v.z as f64])
-            .map(|t| t.into())
+            .map(|t| t.into_any().unbind())
             .unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<glam::Vec2>() {
         return PyTuple::new(py, [v.x as f64, v.y as f64])
-            .map(|t| t.into())
+            .map(|t| t.into_any().unbind())
             .unwrap_or_else(|_| py.None());
     }
     if val.is_empty() {
         return py.None();
     }
     // Fallback: debug string
-    format!("{val:?}").into_py(py)
+    format!("{val:?}").into_pyobject(py).expect("ok").into_any().unbind()
 }
 
 fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
@@ -125,7 +123,7 @@ fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
 /// Represents a USD time code value.
 ///
 /// Matches C++ `UsdTimeCode`.
-#[pyclass(name = "TimeCode", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "TimeCode", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyTimeCode {
     inner: TimeCode,
@@ -290,7 +288,7 @@ fn core_tc_to_sdf(tc: TimeCode) -> usd_sdf::TimeCode {
 /// Controls which prims are populated on a stage.
 ///
 /// Matches C++ `UsdStagePopulationMask`.
-#[pyclass(name = "StagePopulationMask", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "StagePopulationMask", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyStagePopulationMask {
     inner: StagePopulationMask,
@@ -370,7 +368,7 @@ impl PyStagePopulationMask {
 /// Specifies which layer should receive edits on a stage.
 ///
 /// Matches C++ `UsdEditTarget`.
-#[pyclass(name = "EditTarget", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "EditTarget", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyEditTarget {
     inner: EditTarget,
@@ -411,7 +409,7 @@ impl PyEditTarget {
 /// RAII helper that temporarily changes a stage's edit target.
 ///
 /// Matches C++ `UsdEditContext`. Use as `with Usd.EditContext(stage, target):`.
-#[pyclass(name = "EditContext", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "EditContext", module = "pxr.Usd")]
 pub struct PyEditContext {
     inner: Option<EditContext>,
 }
@@ -447,9 +445,9 @@ impl PyEditContext {
 /// Iterator over a range of prims on a stage.
 ///
 /// Matches C++ `UsdPrimRange`.
-#[pyclass(name = "PrimRange", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "PrimRange", module = "pxr.Usd")]
 pub struct PyPrimRange {
-    prims: Vec<PyObject>,
+    prims: Vec<Py<PyAny>>,
     index: usize,
 }
 
@@ -459,7 +457,7 @@ impl PyPrimRange {
         slf
     }
 
-    fn __next__(&mut self, py: Python<'_>) -> Option<PyObject> {
+    fn __next__(&mut self, py: Python<'_>) -> Option<Py<PyAny>> {
         if self.index < self.prims.len() {
             let item = self.prims[self.index].clone_ref(py);
             self.index += 1;
@@ -475,14 +473,12 @@ impl PyPrimRange {
 }
 
 impl PyPrimRange {
-    #[allow(deprecated)]
     fn from_prims(py: Python<'_>, prims: Vec<Prim>, stage_arc: Arc<Stage>) -> Self {
-        use pyo3::IntoPy;
         let objs = prims
             .into_iter()
             .map(|p| {
                 let py_prim = PyPrim::from_prim(p, stage_arc.clone());
-                py_prim.into_py(py)
+                py_prim.into_pyobject(py).expect("ok").into_any().unbind()
             })
             .collect();
         Self { prims: objs, index: 0 }
@@ -493,7 +489,7 @@ impl PyPrimRange {
 // UsdObject base helpers (shared metadata logic)
 // ============================================================================
 
-fn prim_get_metadata(py: Python<'_>, prim: &Prim, key: &str) -> PyResult<PyObject> {
+fn prim_get_metadata(py: Python<'_>, prim: &Prim, key: &str) -> PyResult<Py<PyAny>> {
     let token = Token::new(key);
     // Route through stage for proper composition, returning raw VtValue.
     let val_opt = prim.stage()
@@ -510,7 +506,7 @@ fn prim_set_metadata(prim: &Prim, key: &str, obj: &Bound<'_, PyAny>) -> PyResult
     Ok(prim.set_metadata(&token, val))
 }
 
-fn attr_get_metadata(py: Python<'_>, attr: &Attribute, key: &str) -> PyResult<PyObject> {
+fn attr_get_metadata(py: Python<'_>, attr: &Attribute, key: &str) -> PyResult<Py<PyAny>> {
     let token = Token::new(key);
     match attr.get_metadata(&token) {
         Some(v) => Ok(value_to_py(py, &v)),
@@ -525,7 +521,7 @@ fn attr_get_metadata(py: Python<'_>, attr: &Attribute, key: &str) -> PyResult<Py
 /// A composed prim on a stage.
 ///
 /// Matches C++ `UsdPrim`.
-#[pyclass(name = "Prim", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "Prim", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyPrim {
     inner: Prim,
@@ -890,7 +886,7 @@ impl PyPrim {
     // -- Metadata ----------------------------------------------------------
 
     #[allow(non_snake_case)]
-    fn GetMetadata(&self, py: Python<'_>, key: &str) -> PyResult<PyObject> {
+    fn GetMetadata(&self, py: Python<'_>, key: &str) -> PyResult<Py<PyAny>> {
         prim_get_metadata(py, &self.inner, key)
     }
 
@@ -913,7 +909,7 @@ impl PyPrim {
     }
 
     #[allow(non_snake_case)]
-    fn GetAllMetadata(&self, py: Python<'_>) -> PyResult<PyObject> {
+    fn GetAllMetadata(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         // Collect authored metadata from the strongest layer for known schema keys.
         // C++ enumerates registered fields; we approximate with common authored fields.
         let dict = PyDict::new(py);
@@ -930,7 +926,7 @@ impl PyPrim {
                 dict.set_item(key_str, value_to_py(py, &val))?;
             }
         }
-        Ok(dict.into())
+        Ok(dict.into_any().unbind())
     }
 
     #[allow(non_snake_case)]
@@ -975,7 +971,7 @@ impl PyPrim {
 // UsdVariantSets (lightweight helper returned by prim.GetVariantSets())
 // ============================================================================
 
-#[pyclass(name = "VariantSets", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "VariantSets", module = "pxr.Usd")]
 pub struct PyVariantSets {
     prim: Prim,
     _stage: Arc<Stage>,
@@ -1008,7 +1004,7 @@ impl PyVariantSets {
     }
 }
 
-#[pyclass(name = "VariantSet", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "VariantSet", module = "pxr.Usd")]
 pub struct PyVariantSet {
     prim: Prim,
     name: String,
@@ -1045,7 +1041,7 @@ impl PyVariantSet {
 /// A typed, time-varying attribute on a prim.
 ///
 /// Matches C++ `UsdAttribute`.
-#[pyclass(name = "Attribute", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "Attribute", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyAttribute {
     inner: Attribute,
@@ -1123,7 +1119,7 @@ impl PyAttribute {
     ///
     /// Returns None if there is no value.
     #[allow(non_snake_case)]
-    fn Get(&self, py: Python<'_>, time: Option<&Bound<'_, PyAny>>) -> PyResult<PyObject> {
+    fn Get(&self, py: Python<'_>, time: Option<&Bound<'_, PyAny>>) -> PyResult<Py<PyAny>> {
         let tc = match time {
             Some(t) => tc_from_py(t)?,
             None => TimeCode::default(),
@@ -1298,7 +1294,7 @@ impl PyAttribute {
     // -- Metadata ----------------------------------------------------------
 
     #[allow(non_snake_case)]
-    fn GetMetadata(&self, py: Python<'_>, key: &str) -> PyResult<PyObject> {
+    fn GetMetadata(&self, py: Python<'_>, key: &str) -> PyResult<Py<PyAny>> {
         attr_get_metadata(py, &self.inner, key)
     }
 
@@ -1388,7 +1384,7 @@ impl PyAttribute {
 /// A property that holds paths to other prims/properties.
 ///
 /// Matches C++ `UsdRelationship`.
-#[pyclass(name = "Relationship", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "Relationship", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyRelationship {
     inner: Relationship,
@@ -1503,7 +1499,7 @@ impl PyRelationship {
     // -- Metadata ----------------------------------------------------------
 
     #[allow(non_snake_case)]
-    fn GetMetadata(&self, py: Python<'_>, key: &str) -> PyResult<PyObject> {
+    fn GetMetadata(&self, py: Python<'_>, key: &str) -> PyResult<Py<PyAny>> {
         let token = Token::new(key);
         match self.inner.as_property().get_metadata(&token) {
             Some(v) => Ok(value_to_py(py, &v)),
@@ -1575,7 +1571,7 @@ impl PyRelationship {
 /// Base class for all USD schema wrappers.
 ///
 /// Matches C++ `UsdSchemaBase`.
-#[pyclass(name = "SchemaBase", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "SchemaBase", module = "pxr.Usd")]
 pub struct PySchemaBase {
     prim: Prim,
     _stage: Arc<Stage>,
@@ -1606,7 +1602,7 @@ impl PySchemaBase {
 /// The outermost container for scene description.
 ///
 /// Matches C++ `UsdStage`.
-#[pyclass(name = "Stage", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "Stage", module = "pxr.Usd")]
 pub struct PyStage {
     inner: Arc<Stage>,
 }
@@ -1757,7 +1753,7 @@ impl PyStage {
     // -- Layers ------------------------------------------------------------
 
     #[allow(non_snake_case)]
-    fn GetRootLayer(&self) -> PyResult<PyObject> {
+    fn GetRootLayer(&self) -> PyResult<Py<PyAny>> {
         // Return layer identifier string as proxy (full Layer wrapping deferred to Sdf module)
         Err(PyNotImplementedError::new_err("GetRootLayer: use stage.GetRootLayerIdentifier() for now"))
     }
@@ -1773,9 +1769,9 @@ impl PyStage {
     }
 
     #[allow(non_snake_case)]
-    fn GetLayerStack(&self, py: Python<'_>) -> PyObject {
+    fn GetLayerStack(&self, py: Python<'_>) -> Py<PyAny> {
         let layers: Vec<String> = self.inner.layer_stack().iter().map(|l| l.identifier().to_string()).collect();
-        PyList::new(py, layers).map(|l| l.into()).unwrap_or_else(|_| py.None())
+        PyList::new(py, layers).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None())
     }
 
     #[allow(non_snake_case)]
@@ -1916,7 +1912,7 @@ impl PyStage {
     // -- Metadata ----------------------------------------------------------
 
     #[allow(non_snake_case)]
-    fn GetMetadata(&self, py: Python<'_>, key: &str) -> PyResult<PyObject> {
+    fn GetMetadata(&self, py: Python<'_>, key: &str) -> PyResult<Py<PyAny>> {
         let token = Token::new(key);
         match self.inner.get_metadata(&token) {
             Some(v) => Ok(value_to_py(py, &v)),
@@ -1945,14 +1941,14 @@ impl PyStage {
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn GetGlobalVariantFallbacks(py: Python<'_>) -> PyObject {
+    fn GetGlobalVariantFallbacks(py: Python<'_>) -> Py<PyAny> {
         let fb = Stage::get_global_variant_fallbacks();
         let dict = PyDict::new(py);
         for (k, v) in fb {
             let vals: Vec<String> = v.iter().map(|t| t.as_str().to_string()).collect();
             let _ = dict.set_item(k.as_str(), vals);
         }
-        dict.into()
+        dict.into_any().unbind()
     }
 
     #[staticmethod]
@@ -2029,14 +2025,14 @@ fn parse_load_policy(s: &str) -> PyResult<usd_core::common::LoadPolicy> {
 /// Notice types for USD change notification.
 ///
 /// Matches C++ `UsdNotice`.
-#[pyclass(name = "Notice", module = "pxr.Usd")]
+#[pyclass(skip_from_py_object,name = "Notice", module = "pxr.Usd")]
 pub struct PyNotice;
 
 #[pymethods]
 impl PyNotice {
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn ObjectsChanged() -> PyResult<PyObject> {
+    fn ObjectsChanged() -> PyResult<Py<PyAny>> {
         Err(PyNotImplementedError::new_err(
             "UsdNotice.ObjectsChanged requires a notice listener system",
         ))
@@ -2044,7 +2040,7 @@ impl PyNotice {
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn StageContentsChanged() -> PyResult<PyObject> {
+    fn StageContentsChanged() -> PyResult<Py<PyAny>> {
         Err(PyNotImplementedError::new_err(
             "UsdNotice.StageContentsChanged requires a notice listener system",
         ))
@@ -2052,7 +2048,7 @@ impl PyNotice {
 
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn StageEditTargetChanged() -> PyResult<PyObject> {
+    fn StageEditTargetChanged() -> PyResult<Py<PyAny>> {
         Err(PyNotImplementedError::new_err(
             "UsdNotice.StageEditTargetChanged requires a notice listener system",
         ))

@@ -1476,15 +1476,13 @@ impl PyCamera {
     pub fn create_stereo_role_attr(&self) -> PyAttribute { PyAttribute(self.0.create_stereo_role_attr(None, false)) }
 
     /// Returns key camera parameters as a Python dict.
-    pub fn get_camera(&self, time: Option<f64>) -> PyResult<PyObject> {
+    pub fn get_camera(&self, py: Python<'_>, time: Option<f64>) -> PyResult<Py<PyAny>> {
         let gf_cam = self.0.get_camera(tc(time));
-        Python::with_gil(|py| {
-            let d = pyo3::types::PyDict::new(py);
-            d.set_item("focalLength", gf_cam.focal_length())?;
-            d.set_item("horizontalAperture", gf_cam.horizontal_aperture())?;
-            d.set_item("verticalAperture", gf_cam.vertical_aperture())?;
-            Ok(d.into_any().unbind())
-        })
+        let d = pyo3::types::PyDict::new(py);
+        d.set_item("focalLength", gf_cam.focal_length())?;
+        d.set_item("horizontalAperture", gf_cam.horizontal_aperture())?;
+        d.set_item("verticalAperture", gf_cam.vertical_aperture())?;
+        Ok(d.into_any().unbind())
     }
 
     pub fn is_valid(&self) -> bool { self.0.is_valid() }

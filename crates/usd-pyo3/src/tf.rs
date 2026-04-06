@@ -16,7 +16,7 @@ use std::sync::Mutex;
 /// Interned string for fast O(1) comparison and hashing.
 ///
 /// Mirrors `pxr.Tf.Token` / `TfToken` from C++ OpenUSD.
-#[pyclass(name = "Token", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "Token", module = "pxr.Tf")]
 #[derive(Clone)]
 pub struct PyToken {
     inner: usd_tf::Token,
@@ -84,7 +84,7 @@ impl PyToken {
 /// Runtime type handle — mirrors `pxr.Tf.Type` / `TfType`.
 ///
 /// Use `Type.Find()` / `Type.FindByName()` to look up registered types.
-#[pyclass(name = "Type", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "Type", module = "pxr.Tf")]
 #[derive(Clone)]
 pub struct PyType {
     inner: usd_tf::TfType,
@@ -256,7 +256,7 @@ impl PyType {
 /// A listener registration key — holds the revoke handle.
 ///
 /// Mirrors `pxr.Tf.Notice.Listener` / `TfNotice::Key`.
-#[pyclass(name = "NoticeListener", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "NoticeListener", module = "pxr.Tf")]
 pub struct PyNoticeListener {
     /// The revoke handle from the Rust registry; None after `Revoke()`.
     key: Option<usd_tf::notice::ListenerKey>,
@@ -297,7 +297,7 @@ impl PyNoticeListener {
 /// Python-level notice types (subclasses of this) carry a string type tag
 /// so they can be dispatched through the Rust notice system via a
 /// string-keyed shim registry.
-#[pyclass(name = "Notice", module = "pxr.Tf", subclass)]
+#[pyclass(skip_from_py_object,name = "Notice", module = "pxr.Tf", subclass)]
 pub struct PyNotice {
     /// Logical type name set by the concrete Python notice subclass.
     notice_type: String,
@@ -345,7 +345,7 @@ impl PyNotice {
     fn register_globally(
         _cls: &Bound<'_, pyo3::types::PyType>,
         notice_type: &str,
-        callback: PyObject,
+        callback: Py<PyAny>,
     ) -> PyNoticeListener {
         let key = PYTHON_NOTICE_SHIM.register(notice_type, callback);
         PyNoticeListener { key: Some(key) }
@@ -373,7 +373,7 @@ impl usd_tf::notice::Notice for PythonStringNotice {
 /// Per-tag callback list, shared between the shim registry and `send`.
 #[allow(dead_code)]
 struct ShimEntry {
-    callbacks: Vec<(usd_tf::notice::ListenerKey, PyObject)>,
+    callbacks: Vec<(usd_tf::notice::ListenerKey, Py<PyAny>)>,
 }
 
 struct PythonNoticeShim {
@@ -386,7 +386,7 @@ static PYTHON_NOTICE_SHIM: std::sync::LazyLock<PythonNoticeShim> =
     });
 
 impl PythonNoticeShim {
-    fn register(&self, tag: &str, callback: PyObject) -> usd_tf::notice::ListenerKey {
+    fn register(&self, tag: &str, callback: Py<PyAny>) -> usd_tf::notice::ListenerKey {
         // We don't use the Rust generic notice for Python callbacks — instead we
         // keep a manual table keyed by tag and issue callbacks directly in send().
         // We still need to return a real ListenerKey, so we mint a dummy one via
@@ -408,8 +408,13 @@ impl PythonNoticeShim {
     fn send(&self, tag: &str) {
         // We need the GIL to clone PyObject references, so acquire it first,
         // then snapshot the active callbacks while still holding the lock.
-        Python::with_gil(|py| {
-            let callbacks: Vec<PyObject> = {
+        // SAFETY: attach_unchecked is sound here — this function is only called
+        // from a Rust thread context (notice dispatch), not from within a Python
+        // callback, so no GIL is held and no re-entrancy issues can occur.
+        #[allow(unsafe_code)]
+        unsafe {
+        Python::attach_unchecked(|py| {
+            let callbacks: Vec<Py<PyAny>> = {
                 let entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
                 entries
                     .get(tag)
@@ -429,7 +434,8 @@ impl PythonNoticeShim {
                     e.print(py);
                 }
             }
-        });
+        })
+        } // end unsafe
     }
 }
 
@@ -438,7 +444,7 @@ impl PythonNoticeShim {
 // ============================================================================
 
 /// High-resolution timer — mirrors `pxr.Tf.Stopwatch` / `TfStopwatch`.
-#[pyclass(name = "Stopwatch", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "Stopwatch", module = "pxr.Tf")]
 pub struct PyStopwatch {
     inner: usd_tf::stopwatch::Stopwatch,
 }
@@ -535,7 +541,7 @@ impl PyStopwatch {
 ///
 /// Debug symbols are named boolean flags that gate diagnostic output.
 /// They can be toggled at runtime or via the `TF_DEBUG` environment variable.
-#[pyclass(name = "Debug", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "Debug", module = "pxr.Tf")]
 pub struct PyDebug;
 
 #[pymethods]
@@ -759,7 +765,7 @@ fn format_msg(template: &str, args: &Bound<'_, PyTuple>) -> PyResult<String> {
 /// Mirrors `Tf.Enum` / `TfEnum` usage in Python where int subclasses carry
 /// a type tag.  In practice pxr uses Python ints directly — this wrapper
 /// preserves the `typeName` attribute for introspection.
-#[pyclass(name = "Enum", module = "pxr.Tf")]
+#[pyclass(skip_from_py_object,name = "Enum", module = "pxr.Tf")]
 #[derive(Clone)]
 pub struct PyEnum {
     value: i64,

@@ -35,6 +35,10 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@nightly
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |

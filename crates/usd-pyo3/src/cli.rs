@@ -118,7 +118,7 @@ fn exec(subcmd: &str, args: &[String], capture: bool) -> PyResult<(i32, Option<S
 /// Return value used by output-producing commands:
 /// - `capture=False` → `int` (exit code)
 /// - `capture=True`  → `str` (captured stdout; raises on non-zero exit)
-fn output_result(py: Python<'_>, code: i32, text: Option<String>, capture: bool) -> PyResult<PyObject> {
+fn output_result(py: Python<'_>, code: i32, text: Option<String>, capture: bool) -> PyResult<Py<PyAny>> {
     if capture {
         let s = text.unwrap_or_default();
         if code != 0 {
@@ -126,9 +126,9 @@ fn output_result(py: Python<'_>, code: i32, text: Option<String>, capture: bool)
                 "command exited with code {code}"
             )));
         }
-        s.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
+        s.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
     } else {
-        code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
+        code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
     }
 }
 
@@ -169,7 +169,7 @@ fn cat(
     layer_metadata: bool,
     skip_source_comment: bool,
     capture: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if let Some(o) = out {
@@ -241,7 +241,7 @@ fn tree(
     flatten_layer_stack: bool,
     mask: Option<String>,
     capture: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if unloaded {
@@ -306,7 +306,7 @@ fn dump(
     no_values: bool,
     full_arrays: bool,
     capture: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if summary {
@@ -363,7 +363,7 @@ fn meshdump(
     prim_path: String,
     time: Option<f64>,
     capture: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if let Some(t) = time {
@@ -412,7 +412,7 @@ fn filter(
     sort_by: Option<String>,
     no_values: bool,
     capture: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if let Some(o) = out {
@@ -477,7 +477,7 @@ fn diff(
     brief: bool,
     noeffect: bool,
     capture: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if flatten {
@@ -496,9 +496,9 @@ fn diff(
     // do not raise even when capture=True.
     let (code, text) = exec("diff", &args, capture)?;
     if capture {
-        text.unwrap_or_default().into_pyobject(py).map(|o| o.into()).map_err(Into::into)
+        text.unwrap_or_default().into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
     } else {
-        code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
+        code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
     }
 }
 
@@ -528,7 +528,7 @@ fn resolve(
     context_for_asset: Option<String>,
     context_from_string: Option<Vec<String>>,
     capture: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if let Some(a) = anchor_path {
@@ -577,7 +577,7 @@ fn edit(
     noeffect: bool,
     forcewrite: bool,
     prefix: Option<String>,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if noeffect {
@@ -593,7 +593,7 @@ fn edit(
     args.push(file);
 
     let (code, _) = exec("edit", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
+    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -613,7 +613,7 @@ fn edit(
 ///     ``int`` exit code.
 #[pyfunction]
 #[pyo3(signature = (*files, out))]
-fn stitch(py: Python<'_>, files: Vec<String>, out: String) -> PyResult<PyObject> {
+fn stitch(py: Python<'_>, files: Vec<String>, out: String) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     for f in files {
@@ -623,7 +623,7 @@ fn stitch(py: Python<'_>, files: Vec<String>, out: String) -> PyResult<PyObject>
     args.push(out);
 
     let (code, _) = exec("stitch", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
+    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -646,7 +646,7 @@ fn dumpcrate(
     files: Vec<String>,
     summary: bool,
     capture: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if summary {
@@ -699,7 +699,7 @@ fn stitchclips(
     clip_set: Option<String>,
     no_comment: bool,
     interpolate_missing: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     args.push("-o".into());
@@ -738,7 +738,7 @@ fn stitchclips(
     }
 
     let (code, _) = exec("stitchclips", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
+    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -778,7 +778,7 @@ fn zip(
     verbose: bool,
     skip: Option<Vec<String>>,
     capture: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if list {
@@ -851,7 +851,7 @@ fn compress(
     preserve_polygons: Option<bool>,
     discard_subdivision: Option<bool>,
     ignore_opinion_errors: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     args.push("-o".into());
@@ -883,7 +883,7 @@ fn compress(
     args.push(file);
 
     let (code, _) = exec("compress", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
+    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -909,7 +909,7 @@ fn fixbrokenpixarschemas(
     file: String,
     backup: Option<String>,
     verbose: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if let Some(b) = backup {
@@ -922,7 +922,7 @@ fn fixbrokenpixarschemas(
     args.push(file);
 
     let (code, _) = exec("fixbrokenpixarschemas", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
+    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -948,7 +948,7 @@ fn genschemafromsdr(
     output_dir: Option<String>,
     noreadme: bool,
     validate: bool,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let mut args: Vec<String> = Vec::new();
 
     if noreadme {
@@ -966,7 +966,7 @@ fn genschemafromsdr(
     }
 
     let (code, _) = exec("genschemafromsdr", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
+    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------

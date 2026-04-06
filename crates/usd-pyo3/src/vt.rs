@@ -47,7 +47,7 @@ fn slice_indices(step: isize, start: isize, stop: isize) -> Vec<usize> {
 // ============================================================================
 
 /// Explicit typed wrapper over `Value` — mirrors C++ `Vt._ValueWrapper`.
-#[pyclass(name = "_ValueWrapper", module = "pxr.Vt")]
+#[pyclass(skip_from_py_object,name = "_ValueWrapper", module = "pxr.Vt")]
 #[derive(Clone)]
 pub struct PyValue {
     inner: Value,
@@ -173,7 +173,7 @@ fn format_value(v: &Value) -> String {
 
 macro_rules! define_scalar_iter {
     ($name:ident, $elem:ty) => {
-        #[pyclass]
+        #[pyclass(skip_from_py_object)]
         pub struct $name { data: Vec<$elem>, pos: usize }
 
         impl $name {
@@ -207,7 +207,7 @@ define_scalar_iter!(VtF32Iter,  f32);
 define_scalar_iter!(VtF64Iter,  f64);
 
 /// String-based iterator for Token, vec, matrix arrays.
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 pub struct VtStringIter { data: Vec<String>, pos: usize }
 
 impl VtStringIter {
@@ -233,7 +233,7 @@ impl VtStringIter {
 /// Build `Array<T>` from None (empty), usize (fill with default), or sequence.
 fn build_array<T>(arg: Option<&Bound<'_, PyAny>>, default: fn() -> T) -> PyResult<Array<T>>
 where
-    T: Clone + Send + Sync + for<'py> FromPyObject<'py> + 'static,
+    T: Clone + Send + Sync + for<'a, 'py> FromPyObject<'a, 'py> + 'static,
 {
     let Some(obj) = arg else { return Ok(Array::new()); };
     if let Ok(n) = obj.extract::<usize>() {
@@ -247,7 +247,7 @@ where
 /// Same as `build_array` for types with Default.
 fn build_array_clone<T>(arg: Option<&Bound<'_, PyAny>>) -> PyResult<Array<T>>
 where
-    T: Clone + Send + Sync + Default + for<'py> FromPyObject<'py> + 'static,
+    T: Clone + Send + Sync + Default + for<'a, 'py> FromPyObject<'a, 'py> + 'static,
 {
     let Some(obj) = arg else { return Ok(Array::new()); };
     if let Ok(n) = obj.extract::<usize>() {
@@ -265,7 +265,7 @@ fn build_array_mapped<T, PyElem>(
 ) -> PyResult<Array<T>>
 where
     T: Clone + Send + Sync + Default + 'static,
-    PyElem: for<'py> FromPyObject<'py>,
+    PyElem: for<'a, 'py> FromPyObject<'a, 'py>,
 {
     let Some(obj) = arg else { return Ok(Array::new()); };
     if let Ok(n) = obj.extract::<usize>() {
@@ -297,7 +297,7 @@ macro_rules! vt_array {
         elem    = $elem:ty,
         iter_ty = $iter_ty:ident
     ) => {
-        #[pyclass(name = $py_name, module = $py_mod)]
+        #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
         pub struct $rust_name { inner: Array<$elem> }
 
@@ -311,16 +311,16 @@ macro_rules! vt_array {
 
             fn __len__(&self) -> usize { self.inner.len() }
 
-            fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+            fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
-                    Ok(self.inner.as_slice()[idx].into_py(py))
-                } else if let Ok(slice) = key.downcast::<PySlice>() {
+                    Ok(self.inner.as_slice()[idx].into_pyobject(py)?.into_any().unbind())
+                } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
                     let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let list = PyList::empty(py);
-                    for i in indices { list.append(self.inner.as_slice()[i].into_py(py))?; }
-                    Ok(list.into())
+                    for i in indices { list.append(self.inner.as_slice()[i].into_pyobject(py)?.into_any().unbind())?; }
+                    Ok(list.into_any().unbind())
                 } else {
                     Err(PyTypeError::new_err("index must be int or slice"))
                 }
@@ -334,7 +334,7 @@ macro_rules! vt_array {
                     self.inner.as_mut_slice()
                         .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?[idx] = elem;
                     Ok(())
-                } else if let Ok(slice) = key.downcast::<PySlice>() {
+                } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
                     let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let elems: Vec<$elem> = value.extract()?;
@@ -399,7 +399,7 @@ macro_rules! vt_array {
         elem    = $elem:ty,
         iter_ty = $iter_ty:ident
     ) => {
-        #[pyclass(name = $py_name, module = $py_mod)]
+        #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
         pub struct $rust_name { inner: Array<$elem> }
 
@@ -413,16 +413,16 @@ macro_rules! vt_array {
 
             fn __len__(&self) -> usize { self.inner.len() }
 
-            fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+            fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
-                    Ok(self.inner.as_slice()[idx].into_py(py))
-                } else if let Ok(slice) = key.downcast::<PySlice>() {
+                    Ok(self.inner.as_slice()[idx].into_pyobject(py)?.into_any().unbind())
+                } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
                     let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let list = PyList::empty(py);
-                    for i in indices { list.append(self.inner.as_slice()[i].into_py(py))?; }
-                    Ok(list.into())
+                    for i in indices { list.append(self.inner.as_slice()[i].into_pyobject(py)?.into_any().unbind())?; }
+                    Ok(list.into_any().unbind())
                 } else {
                     Err(PyTypeError::new_err("index must be int or slice"))
                 }
@@ -489,7 +489,7 @@ macro_rules! vt_array {
         elem    = $elem:ty,
         iter_ty = $iter_ty:ident
     ) => {
-        #[pyclass(name = $py_name, module = $py_mod)]
+        #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
         pub struct $rust_name { inner: Array<$elem> }
 
@@ -503,16 +503,16 @@ macro_rules! vt_array {
 
             fn __len__(&self) -> usize { self.inner.len() }
 
-            fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+            fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
-                    Ok(self.inner.as_slice()[idx].into_py(py))
-                } else if let Ok(slice) = key.downcast::<PySlice>() {
+                    Ok(self.inner.as_slice()[idx].into_pyobject(py)?.to_owned().into_any().unbind())
+                } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
                     let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let list = PyList::empty(py);
-                    for i in indices { list.append(self.inner.as_slice()[i].into_py(py))?; }
-                    Ok(list.into())
+                    for i in indices { list.append(self.inner.as_slice()[i].into_pyobject(py)?.to_owned().into_any().unbind())?; }
+                    Ok(list.into_any().unbind())
                 } else {
                     Err(PyTypeError::new_err("index must be int or slice"))
                 }
@@ -557,7 +557,7 @@ macro_rules! vt_array {
         rust   = $rust_name:ident,
         elem   = $elem:ty
     ) => {
-        #[pyclass(name = $py_name, module = $py_mod)]
+        #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
         pub struct $rust_name { inner: Array<$elem> }
 
@@ -571,16 +571,16 @@ macro_rules! vt_array {
 
             fn __len__(&self) -> usize { self.inner.len() }
 
-            fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+            fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
-                    Ok(self.inner.as_slice()[idx].clone().into_py(py))
-                } else if let Ok(slice) = key.downcast::<PySlice>() {
+                    Ok(self.inner.as_slice()[idx].clone().into_pyobject(py)?.into_any().unbind())
+                } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
                     let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let list = PyList::empty(py);
-                    for i in indices { list.append(self.inner.as_slice()[i].clone().into_py(py))?; }
-                    Ok(list.into())
+                    for i in indices { list.append(self.inner.as_slice()[i].clone().into_pyobject(py)?.into_any().unbind())?; }
+                    Ok(list.into_any().unbind())
                 } else {
                     Err(PyTypeError::new_err("index must be int or slice"))
                 }
@@ -635,7 +635,7 @@ macro_rules! vt_array {
         from_py = $from_py:expr,
         to_py   = $to_py:expr
     ) => {
-        #[pyclass(name = $py_name, module = $py_mod)]
+        #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
         pub struct $rust_name { inner: Array<$elem> }
 
@@ -649,21 +649,21 @@ macro_rules! vt_array {
 
             fn __len__(&self) -> usize { self.inner.len() }
 
-            fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+            fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
                     let elem: $py_elem = ($to_py)(self.inner.as_slice()[idx].clone());
-                    Ok(elem.into_py(py))
-                } else if let Ok(slice) = key.downcast::<PySlice>() {
+                    Ok(elem.into_pyobject(py)?.into_any().unbind())
+                } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
                     let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let list = PyList::empty(py);
                     for i in indices {
                         let elem: $py_elem = ($to_py)(self.inner.as_slice()[i].clone());
-                        let py_obj: PyObject = elem.into_py(py);
+                        let py_obj = elem.into_pyobject(py)?.into_any().unbind();
                         list.append(py_obj)?;
                     }
-                    Ok(list.into())
+                    Ok(list.into_any().unbind())
                 } else {
                     Err(PyTypeError::new_err("index must be int or slice"))
                 }
@@ -787,7 +787,7 @@ vt_array!(string_like,
 );
 
 /// `TokenArray` — each token exposed to Python as a `str`.
-#[pyclass(name = "TokenArray", module = "pxr.Vt")]
+#[pyclass(skip_from_py_object,name = "TokenArray", module = "pxr.Vt")]
 #[derive(Clone)]
 pub struct PyTokenArray { inner: Array<usd_tf::Token> }
 
@@ -809,16 +809,16 @@ impl PyTokenArray {
 
     fn __len__(&self) -> usize { self.inner.len() }
 
-    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         if let Ok(i) = key.extract::<isize>() {
             let idx = norm_idx(i, self.inner.len())?;
-            Ok(self.inner.as_slice()[idx].to_string().into_py(py))
-        } else if let Ok(slice) = key.downcast::<PySlice>() {
+            Ok(self.inner.as_slice()[idx].to_string().into_pyobject(py)?.into_any().unbind())
+        } else if let Ok(slice) = key.cast::<PySlice>() {
             let raw = slice.indices(self.inner.len() as _)?;
             let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
             let list = PyList::empty(py);
-            for i in indices { list.append(self.inner.as_slice()[i].to_string().into_py(py))?; }
-            Ok(list.into())
+            for i in indices { list.append(self.inner.as_slice()[i].to_string().into_pyobject(py)?.into_any().unbind())?; }
+            Ok(list.into_any().unbind())
         } else {
             Err(PyTypeError::new_err("index must be int or slice"))
         }
@@ -970,7 +970,7 @@ fn flat_to_mat4f(flat: &[f32]) -> Option<usd_gf::Matrix4f> {
     ]))
 }
 
-#[pyclass(name = "Matrix4dArray", module = "pxr.Vt")]
+#[pyclass(skip_from_py_object,name = "Matrix4dArray", module = "pxr.Vt")]
 #[derive(Clone)]
 pub struct PyMatrix4dArray { inner: Array<usd_gf::Matrix4d> }
 
@@ -997,10 +997,10 @@ impl PyMatrix4dArray {
 
     fn __len__(&self) -> usize { self.inner.len() }
 
-    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         if let Ok(i) = key.extract::<isize>() {
             let idx = norm_idx(i, self.inner.len())?;
-            Ok(mat4d_to_flat(&self.inner.as_slice()[idx]).into_py(py))
+            Ok(mat4d_to_flat(&self.inner.as_slice()[idx]).into_pyobject(py)?.into_any().unbind())
         } else {
             Err(PyTypeError::new_err("index must be int"))
         }
@@ -1032,7 +1032,7 @@ impl PyMatrix4dArray {
     fn __str__(&self) -> String { format!("[{} Matrix4d]", self.inner.len()) }
 }
 
-#[pyclass(name = "Matrix4fArray", module = "pxr.Vt")]
+#[pyclass(skip_from_py_object,name = "Matrix4fArray", module = "pxr.Vt")]
 #[derive(Clone)]
 pub struct PyMatrix4fArray { inner: Array<usd_gf::Matrix4f> }
 
@@ -1058,10 +1058,10 @@ impl PyMatrix4fArray {
 
     fn __len__(&self) -> usize { self.inner.len() }
 
-    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         if let Ok(i) = key.extract::<isize>() {
             let idx = norm_idx(i, self.inner.len())?;
-            Ok(mat4f_to_flat(&self.inner.as_slice()[idx]).into_py(py))
+            Ok(mat4f_to_flat(&self.inner.as_slice()[idx]).into_pyobject(py)?.into_any().unbind())
         } else {
             Err(PyTypeError::new_err("index must be int"))
         }
@@ -1098,12 +1098,12 @@ impl PyMatrix4fArray {
 // ============================================================================
 
 /// Convert a Rust `Dictionary` to a Python `dict` (recursive).
-pub fn dict_to_py(py: Python<'_>, d: &Dictionary) -> PyResult<PyObject> {
+pub fn dict_to_py(py: Python<'_>, d: &Dictionary) -> PyResult<Py<PyAny>> {
     let dict = PyDict::new(py);
     for (k, v) in d.iter() {
         dict.set_item(k, value_to_py(py, v)?)?;
     }
-    Ok(dict.into())
+    Ok(dict.into_any().unbind())
 }
 
 /// Convert a Python object to a Rust `Value`.
@@ -1119,7 +1119,7 @@ pub fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
     }
     if let Ok(f) = obj.extract::<f64>() { return Ok(Value::from_f64(f)); }
     if let Ok(s) = obj.extract::<String>() { return Ok(Value::new(s)); }
-    if let Ok(d) = obj.downcast::<PyDict>() {
+    if let Ok(d) = obj.cast::<PyDict>() {
         return Ok(Value::from_dictionary(py_dict_to_dict(d)?.to_hash_map()));
     }
     Ok(Value::empty())
@@ -1135,22 +1135,22 @@ fn py_dict_to_dict(d: &Bound<'_, PyDict>) -> PyResult<Dictionary> {
     Ok(dict)
 }
 
-fn value_to_py(py: Python<'_>, v: &Value) -> PyResult<PyObject> {
+fn value_to_py(py: Python<'_>, v: &Value) -> PyResult<Py<PyAny>> {
     if v.is_empty() { return Ok(py.None()); }
-    if let Some(b) = v.get::<bool>()   { return Ok(b.into_py(py)); }
-    if let Some(i) = v.get::<i32>()    { return Ok(i.into_py(py)); }
-    if let Some(i) = v.get::<i64>()    { return Ok(i.into_py(py)); }
-    if let Some(u) = v.get::<u64>()    { return Ok(u.into_py(py)); }
-    if let Some(x) = v.get::<f64>()    { return Ok(x.into_py(py)); }
-    if let Some(x) = v.get::<f32>()    { return Ok((*x as f64).into_py(py)); }
-    if let Some(s) = v.get::<String>() { return Ok(s.into_py(py)); }
-    if let Some(t) = v.get::<usd_tf::Token>() { return Ok(t.to_string().into_py(py)); }
+    if let Some(b) = v.get::<bool>()   { return Ok((*b).into_pyobject(py)?.to_owned().into_any().unbind()); }
+    if let Some(i) = v.get::<i32>()    { return Ok((*i).into_pyobject(py)?.into_any().unbind()); }
+    if let Some(i) = v.get::<i64>()    { return Ok((*i).into_pyobject(py)?.into_any().unbind()); }
+    if let Some(u) = v.get::<u64>()    { return Ok((*u).into_pyobject(py)?.into_any().unbind()); }
+    if let Some(x) = v.get::<f64>()    { return Ok((*x).into_pyobject(py)?.into_any().unbind()); }
+    if let Some(x) = v.get::<f32>()    { return Ok((*x as f64).into_pyobject(py)?.into_any().unbind()); }
+    if let Some(s) = v.get::<String>() { return Ok(s.as_str().into_pyobject(py)?.into_any().unbind()); }
+    if let Some(t) = v.get::<usd_tf::Token>() { return Ok(t.to_string().into_pyobject(py)?.into_any().unbind()); }
     if let Some(d) = v.get::<usd_vt::Dictionary>() { return dict_to_py(py, d); }
     Ok(py.None())
 }
 
 /// Python-facing `VtDictionary` — wraps `Dictionary` and round-trips as Python dict.
-#[pyclass(name = "Dictionary", module = "pxr.Vt")]
+#[pyclass(skip_from_py_object,name = "Dictionary", module = "pxr.Vt")]
 #[derive(Clone, Default)]
 pub struct PyDictionary { inner: Dictionary }
 
@@ -1163,7 +1163,7 @@ impl PyDictionary {
     }
 
     #[pyo3(name = "AsDict")]
-    fn as_dict(&self, py: Python<'_>) -> PyResult<PyObject> { dict_to_py(py, &self.inner) }
+    fn as_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> { dict_to_py(py, &self.inner) }
 
     fn __len__(&self) -> usize { self.inner.len() }
 
@@ -1174,7 +1174,7 @@ impl PyDictionary {
         Ok(format!("{}", dict_to_py(py, &self.inner)?.bind(py)))
     }
 
-    fn __getitem__(&self, py: Python<'_>, key: &str) -> PyResult<PyObject> {
+    fn __getitem__(&self, py: Python<'_>, key: &str) -> PyResult<Py<PyAny>> {
         self.inner.get(key)
             .ok_or_else(|| pyo3::exceptions::PyKeyError::new_err(key.to_owned()))
             .and_then(|v| value_to_py(py, v))
