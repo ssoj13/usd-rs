@@ -100,7 +100,8 @@ def run(args: list[str], cwd: Path | None = None,
         capture: bool = False) -> tuple[int, str, float]:
     """Run command, return (exit_code, output, time_ms)."""
     t0 = time.perf_counter()
-    r = subprocess.run(args, cwd=cwd or ROOT, capture_output=capture, text=True)
+    r = subprocess.run(args, cwd=cwd or ROOT, capture_output=capture,
+                        text=True, encoding="utf-8", errors="replace")
     ms = (time.perf_counter() - t0) * 1000
     out = (r.stdout or "") + (r.stderr or "") if capture else ""
     return r.returncode, out, ms

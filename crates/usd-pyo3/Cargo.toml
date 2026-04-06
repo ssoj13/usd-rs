@@ -1,0 +1,57 @@
+[package]
+name = "usd-pyo3"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Python bindings for usd-rs (PyO3/maturin)"
+
+[lib]
+name = "_usd"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.24", features = ["extension-module"] }
+
+# Base crates
+usd-tf = { path = "../base/usd-tf" }
+usd-gf = { path = "../base/usd-gf" }
+usd-vt = { path = "../base/usd-vt" }
+usd-plug = { path = "../base/usd-plug" }
+usd-trace = { path = "../base/usd-trace" }
+usd-ts = { path = "../base/usd-ts" }
+usd-work = { path = "../base/usd-work" }
+
+# USD core crates
+usd-kind = { path = "../usd/usd-kind" }
+usd-ar = { path = "../usd/usd-ar" }
+usd-sdf = { path = "../usd/usd-sdf" }
+usd-pcp = { path = "../usd/usd-pcp" }
+usd-sdr = { path = "../usd/usd-sdr" }
+usd-core = { path = "../usd/usd-core" }
+
+# Schema crates
+usd-geom = { path = "../usd/usd-geom" }
+usd-shade = { path = "../usd/usd-shade" }
+usd-lux = { path = "../usd/usd-lux" }
+usd-skel = { path = "../usd/usd-skel" }
+usd-hydra = { path = "../usd/usd-hydra" }
+usd-media = { path = "../usd/usd-media" }
+usd-physics = { path = "../usd/usd-physics" }
+usd-proc = { path = "../usd/usd-proc" }
+usd-render = { path = "../usd/usd-render" }
+usd-ri = { path = "../usd/usd-ri" }
+usd-semantics = { path = "../usd/usd-semantics" }
+usd-ui = { path = "../usd/usd-ui" }
+usd-utils = { path = "../usd/usd-utils" }
+usd-vol = { path = "../usd/usd-vol" }
+
+# Math
+glam = { workspace = true }
+half = "2.7"
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"

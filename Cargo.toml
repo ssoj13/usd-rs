@@ -76,6 +76,8 @@ members = [
     # ---- Top-level crates ----
     "crates/usd-imaging",
     "crates/usd-validation",
+    # ---- Python bindings ----
+    "crates/usd-pyo3",
 ]
 
 

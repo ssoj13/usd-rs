@@ -1,0 +1,23 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "pxr"
+version = "0.1.0"
+description = "Pure Rust OpenUSD Python bindings"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["usd", "openusd", "3d", "graphics", "vfx"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+    "Topic :: Multimedia :: Graphics :: 3D Rendering",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "pxr._usd"
+python-source = "."
