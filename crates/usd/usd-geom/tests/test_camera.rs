@@ -1,13 +1,13 @@
+//! Tests for UsdGeomCamera.
+//!
+//! Ported from: testenv/testUsdGeomCamera.py
+
 use std::sync::Once;
 
 static INIT: Once = Once::new();
 fn setup() {
     INIT.call_once(|| usd_sdf::init());
 }
-
-//! Tests for UsdGeomCamera.
-//!
-//! Ported from: testenv/testUsdGeomCamera.py
 
 use usd_core::{InitialLoadSet, Stage};
 use usd_geom::Camera;

@@ -1,13 +1,13 @@
+//! Tests for UsdGeomImageable purpose and visibility.
+//!
+//! Ported from: testenv/testUsdGeomPurposeVisibility.py
+
 use std::sync::Once;
 
 static INIT: Once = Once::new();
 fn setup() {
     INIT.call_once(|| usd_sdf::init());
 }
-
-//! Tests for UsdGeomImageable purpose and visibility.
-//!
-//! Ported from: testenv/testUsdGeomPurposeVisibility.py
 
 use std::sync::Arc;
 

@@ -1,13 +1,13 @@
+//! Tests for UsdGeomSchemata.
+//!
+//! Ported from: testenv/testUsdGeomSchemata.py
+
 use std::sync::Once;
 
 static INIT: Once = Once::new();
 fn setup() {
     INIT.call_once(|| usd_sdf::init());
 }
-
-//! Tests for UsdGeomSchemata.
-//!
-//! Ported from: testenv/testUsdGeomSchemata.py
 
 use std::sync::Arc;
 

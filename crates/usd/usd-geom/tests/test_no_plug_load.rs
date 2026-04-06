@@ -1,10 +1,3 @@
-use std::sync::Once;
-
-static INIT: Once = Once::new();
-fn setup() {
-    INIT.call_once(|| usd_sdf::init());
-}
-
 //! Port of testUsdGeomNoPlugLoad.py
 //!
 //! Tests that geom schema type names work for prim definition without loading
@@ -14,6 +7,13 @@ fn setup() {
 //! - IsA type hierarchy checks
 //! - Schema API attribute creation
 //! - Attribute access after authoring
+
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+fn setup() {
+    INIT.call_once(|| usd_sdf::init());
+}
 
 use usd_core::{InitialLoadSet, Stage};
 use usd_tf::Token;
