@@ -21,3 +21,9 @@ classifiers = [
 features = ["pyo3/extension-module"]
 module-name = "pxr_rs._usd"
 python-packages = ["pxr_rs"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*", "test*"]
