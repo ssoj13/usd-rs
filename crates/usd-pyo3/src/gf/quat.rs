@@ -202,10 +202,30 @@ pub struct PyQuaternion(pub Quaternion);
 
 #[pymethods]
 impl PyQuaternion {
+    /// Quaternion(), Quaternion(real), Quaternion(real, i, j, k), Quaternion(real, Vec3d)
     #[new]
-    #[pyo3(signature = (real=1.0, i=0.0, j=0.0, k=0.0))]
-    fn new(real: f64, i: f64, j: f64, k: f64) -> Self {
-        Self(Quaternion::new(real, usd_gf::vec3::Vec3d::new(i, j, k)))
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> pyo3::PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Quaternion::new(1.0, usd_gf::vec3::Vec3d::default()))); }
+        if n == 1 {
+            let real: f64 = args.get_item(0)?.extract()?;
+            return Ok(Self(Quaternion::new(real, usd_gf::vec3::Vec3d::default())));
+        }
+        if n == 2 {
+            let real: f64 = args.get_item(0)?.extract()?;
+            if let Ok(v) = args.get_item(1)?.extract::<pyo3::PyRef<'_, super::vec::PyVec3d>>() {
+                return Ok(Self(Quaternion::new(real, v.0)));
+            }
+        }
+        if n == 4 {
+            let real: f64 = args.get_item(0)?.extract()?;
+            let i: f64 = args.get_item(1)?.extract()?;
+            let j: f64 = args.get_item(2)?.extract()?;
+            let k: f64 = args.get_item(3)?.extract()?;
+            return Ok(Self(Quaternion::new(real, usd_gf::vec3::Vec3d::new(i, j, k))));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("Quaternion: expected (), (real), (real, Vec3d), or (real, i, j, k)"))
     }
 
     fn __repr__(&self) -> String {
@@ -264,14 +284,41 @@ pub struct PyDualQuatd(pub DualQuatd);
 
 #[pymethods]
 impl PyDualQuatd {
+    /// DualQuatd(), DualQuatd(real), DualQuatd(real, dual)
     #[new]
-    fn new() -> Self { Self(DualQuatd::identity()) }
+    #[pyo3(signature = (real=None, dual=None))]
+    fn new(real: Option<&Bound<'_, pyo3::PyAny>>, dual: Option<&PyQuatd>) -> pyo3::PyResult<Self> {
+        let Some(r_obj) = real else { return Ok(Self(DualQuatd::identity())); };
+        // DualQuatd(DualQuatd) — copy
+        if let Ok(dq) = r_obj.extract::<pyo3::PyRef<'_, PyDualQuatd>>() {
+            return Ok(Self(dq.0.clone()));
+        }
+        // DualQuatd(scalar) — real part with given w, identity-like
+        if let Ok(v) = r_obj.extract::<f64>() {
+            let q = Quatd::from_components(v, 0.0, 0.0, 0.0);
+            let mut dq = DualQuatd::from_real(q);
+            if let Some(d) = dual { dq.set_dual(d.0); }
+            return Ok(Self(dq));
+        }
+        // DualQuatd(Quatd) — from real quaternion
+        if let Ok(q) = r_obj.extract::<pyo3::PyRef<'_, PyQuatd>>() {
+            let mut dq = DualQuatd::from_real(q.0);
+            if let Some(d) = dual { dq.set_dual(d.0); }
+            return Ok(Self(dq));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("DualQuatd: unsupported constructor"))
+    }
 
     fn __repr__(&self) -> String { format!("Gf.DualQuatd(real={}, dual={})",
         self.0.real().real(), self.0.dual().real()) }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
+    fn __hash__(&self) -> u64 {
+        let r = self.0.real(); let d = self.0.dual();
+        let ri = r.imaginary(); let di = d.imaginary();
+        hash_f64_2(r.real(), ri.x, ri.y, ri.z) ^ hash_f64_2(d.real(), di.x, di.y, di.z)
+    }
 
     #[staticmethod] #[pyo3(name = "GetZero")]     fn get_zero() -> Self { Self(DualQuatd::zero()) }
     #[staticmethod] #[pyo3(name = "GetIdentity")] fn get_identity() -> Self { Self(DualQuatd::identity()) }

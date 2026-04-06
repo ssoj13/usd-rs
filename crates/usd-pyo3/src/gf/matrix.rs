@@ -53,6 +53,8 @@ pub struct PyMatrix2d(pub Matrix2d);
 
 #[pymethods]
 impl PyMatrix2d {
+    #[classattr] const dimension: (usize, usize) = (2, 2);
+
     #[new]
     #[pyo3(signature = (s=1.0))]
     fn new(s: f64) -> Self { Self(Matrix2d::from_diagonal(s, s)) }
@@ -122,6 +124,8 @@ pub struct PyMatrix2f(pub Matrix2f);
 
 #[pymethods]
 impl PyMatrix2f {
+    #[classattr] const dimension: (usize, usize) = (2, 2);
+
     #[new]
     #[pyo3(signature = (s=1.0))]
     fn new(s: f32) -> Self { Self(Matrix2f::from_diagonal(s, s)) }
@@ -178,9 +182,25 @@ pub struct PyMatrix3d(pub Matrix3d);
 
 #[pymethods]
 impl PyMatrix3d {
+    #[classattr] const dimension: (usize, usize) = (3, 3);
+
+    /// Matrix3d(), Matrix3d(scalar), Matrix3d(Rotation), Matrix3d(Quatd)
     #[new]
-    #[pyo3(signature = (s=1.0))]
-    fn new(s: f64) -> Self { Self(Matrix3d::from_diagonal_values(s, s, s)) }
+    #[pyo3(signature = (s=None))]
+    fn new(s: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<Self> {
+        let Some(obj) = s else { return Ok(Self(Matrix3d::from_diagonal_values(1.0, 1.0, 1.0))); };
+        if let Ok(v) = obj.extract::<f64>() {
+            return Ok(Self(Matrix3d::from_diagonal_values(v, v, v)));
+        }
+        if let Ok(r) = obj.extract::<PyRef<'_, super::geo::PyRotation>>() {
+            return Ok(Self(r.0.get_matrix3()));
+        }
+        if let Ok(q) = obj.extract::<PyRef<'_, super::quat::PyQuatd>>() {
+            let r = usd_gf::Rotation::from_quat(&q.0);
+            return Ok(Self(r.get_matrix3()));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("Matrix3d: expected scalar, Rotation, or Quatd"))
+    }
 
     fn __repr__(&self) -> String {
         format!("Gf.Matrix3d(({},{},{}),({},{},{}),({},{},{}))",
@@ -277,6 +297,8 @@ pub struct PyMatrix3f(pub Matrix3f);
 
 #[pymethods]
 impl PyMatrix3f {
+    #[classattr] const dimension: (usize, usize) = (3, 3);
+
     #[new]
     #[pyo3(signature = (s=1.0))]
     fn new(s: f32) -> Self { Self(Matrix3f::from_diagonal_values(s, s, s)) }
@@ -338,9 +360,52 @@ pub struct PyMatrix4d(pub Matrix4d);
 
 #[pymethods]
 impl PyMatrix4d {
+    #[classattr] const dimension: (usize, usize) = (4, 4);
+
+    /// Matrix4d(), Matrix4d(scalar), Matrix4d(Rotation), Matrix4d(Matrix3d, Vec3d),
+    /// Matrix4d(16 floats)
     #[new]
-    #[pyo3(signature = (s=1.0))]
-    fn new(s: f64) -> Self { Self(Matrix4d::from_diagonal_values(s, s, s, s)) }
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Matrix4d::from_diagonal_values(1.0, 1.0, 1.0, 1.0))); }
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            if let Ok(v) = obj.extract::<f64>() {
+                return Ok(Self(Matrix4d::from_diagonal_values(v, v, v, v)));
+            }
+            if let Ok(r) = obj.extract::<PyRef<'_, super::geo::PyRotation>>() {
+                return Ok(Self(r.0.get_matrix4()));
+            }
+            if let Ok(v) = obj.extract::<PyRef<'_, super::vec::PyVec4d>>() {
+                return Ok(Self(Matrix4d::from_diagonal_values(v.0.x, v.0.y, v.0.z, v.0.w)));
+            }
+        }
+        if n == 2 {
+            let a0 = args.get_item(0)?;
+            let a1 = args.get_item(1)?;
+            // Matrix4d(Matrix3d, Vec3d) — rotation + translation
+            if let Ok(m3) = a0.extract::<PyRef<'_, PyMatrix3d>>() {
+                let mut m4 = Matrix4d::identity();
+                for i in 0..3 { for j in 0..3 { m4[i][j] = m3.0[i][j]; } }
+                if let Ok(t) = a1.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+                    m4[3][0] = t.0.x; m4[3][1] = t.0.y; m4[3][2] = t.0.z;
+                }
+                return Ok(Self(m4));
+            }
+        }
+        // Matrix4d(16 floats)
+        if n == 16 {
+            let mut m = Matrix4d::identity();
+            for i in 0..4 {
+                for j in 0..4 {
+                    m[i][j] = args.get_item(i * 4 + j)?.extract()?;
+                }
+            }
+            return Ok(Self(m));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("Matrix4d: expected (), (scalar), (Rotation), (Matrix3d, Vec3d), or (16 floats)"))
+    }
 
     fn __repr__(&self) -> String {
         format!("Gf.Matrix4d(({},{},{},{}),({},{},{},{}),({},{},{},{}),({},{},{},{}))",
@@ -432,6 +497,76 @@ impl PyMatrix4d {
     #[pyo3(name = "GetHandedness")]
     fn get_handedness(&self) -> f64 { self.0.handedness() }
 
+    /// SetRotate — accepts Rotation, Quatd, or Matrix3d
+    #[pyo3(name = "SetRotate")]
+    fn set_rotate(&mut self, py: Python<'_>, rot: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        if let Ok(r) = rot.extract::<pyo3::PyRef<'_, super::geo::PyRotation>>() {
+            self.0.set_rotate_rotation(&r.0);
+            return Ok(self.clone());
+        }
+        if let Ok(q) = rot.extract::<pyo3::PyRef<'_, super::quat::PyQuatd>>() {
+            self.0.set_rotate(&q.0);
+            return Ok(self.clone());
+        }
+        if let Ok(m) = rot.extract::<pyo3::PyRef<'_, PyMatrix3d>>() {
+            self.0.set_rotate_matrix3(&m.0);
+            return Ok(self.clone());
+        }
+        let _ = py;
+        Err(pyo3::exceptions::PyTypeError::new_err("SetRotate: expected Rotation, Quatd, or Matrix3d"))
+    }
+
+    /// SetTranslate(Vec3d) -> Matrix4d
+    #[pyo3(name = "SetTranslate")]
+    fn set_translate(&mut self, t: &super::vec::PyVec3d) -> Self {
+        self.0.set_translate(&t.0);
+        self.clone()
+    }
+
+    /// SetTranslateOnly(Vec3d) -> Matrix4d
+    #[pyo3(name = "SetTranslateOnly")]
+    fn set_translate_only(&mut self, t: &super::vec::PyVec3d) -> Self {
+        self.0.set_translate_only(&t.0);
+        self.clone()
+    }
+
+    /// TransformDir(Vec3d) -> Vec3d: transform a direction (no translation)
+    #[pyo3(name = "TransformDir")]
+    fn transform_dir(&self, py: Python<'_>, v: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(vd) = v.extract::<pyo3::PyRef<'_, super::vec::PyVec3d>>() {
+            let d = vd.0;
+            // Transform direction: multiply by upper 3x3 only
+            let r = usd_gf::Vec3d::new(
+                d.x * self.0[0][0] + d.y * self.0[1][0] + d.z * self.0[2][0],
+                d.x * self.0[0][1] + d.y * self.0[1][1] + d.z * self.0[2][1],
+                d.x * self.0[0][2] + d.y * self.0[1][2] + d.z * self.0[2][2],
+            );
+            return Ok(super::vec::PyVec3d(r).into_pyobject(py)?.into_any().unbind());
+        }
+        if let Ok(vf) = v.extract::<pyo3::PyRef<'_, super::vec::PyVec3f>>() {
+            let d = usd_gf::Vec3d::new(vf.0.x as f64, vf.0.y as f64, vf.0.z as f64);
+            let r = usd_gf::Vec3d::new(
+                d.x * self.0[0][0] + d.y * self.0[1][0] + d.z * self.0[2][0],
+                d.x * self.0[0][1] + d.y * self.0[1][1] + d.z * self.0[2][1],
+                d.x * self.0[0][2] + d.y * self.0[1][2] + d.z * self.0[2][2],
+            );
+            return Ok(super::vec::PyVec3f(usd_gf::Vec3f::new(r.x as f32, r.y as f32, r.z as f32)).into_pyobject(py)?.into_any().unbind());
+        }
+        let _ = py;
+        Err(pyo3::exceptions::PyTypeError::new_err("TransformDir: expected Vec3d or Vec3f"))
+    }
+
+    /// TransformAffine(Vec3d) -> Vec3d: transform a point (with translation)
+    #[pyo3(name = "TransformAffine")]
+    fn transform_affine(&self, v: &super::vec::PyVec3d) -> super::vec::PyVec3d {
+        let d = v.0;
+        super::vec::PyVec3d(usd_gf::Vec3d::new(
+            d.x * self.0[0][0] + d.y * self.0[1][0] + d.z * self.0[2][0] + self.0[3][0],
+            d.x * self.0[0][1] + d.y * self.0[1][1] + d.z * self.0[2][1] + self.0[3][1],
+            d.x * self.0[0][2] + d.y * self.0[1][2] + d.z * self.0[2][2] + self.0[3][2],
+        ))
+    }
+
     #[staticmethod]
     #[pyo3(name = "TranslationMatrix")]
     fn translation_matrix(t: &super::vec::PyVec3d) -> Self {
@@ -460,6 +595,8 @@ pub struct PyMatrix4f(pub Matrix4f);
 
 #[pymethods]
 impl PyMatrix4f {
+    #[classattr] const dimension: (usize, usize) = (4, 4);
+
     #[new]
     #[pyo3(signature = (s=1.0))]
     fn new(s: f32) -> Self { Self(Matrix4f::from_diagonal_values(s, s, s, s)) }

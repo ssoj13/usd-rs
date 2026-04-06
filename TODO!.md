@@ -1,33 +1,39 @@
-# Python API — Session Summary
+# Python API — Current Status
 
-## DONE
-
-### Phase 1-3: API Inventory + Verification
-- 482/482 wrap files documented across 39 modules
-- 10 research agents + 6 verification agents + 1 final cross-check
-- Results in md/pyapi/*.md (10 files, 1234 lines)
-
-### Phase 4: usd-pyo3 Crate
-- 13 Python modules: Tf, Gf, Vt, Sdf, Pcp, Ar, Kind, Usd, UsdGeom, UsdShade, UsdLux, UsdSkel, Cli
-- 15,687 lines Rust across 18 files
-- PyO3 0.28 (Python 3.13/3.14 support)
+## PyO3 Crate: crates/usd-pyo3
+- 16 modules: Tf, Gf, Vt, Sdf, Pcp, Ar, Kind, Plug, Ts, Work, Usd, UsdGeom, UsdShade, UsdLux, UsdSkel, Cli
+- ~16k lines Rust, PyO3 0.28, Python 3.11-3.14
 - Package: `pxr-rs` → `import pxr_rs as pxr`
-- 0 errors, 0 warnings
-- bootstrap.py: `b p` builds wheel via maturin
+- 465 Python tests copied from OpenUSD reference (imports fixed to pxr_rs)
+- sys.modules registration for submodule imports
 
-### Phase 5: Infrastructure
-- bootstrap.py — unified build script (b, b p, t, ch, clean)
-- CI: .github/workflows/ci.yml updated with setup-python 3.13
-- Standalone usdview binary removed → `usd view` only entry point
-- README.md, STRUCTURE.md, CLAUDE.md, DIAGRAMS.md updated
+## Python Test Status (local)
+| Module | Pass | Fail | Error | Notes |
+|--------|------|------|-------|-------|
+| base/gf | 6 | 141 | 0 | Copy constructors, tuple→Vec, hash, math functions |
+| base/vt | 2 | 26 | 0 | Array ops, Value conversion |
+| base/tf | 0 | 0 | 12 | Missing test-only C++ classes |
+| usd/sdf | 0 | 0 | 8 | Missing classes in bindings |
+| usd/usd | 0 | 0 | 26 | Missing classes in bindings |
+| usd/ar | 0 | 0 | 4 | Missing attributes |
+| usd/kind | 0 | 0 | 1 | Collection error |
+| usd/pcp | 0 | 0 | 4 | Collection errors |
 
-## WAITING
-- CI run #69 on GitHub (PyO3 0.28 + setup-python fix)
+## Rust Crate Bugs Found (NOT pyo3 — core crates)
+1. **LightAPI::get_inputs(onlyAuthored=false)** returns empty — built-in inputs not exposed
+2. **Extent computation** returns MAX_FLOAT for lights — ComputeExtentFromPlugins broken
+3. **SDR shader node registration** for lights completely non-functional
+4. **Render context shader ID attrs** — created when they shouldn't exist
+5. **Layer cache pollution** — define_prim mutations visible across Stages sharing layers
 
-## NEXT
-- Fill remaining schema module methods (UsdVol, UsdPhysics, UsdRender, UsdUI, etc.)
-- Migrate vt.rs from into_py → into_pyobject (remove #![allow(deprecated)] properly)
-- Quatd constructor: accept Vec3d as imaginary
-- VtValue alias fix (Vt.Value = Vt._ValueWrapper)
-- Add numpy buffer protocol support to VtArray types
-- Integration tests with real USD files
+## Agents Running
+- fix-gf-tests — Gf PyO3 failures
+- fix-sdf-usd-tests — Sdf/Usd collection errors
+- fix-vt-tests — Vt failures
+- fix-tf-ar-kind-pcp — Tf/Ar/Kind/Pcp errors
+- verify-lux-tests — DONE, found 4 failing tests (core bugs, not pyo3)
+
+## CI
+- macOS: PASSES
+- Ubuntu: LightListAPI test fixed, cache removed
+- Windows: cache step removed (was hanging on tar)
