@@ -64,7 +64,7 @@ impl PyMaterial {
     }
 
     fn get_path(&self) -> String {
-        self.inner.path().get_string()
+        self.inner.path().to_string()
     }
 
     /// CreateSurfaceOutput(render_context="") -> Output
@@ -131,7 +131,7 @@ impl PyMaterial {
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdShade.Material('{}')", self.inner.path().get_string())
+        format!("UsdShade.Material('{}')", self.inner.path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -167,7 +167,7 @@ impl PyShader {
     }
 
     fn get_path(&self) -> String {
-        self.inner.path().get_string()
+        self.inner.path().to_string()
     }
 
     /// GetShaderId() -> str or None
@@ -223,7 +223,7 @@ impl PyShader {
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdShade.Shader('{}')", self.inner.path().get_string())
+        format!("UsdShade.Shader('{}')", self.inner.path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -259,7 +259,7 @@ impl PyNodeGraph {
     }
 
     fn get_path(&self) -> String {
-        self.inner.path().get_string()
+        self.inner.path().to_string()
     }
 
     fn create_input(&self, name: &str, type_name: &str) -> PyInput {
@@ -300,7 +300,7 @@ impl PyNodeGraph {
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdShade.NodeGraph('{}')", self.inner.path().get_string())
+        format!("UsdShade.NodeGraph('{}')", self.inner.path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -601,9 +601,10 @@ impl PyCoordSysAPI {
         Ok(self.inner.bind(&target))
     }
 
-    /// ClearBinding() -> bool
-    fn clear_binding(&self) -> bool {
-        self.inner.clear_binding()
+    /// ClearBinding(remove_spec=False) -> bool
+    #[pyo3(signature = (remove_spec = false))]
+    fn clear_binding(&self, remove_spec: bool) -> bool {
+        self.inner.clear_binding(remove_spec)
     }
 
     fn __repr__(&self) -> String {

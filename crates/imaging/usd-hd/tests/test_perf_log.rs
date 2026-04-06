@@ -1,9 +1,8 @@
 // Port of pxr/imaging/hd/testenv/testHdPerfLog.cpp
 //
-// NOTE: These tests must run sequentially (not parallel) because HdPerfLog
-// is a global singleton. Use `cargo test -- --test-threads=1` or run this
-// file alone.
+// HdPerfLog is a global singleton — tests must run sequentially.
 
+use serial_test::serial;
 use usd_hd::perf_log::HdPerfLog;
 use usd_hd::{
     hd_perf_counter_add, hd_perf_counter_decr, hd_perf_counter_incr, hd_perf_counter_set,
@@ -17,6 +16,7 @@ fn is_close(a: f64, b: f64) -> bool {
 }
 
 #[test]
+#[serial]
 fn test_counter() {
     let perf_log = HdPerfLog::get_instance();
     let foo = Token::new("test_counter_foo");
@@ -103,6 +103,7 @@ fn test_counter() {
 }
 
 #[test]
+#[serial]
 fn test_cache() {
     let perf_log = HdPerfLog::get_instance();
     let foo = Token::new("test_cache_foo");

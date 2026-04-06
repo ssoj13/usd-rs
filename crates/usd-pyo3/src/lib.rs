@@ -4,6 +4,10 @@
 //!   pxr.Tf, pxr.Gf, pxr.Vt, pxr.Sdf, pxr.Pcp, pxr.Ar, pxr.Usd,
 //!   pxr.UsdGeom, pxr.UsdShade, pxr.UsdLux, pxr.UsdSkel, ...
 
+// CamelCase method names are intentional — mirrors C++ OpenUSD Python API exactly.
+#![allow(non_snake_case)]
+// TODO: migrate vt.rs from into_py() to into_pyobject() (PyO3 0.24 deprecation)
+#![allow(deprecated)]
 #![allow(clippy::useless_conversion)]
 #![allow(clippy::too_many_lines)]
 #![allow(clippy::missing_errors_doc)]

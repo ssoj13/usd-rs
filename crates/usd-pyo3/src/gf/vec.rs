@@ -186,7 +186,8 @@ impl PyVec2h {
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
     fn __hash__(&self) -> u64 {
-        hash2(self.0.x.to_bits() as u64, self.0.y.to_bits() as u64)
+        // Half uses .bits() not .to_bits()
+        hash2(self.0.x.bits() as u64, self.0.y.bits() as u64)
     }
     fn __neg__(&self) -> Self {
         Self(usd_gf::Vec2h::new(-self.0.x, -self.0.y))
@@ -435,7 +436,7 @@ impl PyVec3h {
     fn __len__(&self) -> usize { 3 }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
-    fn __hash__(&self) -> u64 { hash3(self.0.x.to_bits() as u64, self.0.y.to_bits() as u64, self.0.z.to_bits() as u64) }
+    fn __hash__(&self) -> u64 { hash3(self.0.x.bits() as u64, self.0.y.bits() as u64, self.0.z.bits() as u64) }
     fn __neg__(&self) -> Self { Self(usd_gf::Vec3h::new(-self.0.x,-self.0.y,-self.0.z)) }
 
     fn __getitem__(&self, i: isize) -> PyResult<f32> {
@@ -669,7 +670,7 @@ impl PyVec4h {
     fn __len__(&self) -> usize { 4 }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
-    fn __hash__(&self) -> u64 { hash4(self.0.x.to_bits() as u64,self.0.y.to_bits() as u64,self.0.z.to_bits() as u64,self.0.w.to_bits() as u64) }
+    fn __hash__(&self) -> u64 { hash4(self.0.x.bits() as u64,self.0.y.bits() as u64,self.0.z.bits() as u64,self.0.w.bits() as u64) }
     fn __neg__(&self) -> Self { Self(usd_gf::Vec4h::new(-self.0.x,-self.0.y,-self.0.z,-self.0.w)) }
 
     fn __getitem__(&self, i: isize) -> PyResult<f32> {

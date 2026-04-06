@@ -86,7 +86,8 @@ impl PyMatrix2d {
     fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
     fn __truediv__(&self, s: f64) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
-        Ok(Self(self.0 / s))
+        // Matrix2 has no Div<T>; scale by 1/s
+        Ok(Self(self.0 * (1.0 / s)))
     }
 
     #[staticmethod]
@@ -154,7 +155,7 @@ impl PyMatrix2f {
     fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
     fn __truediv__(&self, s: f32) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
-        Ok(Self(self.0 / s))
+        Ok(Self(self.0 * (1.0 / s)))
     }
 
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix2f::zero(); }
@@ -215,7 +216,7 @@ impl PyMatrix3d {
     fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
     fn __truediv__(&self, s: f64) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
-        Ok(Self(self.0 / s))
+        Ok(Self(self.0 * (1.0 / s)))
     }
 
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix3d::zero(); }
@@ -314,7 +315,7 @@ impl PyMatrix3f {
     fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
     fn __truediv__(&self, s: f32) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
-        Ok(Self(self.0 / s))
+        Ok(Self(self.0 * (1.0 / s)))
     }
 
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix3f::zero(); }
@@ -377,7 +378,7 @@ impl PyMatrix4d {
     fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
     fn __truediv__(&self, s: f64) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
-        Ok(Self(self.0 / s))
+        Ok(Self(self.0 * (1.0 / s)))
     }
 
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix4d::zero(); }
@@ -499,7 +500,7 @@ impl PyMatrix4f {
     fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
     fn __truediv__(&self, s: f32) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
-        Ok(Self(self.0 / s))
+        Ok(Self(self.0 * (1.0 / s)))
     }
 
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix4f::zero(); }

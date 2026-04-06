@@ -2,7 +2,6 @@
 
 use pyo3::prelude::*;
 use usd_gf::{Quatd, Quatf, Quath, Quaternion, DualQuatd, DualQuatf, DualQuath};
-use usd_gf::vec3::{Vec3d, Vec3f, Vec3};
 use usd_gf::half::Half;
 
 fn hash_f64_2(a: f64, b: f64, c: f64, d: f64) -> u64 {
@@ -281,7 +280,8 @@ impl PyDualQuatd {
     #[pyo3(name = "SetReal")]    fn set_real(&mut self, q: &PyQuatd) { self.0.set_real(q.0); }
     #[pyo3(name = "GetDual")]    fn get_dual(&self) -> PyQuatd { PyQuatd(*self.0.dual()) }
     #[pyo3(name = "SetDual")]    fn set_dual(&mut self, q: &PyQuatd) { self.0.set_dual(q.0); }
-    #[pyo3(name = "GetLength")]  fn get_length(&self) -> f64 { self.0.length() }
+    // DualQuat::length() returns (T, T) — real and dual parts of the length
+    #[pyo3(name = "GetLength")]  fn get_length(&self) -> (f64, f64) { self.0.length() }
     #[pyo3(name = "GetNormalized")] fn get_normalized(&self) -> Self { Self(self.0.normalized()) }
     #[pyo3(name = "Normalize")]  fn normalize(&mut self) { self.0.normalize(); }
     #[pyo3(name = "GetConjugate")] fn get_conjugate(&self) -> Self { Self(self.0.conjugate()) }
@@ -332,7 +332,7 @@ impl PyDualQuatf {
     #[pyo3(name = "SetReal")]    fn set_real(&mut self, q: &PyQuatf) { self.0.set_real(q.0); }
     #[pyo3(name = "GetDual")]    fn get_dual(&self) -> PyQuatf { PyQuatf(*self.0.dual()) }
     #[pyo3(name = "SetDual")]    fn set_dual(&mut self, q: &PyQuatf) { self.0.set_dual(q.0); }
-    #[pyo3(name = "GetLength")]  fn get_length(&self) -> f32 { self.0.length() }
+    #[pyo3(name = "GetLength")]  fn get_length(&self) -> (f32, f32) { self.0.length() }
     #[pyo3(name = "GetNormalized")] fn get_normalized(&self) -> Self { Self(self.0.normalized()) }
     #[pyo3(name = "Normalize")]  fn normalize(&mut self) { self.0.normalize(); }
     #[pyo3(name = "GetConjugate")] fn get_conjugate(&self) -> Self { Self(self.0.conjugate()) }
@@ -376,7 +376,11 @@ impl PyDualQuath {
 
     #[pyo3(name = "GetReal")]  fn get_real(&self) -> PyQuath { PyQuath(*self.0.real()) }
     #[pyo3(name = "GetDual")]  fn get_dual(&self) -> PyQuath { PyQuath(*self.0.dual()) }
-    #[pyo3(name = "GetLength")] fn get_length(&self) -> f32 { self.0.length().to_f32() }
+    // DualQuat::length() returns (Half, Half); expose as (f32, f32)
+    #[pyo3(name = "GetLength")] fn get_length(&self) -> (f32, f32) {
+        let (a, b) = self.0.length();
+        (a.to_f32(), b.to_f32())
+    }
     #[pyo3(name = "GetNormalized")] fn get_normalized(&self) -> Self { Self(self.0.normalized()) }
     #[pyo3(name = "Normalize")] fn normalize(&mut self) { self.0.normalize(); }
     #[pyo3(name = "GetConjugate")] fn get_conjugate(&self) -> Self { Self(self.0.conjugate()) }
@@ -401,7 +405,7 @@ pub fn dot_quatd(a: &PyQuatd, b: &PyQuatd) -> f64 {
 // Registration
 // ---------------------------------------------------------------------------
 
-pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyQuatd>()?;
     m.add_class::<PyQuatf>()?;
     m.add_class::<PyQuath>()?;

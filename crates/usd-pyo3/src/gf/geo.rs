@@ -1,5 +1,8 @@
 //! Geometric Python types: Rotation, BBox3d, Plane, Line, LineSeg, Ray,
 //! Interval, MultiInterval, Rect2i, Size2, Size3, Transform, Camera.
+//!
+//! Many getters intentionally use camelCase names to match pxr.Gf Python API.
+#![allow(non_snake_case)]
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyIndexError;

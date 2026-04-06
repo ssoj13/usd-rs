@@ -22,6 +22,9 @@ log = "0.4"
 once_cell = "1"
 parking_lot = "0.12"
 
+[dev-dependencies]
+serial_test = "3"
+
 [features]
 usd-imaging = []
 

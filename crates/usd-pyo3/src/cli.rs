@@ -126,9 +126,9 @@ fn output_result(py: Python<'_>, code: i32, text: Option<String>, capture: bool)
                 "command exited with code {code}"
             )));
         }
-        s.into_pyobject(py).map(|o| o.into())
+        s.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
     } else {
-        code.into_pyobject(py).map(|o| o.into())
+        code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
     }
 }
 
@@ -496,9 +496,9 @@ fn diff(
     // do not raise even when capture=True.
     let (code, text) = exec("diff", &args, capture)?;
     if capture {
-        text.unwrap_or_default().into_pyobject(py).map(|o| o.into())
+        text.unwrap_or_default().into_pyobject(py).map(|o| o.into()).map_err(Into::into)
     } else {
-        code.into_pyobject(py).map(|o| o.into())
+        code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
     }
 }
 
@@ -593,7 +593,7 @@ fn edit(
     args.push(file);
 
     let (code, _) = exec("edit", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into())
+    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -623,7 +623,7 @@ fn stitch(py: Python<'_>, files: Vec<String>, out: String) -> PyResult<PyObject>
     args.push(out);
 
     let (code, _) = exec("stitch", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into())
+    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -738,7 +738,7 @@ fn stitchclips(
     }
 
     let (code, _) = exec("stitchclips", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into())
+    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -883,7 +883,7 @@ fn compress(
     args.push(file);
 
     let (code, _) = exec("compress", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into())
+    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -922,7 +922,7 @@ fn fixbrokenpixarschemas(
     args.push(file);
 
     let (code, _) = exec("fixbrokenpixarschemas", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into())
+    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -966,7 +966,7 @@ fn genschemafromsdr(
     }
 
     let (code, _) = exec("genschemafromsdr", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into())
+    code.into_pyobject(py).map(|o| o.into()).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------

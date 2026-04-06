@@ -324,9 +324,9 @@ impl PyImageable {
 
     pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_visibility_attr()) }
-    pub fn create_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_visibility_attr(None, false)) }
+    pub fn create_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_visibility_attr()) }
     pub fn get_purpose_attr(&self) -> PyAttribute { PyAttribute(self.0.get_purpose_attr()) }
-    pub fn create_purpose_attr(&self) -> PyAttribute { PyAttribute(self.0.create_purpose_attr(None, false)) }
+    pub fn create_purpose_attr(&self) -> PyAttribute { PyAttribute(self.0.create_purpose_attr()) }
 
     pub fn compute_visibility(&self, time: Option<f64>) -> String {
         self.0.compute_visibility(tc(time)).as_str().to_owned()
@@ -386,7 +386,7 @@ impl PyXformable {
 
     pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_xform_op_order_attr(&self) -> PyAttribute { PyAttribute(self.0.get_xform_op_order_attr()) }
-    pub fn create_xform_op_order_attr(&self) -> PyAttribute { PyAttribute(self.0.create_xform_op_order_attr(None, false)) }
+    pub fn create_xform_op_order_attr(&self) -> PyAttribute { PyAttribute(self.0.create_xform_op_order_attr()) }
 
     pub fn add_translate_op(&self, suffix: Option<&str>, is_inverse: bool) -> PyXformOp {
         let tok = suffix.map(Token::new);
@@ -498,7 +498,7 @@ impl PyBoundable {
 
     pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_extent_attr(&self) -> PyAttribute { PyAttribute(self.0.get_extent_attr()) }
-    pub fn create_extent_attr(&self) -> PyAttribute { PyAttribute(self.0.create_extent_attr(None, false)) }
+    pub fn create_extent_attr(&self) -> PyAttribute { PyAttribute(self.0.create_extent_attr()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -562,13 +562,13 @@ impl PyGprim {
 
     pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.get_display_color_attr()) }
-    pub fn create_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_color_attr(None, false)) }
+    pub fn create_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_color_attr()) }
     pub fn get_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.get_display_opacity_attr()) }
-    pub fn create_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_opacity_attr(None, false)) }
+    pub fn create_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_opacity_attr()) }
     pub fn get_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.get_double_sided_attr()) }
-    pub fn create_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.create_double_sided_attr(None, false)) }
+    pub fn create_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.create_double_sided_attr()) }
     pub fn get_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.get_orientation_attr()) }
-    pub fn create_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.create_orientation_attr(None, false)) }
+    pub fn create_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.create_orientation_attr()) }
     pub fn get_display_color_primvar(&self) -> PyPrimvar { PyPrimvar(self.0.get_display_color_primvar()) }
     pub fn get_display_opacity_primvar(&self) -> PyPrimvar { PyPrimvar(self.0.get_display_opacity_primvar()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
@@ -1326,7 +1326,6 @@ impl PyTetMesh {
     pub fn get_tet_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_tet_vertex_indices_attr()) }
     pub fn create_tet_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_tet_vertex_indices_attr(None, false)) }
     pub fn get_surface_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_surface_face_vertex_indices_attr()) }
-    pub fn get_subdivision_scheme_attr(&self) -> PyAttribute { PyAttribute(self.0.get_subdivision_scheme_attr()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1382,29 +1381,34 @@ impl PyPointInstancer {
     pub fn get_invisible_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_invisible_ids_attr()) }
     pub fn create_invisible_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.create_invisible_ids_attr(None, false)) }
 
-    pub fn get_prototypes_rel(&self) -> PyResult<Vec<String>> {
+    pub fn get_prototypes_rel(&self) -> Vec<String> {
         let rel = self.0.get_prototypes_rel();
-        let targets = rel.get_targets().map_err(|e| PyValueError::new_err(format!("{e}")))?;
-        Ok(targets.into_iter().map(|p| p.to_string()).collect())
+        rel.get_targets().into_iter().map(|p| p.to_string()).collect()
     }
 
-    pub fn activate_id(&self, id: i64, time: Option<f64>) -> bool { self.0.activate_id(id, tc(time)) }
-    pub fn activate_ids(&self, ids: Vec<i64>, time: Option<f64>) -> bool { self.0.activate_ids(&ids, tc(time)) }
-    pub fn deactivate_id(&self, id: i64, time: Option<f64>) -> bool { self.0.deactivate_id(id, tc(time)) }
-    pub fn deactivate_ids(&self, ids: Vec<i64>, time: Option<f64>) -> bool { self.0.deactivate_ids(&ids, tc(time)) }
+    pub fn activate_id(&self, id: i64) -> bool { self.0.activate_id(id) }
+    pub fn activate_ids(&self, ids: Vec<i64>) -> bool { self.0.activate_ids(&ids) }
+    pub fn deactivate_id(&self, id: i64) -> bool { self.0.deactivate_id(id) }
+    pub fn deactivate_ids(&self, ids: Vec<i64>) -> bool { self.0.deactivate_ids(&ids) }
     pub fn vis_id(&self, id: i64, time: Option<f64>) -> bool { self.0.vis_id(id, tc(time)) }
     pub fn vis_ids(&self, ids: Vec<i64>, time: Option<f64>) -> bool { self.0.vis_ids(&ids, tc(time)) }
     pub fn invis_id(&self, id: i64, time: Option<f64>) -> bool { self.0.invis_id(id, tc(time)) }
     pub fn invis_ids(&self, ids: Vec<i64>, time: Option<f64>) -> bool { self.0.invis_ids(&ids, tc(time)) }
-    pub fn activate_all_ids(&self, num_ids: i64, time: Option<f64>) -> bool { self.0.activate_all_ids(num_ids, tc(time)) }
-    pub fn vis_all_ids(&self, num_ids: i64, time: Option<f64>) -> bool { self.0.vis_all_ids(num_ids, tc(time)) }
+    pub fn activate_all_ids(&self) -> bool { self.0.activate_all_ids() }
+    pub fn vis_all_ids(&self, time: Option<f64>) -> bool { self.0.vis_all_ids(tc(time)) }
 
-    /// Compute per-instance transforms. Returns flat 16-element Vec<f64> per instance.
-    pub fn compute_instance_transforms_at_time(&self, time: f64, base_time: f64) -> PyResult<Vec<Vec<f64>>> {
-        let mats = self.0
-            .compute_instance_transforms_at_time(TimeCode::new(time), TimeCode::new(base_time))
-            .map_err(|e| PyValueError::new_err(format!("{e}")))?;
-        Ok(mats.into_iter().map(|m| mat4_to_flat(&m)).collect())
+    /// Compute per-instance transforms. Returns flat 16-element list per instance.
+    pub fn compute_instance_transforms_at_time(&self, time: f64, base_time: f64) -> Vec<Vec<f64>> {
+        use usd_geom::point_instancer::{ProtoXformInclusion, MaskApplication};
+        let mut xforms = Vec::new();
+        self.0.compute_instance_transforms_at_time(
+            &mut xforms,
+            TimeCode::new(time),
+            TimeCode::new(base_time),
+            ProtoXformInclusion::IncludeProtoXform,
+            MaskApplication::ApplyMask,
+        );
+        xforms.iter().map(|m| mat4_to_flat(m)).collect()
     }
 
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
@@ -1473,14 +1477,13 @@ impl PyCamera {
 
     /// Returns key camera parameters as a Python dict.
     pub fn get_camera(&self, time: Option<f64>) -> PyResult<PyObject> {
-        let gf_cam = self.0.get_camera(tc(time))
-            .map_err(|e| PyValueError::new_err(format!("{e}")))?;
+        let gf_cam = self.0.get_camera(tc(time));
         Python::with_gil(|py| {
             let d = pyo3::types::PyDict::new(py);
             d.set_item("focalLength", gf_cam.focal_length())?;
             d.set_item("horizontalAperture", gf_cam.horizontal_aperture())?;
             d.set_item("verticalAperture", gf_cam.vertical_aperture())?;
-            Ok(d.into_py(py))
+            Ok(d.into_any().unbind())
         })
     }
 
@@ -1554,11 +1557,11 @@ impl PyVisibilityAPI {
 
     pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_guide_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_guide_visibility_attr()) }
-    pub fn create_guide_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_guide_visibility_attr(None, false)) }
+    pub fn create_guide_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_guide_visibility_attr()) }
     pub fn get_proxy_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_proxy_visibility_attr()) }
-    pub fn create_proxy_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_proxy_visibility_attr(None, false)) }
+    pub fn create_proxy_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_proxy_visibility_attr()) }
     pub fn get_render_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_render_visibility_attr()) }
-    pub fn create_render_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_render_visibility_attr(None, false)) }
+    pub fn create_render_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_render_visibility_attr()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1586,7 +1589,7 @@ impl PyModelAPI {
             .map_or_else(|| Self(ModelAPI::new(prim.0.clone())), |api| Self(api))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.get_prim().clone()) }
     pub fn get_model_draw_mode_attr(&self) -> PyAttribute {
         PyAttribute(self.0.get_model_draw_mode_attr().unwrap_or_else(usd_core::Attribute::invalid))
     }
@@ -1597,7 +1600,7 @@ impl PyModelAPI {
         PyAttribute(self.0.get_model_apply_draw_mode_attr().unwrap_or_else(usd_core::Attribute::invalid))
     }
     pub fn create_model_apply_draw_mode_attr(&self) -> PyAttribute {
-        PyAttribute(self.0.create_model_apply_draw_mode_attr(None, false).unwrap_or_else(usd_core::Attribute::invalid))
+        PyAttribute(self.0.create_model_apply_draw_mode_attr(None).unwrap_or_else(usd_core::Attribute::invalid))
     }
     pub fn get_model_card_geometry_attr(&self) -> PyAttribute {
         PyAttribute(self.0.get_model_card_geometry_attr().unwrap_or_else(usd_core::Attribute::invalid))
@@ -1605,11 +1608,11 @@ impl PyModelAPI {
     pub fn get_extents_hint_attr(&self) -> PyAttribute {
         PyAttribute(self.0.get_extents_hint_attr().unwrap_or_else(usd_core::Attribute::invalid))
     }
-    pub fn is_valid(&self) -> bool { self.0.is_valid() }
-    pub fn __bool__(&self) -> bool { self.0.is_valid() }
+    pub fn is_valid(&self) -> bool { self.0.get_prim().is_valid() }
+    pub fn __bool__(&self) -> bool { self.0.get_prim().is_valid() }
 
     pub fn __repr__(&self) -> String {
-        if self.0.is_valid() { format!("UsdGeom.ModelAPI('{}')", self.0.prim().path()) }
+        if self.0.get_prim().is_valid() { format!("UsdGeom.ModelAPI('{}')", self.0.get_prim().path()) }
         else { "UsdGeom.ModelAPI(<invalid>)".to_owned() }
     }
 }
@@ -1632,11 +1635,11 @@ impl PyMotionAPI {
     pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_motion_blur_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.get_motion_blur_scale_attr()) }
     pub fn create_motion_blur_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.create_motion_blur_scale_attr(None, false)) }
-    pub fn get_velocity_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.get_velocity_scale_attr()) }
-    pub fn create_velocity_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.create_velocity_scale_attr(None, false)) }
-    pub fn get_nonlinear_sample_count_attr(&self) -> PyAttribute { PyAttribute(self.0.get_nonlinear_sample_count_attr()) }
-    pub fn create_nonlinear_sample_count_attr(&self) -> PyAttribute { PyAttribute(self.0.create_nonlinear_sample_count_attr(None, false)) }
-    pub fn compute_velocity_scale(&self, time: Option<f64>) -> f64 { self.0.compute_velocity_scale(tc(time)) }
+    pub fn get_velocity_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.get_motion_velocity_scale_attr()) }
+    pub fn create_velocity_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.create_motion_velocity_scale_attr(None, false)) }
+    pub fn get_nonlinear_sample_count_attr(&self) -> PyAttribute { PyAttribute(self.0.get_motion_nonlinear_sample_count_attr()) }
+    pub fn create_nonlinear_sample_count_attr(&self) -> PyAttribute { PyAttribute(self.0.create_motion_nonlinear_sample_count_attr(None, false)) }
+    pub fn compute_velocity_scale(&self, time: Option<f64>) -> f64 { f64::from(self.0.compute_velocity_scale(tc(time))) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1665,7 +1668,7 @@ impl PyXformCommonAPI {
         translation: (f64, f64, f64),
         rotation: (f32, f32, f32),
         scale: (f32, f32, f32),
-        pivot: (f64, f64, f64),
+        pivot: (f32, f32, f32),
         rotation_order: &str,
         time: Option<f64>,
     ) -> PyResult<bool> {
@@ -1673,23 +1676,27 @@ impl PyXformCommonAPI {
         let tr = usd_gf::Vec3d::new(translation.0, translation.1, translation.2);
         let rot = usd_gf::Vec3f::new(rotation.0, rotation.1, rotation.2);
         let sc = usd_gf::Vec3f::new(scale.0, scale.1, scale.2);
-        let pv = usd_gf::Vec3d::new(pivot.0, pivot.1, pivot.2);
-        Ok(self.0.set_xform_vectors(&tr, &rot, &sc, &pv, rot_order, tc(time)))
+        let pv = usd_gf::Vec3f::new(pivot.0, pivot.1, pivot.2);
+        Ok(self.0.set_xform_vectors(tr, rot, sc, pv, rot_order, tc(time)))
     }
 
     pub fn get_xform_vectors(
         &self,
         time: Option<f64>,
-    ) -> PyResult<((f64, f64, f64), (f32, f32, f32), (f32, f32, f32), (f64, f64, f64), String)> {
-        let (tr, rot, sc, pv, rot_order) = self.0.get_xform_vectors(tc(time))
-            .map_err(|e| PyValueError::new_err(format!("{e}")))?;
-        Ok((
+    ) -> ((f64, f64, f64), (f32, f32, f32), (f32, f32, f32), (f32, f32, f32), String) {
+        let mut tr = usd_gf::Vec3d::new(0.0, 0.0, 0.0);
+        let mut rot = usd_gf::Vec3f::new(0.0, 0.0, 0.0);
+        let mut sc = usd_gf::Vec3f::new(1.0, 1.0, 1.0);
+        let mut pv = usd_gf::Vec3f::new(0.0, 0.0, 0.0);
+        let mut rot_order = RotationOrder::XYZ;
+        self.0.get_xform_vectors(&mut tr, &mut rot, &mut sc, &mut pv, &mut rot_order, tc(time));
+        (
             (tr.x, tr.y, tr.z),
             (rot.x, rot.y, rot.z),
             (sc.x, sc.y, sc.z),
             (pv.x, pv.y, pv.z),
-            format!("{rot_order}"),
-        ))
+            format!("{rot_order:?}"),
+        )
     }
 
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
@@ -1733,24 +1740,25 @@ impl PySubset {
     pub fn get_family_name_attr(&self) -> PyAttribute { PyAttribute(self.0.get_family_name_attr()) }
     pub fn create_family_name_attr(&self) -> PyAttribute { PyAttribute(self.0.create_family_name_attr(None, false)) }
 
-    /// Create a subset child prim on a mesh.
+    /// Create a geometry subset child prim under a mesh prim.
     #[staticmethod]
-    pub fn create_geometry_subset(
-        geom: &PyMesh,
+    pub fn create_geom_subset(
+        geom: &PyImageable,
         subset_name: &str,
         element_type: &str,
         indices: Vec<i32>,
-        family_name: Option<&str>,
-    ) -> PyResult<Self> {
-        let family = family_name.map(Token::new);
-        let subset = Subset::create_geometry_subset(
-            geom.0.prim(),
+        family_name: &str,
+        family_type: &str,
+    ) -> Self {
+        let subset = Subset::create_geom_subset(
+            &geom.0,
             &Token::new(subset_name),
             &Token::new(element_type),
             &indices,
-            family.as_ref(),
-        ).map_err(|e| PyValueError::new_err(format!("{e}")))?;
-        Ok(Self(subset))
+            &Token::new(family_name),
+            &Token::new(family_type),
+        );
+        Self(subset)
     }
 
     pub fn is_valid(&self) -> bool { self.0.is_valid() }

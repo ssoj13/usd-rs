@@ -88,11 +88,11 @@ impl PySkelRoot {
     }
 
     fn get_path(&self) -> String {
-        self.inner.prim().path().get_string()
+        self.inner.prim().path().to_string()
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdSkel.Root('{}')", self.inner.prim().path().get_string())
+        format!("UsdSkel.Root('{}')", self.inner.prim().path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -128,26 +128,29 @@ impl PySkeleton {
     }
 
     fn get_path(&self) -> String {
-        self.inner.prim().path().get_string()
+        self.inner.prim().path().to_string()
     }
 
     /// GetJointsAttr() -> attribute path string or None
     fn get_joints_attr(&self) -> Option<String> {
-        self.inner.get_joints_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_joints_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     /// GetBindTransformsAttr() -> attribute path string or None
     fn get_bind_transforms_attr(&self) -> Option<String> {
-        self.inner.get_bind_transforms_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_bind_transforms_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     /// GetRestTransformsAttr() -> attribute path string or None
     fn get_rest_transforms_attr(&self) -> Option<String> {
-        self.inner.get_rest_transforms_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_rest_transforms_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdSkel.Skeleton('{}')", self.inner.prim().path().get_string())
+        format!("UsdSkel.Skeleton('{}')", self.inner.prim().path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -183,31 +186,36 @@ impl PySkelAnimation {
     }
 
     fn get_path(&self) -> String {
-        self.inner.prim().path().get_string()
+        self.inner.prim().path().to_string()
     }
 
     fn get_joints_attr(&self) -> Option<String> {
-        self.inner.get_joints_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_joints_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     fn get_translations_attr(&self) -> Option<String> {
-        self.inner.get_translations_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_translations_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     fn get_rotations_attr(&self) -> Option<String> {
-        self.inner.get_rotations_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_rotations_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     fn get_scales_attr(&self) -> Option<String> {
-        self.inner.get_scales_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_scales_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     fn get_blend_shape_weights_attr(&self) -> Option<String> {
-        self.inner.get_blend_shape_weights_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_blend_shape_weights_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdSkel.Animation('{}')", self.inner.prim().path().get_string())
+        format!("UsdSkel.Animation('{}')", self.inner.prim().path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -257,14 +265,14 @@ impl PyBindingAPI {
     fn get_animation_source(&self) -> Option<String> {
         self.inner
             .get_animation_source()
-            .map(|prim| prim.path().get_string())
+            .map(|prim| prim.path().to_string())
     }
 
     /// GetJointIndicesPrimvar() -> primvar attribute path or None
     fn get_joint_indices_primvar(&self) -> Option<String> {
         let pv = self.inner.get_joint_indices_primvar();
         if pv.is_defined() {
-            Some(pv.get_attr().path().get_string())
+            Some(pv.get_attr().path().to_string())
         } else {
             None
         }
@@ -274,7 +282,7 @@ impl PyBindingAPI {
     fn get_joint_weights_primvar(&self) -> Option<String> {
         let pv = self.inner.get_joint_weights_primvar();
         if pv.is_defined() {
-            Some(pv.get_attr().path().get_string())
+            Some(pv.get_attr().path().to_string())
         } else {
             None
         }
@@ -317,23 +325,26 @@ impl PyBlendShape {
     }
 
     fn get_path(&self) -> String {
-        self.inner.prim().path().get_string()
+        self.inner.prim().path().to_string()
     }
 
     fn get_offsets_attr(&self) -> Option<String> {
-        self.inner.get_offsets_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_offsets_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     fn get_normal_offsets_attr(&self) -> Option<String> {
-        self.inner.get_normal_offsets_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_normal_offsets_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     fn get_point_indices_attr(&self) -> Option<String> {
-        self.inner.get_point_indices_attr().map(|a| a.path().get_string())
+        let a = self.inner.get_point_indices_attr();
+        if a.is_valid() { Some(a.path().to_string()) } else { None }
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdSkel.BlendShape('{}')", self.inner.prim().path().get_string())
+        format!("UsdSkel.BlendShape('{}')", self.inner.prim().path().to_string())
     }
 
     fn __bool__(&self) -> bool {
@@ -467,7 +478,7 @@ impl PySkinningQuery {
     fn get_joint_indices_primvar(&self) -> Option<String> {
         self.inner
             .get_joint_indices_attr()
-            .map(|a| a.path().get_string())
+            .map(|a| a.path().to_string())
     }
 
     /// ComputeSkinnedPoints(xforms, points, time) — stub returning empty
@@ -621,7 +632,7 @@ impl PyBinding {
     }
 
     fn get_skeleton_path(&self) -> String {
-        self.inner.get_skeleton().prim().path().get_string()
+        self.inner.get_skeleton().prim().path().to_string()
     }
 
     fn get_skinning_target_count(&self) -> usize {
@@ -633,7 +644,7 @@ impl PyBinding {
     }
 
     fn __bool__(&self) -> bool {
-        self.inner.skel().is_valid()
+        self.inner.get_skeleton().is_valid()
     }
 }
 

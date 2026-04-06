@@ -103,14 +103,14 @@ fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
         return Ok(Value::from(v));
     }
     if let Ok(v) = obj.extract::<Vec<f64>>() {
-        return Ok(Value::new(v));
+        return Ok(Value::from_no_hash(v));
     }
     if let Ok(v) = obj.extract::<Vec<i64>>() {
         let vi: Vec<i32> = v.into_iter().map(|x| x as i32).collect();
-        return Ok(Value::new(vi));
+        return Ok(Value::from(vi));
     }
     if let Ok(v) = obj.extract::<Vec<String>>() {
-        return Ok(Value::new(v));
+        return Ok(Value::from(v));
     }
     Err(PyValueError::new_err(format!(
         "Cannot convert Python object of type '{}' to VtValue",
@@ -269,6 +269,18 @@ fn tc_from_py(obj: &Bound<'_, PyAny>) -> PyResult<TimeCode> {
         return Ok(TimeCode::new(v));
     }
     Err(PyValueError::new_err("Expected Usd.TimeCode or float"))
+}
+
+/// Convert a `usd_core::TimeCode` to `usd_sdf::TimeCode` (= `usd_vt::TimeCode`).
+///
+/// These are two separate types: USD core has default/earliest/pre sentinels,
+/// while SDF TimeCode is a thin f64 wrapper. Default → NaN, earliest → f64::MIN.
+fn core_tc_to_sdf(tc: TimeCode) -> usd_sdf::TimeCode {
+    if tc.is_default() {
+        usd_sdf::TimeCode::DEFAULT
+    } else {
+        usd_sdf::TimeCode::new(tc.value())
+    }
 }
 
 // ============================================================================
@@ -447,9 +459,9 @@ impl PyPrimRange {
         slf
     }
 
-    fn __next__(&mut self) -> Option<PyObject> {
+    fn __next__(&mut self, py: Python<'_>) -> Option<PyObject> {
         if self.index < self.prims.len() {
-            let item = self.prims[self.index].clone();
+            let item = self.prims[self.index].clone_ref(py);
             self.index += 1;
             Some(item)
         } else {
@@ -762,16 +774,19 @@ impl PyPrim {
 
     #[allow(non_snake_case)]
     fn GetAuthoredPropertyNames(&self) -> Vec<String> {
-        // In C++ this filters to authored-only names; approximate via property names
+        // Filter property names to those with authored values — check via attribute or relationship
         self.inner
             .get_property_names()
             .iter()
             .filter(|name| {
-                let stage_opt = self.inner.stage();
-                stage_opt.map(|s| {
-                    s.get_defining_spec_type(self.inner.path(), name.get_text())
-                        != usd_sdf::SpecType::Unknown
-                }).unwrap_or(false)
+                let name_str = name.as_str();
+                if let Some(attr) = self.inner.get_attribute(name_str) {
+                    return attr.has_authored_value() || attr.as_property().is_authored();
+                }
+                if let Some(rel) = self.inner.get_relationship(name_str) {
+                    return rel.as_property().is_authored();
+                }
+                false
             })
             .map(|t| t.as_str().to_string())
             .collect()
@@ -826,8 +841,7 @@ impl PyPrim {
 
     #[allow(non_snake_case)]
     fn SetTypeName(&self, type_name: &str) -> bool {
-        let token = Token::new(type_name);
-        self.inner.set_type_name(&token)
+        self.inner.set_type_name(type_name)
     }
 
     #[allow(non_snake_case)]
@@ -845,8 +859,9 @@ impl PyPrim {
 
     #[allow(non_snake_case)]
     fn GetKind(&self) -> String {
-        self.inner
-            .get_metadata(&Token::new("kind"))
+        let key = Token::new("kind");
+        self.inner.stage()
+            .and_then(|s| s.get_metadata_for_object(self.inner.path(), &key))
             .and_then(|v| v.downcast_clone::<Token>())
             .map(|t| t.as_str().to_string())
             .unwrap_or_default()
@@ -1064,17 +1079,17 @@ impl PyAttribute {
 
     #[allow(non_snake_case)]
     fn GetBaseName(&self) -> String {
-        self.inner.base_name().as_str().to_string()
+        self.inner.as_property().base_name().as_str().to_string()
     }
 
     #[allow(non_snake_case)]
     fn GetNamespace(&self) -> String {
-        self.inner.namespace().as_str().to_string()
+        self.inner.as_property().namespace().as_str().to_string()
     }
 
     #[allow(non_snake_case)]
     fn SplitName(&self) -> Vec<String> {
-        self.inner.split_name().iter().map(|t| t.as_str().to_string()).collect()
+        self.inner.as_property().split_name().iter().map(|t| t.as_str().to_string()).collect()
     }
 
     #[allow(non_snake_case)]
@@ -1123,8 +1138,8 @@ impl PyAttribute {
     #[allow(non_snake_case)]
     fn Set(&self, value: &Bound<'_, PyAny>, time: Option<&Bound<'_, PyAny>>) -> PyResult<bool> {
         let tc = match time {
-            Some(t) => tc_from_py(t)?,
-            None => TimeCode::default(),
+            Some(t) => core_tc_to_sdf(tc_from_py(t)?),
+            None => usd_sdf::TimeCode::DEFAULT,
         };
         let val = py_to_value(value)?;
         Ok(self.inner.set(val, tc))
@@ -1134,8 +1149,8 @@ impl PyAttribute {
     #[allow(non_snake_case)]
     fn Clear(&self, time: Option<&Bound<'_, PyAny>>) -> PyResult<bool> {
         let tc = match time {
-            Some(t) => tc_from_py(t)?,
-            None => TimeCode::default(),
+            Some(t) => core_tc_to_sdf(tc_from_py(t)?),
+            None => usd_sdf::TimeCode::DEFAULT,
         };
         Ok(self.inner.clear(tc))
     }
@@ -1143,13 +1158,13 @@ impl PyAttribute {
     /// Clear the default value.
     #[allow(non_snake_case)]
     fn ClearDefault(&self) -> bool {
-        self.inner.clear(TimeCode::default())
+        self.inner.clear(usd_sdf::TimeCode::DEFAULT)
     }
 
     /// Clear the value at the given time.
     #[allow(non_snake_case)]
     fn ClearAtTime(&self, time: &Bound<'_, PyAny>) -> PyResult<bool> {
-        let tc = tc_from_py(time)?;
+        let tc = core_tc_to_sdf(tc_from_py(time)?);
         Ok(self.inner.clear(tc))
     }
 
@@ -1272,12 +1287,12 @@ impl PyAttribute {
 
     #[allow(non_snake_case)]
     fn IsCustom(&self) -> bool {
-        self.inner.is_custom()
+        self.inner.as_property().is_custom()
     }
 
     #[allow(non_snake_case)]
     fn SetCustom(&self, custom: bool) -> bool {
-        self.inner.set_custom(custom)
+        self.inner.as_property().set_custom(custom)
     }
 
     // -- Metadata ----------------------------------------------------------
@@ -1336,7 +1351,7 @@ impl PyAttribute {
 
     #[allow(non_snake_case)]
     fn IsAuthored(&self) -> bool {
-        self.inner.is_authored()
+        self.inner.as_property().is_authored()
     }
 
     #[allow(non_snake_case)]

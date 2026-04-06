@@ -557,16 +557,16 @@ impl PyGeometryLight {
     }
 
     fn get_path(&self) -> String {
-        self.inner.get_prim().path().to_string()
+        self.inner.prim().path().to_string()
     }
 
     // GeometryLight doesn't have light_api() — use LightAPI::new separately if needed
     fn light_api(&self) -> PyLightAPI {
-        PyLightAPI { inner: LightAPI::new(self.inner.get_prim().clone()) }
+        PyLightAPI { inner: LightAPI::new(self.inner.prim().clone()) }
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.GeometryLight('{}')", self.inner.get_prim().path().to_string())
+        format!("UsdLux.GeometryLight('{}')", self.inner.prim().path())
     }
 
     fn __bool__(&self) -> bool {
@@ -598,15 +598,15 @@ impl PyPortalLight {
     }
 
     fn get_path(&self) -> String {
-        self.inner.get_prim().path().to_string()
+        self.inner.prim().path().to_string()
     }
 
     fn light_api(&self) -> PyLightAPI {
-        PyLightAPI { inner: LightAPI::new(self.inner.get_prim().clone()) }
+        PyLightAPI { inner: LightAPI::new(self.inner.prim().clone()) }
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.PortalLight('{}')", self.inner.get_prim().path().to_string())
+        format!("UsdLux.PortalLight('{}')", self.inner.prim().path())
     }
 
     fn __bool__(&self) -> bool {
