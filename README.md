@@ -10,7 +10,7 @@ Pure Rust port of OpenUSD:
 - For architectural details and crate mapping, see [`STRUCTURE.md`](./STRUCTURE.md).
 - It's not production ready and is not supposed to be used by anyone.
 - This repo is large and still under active work. Sudden changes and API rewrites are to be expected at any moment.
-
+- This project actively uses non-traditional development patterns, AI and agentic development, if you're not happy about this, please proceed away.
 
 ## Workspace
 
