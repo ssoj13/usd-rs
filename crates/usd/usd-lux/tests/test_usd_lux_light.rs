@@ -2,6 +2,8 @@
 //!
 //! Port of `pxr/usd/usdLux/testenv/testUsdLuxLight.py`
 
+use std::sync::Once;
+
 use usd_core::{InitialLoadSet, Stage};
 use usd_gf::Vec3f;
 use usd_lux::{
@@ -12,6 +14,14 @@ use usd_sdf::{Path, TimeCode, ValueTypeRegistry};
 use usd_shade::{ConnectableAPI, NodeGraph};
 use usd_tf::Token;
 
+static INIT: Once = Once::new();
+fn setup() {
+    INIT.call_once(|| {
+        usd_sdf::init();
+        usd_lux::init();
+    });
+}
+
 // =============================================================================
 // test_BlackbodySpectrum
 // Matches Python: test_BlackbodySpectrum
@@ -19,6 +29,7 @@ use usd_tf::Token;
 
 #[test]
 fn test_blackbody_spectrum() {
+    setup();
     let warm_color = blackbody_temperature_as_rgb(1000.0);
     let whitepoint = blackbody_temperature_as_rgb(6500.0);
     let cool_color = blackbody_temperature_as_rgb(10000.0);
@@ -50,6 +61,7 @@ fn is_close_vec3f(a: &Vec3f, b: &Vec3f, tolerance: f32) -> bool {
 
 #[test]
 fn test_basic_connectable_lights() {
+    setup();
     // Try checking ConnectableAPI on core lux types first before going through prim.
     assert!(
         ConnectableAPI::has_connectable_api("RectLight"),
@@ -474,6 +486,7 @@ fn test_basic_connectable_lights() {
 
 #[test]
 fn test_dome_light_orient_to_stage_up_axis() {
+    setup();
     let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("failed to create stage");
 
     // Try Y-up first
@@ -519,6 +532,7 @@ fn test_dome_light_orient_to_stage_up_axis() {
 
 #[test]
 fn test_usd_lux_has_connectable_api() {
+    setup();
     // LightAPI should have connectable API registered
     assert!(
         ConnectableAPI::has_connectable_api("LightAPI"),
@@ -538,6 +552,7 @@ fn test_usd_lux_has_connectable_api() {
 
 #[test]
 fn test_get_shader_id() {
+    setup();
     let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("failed to create stage");
 
     // =================================================================
@@ -823,6 +838,7 @@ fn test_shader_ids_light_filter(light_filter: &LightFilter, shader_id_attr_name:
 
 #[test]
 fn test_light_extent_and_bbox() {
+    setup();
     use usd_geom::boundable_compute_extent::compute_extent_from_plugins;
     use usd_geom::Boundable;
 
@@ -1026,6 +1042,7 @@ fn test_light_extent_and_bbox() {
 
 #[test]
 fn test_sdr_shader_nodes_for_lights() {
+    setup();
     use std::collections::HashMap;
     use usd_sdr::registry::SdrRegistry;
 
@@ -1427,6 +1444,7 @@ fn test_sdr_shader_nodes_for_lights() {
 
 #[test]
 fn test_light_schema_attribute_names() {
+    setup();
     // RectLight: width, height, texture:file
     let rect_names = RectLight::get_schema_attribute_names(false);
     assert_eq!(rect_names.len(), 3);
@@ -1466,6 +1484,7 @@ fn test_light_schema_attribute_names() {
 
 #[test]
 fn test_light_define_all_types() {
+    setup();
     let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("failed to create stage");
 
     // Boundable lights
@@ -1497,6 +1516,7 @@ fn test_light_define_all_types() {
 
 #[test]
 fn test_token_values() {
+    setup();
     let t = tokens();
 
     // Texture format tokens
@@ -1637,6 +1657,7 @@ fn test_token_values() {
 
 #[test]
 fn test_light_api_default_values() {
+    setup();
     let light_api = LightAPI::invalid();
 
     // Default values when no prim exists
@@ -1658,6 +1679,7 @@ fn test_light_api_default_values() {
 
 #[test]
 fn test_light_filter_schema_info() {
+    setup();
     assert_eq!(LightFilter::SCHEMA_TYPE_NAME, "LightFilter");
     assert_eq!(
         LightFilter::get_filter_link_collection_name().as_str(),
@@ -1676,6 +1698,7 @@ fn test_light_filter_schema_info() {
 
 #[test]
 fn test_basic_light_api_schema_attrs() {
+    setup();
     let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("failed to create stage");
 
     let rect_light =
@@ -1710,6 +1733,7 @@ fn test_basic_light_api_schema_attrs() {
 
 #[test]
 fn test_render_context_shader_id_attr_name() {
+    setup();
     let t = tokens();
     let render_context = "ri";
     let expected = format!("{}:{}", render_context, t.light_shader_id.as_str());
