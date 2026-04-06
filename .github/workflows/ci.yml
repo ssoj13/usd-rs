@@ -58,9 +58,6 @@ jobs:
             libatk1.0-dev \
             libpango1.0-dev
 
-      - name: Check workspace
-        run: cargo check --workspace
-
       - name: Run unit tests
         run: cargo test --workspace
 

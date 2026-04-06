@@ -780,7 +780,7 @@ pub struct PySize2(pub Size2);
 
 #[pymethods]
 impl PySize2 {
-    #[classattr] const dimension: usize = 2;
+    #[classattr] #[pyo3(name = "dimension")] const DIMENSION: usize = 2;
 
     /// Size2(), Size2(x, y), Size2(Size2), Size2(Vec2i)
     #[new]
@@ -836,7 +836,7 @@ pub struct PySize3(pub Size3);
 
 #[pymethods]
 impl PySize3 {
-    #[classattr] const dimension: usize = 3;
+    #[classattr] #[pyo3(name = "dimension")] const DIMENSION: usize = 3;
 
     /// Size3(), Size3(x, y, z), Size3(Size3), Size3(Vec3i)
     #[new]

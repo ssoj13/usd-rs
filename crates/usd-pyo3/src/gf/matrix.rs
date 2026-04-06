@@ -53,7 +53,7 @@ pub struct PyMatrix2d(pub Matrix2d);
 
 #[pymethods]
 impl PyMatrix2d {
-    #[classattr] const dimension: (usize, usize) = (2, 2);
+    #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (2, 2);
 
     #[new]
     #[pyo3(signature = (s=1.0))]
@@ -124,7 +124,7 @@ pub struct PyMatrix2f(pub Matrix2f);
 
 #[pymethods]
 impl PyMatrix2f {
-    #[classattr] const dimension: (usize, usize) = (2, 2);
+    #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (2, 2);
 
     #[new]
     #[pyo3(signature = (s=1.0))]
@@ -182,7 +182,7 @@ pub struct PyMatrix3d(pub Matrix3d);
 
 #[pymethods]
 impl PyMatrix3d {
-    #[classattr] const dimension: (usize, usize) = (3, 3);
+    #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (3, 3);
 
     /// Matrix3d(), Matrix3d(scalar), Matrix3d(Rotation), Matrix3d(Quatd)
     #[new]
@@ -297,7 +297,7 @@ pub struct PyMatrix3f(pub Matrix3f);
 
 #[pymethods]
 impl PyMatrix3f {
-    #[classattr] const dimension: (usize, usize) = (3, 3);
+    #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (3, 3);
 
     #[new]
     #[pyo3(signature = (s=1.0))]
@@ -360,7 +360,7 @@ pub struct PyMatrix4d(pub Matrix4d);
 
 #[pymethods]
 impl PyMatrix4d {
-    #[classattr] const dimension: (usize, usize) = (4, 4);
+    #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (4, 4);
 
     /// Matrix4d(), Matrix4d(scalar), Matrix4d(Rotation), Matrix4d(Matrix3d, Vec3d),
     /// Matrix4d(16 floats)
@@ -595,7 +595,7 @@ pub struct PyMatrix4f(pub Matrix4f);
 
 #[pymethods]
 impl PyMatrix4f {
-    #[classattr] const dimension: (usize, usize) = (4, 4);
+    #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (4, 4);
 
     #[new]
     #[pyo3(signature = (s=1.0))]
