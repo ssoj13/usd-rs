@@ -1,3 +1,10 @@
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+fn setup() {
+    INIT.call_once(|| usd_sdf::init());
+}
+
 //! Tests for UsdGeomImageable purpose and visibility.
 //!
 //! Ported from: testenv/testUsdGeomPurposeVisibility.py
@@ -27,6 +34,7 @@ fn path(s: &str) -> usd_sdf::Path {
 
 #[test]
 fn test_compute_visibility() {
+    setup();
     let s = stage();
     let t = usd_geom_tokens();
 
@@ -162,6 +170,7 @@ fn test_compute_visibility() {
 
 #[test]
 fn test_compute_purpose_visibility() {
+    setup();
     let s = stage();
     let t = usd_geom_tokens();
 
@@ -386,6 +395,7 @@ fn test_compute_purpose_visibility() {
 
 #[test]
 fn test_compute_purpose_visibility_with_instancing() {
+    setup();
     let s = stage();
     let t = usd_geom_tokens();
 
@@ -466,6 +476,7 @@ def Scope "instance" (
 
 #[test]
 fn test_compute_purpose() {
+    setup();
     let s = stage();
     let t = usd_geom_tokens();
 
@@ -621,6 +632,7 @@ fn test_compute_purpose() {
 
 #[test]
 fn test_make_vis_invis() {
+    setup();
     let s = stage();
     let t = usd_geom_tokens();
 
@@ -844,6 +856,7 @@ fn test_make_vis_invis() {
 
 #[test]
 fn test_proxy_prim() {
+    setup();
     let s = stage();
     let t = usd_geom_tokens();
 

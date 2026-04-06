@@ -1,3 +1,10 @@
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+fn setup() {
+    INIT.call_once(|| usd_sdf::init());
+}
+
 //! Tests for UsdGeomTetMesh.
 //!
 //! Ported from: testenv/testUsdGeomTetMesh.py
@@ -26,6 +33,7 @@ fn path(s: &str) -> usd_sdf::Path {
 /// Time-varying topology and surface computation for a rightHanded tet mesh.
 #[test]
 fn test_compute_surface_extraction_right_handed() {
+    setup();
     let s = stage();
     let tet_mesh = TetMesh::define(&s, &path("/tetMesh"));
     assert!(tet_mesh.is_valid());
@@ -96,6 +104,7 @@ fn test_compute_surface_extraction_right_handed() {
 /// Time-varying topology and surface computation for a leftHanded tet mesh.
 #[test]
 fn test_compute_surface_extraction_left_handed() {
+    setup();
     let s = stage();
     let tet_mesh = TetMesh::define(&s, &path("/tetMesh"));
     assert!(tet_mesh.is_valid());
@@ -173,6 +182,7 @@ fn test_compute_surface_extraction_left_handed() {
 /// Inverted element detection with various orientation / point combos.
 #[test]
 fn test_find_inverted_elements() {
+    setup();
     let s = stage();
     let tet_mesh = TetMesh::define(&s, &path("/tetMesh"));
     assert!(tet_mesh.is_valid());

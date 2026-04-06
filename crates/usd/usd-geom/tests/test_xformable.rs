@@ -1,3 +1,10 @@
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+fn setup() {
+    INIT.call_once(|| usd_sdf::init());
+}
+
 //! Tests for UsdGeomXformable.
 //!
 //! Ported from: testenv/testUsdGeomXformable.py
@@ -41,6 +48,7 @@ fn assert_close_xf(a: &Matrix4d, b: &Matrix4d) {
 
 #[test]
 fn test_translate_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -92,6 +100,7 @@ fn test_translate_op() {
 
 #[test]
 fn test_open_with_root_layer_preserves_imported_xform_ops() {
+    setup();
     let layer_contents = r#"#usda 1.0
 def Xform "Root" {
     double3 xformOp:translate = (10, 0, 5)
@@ -144,6 +153,7 @@ def Xform "Root" {
 
 #[test]
 fn test_translate_x_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -174,6 +184,7 @@ fn test_translate_x_op() {
 
 #[test]
 fn test_translate_y_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -204,6 +215,7 @@ fn test_translate_y_op() {
 
 #[test]
 fn test_translate_z_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -234,6 +246,7 @@ fn test_translate_z_op() {
 
 #[test]
 fn test_scale_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -285,6 +298,7 @@ fn test_scale_op() {
 
 #[test]
 fn test_scale_x_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -314,6 +328,7 @@ fn test_scale_x_op() {
 
 #[test]
 fn test_scale_y_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -343,6 +358,7 @@ fn test_scale_y_op() {
 
 #[test]
 fn test_scale_z_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -372,6 +388,7 @@ fn test_scale_z_op() {
 
 #[test]
 fn test_scalar_rotate_ops() {
+    setup();
     let s = stage();
 
     // RotateX 45 degrees
@@ -583,6 +600,7 @@ fn test_scalar_rotate_ops() {
 
 #[test]
 fn test_vector_rotate_ops() {
+    setup();
     let s = stage();
     let rot = Vec3f::new(30.0, 45.0, 60.0);
 
@@ -789,6 +807,7 @@ fn test_vector_rotate_ops() {
 
 #[test]
 fn test_presto_rotate_pivot() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -848,6 +867,7 @@ fn test_presto_rotate_pivot() {
 
 #[test]
 fn test_orient_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -906,6 +926,7 @@ fn test_orient_op() {
 
 #[test]
 fn test_transform_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -966,6 +987,7 @@ fn test_transform_op() {
 
 #[test]
 fn test_reset_xform_stack() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -1044,6 +1066,7 @@ fn test_reset_xform_stack() {
 
 #[test]
 fn test_inverse_ops() {
+    setup();
     let identity = Matrix4d::identity();
 
     let s = stage();
@@ -1133,6 +1156,7 @@ fn test_inverse_ops() {
 
 #[test]
 fn test_get_xform_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -1194,6 +1218,7 @@ fn test_get_xform_op() {
 
 #[test]
 fn test_add_existing_xform_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -1227,6 +1252,7 @@ fn test_add_existing_xform_op() {
 
 #[test]
 fn test_singular_transform_op() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -1262,6 +1288,7 @@ fn test_singular_transform_op() {
 
 #[test]
 fn test_varying_precision_ops() {
+    setup();
     let s = stage();
 
     // x1: half + double + float rotation ops
@@ -1335,6 +1362,7 @@ fn test_varying_precision_ops() {
 
 #[test]
 fn test_invalid_xform_ops() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let _prim = s
@@ -1371,6 +1399,7 @@ fn test_invalid_xform_ops() {
 
 #[test]
 fn test_xform_op_types() {
+    setup();
     let type_enums = vec![
         XformOpType::Scale,
         XformOpType::Invalid,
@@ -1425,6 +1454,7 @@ fn test_xform_op_types() {
 
 #[test]
 fn test_might_be_time_varying() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -1484,6 +1514,7 @@ fn test_might_be_time_varying() {
 
 #[test]
 fn test_get_time_samples() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -1543,6 +1574,7 @@ fn test_get_time_samples() {
 
 #[test]
 fn test_pure_overs() {
+    setup();
     let s = stage();
     let prim = s.override_prim("/World").expect("override prim");
     let xf = Xformable::new(prim);
@@ -1559,6 +1591,7 @@ fn test_pure_overs() {
 
 #[test]
 fn test_bug_109853() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/World").unwrap();
     let x = Xform::define(&s, &path);
@@ -1579,6 +1612,7 @@ fn test_bug_109853() {
 
 #[test]
 fn test_invalid_xformable() {
+    setup();
     let xf = Xformable::invalid();
     // Operations on invalid xformable should not crash
     assert!(!xf.is_valid());
@@ -1593,6 +1627,7 @@ fn test_invalid_xformable() {
 
 #[test]
 fn test_xform_op_operators() {
+    setup();
     let s = stage();
     let path = usd_sdf::Path::from_string("/Root").unwrap();
     let root_xform = Xform::define(&s, &path);
@@ -1620,6 +1655,7 @@ fn test_xform_op_operators() {
 
 #[test]
 fn test_implicit_conversions() {
+    setup();
     let s = stage();
     let path1 = usd_sdf::Path::from_string("/Root").unwrap();
     let path2 = usd_sdf::Path::from_string("/Root2").unwrap();
@@ -1638,6 +1674,7 @@ fn test_implicit_conversions() {
 
 #[test]
 fn test_time_sampled_points_return_different_values() {
+    setup();
     
     usd_core::schema_registry::register_builtin_schemas();
 
@@ -1695,6 +1732,7 @@ def Mesh "Anim" {
 
 #[test]
 fn test_flo_usdz_time_samples() {
+    setup();
     usd_core::schema_registry::register_builtin_schemas();
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../data/flo.usdz");
     if !std::path::Path::new(path).exists() {

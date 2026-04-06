@@ -1,3 +1,10 @@
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+fn setup() {
+    INIT.call_once(|| usd_sdf::init());
+}
+
 //! Port of testUsdGeomNoPlugLoad.py
 //!
 //! Tests that geom schema type names work for prim definition without loading
@@ -17,6 +24,7 @@ use usd_tf::Token;
 
 #[test]
 fn test_scope_type_name() {
+    setup();
     let stage =
         Stage::create_in_memory(InitialLoadSet::LoadAll).expect("Failed to create in-memory stage");
 
@@ -38,6 +46,7 @@ fn test_scope_type_name() {
 
 #[test]
 fn test_cube_type_and_schema_attrs() {
+    setup();
     let stage =
         Stage::create_in_memory(InitialLoadSet::LoadAll).expect("Failed to create in-memory stage");
 
@@ -100,6 +109,7 @@ fn test_cube_type_and_schema_attrs() {
 
 #[test]
 fn test_cube_size_roundtrip() {
+    setup();
     // Test that we can set and get the size attribute via the Cube schema
     let stage =
         Stage::create_in_memory(InitialLoadSet::LoadAll).expect("Failed to create in-memory stage");
@@ -139,6 +149,7 @@ fn test_cube_size_roundtrip() {
 
 #[test]
 fn test_multiple_schema_type_names() {
+    setup();
     let stage =
         Stage::create_in_memory(InitialLoadSet::LoadAll).expect("Failed to create in-memory stage");
 

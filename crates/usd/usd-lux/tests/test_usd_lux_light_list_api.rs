@@ -135,6 +135,7 @@ fn test_light_list_api() {
 
 #[test]
 fn test_compute_mode_values() {
+    setup();
     assert_ne!(
         ComputeMode::ConsultModelHierarchyCache as u32,
         ComputeMode::IgnoreCache as u32,

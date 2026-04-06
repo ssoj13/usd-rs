@@ -1,3 +1,10 @@
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+fn setup() {
+    INIT.call_once(|| usd_sdf::init());
+}
+
 //! Tests for UsdGeomSchemata.
 //!
 //! Ported from: testenv/testUsdGeomSchemata.py
@@ -28,6 +35,7 @@ fn default_tc() -> TimeCode {
 
 #[test]
 fn test_basic() {
+    setup();
     let s = stage();
     let p = s.define_prim("/Mesh", "Mesh").expect("define /Mesh");
     assert!(p.is_valid());
@@ -105,6 +113,7 @@ fn test_basic() {
 
 #[test]
 fn test_is_a_basis_curves() {
+    setup();
     let s = stage();
     let schema = BasisCurves::define(&s, &path("/BasisCurves"));
     assert!(schema.is_valid());
@@ -122,6 +131,7 @@ fn test_is_a_basis_curves() {
 
 #[test]
 fn test_is_a_camera() {
+    setup();
     let s = stage();
     let schema = Camera::define(&s, &path("/Camera"));
     assert!(schema.is_valid());
@@ -135,6 +145,7 @@ fn test_is_a_camera() {
 
 #[test]
 fn test_is_a_capsule() {
+    setup();
     let s = stage();
     let schema = Capsule::define(&s, &path("/Capsule"));
     assert!(schema.is_valid());
@@ -148,6 +159,7 @@ fn test_is_a_capsule() {
 
 #[test]
 fn test_is_a_capsule1() {
+    setup();
     let s = stage();
     let schema = Capsule1::define(&s, &path("/Capsule_1"));
     assert!(schema.is_valid());
@@ -161,6 +173,7 @@ fn test_is_a_capsule1() {
 
 #[test]
 fn test_is_a_cone() {
+    setup();
     let s = stage();
     let schema = Cone::define(&s, &path("/Cone"));
     assert!(schema.is_valid());
@@ -174,6 +187,7 @@ fn test_is_a_cone() {
 
 #[test]
 fn test_is_a_cube() {
+    setup();
     let s = stage();
     let schema = Cube::define(&s, &path("/Cube"));
     assert!(schema.is_valid());
@@ -187,6 +201,7 @@ fn test_is_a_cube() {
 
 #[test]
 fn test_is_a_cylinder() {
+    setup();
     let s = stage();
     let schema = Cylinder::define(&s, &path("/Cylinder"));
     assert!(schema.is_valid());
@@ -199,6 +214,7 @@ fn test_is_a_cylinder() {
 
 #[test]
 fn test_is_a_cylinder1() {
+    setup();
     let s = stage();
     let schema = Cylinder1::define(&s, &path("/Cylinder_1"));
     assert!(schema.is_valid());
@@ -211,6 +227,7 @@ fn test_is_a_cylinder1() {
 
 #[test]
 fn test_is_a_mesh() {
+    setup();
     let s = stage();
     let schema = Mesh::define(&s, &path("/Mesh"));
     assert!(schema.is_valid());
@@ -223,6 +240,7 @@ fn test_is_a_mesh() {
 
 #[test]
 fn test_is_a_nurbs_curves() {
+    setup();
     let s = stage();
     let schema = NurbsCurves::define(&s, &path("/NurbsCurves"));
     assert!(schema.is_valid());
@@ -236,6 +254,7 @@ fn test_is_a_nurbs_curves() {
 
 #[test]
 fn test_is_a_nurbs_patch() {
+    setup();
     let s = stage();
     let schema = NurbsPatch::define(&s, &path("/NurbsPatch"));
     assert!(schema.is_valid());
@@ -249,6 +268,7 @@ fn test_is_a_nurbs_patch() {
 
 #[test]
 fn test_is_a_points() {
+    setup();
     let s = stage();
     let schema = Points::define(&s, &path("/Points"));
     assert!(schema.is_valid());
@@ -262,6 +282,7 @@ fn test_is_a_points() {
 
 #[test]
 fn test_is_a_scope() {
+    setup();
     let s = stage();
     let schema = Scope::define(&s, &path("/Scope"));
     assert!(schema.is_valid());
@@ -277,6 +298,7 @@ fn test_is_a_scope() {
 
 #[test]
 fn test_is_a_sphere() {
+    setup();
     let s = stage();
     let schema = Sphere::define(&s, &path("/Sphere"));
     assert!(schema.is_valid());
@@ -290,6 +312,7 @@ fn test_is_a_sphere() {
 
 #[test]
 fn test_is_a_xform() {
+    setup();
     let s = stage();
     let schema = Xform::define(&s, &path("/Xform"));
     assert!(schema.is_valid());
@@ -307,6 +330,7 @@ fn test_is_a_xform() {
 
 #[test]
 fn test_fallbacks_xform_op_order() {
+    setup();
     let s = stage();
 
     let xform = Xform::define(&s, &path("/Xform"));
@@ -340,6 +364,7 @@ fn test_fallbacks_xform_op_order() {
 
 #[test]
 fn test_fallbacks_curves_interpolation() {
+    setup();
     let s = stage();
 
     // PointBased normals and Curves widths interpolation defaults
@@ -353,6 +378,7 @@ fn test_fallbacks_curves_interpolation() {
 
 #[test]
 fn test_fallbacks_double_sided_authoring() {
+    setup();
     let s = stage();
 
     let mesh = Mesh::define(&s, &path("/Mesh"));
@@ -379,6 +405,7 @@ fn test_fallbacks_double_sided_authoring() {
 
 #[test]
 fn test_fallbacks_override_prim_double_sided() {
+    setup();
     let s = stage();
 
     // Override prim and author doubleSided
@@ -408,6 +435,7 @@ fn test_fallbacks_override_prim_double_sided() {
 
 #[test]
 fn test_fallbacks_sphere_radius_has_fallback() {
+    setup();
     let s = stage();
 
     let sphere = Sphere::define(&s, &path("/Sphere"));
@@ -421,6 +449,7 @@ fn test_fallbacks_sphere_radius_has_fallback() {
 
 #[test]
 fn test_define_schema() {
+    setup();
     let s = stage();
 
     let _parent = s.override_prim("/parent").expect("override /parent");
@@ -458,6 +487,7 @@ fn test_define_schema() {
 
 #[test]
 fn test_basic_metadata_cases() {
+    setup();
     let s = stage();
     let sphere_prim = Sphere::define(&s, &path("/sphere")).prim().clone();
 
@@ -494,6 +524,7 @@ fn test_basic_metadata_cases() {
 
 #[test]
 fn test_camera() {
+    setup();
     let s = stage();
     let camera = Camera::define(&s, &path("/Camera"));
 
@@ -601,6 +632,7 @@ fn test_camera() {
 
 #[test]
 fn test_points() {
+    setup();
     let s = stage();
     let schema = Points::define(&s, &path("/Points"));
     assert!(schema.is_valid());
@@ -625,6 +657,7 @@ fn test_points() {
 
 #[test]
 fn test_revert_bug_111239() {
+    setup();
     let s = stage();
 
     // Define a prim with typeName='Sphere' (valid schema name)
@@ -667,6 +700,7 @@ fn close3(a: Vec3f, b: Vec3f, eps: f32) -> bool {
 
 #[test]
 fn test_compute_extent_point_based() {
+    setup();
     let all_points: Vec<Vec<Vec3f>> = vec![
         vec![vec3f(1.0, 1.0, 0.0)],                          // Zero-Volume
         vec![vec3f(0.0, 0.0, 0.0)],                          // Simple
@@ -709,6 +743,7 @@ fn test_compute_extent_point_based() {
 
 #[test]
 fn test_compute_extent_point_based_empty() {
+    setup();
     // Empty points: our impl returns false (C++ returns an empty range)
     let empty_points: Vec<Vec3f> = vec![];
     let mut extent = [vec3f(0.0, 0.0, 0.0); 2];
@@ -718,6 +753,7 @@ fn test_compute_extent_point_based_empty() {
 
 #[test]
 fn test_compute_extent_points_with_widths() {
+    setup();
     let all_points: Vec<Vec<Vec3f>> = vec![
         vec![vec3f(1.0, 1.0, 0.0)],
         vec![vec3f(0.0, 0.0, 0.0)],
@@ -779,6 +815,7 @@ fn test_compute_extent_points_with_widths() {
 
 #[test]
 fn test_compute_extent_curves() {
+    setup();
     let curves_points: Vec<Vec<Vec3f>> = vec![
         vec![
             vec3f(0.0, 0.0, 0.0),
@@ -837,6 +874,7 @@ fn test_compute_extent_curves() {
 
 #[test]
 fn test_type_usage() {
+    setup();
     // Verify that ComputeExtent works with Vec<Vec3f> input
     let points = vec![
         vec3f(0.0, 0.0, 0.0),
@@ -867,6 +905,7 @@ fn test_type_usage() {
 
 #[test]
 fn test_bug_116593() {
+    setup();
     let s = stage();
     let prim = s.define_prim("/sphere", "Sphere").expect("define sphere");
 
@@ -901,6 +940,7 @@ fn test_bug_116593() {
 
 #[test]
 fn test_typed_schema_types() {
+    setup();
     // Verify that concrete schema types have the expected type names
     assert_eq!(Xform::schema_type_name().as_str(), "Xform");
     assert_eq!(Scope::schema_type_name().as_str(), "Scope");
@@ -924,6 +964,7 @@ fn test_typed_schema_types() {
 
 #[test]
 fn test_concrete_schema_types() {
+    setup();
     let s = stage();
 
     // Xform is concrete: can define a prim of type Xform
@@ -953,6 +994,7 @@ fn test_concrete_schema_types() {
 
 #[test]
 fn test_apply_motion_api() {
+    setup();
     let s = stage();
     let root = s.define_prim("/hello", "").expect("define /hello");
     assert!(root.get_applied_schemas().is_empty());
@@ -979,6 +1021,7 @@ fn test_apply_motion_api() {
 
 #[test]
 fn test_apply_model_api() {
+    setup();
     let s = stage();
     let root = s.define_prim("/hello", "").expect("define /hello");
 
@@ -1008,6 +1051,7 @@ fn test_apply_model_api() {
 
 #[test]
 fn test_is_a_typeless() {
+    setup();
     let s = stage();
     let sphere_prim = s.define_prim("/sphere", "Sphere").expect("define sphere");
     let typeless_prim = s.define_prim("/regular", "").expect("define regular");
@@ -1047,6 +1091,7 @@ fn test_is_a_typeless() {
 
 #[test]
 fn test_has_api() {
+    setup();
     let s = stage();
     let prim = s.define_prim("/prim", "").expect("define /prim");
 

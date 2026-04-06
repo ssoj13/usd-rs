@@ -94,6 +94,7 @@ fn test_linkage_queries() {
 
 #[test]
 fn test_linkage_authoring() {
+    setup();
     let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("failed to create stage");
 
     let _geom_scope = stage
@@ -176,6 +177,7 @@ fn test_filter_linking() {
 
 #[test]
 fn test_light_filter_collection_name() {
+    setup();
     assert_eq!(LightFilter::FILTER_LINK_COLLECTION_NAME, "filterLink");
     assert_eq!(
         LightFilter::get_filter_link_collection_name().as_str(),

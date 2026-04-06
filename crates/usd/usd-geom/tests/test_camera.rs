@@ -1,3 +1,10 @@
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+fn setup() {
+    INIT.call_once(|| usd_sdf::init());
+}
+
 //! Tests for UsdGeomCamera.
 //!
 //! Ported from: testenv/testUsdGeomCamera.py
@@ -56,6 +63,7 @@ fn get_float(
 
 #[test]
 fn test_get_camera() {
+    setup();
     let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap();
     let path = usd_sdf::Path::from_string("/camera").unwrap();
     let usd_camera = Camera::define(&stage, &path);
@@ -167,6 +175,7 @@ fn test_get_camera() {
 
 #[test]
 fn test_set_from_camera() {
+    setup();
     let mut camera = GfCamera::new();
 
     let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap();
@@ -291,6 +300,7 @@ fn test_set_from_camera() {
 
 #[test]
 fn test_set_from_camera_with_composition() {
+    setup();
     let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap();
     let cam_path = usd_sdf::Path::from_string("/camera").unwrap();
     let usd_camera = Camera::define(&stage, &cam_path);
@@ -362,6 +372,7 @@ fn test_set_from_camera_with_composition() {
 
 #[test]
 fn test_compute_linear_exposure_scale() {
+    setup();
     let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap();
     let cam_path = usd_sdf::Path::from_string("/camera").unwrap();
     let usd_camera = Camera::define(&stage, &cam_path);

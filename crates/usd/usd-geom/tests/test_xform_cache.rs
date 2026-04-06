@@ -1,3 +1,10 @@
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+fn setup() {
+    INIT.call_once(|| usd_sdf::init());
+}
+
 //! Port of testUsdGeomXformCache.cpp
 //!
 //! Tests XformCache: GetLocalToWorldTransform, GetParentToWorldTransform,
@@ -260,6 +267,7 @@ fn verify_transforms(stage: &Arc<Stage>, xf_cache: &mut XformCache, xform: Matri
 
 #[test]
 fn test_xform_cache() {
+    setup();
     let stage = create_test_data(0.0);
     let xform = get_xform();
 
@@ -304,6 +312,7 @@ fn test_xform_cache() {
 
 #[test]
 fn test_xform_cache_get_time() {
+    setup();
     let mut cache = XformCache::new(TimeCode::new(5.0));
     assert!((cache.get_time().value() - 5.0).abs() < 1e-9);
 
@@ -313,6 +322,7 @@ fn test_xform_cache_get_time() {
 
 #[test]
 fn test_xform_cache_swap() {
+    setup();
     let mut a = XformCache::new(TimeCode::new(1.0));
     let mut b = XformCache::new(TimeCode::new(2.0));
 

@@ -1,3 +1,10 @@
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+fn setup() {
+    INIT.call_once(|| usd_sdf::init());
+}
+
 //! Tests for UsdGeomPrimvar and UsdGeomPrimvarsAPI.
 //!
 //! Ported from: testenv/testUsdGeomPrimvar.py
@@ -37,6 +44,7 @@ fn tokens() -> &'static usd_geom::tokens::UsdGeomTokens {
 
 #[test]
 fn test_primvars_api() {
+    setup();
     let s = stage();
     let mesh_path = usd_sdf::Path::from_string("/myMesh").expect("path");
     let gp = Mesh::define(&s, &mesh_path);
@@ -598,6 +606,7 @@ fn test_primvars_api() {
 
 #[test]
 fn test_bug124579() {
+    setup();
     let s = stage();
     let mesh_path = usd_sdf::Path::from_string("/myMesh").expect("path");
     Mesh::define(&s, &mesh_path);
@@ -631,6 +640,7 @@ fn test_bug124579() {
 
 #[test]
 fn test_primvar_indices_block() {
+    setup();
     let s = stage();
     let mesh_path = usd_sdf::Path::from_string("/myMesh").expect("path");
     Mesh::define(&s, &mesh_path);
@@ -661,6 +671,7 @@ fn test_primvar_indices_block() {
 
 #[test]
 fn test_primvar_inheritance() {
+    setup();
     let s = stage();
     let p0 = usd_sdf::Path::from_string("/s0").expect("path");
     let p1 = usd_sdf::Path::from_string("/s0/s1").expect("path");
@@ -864,6 +875,7 @@ fn test_primvar_inheritance() {
 
 #[test]
 fn test_invalid_primvar() {
+    setup();
     // Default-constructed Primvar from invalid attribute
     let p = Primvar::new(usd_core::Attribute::invalid());
     assert!(!p.is_defined());
@@ -895,6 +907,7 @@ fn test_invalid_primvar() {
 
 #[test]
 fn test_hash() {
+    setup();
     let s = stage();
     let mesh_path = usd_sdf::Path::from_string("/mesh").expect("path");
     Mesh::define(&s, &mesh_path);
@@ -916,6 +929,7 @@ fn test_hash() {
 
 #[test]
 fn test_block_primvar_across_reference() {
+    setup();
     let base_stage = stage();
     let mesh_path = usd_sdf::Path::from_string("/myMesh").expect("path");
     Mesh::define(&base_stage, &mesh_path);
@@ -976,6 +990,7 @@ fn test_block_primvar_across_reference() {
 
 #[test]
 fn test_remove_primvar_across_reference() {
+    setup();
     let base_stage = stage();
     let mesh_path = usd_sdf::Path::from_string("/myMesh").expect("path");
     Mesh::define(&base_stage, &mesh_path);
@@ -1017,6 +1032,7 @@ fn test_remove_primvar_across_reference() {
 
 #[test]
 fn test_non_indexed_primvar_workflow() {
+    setup();
     let base_stage = stage();
     let mesh_path = usd_sdf::Path::from_string("/myMesh").expect("path");
     Mesh::define(&base_stage, &mesh_path);
@@ -1097,6 +1113,7 @@ fn test_non_indexed_primvar_workflow() {
 
 #[test]
 fn test_create_indices_attr() {
+    setup();
     let s = stage();
     let mesh_path = usd_sdf::Path::from_string("/myMesh").expect("path");
     Mesh::define(&s, &mesh_path);
