@@ -2,137 +2,110 @@
 
 ![usd-rs viewer](data/usdview.jpg)
 
-Pure Rust port of OpenUSD:
+A ground-up pure Rust rewrite of Pixar's [OpenUSD](https://github.com/PixarAnimationStudios/OpenUSD) — the industry standard for 3D scene interchange in VFX, animation, and real-time graphics.
 
-- This repository is a pure experimental ground-up rewrite of Pixar's OpenUSD architecture in Rust.
-- It is not a binding layer, but a pure Rust implementation.
-- The C++ reference lives at [PixarAnimationStudios/OpenUSD](https://github.com/PixarAnimationStudios/OpenUSD) and remains the behavior target for composition, imaging, Hydra, and viewer semantics.
-- For architectural details and crate mapping, see [`STRUCTURE.md`](./STRUCTURE.md).
-- It's not production ready and is not supposed to be used by anyone.
-- This repo is large and still under active work. Sudden changes and API rewrites are to be expected at any moment.
-- This project actively uses non-traditional development patterns, AI and agentic development, if you're not happy about this, please proceed away.
+This is not a binding layer. Every line is Rust, targeting behavioral parity with the C++ reference: same composition semantics, same file format support (USDA/USDC/USDZ), same scene index architecture, same rendering pipeline concepts.
 
-## Workspace
+I built this for myself as a learning exercise and a practical tool. It's public in case it's useful to someone else. I don't need contributors — I do everything myself, with AI assistance. If that bothers you, this isn't for you.
 
-- Core USD crates live under [`crates/usd/`](./crates/usd/)
-- Hydra and imaging crates live under [`crates/imaging/`](./crates/imaging/)
-- The USD scene delegate lives under [`crates/usd-imaging/`](./crates/usd-imaging/)
-- The viewer app lives under [`crates/usd-view/`](./crates/usd-view/)
+## What's here
 
-## Current Viewer Status
+~1.1M lines of Rust across 2400+ files in 72 crates:
 
-Recent work focused on `usd-view` correctness and parity on heavy real-world files.
+| Layer | Crates | What it does |
+|-------|--------|-------------|
+| **Base** (9) | usd-tf, usd-gf, usd-vt, usd-plug, usd-trace, usd-ts, usd-work, usd-arch, usd-js | Foundation: tokens, math (glam-backed), value types, plugin system, tracing |
+| **USD Core** (6) | usd-sdf, usd-ar, usd-pcp, usd-core, usd-kind, usd-sdr | Scene description, asset resolution, composition engine (LIVRPS), stage API |
+| **Schemas** (16) | usd-geom, usd-shade, usd-lux, usd-skel, usd-vol, usd-physics, ... | Geometry, materials, lights, skeletal animation, volumes, physics |
+| **Imaging** (22) | usd-hd, usd-hdx, usd-hd-st, usd-hgi, usd-hgi-wgpu, usd-hdsi, ... | Hydra scene index chain, Storm renderer, wgpu GPU backend |
+| **Viewer** | usd-view | egui-based viewer (usdview equivalent) with dockable panels |
+| **Python** | usd-pyo3 | PyO3 bindings: `import pxr_rs as pxr` — drop-in for Pixar's `pxr` |
+| **External** (6) | opensubdiv-rs, mtlx-rs, osl-rs, draco-rs, gltf-rs, pxr-lz4 | Independent Rust ports of OpenSubdiv 3.7, MaterialX, Open Shading Language, Draco mesh compression, and LZ4 decompression. gltf-rs is a fork of the [gltf](https://crates.io/crates/gltf) crate (MIT/Apache-2.0). |
 
-- `flo.usdz` hierarchical xform animation now propagates time dirties correctly through Hydra.
-- Hover/orbit stutter was removed by keeping hover on the fast GPU picking path and avoiding the catastrophic fallback on passive motion.
-- Picking correctness was tightened after fixing coordinate/readback issues and selection-tracker churn.
-- Viewer first-load framing and free-camera clipping now use composed stage bounds from `BBoxCache` instead of render-index bookkeeping.
-- Manual free-camera near/far values are treated as explicit overrides only, not as the default runtime projection policy.
-- `bmw_x3.usdc` / `bmw_x3.usdz` camera handling was further tightened so packaged tiny-scene assets use scene-aware free-camera clipping during load and camera motion.
-- Workspace compiler warnings were cleaned up and remaining scene-index `unsafe` sites were documented and consolidated where possible.
+## What works
 
-## Diagnostics
+**File I/O** — USDA parser/writer, USDC binary reader, USDZ package handling, Alembic reader. Open, compose, traverse, and export USD files.
 
-- `usd view <file>` launches the viewer.
-- `usd meshdump <file> <primPath> [time]` dumps composed mesh/xform/bounds diagnostics for investigation.
-- [`profile_flo_usdz.cmd`](./profile_flo_usdz.cmd) runs a profiled release viewer session for `data/flo.usdz`.
+**Composition** — LIVRPS arcs (Local, Inherits, VariantSets, References, Payloads, Specializes). PcpCache, PrimIndex, layer stack composition, sublayers, layer offsets, variant selections.
 
-## Validation
+**Stage API** — Stage.Open, Traverse, DefinePrim, attribute authoring, time samples, instancing (native + point instancer), edit targets, population masks.
 
-Typical checks used during current work:
+**Schemas** — UsdGeom (Mesh, BasisCurves, Points, Xformable, Camera, PointInstancer, BBoxCache, Primvar), UsdShade (Material, Shader, ConnectableAPI, MaterialBindingAPI), UsdLux (all light types, LightListAPI, ShapingAPI, ShadowAPI), UsdSkel (Skeleton, Animation, skinning).
 
-```powershell
-cargo check --quiet -p usd-view
-cargo check --quiet -p usd-imaging --lib
-cargo check --quiet -p usd-hd-st --lib
-```
+**Hydra / Rendering** — Scene index chain (flattening, material binding, visibility, instancing), Storm-equivalent renderer via wgpu (DX12/Vulkan), mesh sync, draw batching, implicit surface synthesis, subdivision surfaces via OpenSubdiv port.
 
-## Python Bindings (`pxr_rs`)
+**Viewer** — egui-based GUI with 3D viewport, prim tree, attribute inspector, layer stack, composition arcs, playback, selection, hot-reload, persistence.
 
-A drop-in Python package mirroring Pixar's `pxr` module hierarchy, built with PyO3.
+**Python bindings** — 16 modules (Tf, Gf, Vt, Sdf, Pcp, Ar, Kind, Usd, UsdGeom, UsdShade, UsdLux, UsdSkel, Plug, Ts, Work, Cli). PyO3 0.28, Python 3.11–3.14.
 
-### Install
+**CLI tools** — `usd cat/tree/dump/diff/resolve/edit/stitch/zip/view/meshdump/dumpcrate` — all as a single `usd` binary, also callable from Python via `pxr_rs.Cli`.
 
-Build from source (requires [maturin](https://www.maturin.rs/) and a Rust nightly toolchain):
+## What doesn't work yet
 
-```bash
-python bootstrap.py b p          # build Python bindings (release)
-pip install pxr-rs               # or install from wheel once published
-```
+- **USDC writer** — read-only for now, writing binary crate files not implemented
+- **Payload streaming** — payloads load but no async/deferred loading
+- **Full Hydra render delegate** — basic Storm pipeline works, but material networks, AOVs, and advanced shading are incomplete
+- **Complete Python API parity** — bindings exist for all major modules but many methods are stubs. Reference test suite (465 tests from OpenUSD) shows ~80 passing, rest need API completion
+- **Performance** — functional but not optimized. No parallel composition, no GPU instancing, no scene index caching
+- **MaterialX / OSL runtime** — ports exist but shader compilation to WGSL is partial
 
-### Usage
+## Architecture differences from C++
+
+- **glam** for math instead of GfVec/GfMatrix — zero-cost SIMD, same API surface
+- **wgpu** instead of OpenGL/Vulkan — cross-platform GPU abstraction (DX12, Vulkan, Metal)
+- **egui** instead of Qt — immediate-mode UI, no C++ dependencies
+- **Token interning** via lock-free concurrent hash map, not TBB
+- **No TfType plugin system** — schema registration is compile-time, not dlopen-based
+- **No Boost** — obviously
+
+## Python bindings
 
 ```python
 import pxr_rs as pxr
+from pxr_rs import Tf, Gf, Sdf, Usd, UsdGeom
 
 stage = pxr.Usd.Stage.Open("scene.usda")
 for prim in stage.Traverse():
     print(prim.GetPath())
 
-token = pxr.Tf.Token("myPrim")
-v = pxr.Gf.Vec3f(1.0, 2.0, 3.0)
-path = pxr.Sdf.Path("/World/Mesh")
+v = Gf.Vec3f(1, 2, 3)
+print(v.GetLength(), v.GetNormalized())
 ```
 
-Individual modules can be imported directly:
+Build: `python bootstrap.py b p` (requires [maturin](https://www.maturin.rs/) + Rust nightly)
 
-```python
-from pxr_rs import Tf, Gf, Vt, Sdf, Pcp, Ar, Kind, Usd, UsdGeom, UsdShade, UsdLux, UsdSkel
-```
-
-### Available modules
-
-| Module | Description |
-|--------|-------------|
-| `Tf` | Token, Type, Notice |
-| `Gf` | Vec2/3/4, Matrix, Quat, Range, BBox3d |
-| `Vt` | Value, Array, Dictionary |
-| `Sdf` | Path, Layer, Spec, ValueTypeName |
-| `Pcp` | PrimIndex, Cache, LayerStack |
-| `Ar` | AssetResolver, ResolvedPath |
-| `Kind` | Kind registry and tokens |
-| `Usd` | Stage, Prim, Attribute, Relationship |
-| `UsdGeom` | Mesh, Xform, Camera, BasisCurves, Points, Scope |
-| `UsdShade` | Material, Shader, NodeGraph |
-| `UsdLux` | DomeLight, DistantLight, RectLight, SphereLight |
-| `UsdSkel` | Skeleton, SkelRoot, BlendShape |
-| `Cli` | CLI tools as Python functions (see below) |
-
-### CLI tools
-
-The Rust binary provides several USD subcommands. These are also available from Python via `pxr_rs.Cli`:
-
-```python
-from pxr_rs import Cli
-
-Cli.cat("model.usda")                              # print layer to stdout
-text = Cli.cat("model.usda", capture=True)          # capture as string
-Cli.cat("model.usda", out="model.usdc")             # convert format
-Cli.tree("model.usda", attributes=True)             # print prim tree
-Cli.diff("a.usda", "b.usda")                        # diff two layers
-```
-
-From the command line:
+## CLI
 
 ```bash
-usd cat scene.usda               # print USDA text
-usd tree scene.usda              # show prim hierarchy
-usd view scene.usda              # launch the viewer
-usd diff a.usda b.usda           # diff two files
-usd dump scene.usdc              # dump crate structure
-usd meshdump scene.usda /Mesh    # mesh diagnostics
+usd cat scene.usda              # print USDA text
+usd tree scene.usda             # prim hierarchy
+usd view scene.usda             # launch viewer
+usd diff a.usda b.usda          # diff two files
+usd dump scene.usdc             # layer statistics
+usd zip model.usda model.usdz   # create USDZ package
 ```
 
-### bootstrap.py commands
+## Building
 
-| Command | Description |
-|---------|-------------|
-| `b` | Build all crates (release) |
-| `b p` | Build Python bindings only |
-| `b -d` | Build all in debug mode |
-| `t` | Run tests |
-| `t p` | Run Python binding tests |
-| `ch` | Clippy + fmt check |
+Requires Rust nightly (MSRV 1.85), Python 3.11+ for bindings.
 
-## References:
-  - [ssoj13/usd-refs](https://github.com/ssoj13/usd-refs)
+```bash
+cargo build --release           # build everything
+cargo test --workspace          # run tests
+python bootstrap.py b           # same via bootstrap
+python bootstrap.py b p         # build Python wheel
+python bootstrap.py ch          # clippy + fmt
+```
+
+## Known issues
+
+- Layer cache is global — mutations via `Stage::DefinePrim` on one stage can be visible to other stages sharing the same root layer through `Layer::FindOrOpen`. This matches C++ behavior but tests must account for it.
+- `is_main_thread()` is unreliable in cargo test (test harness uses worker threads)
+- draco-rs has 69 pre-existing test failures (upstream port incomplete)
+- Some test fixtures require Git LFS
+
+## License
+
+MIT OR Apache-2.0
+
+gltf-rs is a fork of [gltf](https://crates.io/crates/gltf) (MIT/Apache-2.0). All other code, including the ports of OpenSubdiv, MaterialX, OSL, and Draco, is original work.
