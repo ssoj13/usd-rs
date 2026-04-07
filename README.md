@@ -54,7 +54,8 @@ A few points setting the right context:
 
 - **Hydra render delegate** — basic Storm pipeline works, but material networks, AOVs, and advanced shading are incomplete
 - **Python API parity** — bindings exist for all major modules but many methods are stubs. Reference test suite (465 tests from OpenUSD) shows ~80 passing, rest need API completion
-- **MaterialX / OSL runtime** — ports exist, WGSL generation via naga works for basic cases, full shader graph compilation is partial
+- **mtlx-rs** — MaterialX port (55k LOC): core document model, shader generation backends for GLSL, WGSL (via naga), MSL, MDL, OSL, Slang. Node graph compilation and code generation work, runtime integration with Hydra is in progress.
+- **osl-rs** — Open Shading Language port (78k LOC): lexer, parser, AST, type system, codegen, builtins, closures, BSDF models. Shader compilation works, runtime execution is partial.
 
 ## Architecture differences from C++
 
