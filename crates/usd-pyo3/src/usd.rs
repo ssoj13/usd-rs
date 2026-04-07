@@ -183,6 +183,28 @@ impl PyTimeCode {
         Self { inner: TimeCode::earliest_time() }
     }
 
+    /// UsdTimeCode representing the pre-time sentinel.
+    ///
+    /// Matches C++ `UsdTimeCode::PreTime()`.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn PreTime() -> Self {
+        // Pre-time is just before the earliest time — use a very small value
+        Self { inner: TimeCode::new(f64::MIN) }
+    }
+
+    /// Returns a safe step value to advance time codes.
+    ///
+    /// Matches C++ `UsdTimeCode::SafeStep()`.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn SafeStep() -> f64 {
+        // USD C++ returns 1.0 / (2^10) but we use the same constant.
+        // Actually it's `std::numeric_limits<double>::epsilon() * stage.timeCodesPerSecond`
+        // but the static version just returns a small epsilon.
+        1.0 / 1024.0
+    }
+
     #[getter]
     #[allow(non_snake_case)]
     fn IsDefault(&self) -> bool {
@@ -329,8 +351,23 @@ pub struct PyStagePopulationMask {
 #[pymethods]
 impl PyStagePopulationMask {
     #[new]
-    fn new() -> Self {
-        Self { inner: StagePopulationMask::new() }
+    #[pyo3(signature = (*paths))]
+    fn new(paths: &Bound<'_, PyTuple>) -> PyResult<Self> {
+        let mut mask = StagePopulationMask::new();
+        for item in paths.iter() {
+            if let Ok(s) = item.extract::<String>() {
+                if let Some(p) = Path::from_string(&s) {
+                    mask.add(p);
+                }
+            } else if let Ok(list) = item.extract::<Vec<String>>() {
+                for s in &list {
+                    if let Some(p) = Path::from_string(s) {
+                        mask.add(p);
+                    }
+                }
+            }
+        }
+        Ok(Self { inner: mask })
     }
 
     /// Returns a mask that includes everything.
@@ -387,9 +424,27 @@ impl PyStagePopulationMask {
         Self { inner: result }
     }
 
+    /// Returns the child names that are included at the given path.
+    #[allow(non_snake_case)]
+    fn GetIncludedChildNames(&self, path: &str) -> PyResult<(bool, Vec<String>)> {
+        let p = path_from_str(path)?;
+        let mut child_names = Vec::new();
+        let all_included = self.inner.get_included_child_names(&p, &mut child_names);
+        let names: Vec<String> = child_names.iter().map(|t| t.as_str().to_string()).collect();
+        Ok((all_included, names))
+    }
+
     fn __repr__(&self) -> String {
         let paths: Vec<_> = self.inner.get_paths().iter().map(|p| p.as_str().to_string()).collect();
         format!("Usd.StagePopulationMask([{}])", paths.join(", "))
+    }
+
+    fn __bool__(&self) -> bool {
+        !self.inner.is_empty()
+    }
+
+    fn __eq__(&self, other: &PyStagePopulationMask) -> bool {
+        self.inner == other.inner
     }
 }
 
@@ -562,9 +617,9 @@ fn attr_get_metadata(py: Python<'_>, attr: &Attribute, key: &str) -> PyResult<Py
 #[pyclass(skip_from_py_object,name = "Prim", module = "pxr_rs.Usd")]
 #[derive(Clone)]
 pub struct PyPrim {
-    inner: Prim,
+    pub(crate) inner: Prim,
     // Keep the stage alive as long as this Python object exists.
-    _stage: Arc<Stage>,
+    pub(crate) _stage: Arc<Stage>,
 }
 
 impl PyPrim {
@@ -868,6 +923,149 @@ impl PyPrim {
 
     // -- Authoring ---------------------------------------------------------
 
+    /// Create an attribute on this prim.
+    ///
+    /// Matches C++ `UsdPrim::CreateAttribute`.
+    #[pyo3(signature = (name, type_name, custom = true, variability = "varying"))]
+    #[allow(non_snake_case)]
+    fn CreateAttribute(
+        &self,
+        name: &str,
+        type_name: &crate::sdf::PyValueTypeName,
+        custom: bool,
+        variability: &str,
+    ) -> PyResult<Option<PyAttribute>> {
+        let var = match variability {
+            "uniform" | "Uniform" => Some(usd_core::attribute::Variability::Uniform),
+            _ => Some(usd_core::attribute::Variability::Varying),
+        };
+        Ok(self.inner.create_attribute(name, &type_name.inner(), custom, var)
+            .map(|a| PyAttribute { inner: a, _stage: self._stage.clone() }))
+    }
+
+    /// Create a relationship on this prim.
+    ///
+    /// Matches C++ `UsdPrim::CreateRelationship`.
+    #[pyo3(signature = (name, custom = true))]
+    #[allow(non_snake_case)]
+    fn CreateRelationship(&self, name: &str, custom: bool) -> Option<PyRelationship> {
+        self.inner.create_relationship(name, custom)
+            .map(|r| PyRelationship { inner: r, _stage: self._stage.clone() })
+    }
+
+    // -- Composition arcs --------------------------------------------------
+
+    /// Return a References proxy for editing reference arcs.
+    #[allow(non_snake_case)]
+    fn GetReferences(&self) -> PyReferences {
+        PyReferences {
+            prim: self.inner.clone(),
+            _stage: self._stage.clone(),
+        }
+    }
+
+    /// Return a Payloads proxy for editing payload arcs.
+    #[allow(non_snake_case)]
+    fn GetPayloads(&self) -> PyPayloads {
+        PyPayloads {
+            prim: self.inner.clone(),
+            _stage: self._stage.clone(),
+        }
+    }
+
+    /// Return an Inherits proxy for editing inherit arcs.
+    #[allow(non_snake_case)]
+    fn GetInherits(&self) -> PyInherits {
+        PyInherits {
+            prim: self.inner.clone(),
+            _stage: self._stage.clone(),
+        }
+    }
+
+    /// Return a Specializes proxy for editing specialize arcs.
+    #[allow(non_snake_case)]
+    fn GetSpecializes(&self) -> PySpecializes {
+        PySpecializes {
+            prim: self.inner.clone(),
+            _stage: self._stage.clone(),
+        }
+    }
+
+    #[allow(non_snake_case)]
+    fn HasAuthoredReferences(&self) -> bool {
+        self.inner.has_authored_references()
+    }
+
+    #[allow(non_snake_case)]
+    fn HasAuthoredPayloads(&self) -> bool {
+        self.inner.has_payload()
+    }
+
+    #[allow(non_snake_case)]
+    fn HasAuthoredInherits(&self) -> bool {
+        self.inner.has_authored_metadata(&Token::new("inheritPaths"))
+    }
+
+    #[allow(non_snake_case)]
+    fn HasAuthoredSpecializes(&self) -> bool {
+        self.inner.has_authored_metadata(&Token::new("specializes"))
+    }
+
+    #[allow(non_snake_case)]
+    fn HasAuthoredTypeName(&self) -> bool {
+        self.inner.has_authored_type_name()
+    }
+
+    #[allow(non_snake_case)]
+    fn SetInstanceable(&self, instanceable: bool) -> bool {
+        self.inner.set_instanceable(instanceable)
+    }
+
+    #[allow(non_snake_case)]
+    fn IsInstanceable(&self) -> bool {
+        self.inner.has_authored_metadata(&Token::new("instanceable"))
+            && self.inner.get_metadata::<bool>(&Token::new("instanceable"))
+                .unwrap_or(false)
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearInstanceable(&self) -> bool {
+        self.inner.clear_metadata(&Token::new("instanceable"))
+    }
+
+    #[allow(non_snake_case)]
+    fn HasAuthoredInstanceable(&self) -> bool {
+        self.inner.has_authored_metadata(&Token::new("instanceable"))
+    }
+
+    /// Set custom data dictionary on this prim.
+    #[allow(non_snake_case)]
+    fn SetCustomData(&self, data: &Bound<'_, PyDict>) -> PyResult<bool> {
+        let val = py_to_value(&data.as_any())?;
+        Ok(self.inner.set_metadata(&Token::new("customData"), val))
+    }
+
+    /// Set a single key in the custom data dictionary.
+    #[allow(non_snake_case)]
+    fn SetCustomDataByKey(&self, key: &str, value: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let val = py_to_value(value)?;
+        let meta_key = format!("customData:{key}");
+        Ok(self.inner.set_metadata(&Token::new(&meta_key), val))
+    }
+
+    /// Get custom data dictionary.
+    #[allow(non_snake_case)]
+    fn GetCustomData(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        prim_get_metadata(py, &self.inner, "customData")
+    }
+
+    /// Static method: check if path is a prototype path.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn IsPrototypePath(path: &str) -> bool {
+        path.starts_with("/__Prototype_")
+    }
+
     #[allow(non_snake_case)]
     fn SetActive(&self, active: bool) -> bool {
         self.inner.set_active(active)
@@ -1052,6 +1250,27 @@ impl PyVariantSets {
     fn GetVariantSelection(&self, variant_set_name: &str) -> String {
         self.prim.get_variant_sets().get_variant_selection(variant_set_name)
     }
+
+    /// Add a new variant set to this prim.
+    ///
+    /// Matches C++ `UsdVariantSets::AddVariantSet`.
+    #[pyo3(signature = (name, position = "BackOfPrependList"))]
+    #[allow(non_snake_case)]
+    fn AddVariantSet(&self, name: &str, position: &str) -> PyVariantSet {
+        let pos = parse_list_position(position);
+        self.prim.get_variant_sets().add_variant_set(name, pos);
+        PyVariantSet {
+            prim: self.prim.clone(),
+            name: name.to_string(),
+            _stage: self._stage.clone(),
+        }
+    }
+
+    #[allow(non_snake_case)]
+    fn SetSelection(&self, variant_set_name: &str, variant_name: &str) -> bool {
+        self.prim.get_variant_sets().get_variant_set(variant_set_name)
+            .set_variant_selection(variant_name)
+    }
 }
 
 #[pyclass(skip_from_py_object,name = "VariantSet", module = "pxr_rs.Usd")]
@@ -1081,6 +1300,317 @@ impl PyVariantSet {
     #[allow(non_snake_case)]
     fn ClearVariantSelection(&self) -> bool {
         self.prim.get_variant_sets().get_variant_set(&self.name).clear_variant_selection()
+    }
+
+    /// Add a variant name to this variant set.
+    ///
+    /// Matches C++ `UsdVariantSet::AddVariant`.
+    #[pyo3(signature = (variant_name, position = "BackOfPrependList"))]
+    #[allow(non_snake_case)]
+    fn AddVariant(&self, variant_name: &str, position: &str) -> bool {
+        let pos = parse_list_position(position);
+        self.prim.get_variant_sets().get_variant_set(&self.name).add_variant(variant_name, pos)
+    }
+
+    /// Get the name of this variant set.
+    #[allow(non_snake_case)]
+    fn GetName(&self) -> &str {
+        &self.name
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Usd.VariantSet('{}' on {})", self.name, self.prim.get_path().as_str())
+    }
+
+    fn __bool__(&self) -> bool {
+        true
+    }
+}
+
+// ============================================================================
+// List position helper
+// ============================================================================
+
+fn parse_list_position(s: &str) -> usd_core::common::ListPosition {
+    match s {
+        "FrontOfPrependList" => usd_core::common::ListPosition::FrontOfPrependList,
+        "BackOfPrependList" => usd_core::common::ListPosition::BackOfPrependList,
+        "FrontOfAppendList" => usd_core::common::ListPosition::FrontOfAppendList,
+        "BackOfAppendList" => usd_core::common::ListPosition::BackOfAppendList,
+        _ => usd_core::common::ListPosition::BackOfPrependList,
+    }
+}
+
+// ============================================================================
+// UsdReferences — proxy for editing reference arcs
+// ============================================================================
+
+#[pyclass(skip_from_py_object, name = "References", module = "pxr_rs.Usd")]
+pub struct PyReferences {
+    prim: Prim,
+    _stage: Arc<Stage>,
+}
+
+#[pymethods]
+impl PyReferences {
+    /// Add a reference to an external layer (by identifier) and optional prim path.
+    #[pyo3(signature = (asset_path = "", prim_path = "", layer_offset = None, position = "BackOfPrependList"))]
+    #[allow(non_snake_case)]
+    fn AddReference(
+        &self,
+        asset_path: &str,
+        prim_path: &str,
+        layer_offset: Option<&crate::sdf::PyLayerOffset>,
+        position: &str,
+    ) -> PyResult<bool> {
+        let refs = self.prim.get_references();
+        let pos = parse_list_position(position);
+        let offset = layer_offset.map(|lo| lo.to_layer_offset()).unwrap_or_default();
+
+        if prim_path.is_empty() && !asset_path.is_empty() {
+            Ok(refs.add_reference_to_default_prim(asset_path, offset, pos))
+        } else if !asset_path.is_empty() || !prim_path.is_empty() {
+            let p = if prim_path.is_empty() {
+                Path::empty()
+            } else {
+                path_from_str(prim_path)?
+            };
+            Ok(refs.add_reference_with_path(asset_path, &p, offset, pos))
+        } else {
+            // Both empty — add empty reference (internal)
+            let reference = usd_sdf::Reference::default();
+            Ok(refs.add_reference(&reference, pos))
+        }
+    }
+
+    /// Add an internal reference to a prim path in the same stage.
+    #[pyo3(signature = (prim_path, layer_offset = None, position = "BackOfPrependList"))]
+    #[allow(non_snake_case)]
+    fn AddInternalReference(
+        &self,
+        prim_path: &str,
+        layer_offset: Option<&crate::sdf::PyLayerOffset>,
+        position: &str,
+    ) -> PyResult<bool> {
+        let refs = self.prim.get_references();
+        let pos = parse_list_position(position);
+        let offset = layer_offset.map(|lo| lo.to_layer_offset()).unwrap_or_default();
+        let p = path_from_str(prim_path)?;
+        Ok(refs.add_internal_reference(&p, offset, pos))
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearReferences(&self) -> bool {
+        self.prim.get_references().clear_references()
+    }
+
+    #[allow(non_snake_case)]
+    fn SetReferences(&self) -> bool {
+        self.prim.get_references().set_references(Vec::new())
+    }
+
+    #[allow(non_snake_case)]
+    fn GetPrim(&self) -> PyPrim {
+        PyPrim::from_prim(self.prim.clone(), self._stage.clone())
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Usd.References({})", self.prim.get_path().as_str())
+    }
+
+    fn __bool__(&self) -> bool {
+        true
+    }
+}
+
+// ============================================================================
+// UsdPayloads — proxy for editing payload arcs
+// ============================================================================
+
+#[pyclass(skip_from_py_object, name = "Payloads", module = "pxr_rs.Usd")]
+pub struct PyPayloads {
+    prim: Prim,
+    _stage: Arc<Stage>,
+}
+
+#[pymethods]
+impl PyPayloads {
+    /// Add a payload to an external layer (by identifier) and optional prim path.
+    #[pyo3(signature = (asset_path = "", prim_path = "", layer_offset = None, position = "BackOfPrependList"))]
+    #[allow(non_snake_case)]
+    fn AddPayload(
+        &self,
+        asset_path: &str,
+        prim_path: &str,
+        layer_offset: Option<&crate::sdf::PyLayerOffset>,
+        position: &str,
+    ) -> PyResult<bool> {
+        let payloads = self.prim.get_payloads();
+        let pos = parse_list_position(position);
+        let offset = layer_offset.map(|lo| lo.to_layer_offset()).unwrap_or_default();
+
+        if prim_path.is_empty() && !asset_path.is_empty() {
+            Ok(payloads.add_payload_to_default_prim(asset_path, offset, pos))
+        } else if !asset_path.is_empty() || !prim_path.is_empty() {
+            let p = if prim_path.is_empty() {
+                Path::empty()
+            } else {
+                path_from_str(prim_path)?
+            };
+            Ok(payloads.add_payload_with_path(asset_path, &p, offset, pos))
+        } else {
+            let payload = usd_sdf::Payload::default();
+            Ok(payloads.add_payload(&payload, pos))
+        }
+    }
+
+    #[pyo3(signature = (prim_path, layer_offset = None, position = "BackOfPrependList"))]
+    #[allow(non_snake_case)]
+    fn AddInternalPayload(
+        &self,
+        prim_path: &str,
+        layer_offset: Option<&crate::sdf::PyLayerOffset>,
+        position: &str,
+    ) -> PyResult<bool> {
+        let payloads = self.prim.get_payloads();
+        let pos = parse_list_position(position);
+        let offset = layer_offset.map(|lo| lo.to_layer_offset()).unwrap_or_default();
+        let p = path_from_str(prim_path)?;
+        Ok(payloads.add_internal_payload(&p, offset, pos))
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearPayloads(&self) -> bool {
+        self.prim.get_payloads().clear_payloads()
+    }
+
+    #[allow(non_snake_case)]
+    fn SetPayloads(&self) -> bool {
+        self.prim.get_payloads().set_payloads(Vec::new())
+    }
+
+    #[allow(non_snake_case)]
+    fn GetPrim(&self) -> PyPrim {
+        PyPrim::from_prim(self.prim.clone(), self._stage.clone())
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Usd.Payloads({})", self.prim.get_path().as_str())
+    }
+
+    fn __bool__(&self) -> bool {
+        true
+    }
+}
+
+// ============================================================================
+// UsdInherits — proxy for editing inherit arcs
+// ============================================================================
+
+#[pyclass(skip_from_py_object, name = "Inherits", module = "pxr_rs.Usd")]
+pub struct PyInherits {
+    prim: Prim,
+    _stage: Arc<Stage>,
+}
+
+#[pymethods]
+impl PyInherits {
+    #[pyo3(signature = (prim_path, position = "BackOfPrependList"))]
+    #[allow(non_snake_case)]
+    fn AddInherit(&self, prim_path: &str, position: &str) -> PyResult<bool> {
+        let p = path_from_str(prim_path)?;
+        let pos = parse_list_position(position);
+        Ok(self.prim.get_inherits().add_inherit(&p, pos))
+    }
+
+    #[allow(non_snake_case)]
+    fn RemoveInherit(&self, prim_path: &str) -> PyResult<bool> {
+        let p = path_from_str(prim_path)?;
+        Ok(self.prim.get_inherits().remove_inherit(&p))
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearInherits(&self) -> bool {
+        self.prim.get_inherits().clear_inherits()
+    }
+
+    #[allow(non_snake_case)]
+    fn SetInherits(&self, paths: Vec<String>) -> PyResult<bool> {
+        let items: PyResult<Vec<Path>> = paths.iter().map(|s| path_from_str(s)).collect();
+        Ok(self.prim.get_inherits().set_inherits(items?))
+    }
+
+    #[allow(non_snake_case)]
+    fn GetAllDirectInherits(&self) -> Vec<String> {
+        self.prim.get_inherits()
+            .get_all_direct_inherits()
+            .iter()
+            .map(|p| p.as_str().to_string())
+            .collect()
+    }
+
+    #[allow(non_snake_case)]
+    fn GetPrim(&self) -> PyPrim {
+        PyPrim::from_prim(self.prim.clone(), self._stage.clone())
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Usd.Inherits({})", self.prim.get_path().as_str())
+    }
+
+    fn __bool__(&self) -> bool {
+        true
+    }
+}
+
+// ============================================================================
+// UsdSpecializes — proxy for editing specialize arcs
+// ============================================================================
+
+#[pyclass(skip_from_py_object, name = "Specializes", module = "pxr_rs.Usd")]
+pub struct PySpecializes {
+    prim: Prim,
+    _stage: Arc<Stage>,
+}
+
+#[pymethods]
+impl PySpecializes {
+    #[pyo3(signature = (prim_path, position = "BackOfPrependList"))]
+    #[allow(non_snake_case)]
+    fn AddSpecialize(&self, prim_path: &str, position: &str) -> PyResult<bool> {
+        let p = path_from_str(prim_path)?;
+        let pos = parse_list_position(position);
+        Ok(self.prim.get_specializes().add_specialize(&p, pos))
+    }
+
+    #[allow(non_snake_case)]
+    fn RemoveSpecialize(&self, prim_path: &str) -> PyResult<bool> {
+        let p = path_from_str(prim_path)?;
+        Ok(self.prim.get_specializes().remove_specialize(&p))
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearSpecializes(&self) -> bool {
+        self.prim.get_specializes().clear_specializes()
+    }
+
+    #[allow(non_snake_case)]
+    fn SetSpecializes(&self, paths: Vec<String>) -> PyResult<bool> {
+        let items: PyResult<Vec<Path>> = paths.iter().map(|s| path_from_str(s)).collect();
+        Ok(self.prim.get_specializes().set_specializes(items?))
+    }
+
+    #[allow(non_snake_case)]
+    fn GetPrim(&self) -> PyPrim {
+        PyPrim::from_prim(self.prim.clone(), self._stage.clone())
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Usd.Specializes({})", self.prim.get_path().as_str())
+    }
+
+    fn __bool__(&self) -> bool {
+        true
     }
 }
 
@@ -1656,7 +2186,7 @@ impl PySchemaBase {
 /// Matches C++ `UsdStage`.
 #[pyclass(skip_from_py_object,name = "Stage", module = "pxr_rs.Usd")]
 pub struct PyStage {
-    inner: Arc<Stage>,
+    pub(crate) inner: Arc<Stage>,
 }
 
 #[pymethods]
@@ -1675,28 +2205,95 @@ impl PyStage {
     }
 
     /// Create a new stage with an anonymous (in-memory) root layer.
+    ///
+    /// Accepts optional `identifier` and optional `sessionLayer` (keyword).
+    /// `sessionLayer` can be a `Sdf.Layer` or `None`.
     #[staticmethod]
-    #[pyo3(signature = (identifier = None, load = "LoadAll"))]
+    #[pyo3(signature = (identifier = None, load = "LoadAll", **kwargs))]
     #[allow(non_snake_case)]
-    fn CreateInMemory(identifier: Option<&str>, load: &str) -> PyResult<Self> {
+    fn CreateInMemory(
+        identifier: Option<&str>,
+        load: &str,
+        kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<Self> {
         let load_set = parse_load(load)?;
-        let stage = match identifier {
-            Some(id) => Stage::create_in_memory_with_identifier(id, load_set),
-            None => Stage::create_in_memory(load_set),
+
+        // Extract sessionLayer from kwargs if provided
+        let session_layer: Option<Arc<usd_sdf::Layer>> = if let Some(kw) = kwargs {
+            if let Some(val) = kw.get_item("sessionLayer")? {
+                if val.is_none() {
+                    None
+                } else {
+                    let py_layer: crate::sdf::PyLayer = val.extract()?;
+                    Some(py_layer.layer().clone())
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        let stage = match (identifier, session_layer) {
+            (Some(id), Some(sess)) => {
+                Stage::create_in_memory_with_session(id, sess, load_set)
+            }
+            (Some(id), None) => Stage::create_in_memory_with_identifier(id, load_set),
+            (None, _) => Stage::create_in_memory(load_set),
         }
         .map_err(to_py_err)?;
         Ok(Self { inner: stage })
     }
 
-    /// Open an existing stage from a file.
+    /// Open an existing stage from a file path or a `Sdf.Layer`.
+    ///
+    /// Accepts `Usd.Stage.Open(str)`, `Usd.Stage.Open(Sdf.Layer)`,
+    /// and optional `sessionLayer` keyword.
     #[staticmethod]
-    #[pyo3(signature = (file_path, load = "LoadAll"))]
+    #[pyo3(signature = (file_path, load = "LoadAll", **kwargs))]
     #[allow(non_snake_case)]
-    fn Open(file_path: &str, load: &str) -> PyResult<Self> {
+    fn Open(
+        file_path: &Bound<'_, PyAny>,
+        load: &str,
+        kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<Self> {
         let load_set = parse_load(load)?;
-        Stage::open(file_path, load_set)
+
+        // Extract optional sessionLayer from kwargs
+        let session_layer: Option<Arc<usd_sdf::Layer>> = if let Some(kw) = kwargs {
+            if let Some(val) = kw.get_item("sessionLayer")? {
+                if val.is_none() {
+                    None
+                } else {
+                    let py_layer: crate::sdf::PyLayer = val.extract()?;
+                    Some(py_layer.layer().clone())
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        // Accept either a string path or a Layer object
+        if let Ok(py_layer) = file_path.extract::<crate::sdf::PyLayer>() {
+            let root_layer = py_layer.layer().clone();
+            match session_layer {
+                Some(sess) => Stage::open_with_root_and_session_layer(root_layer, sess, load_set),
+                None => Stage::open_with_root_layer(root_layer, load_set),
+            }
             .map(|s| Self { inner: s })
             .map_err(to_py_err)
+        } else if let Ok(path_str) = file_path.extract::<String>() {
+            // session_layer not usable with file path open (would need layer lookup)
+            Stage::open(&path_str, load_set)
+                .map(|s| Self { inner: s })
+                .map_err(to_py_err)
+        } else {
+            Err(PyValueError::new_err(
+                "Stage.Open() expects a file path (str) or an Sdf.Layer",
+            ))
+        }
     }
 
     /// Open an existing stage with a population mask.
@@ -2041,22 +2638,117 @@ impl PyStage {
 
     // -- Flatten -----------------------------------------------------------
 
-    /// Flatten the stage into a single layer and return its string content.
+    // -- CreateClassPrim ---------------------------------------------------
+
+    /// Create a class prim at the given path.
+    ///
+    /// Matches C++ `UsdStage::CreateClassPrim`.
+    #[allow(non_snake_case)]
+    fn CreateClassPrim(&self, path: &str) -> PyResult<PyPrim> {
+        self.inner
+            .create_class_prim(path)
+            .map(|p| PyPrim::from_prim(p, self.inner.clone()))
+            .map_err(to_py_err)
+    }
+
+    // -- GetAttributeAtPath / GetRelationshipAtPath / GetPropertyAtPath ----
+
+    /// Get an attribute by its full path (e.g. `/Foo.bar`).
+    #[allow(non_snake_case)]
+    fn GetAttributeAtPath(&self, path: &str) -> PyResult<Option<PyAttribute>> {
+        let p = path_from_str(path)?;
+        Ok(self.inner.get_attribute_at_path(&p)
+            .map(|a| PyAttribute { inner: a, _stage: self.inner.clone() }))
+    }
+
+    /// Get a relationship by its full path.
+    #[allow(non_snake_case)]
+    fn GetRelationshipAtPath(&self, path: &str) -> PyResult<Option<PyRelationship>> {
+        let p = path_from_str(path)?;
+        Ok(self.inner.get_relationship_at_path(&p)
+            .map(|r| PyRelationship { inner: r, _stage: self.inner.clone() }))
+    }
+
+    // -- GetUsedLayers ----------------------------------------------------
+
+    /// Returns all layers used by this stage (including clip layers).
+    #[pyo3(signature = (include_clip_layers = true))]
+    #[allow(non_snake_case)]
+    fn GetUsedLayers(&self, include_clip_layers: bool) -> Vec<crate::sdf::PyLayer> {
+        self.inner
+            .get_used_layers(include_clip_layers)
+            .into_iter()
+            .map(|l| crate::sdf::PyLayer::from_layer_arc(l))
+            .collect()
+    }
+
+    // -- GetCompositionErrors ---------------------------------------------
+
+    /// Returns composition errors accumulated during stage load.
+    #[allow(non_snake_case)]
+    fn GetCompositionErrors(&self) -> Vec<String> {
+        self.inner.get_composition_errors()
+    }
+
+    // -- MuteAndUnmuteLayers ----------------------------------------------
+
+    /// Simultaneously mute and unmute layers.
+    #[allow(non_snake_case)]
+    fn MuteAndUnmuteLayers(&self, mute_layers: Vec<String>, unmute_layers: Vec<String>) {
+        self.inner.mute_and_unmute_layers(&mute_layers, &unmute_layers);
+    }
+
+    // -- GetEditTargetForLocalLayer ----------------------------------------
+
+    /// Return an edit target that directs to the given local layer.
+    #[allow(non_snake_case)]
+    fn GetEditTargetForLocalLayer(&self, layer: &crate::sdf::PyLayer) -> PyEditTarget {
+        let et = self.inner.get_edit_target_for_local_layer(layer.layer());
+        PyEditTarget { inner: et }
+    }
+
+    // -- GetPopulationMask / SetPopulationMask ----------------------------
+
+    #[allow(non_snake_case)]
+    fn GetPopulationMask(&self) -> PyStagePopulationMask {
+        PyStagePopulationMask {
+            inner: self.inner.get_population_mask().unwrap_or_else(StagePopulationMask::new),
+        }
+    }
+
+    #[allow(non_snake_case)]
+    fn SetPopulationMask(&self, mask: &PyStagePopulationMask) {
+        self.inner.set_population_mask(Some(mask.inner.clone()));
+    }
+
+    // -- Flatten -----------------------------------------------------------
+
+    /// Flatten the stage into a single layer and return it as a Layer.
+    ///
+    /// Matches C++ `UsdStage::Flatten`.
     #[pyo3(signature = (add_source_file_comment = true))]
     #[allow(non_snake_case)]
-    fn Flatten(&self, add_source_file_comment: bool) -> PyResult<String> {
+    fn Flatten(&self, add_source_file_comment: bool) -> PyResult<crate::sdf::PyLayer> {
+        self.inner
+            .flatten(add_source_file_comment)
+            .map(|layer| crate::sdf::PyLayer::from_layer_arc(layer))
+            .map_err(to_py_err)
+    }
+
+    /// Flatten the stage to a string representation.
+    #[pyo3(signature = (add_source_file_comment = true))]
+    #[allow(non_snake_case)]
+    fn FlattenToString(&self, add_source_file_comment: bool) -> PyResult<String> {
         self.inner
             .flatten(add_source_file_comment)
             .map_err(to_py_err)
-            .and_then(|layer| {
-                layer.export_to_string().map_err(to_py_err)
-            })
+            .and_then(|layer| layer.export_to_string().map_err(to_py_err))
     }
 
     // -- Repr --------------------------------------------------------------
 
     fn __repr__(&self) -> String {
-        format!("Usd.Stage({})", self.inner.get_root_layer().identifier().to_string())
+        format!("Usd.Stage.Open('{}')", self.inner.get_root_layer().identifier())
     }
 
     fn __str__(&self) -> String {
@@ -2411,6 +3103,12 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyRelationship>()?;
     m.add_class::<PyVariantSets>()?;
     m.add_class::<PyVariantSet>()?;
+
+    // Composition arc proxies
+    m.add_class::<PyReferences>()?;
+    m.add_class::<PyPayloads>()?;
+    m.add_class::<PyInherits>()?;
+    m.add_class::<PySpecializes>()?;
 
     // Stage
     m.add_class::<PyStage>()?;

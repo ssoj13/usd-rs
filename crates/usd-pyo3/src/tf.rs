@@ -585,6 +585,12 @@ impl PyDebug {
         usd_tf::Debug::get_symbol_descriptions()
     }
 
+    /// SetOutputFile(file) — stub, accepts any arg and does nothing.
+    /// C++ redirects debug output to a file; not meaningful for pure-Rust port.
+    #[staticmethod]
+    #[pyo3(name = "SetOutputFile")]
+    fn set_output_file(_file: &Bound<'_, PyAny>) {}
+
     fn __repr__(&self) -> &str {
         "Tf.Debug"
     }

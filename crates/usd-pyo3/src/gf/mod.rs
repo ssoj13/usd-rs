@@ -247,6 +247,26 @@ fn py_is_close(a: &Bound<'_, pyo3::PyAny>, b: &Bound<'_, pyo3::PyAny>, tolerance
             (va.0.w - vb.0.w).abs() <= tolerance
         );
     }
+    // Vec3f
+    if let (Ok(va), Ok(vb)) = (a.extract::<PyRef<'_, vec::PyVec3f>>(), b.extract::<PyRef<'_, vec::PyVec3f>>()) {
+        let tol = tolerance as f32;
+        return Ok(
+            (va.0.x - vb.0.x).abs() <= tol &&
+            (va.0.y - vb.0.y).abs() <= tol &&
+            (va.0.z - vb.0.z).abs() <= tol
+        );
+    }
+    // Color — component-wise comparison of RGB
+    if let (Ok(ca), Ok(cb)) = (a.extract::<PyRef<'_, geo::PyColor>>(), b.extract::<PyRef<'_, geo::PyColor>>()) {
+        let ra = ca.0.rgb();
+        let rb = cb.0.rgb();
+        let tol = tolerance as f32;
+        return Ok(
+            (ra.x - rb.x).abs() <= tol &&
+            (ra.y - rb.y).abs() <= tol &&
+            (ra.z - rb.z).abs() <= tol
+        );
+    }
     // Python lists/tuples of floats
     if let (Ok(la), Ok(lb)) = (a.extract::<Vec<f64>>(), b.extract::<Vec<f64>>()) {
         if la.len() != lb.len() {

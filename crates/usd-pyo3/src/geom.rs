@@ -1421,6 +1421,15 @@ impl PyPointInstancer {
 
     #[staticmethod]
     pub fn get_schema_type_name() -> &'static str { "PointInstancer" }
+
+    /// C++ enum UsdGeomPointInstancer::ProtoXformInclusion
+    #[classattr]
+    #[allow(non_upper_case_globals)]
+    pub fn IncludeProtoXform() -> u8 { 0 }
+
+    #[classattr]
+    #[allow(non_upper_case_globals)]
+    pub fn ExcludeProtoXform() -> u8 { 1 }
 }
 
 // ============================================================================

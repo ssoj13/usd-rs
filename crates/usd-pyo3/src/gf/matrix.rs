@@ -643,6 +643,10 @@ impl PyMatrix4d {
         if let Ok(m) = o.extract::<PyRef<'_, PyMatrix4d>>() {
             return Ok(Self(self.0 * m.0).into_pyobject(py)?.into_any().unbind());
         }
+        // Matrix4d * Vec4d -> Vec4d
+        if let Ok(v) = o.extract::<PyRef<'_, super::vec::PyVec4d>>() {
+            return Ok(super::vec::PyVec4d(self.0 * v.0).into_pyobject(py)?.into_any().unbind());
+        }
         if let Ok(s) = o.extract::<f64>() {
             return Ok(Self(self.0 * s).into_pyobject(py)?.into_any().unbind());
         }

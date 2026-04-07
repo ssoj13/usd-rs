@@ -9,6 +9,7 @@ use pyo3::exceptions::{PyIndexError, PyTypeError};
 use usd_gf::{
     BBox3d, Rotation, Interval, MultiInterval, Rect2i, Size2, Size3,
     Range1d, Range1f, Range2d, Range2f, Range3d, Range3f,
+    Frustum, ProjectionType, Color, ColorSpace, ColorSpaceName,
 };
 
 /// Hash helper for f64 slices
@@ -335,6 +336,10 @@ impl PyRange1d {
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
     fn __hash__(&self) -> u64 { hash_f64_n(&[self.0.min(), self.0.max()]) }
     fn __bool__(&self) -> bool { !self.0.is_empty() }
+
+    /// scalar * Range1d and Range1d * scalar
+    fn __mul__(&self, s: f64) -> Self { Self(Range1d::new(self.0.min() * s, self.0.max() * s)) }
+    fn __rmul__(&self, s: f64) -> Self { Self(Range1d::new(self.0.min() * s, self.0.max() * s)) }
 
     #[pyo3(name = "Contains")] fn contains(&self, v: f64) -> bool { self.0.contains(v) }
     #[pyo3(name = "IsEmpty")]  fn is_empty(&self) -> bool { self.0.is_empty() }
@@ -1750,6 +1755,477 @@ impl PyRay {
 }
 
 // ---------------------------------------------------------------------------
+// Frustum
+// ---------------------------------------------------------------------------
+
+#[pyclass(skip_from_py_object, name = "Frustum", module = "pxr_rs.Gf")]
+#[derive(Clone)]
+pub struct PyFrustum(pub Frustum);
+
+#[pymethods]
+impl PyFrustum {
+    /// Projection type class attributes (Gf.Frustum.Perspective / .Orthographic)
+    #[allow(non_upper_case_globals)]
+    #[classattr] const Perspective: i32 = 0;
+    #[allow(non_upper_case_globals)]
+    #[classattr] const Orthographic: i32 = 1;
+
+    /// Flexible constructor matching C++ GfFrustum Python overloads:
+    ///   Frustum()
+    ///   Frustum(Frustum)                         — copy
+    ///   Frustum(Matrix4d, Range2d, Range1d, projType, viewDistance=5)
+    ///   Frustum(Vec3d, Rotation, Range2d, Range1d, projType, viewDistance=5)
+    ///   Frustum(position=, rotation=, window=, nearFar=, projectionType=, viewDistance=)
+    #[new]
+    #[pyo3(signature = (*args, position=None, rotation=None, window=None, nearFar=None, projectionType=None, viewDistance=None))]
+    fn new(
+        args: &Bound<'_, pyo3::types::PyTuple>,
+        position: Option<&super::vec::PyVec3d>,
+        rotation: Option<&PyRotation>,
+        window: Option<&PyRange2d>,
+        nearFar: Option<&PyRange1d>,
+        projectionType: Option<i32>,
+        viewDistance: Option<f64>,
+    ) -> PyResult<Self> {
+        let n = args.len();
+
+        // No positional args: default or keyword-only construction
+        if n == 0 {
+            let has_kw = position.is_some() || rotation.is_some() || window.is_some()
+                || nearFar.is_some() || projectionType.is_some() || viewDistance.is_some();
+            if !has_kw {
+                return Ok(Self(Frustum::new()));
+            }
+            // Keyword-only construction
+            let pos = position.map(|p| p.0).unwrap_or_default();
+            let rot = rotation.map(|r| r.0).unwrap_or_else(Rotation::new);
+            let win = window.map(|w| w.0.clone()).unwrap_or_else(|| Range2d::new(
+                usd_gf::Vec2d::new(-1.0, -1.0), usd_gf::Vec2d::new(1.0, 1.0)));
+            let nf = nearFar.map(|r| r.0.clone()).unwrap_or_else(|| Range1d::new(1.0, 10.0));
+            let pt = proj_type_from_int(projectionType.unwrap_or(0));
+            let vd = viewDistance.unwrap_or(5.0);
+            return Ok(Self(Frustum::from_params(pos, rot, win, nf, pt, vd)));
+        }
+
+        // 1 arg: copy constructor Frustum(Frustum)
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            if let Ok(f) = obj.extract::<PyRef<'_, PyFrustum>>() {
+                return Ok(Self(f.0.clone()));
+            }
+        }
+
+        // 4-5 args with Matrix4d first: Frustum(Matrix4d, Range2d, Range1d, projType, vd?)
+        if n == 4 || n == 5 {
+            let obj0 = args.get_item(0)?;
+            if let Ok(m) = obj0.extract::<PyRef<'_, super::matrix::PyMatrix4d>>() {
+                let win: PyRef<'_, PyRange2d> = args.get_item(1)?.extract()?;
+                let nf: PyRef<'_, PyRange1d> = args.get_item(2)?.extract()?;
+                let pt_int: i32 = args.get_item(3)?.extract()?;
+                let vd = if n == 5 { args.get_item(4)?.extract()? } else { viewDistance.unwrap_or(5.0) };
+                return Ok(Self(Frustum::from_matrix(&m.0, win.0.clone(), nf.0.clone(), proj_type_from_int(pt_int), vd)));
+            }
+        }
+
+        // 5-6 args with Vec3d first: Frustum(Vec3d, Rotation, Range2d, Range1d, projType, vd?)
+        if n == 5 || n == 6 {
+            let pos = extract_vec3d(&args.get_item(0)?)?;
+            let rot: PyRef<'_, PyRotation> = args.get_item(1)?.extract()?;
+            let win: PyRef<'_, PyRange2d> = args.get_item(2)?.extract()?;
+            let nf: PyRef<'_, PyRange1d> = args.get_item(3)?.extract()?;
+            let pt_int: i32 = args.get_item(4)?.extract()?;
+            let vd = if n == 6 { args.get_item(5)?.extract()? } else { viewDistance.unwrap_or(5.0) };
+            return Ok(Self(Frustum::from_params(pos, rot.0, win.0.clone(), nf.0.clone(), proj_type_from_int(pt_int), vd)));
+        }
+
+        Err(PyTypeError::new_err("Frustum: unsupported constructor arguments"))
+    }
+
+    fn __repr__(&self) -> String {
+        let f = &self.0;
+        let pos = f.position();
+        let rot = f.rotation();
+        let ax = rot.axis();
+        let win = f.window();
+        let nf = f.near_far();
+        let proj_name = match f.projection_type() {
+            ProjectionType::Perspective => "Gf.Frustum.Perspective",
+            ProjectionType::Orthographic => "Gf.Frustum.Orthographic",
+        };
+        format!(
+            "Gf.Frustum(Gf.Vec3d({}, {}, {}), Gf.Rotation(Gf.Vec3d({}, {}, {}), {}), Gf.Range2d(Gf.Vec2d({}, {}), Gf.Vec2d({}, {})), Gf.Range1d({}, {}), {}, viewDistance = {})",
+            pos.x, pos.y, pos.z,
+            ax.x, ax.y, ax.z, rot.angle(),
+            win.min().x, win.min().y, win.max().x, win.max().y,
+            nf.min(), nf.max(),
+            proj_name,
+            f.view_distance(),
+        )
+    }
+    fn __str__(&self) -> String { format!("{}", self.0) }
+    fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
+    fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
+    fn __hash__(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        self.0.hash(&mut h);
+        h.finish()
+    }
+
+    // --- Properties ---
+    #[getter] fn position(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.position()) }
+    #[setter(position)] fn set_position_prop(&mut self, v: &super::vec::PyVec3d) { self.0.set_position(v.0); }
+    #[getter] fn rotation(&self) -> PyRotation { PyRotation(*self.0.rotation()) }
+    #[setter(rotation)] fn set_rotation_prop(&mut self, r: &PyRotation) { self.0.set_rotation(r.0); }
+    #[getter] fn window(&self) -> PyRange2d { PyRange2d(self.0.window().clone()) }
+    #[setter(window)] fn set_window_prop(&mut self, w: &PyRange2d) { self.0.set_window(w.0.clone()); }
+    #[getter] fn nearFar(&self) -> PyRange1d { PyRange1d(self.0.near_far().clone()) }
+    #[setter(nearFar)] fn set_near_far_prop(&mut self, nf: &PyRange1d) { self.0.set_near_far(nf.0.clone()); }
+    #[getter] fn viewDistance(&self) -> f64 { self.0.view_distance() }
+    #[setter(viewDistance)] fn set_view_distance_prop(&mut self, v: f64) { self.0.set_view_distance(v); }
+    #[getter] fn projectionType(&self) -> i32 { proj_type_to_int(self.0.projection_type()) }
+    #[setter(projectionType)] fn set_projection_type_prop(&mut self, v: i32) {
+        self.0.set_projection_type(proj_type_from_int(v));
+    }
+
+    // --- Methods ---
+    #[staticmethod]
+    #[pyo3(name = "GetReferencePlaneDepth")]
+    fn get_reference_plane_depth() -> f64 { Frustum::get_reference_plane_depth() }
+
+    #[pyo3(name = "SetPerspective")]
+    fn set_perspective(&mut self, fov: f64, is_fov_vertical: bool, aspect: f64, near: f64, far: f64) {
+        self.0.set_perspective(fov, is_fov_vertical, aspect, near, far);
+    }
+
+    /// GetPerspective(isFovVertical) -> (fov, aspect, near, far) or None
+    #[pyo3(name = "GetPerspective")]
+    fn get_perspective(&self, py: Python<'_>, is_fov_vertical: bool) -> Py<pyo3::PyAny> {
+        match self.0.get_perspective(is_fov_vertical) {
+            Some((fov, aspect, near, far)) => (fov, aspect, near, far).into_pyobject(py).unwrap().into_any().unbind(),
+            None => py.None().into_pyobject(py).unwrap().into_any().unbind(),
+        }
+    }
+
+    /// GetFOV(isFovVertical?) -> f64. Default is horizontal (false).
+    #[pyo3(name = "GetFOV")]
+    #[pyo3(signature = (is_fov_vertical=None))]
+    fn get_fov(&self, is_fov_vertical: Option<bool>) -> f64 {
+        // C++ GetFOV() with no arg computes horizontal when perspective, 0 when ortho
+        match is_fov_vertical {
+            Some(v) => self.0.get_fov(v),
+            None => {
+                // Default: horizontal for perspective, 0 for ortho
+                if self.0.projection_type() == ProjectionType::Orthographic {
+                    0.0
+                } else {
+                    self.0.get_fov(false)
+                }
+            }
+        }
+    }
+
+    #[pyo3(name = "SetOrthographic")]
+    fn set_orthographic(&mut self, left: f64, right: f64, bottom: f64, top: f64, near: f64, far: f64) {
+        self.0.set_orthographic(left, right, bottom, top, near, far);
+    }
+
+    /// GetOrthographic() -> (l,r,b,t,n,f) or empty tuple ()
+    #[pyo3(name = "GetOrthographic")]
+    fn get_orthographic(&self, py: Python<'_>) -> Py<pyo3::PyAny> {
+        match self.0.get_orthographic() {
+            Some((l, r, b, t, n, f)) => (l, r, b, t, n, f).into_pyobject(py).unwrap().into_any().unbind(),
+            None => pyo3::types::PyTuple::empty(py).into_any().unbind(),
+        }
+    }
+
+    #[pyo3(name = "ComputeViewDirection")]
+    fn compute_view_direction(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.compute_view_direction()) }
+
+    #[pyo3(name = "ComputeUpVector")]
+    fn compute_up_vector(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.compute_up_vector()) }
+
+    #[pyo3(name = "ComputeViewFrame")]
+    fn compute_view_frame(&self) -> (super::vec::PyVec3d, super::vec::PyVec3d, super::vec::PyVec3d) {
+        let (s, u, v) = self.0.compute_view_frame();
+        (super::vec::PyVec3d(s), super::vec::PyVec3d(u), super::vec::PyVec3d(v))
+    }
+
+    #[pyo3(name = "ComputeLookAtPoint")]
+    fn compute_look_at_point(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(self.0.compute_look_at_point()) }
+
+    #[pyo3(name = "ComputeAspectRatio")]
+    fn compute_aspect_ratio(&self) -> f64 { self.0.compute_aspect_ratio() }
+
+    #[pyo3(name = "ComputeViewMatrix")]
+    fn compute_view_matrix(&self) -> super::matrix::PyMatrix4d { super::matrix::PyMatrix4d(self.0.compute_view_matrix()) }
+
+    #[pyo3(name = "ComputeViewInverse")]
+    fn compute_view_inverse(&self) -> super::matrix::PyMatrix4d { super::matrix::PyMatrix4d(self.0.compute_view_inverse()) }
+
+    #[pyo3(name = "ComputeProjectionMatrix")]
+    fn compute_projection_matrix(&self) -> super::matrix::PyMatrix4d { super::matrix::PyMatrix4d(self.0.compute_projection_matrix()) }
+
+    /// ComputeCorners() -> list of 8 Vec3d
+    #[pyo3(name = "ComputeCorners")]
+    fn compute_corners(&self) -> Vec<super::vec::PyVec3d> {
+        self.0.compute_corners().iter().map(|c| super::vec::PyVec3d(*c)).collect()
+    }
+
+    /// ComputeCornersAtDistance(d) -> list of 4 Vec3d
+    #[pyo3(name = "ComputeCornersAtDistance")]
+    fn compute_corners_at_distance(&self, distance: f64) -> Vec<super::vec::PyVec3d> {
+        self.0.compute_corners_at_distance(distance).iter().map(|c| super::vec::PyVec3d(*c)).collect()
+    }
+
+    /// ComputePickRay(Vec2d) or ComputePickRay(Vec3d)
+    #[pyo3(name = "ComputePickRay")]
+    fn compute_pick_ray(&self, arg: &Bound<'_, pyo3::PyAny>) -> PyResult<PyRay> {
+        if let Ok(v2) = arg.extract::<PyRef<'_, super::vec::PyVec2d>>() {
+            return Ok(PyRay(self.0.compute_pick_ray_from_window(v2.0)));
+        }
+        if let Ok(v3) = arg.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+            return Ok(PyRay(self.0.compute_pick_ray_from_world(v3.0)));
+        }
+        Err(PyTypeError::new_err("ComputePickRay: expected Vec2d or Vec3d"))
+    }
+
+    /// ComputeRay(Vec2d) or ComputeRay(Vec3d)
+    #[pyo3(name = "ComputeRay")]
+    fn compute_ray(&self, arg: &Bound<'_, pyo3::PyAny>) -> PyResult<PyRay> {
+        if let Ok(v2) = arg.extract::<PyRef<'_, super::vec::PyVec2d>>() {
+            return Ok(PyRay(self.0.compute_ray_from_window(v2.0)));
+        }
+        if let Ok(v3) = arg.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+            return Ok(PyRay(self.0.compute_ray_from_world(v3.0)));
+        }
+        Err(PyTypeError::new_err("ComputeRay: expected Vec2d or Vec3d"))
+    }
+
+    /// ComputeNarrowedFrustum(Vec2d|Vec3d, Vec2d) -> Frustum
+    #[pyo3(name = "ComputeNarrowedFrustum")]
+    fn compute_narrowed_frustum(&self, pos: &Bound<'_, pyo3::PyAny>, size: &super::vec::PyVec2d) -> PyResult<Self> {
+        if let Ok(v2) = pos.extract::<PyRef<'_, super::vec::PyVec2d>>() {
+            return Ok(Self(self.0.compute_narrowed_frustum(v2.0, size.0)));
+        }
+        if let Ok(v3) = pos.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+            return Ok(Self(self.0.compute_narrowed_frustum_at_world(v3.0, size.0)));
+        }
+        Err(PyTypeError::new_err("ComputeNarrowedFrustum: expected Vec2d or Vec3d as first arg"))
+    }
+
+    /// FitToSphere(center, radius, slack=0)
+    #[pyo3(name = "FitToSphere")]
+    #[pyo3(signature = (center, radius, slack=0.0))]
+    fn fit_to_sphere(&mut self, center: &super::vec::PyVec3d, radius: f64, slack: f64) {
+        self.0.fit_to_sphere(center.0, radius, slack);
+    }
+
+    /// Transform(matrix) -> self (returns self for chaining, matching C++ pxr)
+    #[pyo3(name = "Transform")]
+    fn transform(&mut self, m: &super::matrix::PyMatrix4d) -> Self {
+        self.0.transform(&m.0);
+        self.clone()
+    }
+
+    /// Intersects(Vec3d) / Intersects(BBox3d) / Intersects(Vec3d,Vec3d) / Intersects(Vec3d,Vec3d,Vec3d)
+    #[pyo3(name = "Intersects")]
+    #[pyo3(signature = (*args))]
+    fn intersects(&self, args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<bool> {
+        let n = args.len();
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            if let Ok(v) = obj.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+                return Ok(self.0.intersects_point(&v.0));
+            }
+            if let Ok(b) = obj.extract::<PyRef<'_, PyBBox3d>>() {
+                return Ok(self.0.intersects_bbox(&b.0));
+            }
+        }
+        if n == 2 {
+            let p0 = extract_vec3d(&args.get_item(0)?)?;
+            let p1 = extract_vec3d(&args.get_item(1)?)?;
+            return Ok(self.0.intersects_segment(&p0, &p1));
+        }
+        if n == 3 {
+            let p0 = extract_vec3d(&args.get_item(0)?)?;
+            let p1 = extract_vec3d(&args.get_item(1)?)?;
+            let p2 = extract_vec3d(&args.get_item(2)?)?;
+            return Ok(self.0.intersects_triangle(&p0, &p1, &p2));
+        }
+        Err(PyTypeError::new_err("Intersects: expected Vec3d, BBox3d, (Vec3d,Vec3d), or (Vec3d,Vec3d,Vec3d)"))
+    }
+
+    /// IntersectsViewVolume(bbox, viewProjMatrix) -> bool
+    #[staticmethod]
+    #[pyo3(name = "IntersectsViewVolume")]
+    fn intersects_view_volume(bbox: &PyBBox3d, view_proj: &super::matrix::PyMatrix4d) -> bool {
+        Frustum::intersects_view_volume(&bbox.0, &view_proj.0)
+    }
+}
+
+/// Helper: int -> ProjectionType
+fn proj_type_from_int(v: i32) -> ProjectionType {
+    if v == 1 { ProjectionType::Orthographic } else { ProjectionType::Perspective }
+}
+/// Helper: ProjectionType -> int
+fn proj_type_to_int(pt: ProjectionType) -> i32 {
+    match pt { ProjectionType::Perspective => 0, ProjectionType::Orthographic => 1 }
+}
+
+// ---------------------------------------------------------------------------
+// ColorSpaceNames — static holder for predefined name tokens
+// ---------------------------------------------------------------------------
+
+#[pyclass(skip_from_py_object, name = "ColorSpaceNames", module = "pxr_rs.Gf")]
+pub struct PyColorSpaceNames;
+
+#[pymethods]
+impl PyColorSpaceNames {
+    #[classattr] #[pyo3(name = "LinearAP1")] fn linear_ap1() -> String { "lin_ap1_scene".to_string() }
+    #[classattr] #[pyo3(name = "LinearAP0")] fn linear_ap0() -> String { "lin_ap0_scene".to_string() }
+    #[classattr] #[pyo3(name = "LinearRec709")] fn linear_rec709() -> String { "lin_rec709_scene".to_string() }
+    #[classattr] #[pyo3(name = "LinearP3D65")] fn linear_p3d65() -> String { "lin_p3d65_scene".to_string() }
+    #[classattr] #[pyo3(name = "LinearRec2020")] fn linear_rec2020() -> String { "lin_rec2020_scene".to_string() }
+    #[classattr] #[pyo3(name = "LinearAdobeRGB")] fn linear_adobergb() -> String { "lin_adobergb_scene".to_string() }
+    #[classattr] #[pyo3(name = "LinearCIEXYZD65")] fn linear_ciexyzd65() -> String { "lin_ciexyzd65_scene".to_string() }
+    #[classattr] #[pyo3(name = "SRGBRec709")] fn srgb_rec709() -> String { "srgb_rec709_scene".to_string() }
+    #[classattr] #[pyo3(name = "G22Rec709")] fn g22_rec709() -> String { "g22_rec709_scene".to_string() }
+    #[classattr] #[pyo3(name = "G18Rec709")] fn g18_rec709() -> String { "g18_rec709_scene".to_string() }
+    #[classattr] #[pyo3(name = "SRGBAP1")] fn srgb_ap1() -> String { "srgb_ap1_scene".to_string() }
+    #[classattr] #[pyo3(name = "G22AP1")] fn g22_ap1() -> String { "g22_ap1_scene".to_string() }
+    #[classattr] #[pyo3(name = "SRGBP3D65")] fn srgb_p3d65() -> String { "srgb_p3d65_scene".to_string() }
+    #[classattr] #[pyo3(name = "G22AdobeRGB")] fn g22_adobergb() -> String { "g22_adobergb_scene".to_string() }
+    #[classattr] #[pyo3(name = "Identity")] fn identity() -> String { "identity".to_string() }
+    #[classattr] #[pyo3(name = "Data")] fn data() -> String { "data".to_string() }
+    #[classattr] #[pyo3(name = "Raw")] fn raw() -> String { "raw".to_string() }
+    #[classattr] #[pyo3(name = "Unknown")] fn unknown() -> String { "unknown".to_string() }
+}
+
+// ---------------------------------------------------------------------------
+// ColorSpace
+// ---------------------------------------------------------------------------
+
+#[pyclass(skip_from_py_object, name = "ColorSpace", module = "pxr_rs.Gf")]
+#[derive(Clone)]
+pub struct PyColorSpace(pub ColorSpace);
+
+#[pymethods]
+impl PyColorSpace {
+    /// ColorSpace(), ColorSpace(str), ColorSpace(ColorSpace)
+    #[new]
+    #[pyo3(signature = (name=None))]
+    fn new(name: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<Self> {
+        let Some(obj) = name else {
+            return Ok(Self(ColorSpace::default()));
+        };
+        // Copy constructor
+        if let Ok(cs) = obj.extract::<PyRef<'_, PyColorSpace>>() {
+            return Ok(Self(cs.0.clone()));
+        }
+        // From string name
+        if let Ok(s) = obj.extract::<String>() {
+            let token = usd_tf::Token::new(&s);
+            return Ok(Self(ColorSpace::from_token(&token)));
+        }
+        Err(PyTypeError::new_err("ColorSpace: expected str or ColorSpace"))
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Gf.ColorSpace(\"{}\")", self.0.name().as_str())
+    }
+    fn __str__(&self) -> String { format!("{}", self.0) }
+    fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
+    fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
+    fn __hash__(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        self.0.name().as_str().hash(&mut h);
+        h.finish()
+    }
+
+    #[pyo3(name = "GetName")]
+    fn get_name(&self) -> String { self.0.name().as_str().to_string() }
+
+    #[pyo3(name = "IsValid")]
+    fn is_valid(&self) -> bool {
+        ColorSpaceName::parse(self.0.name().as_str()).is_some()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Color
+// ---------------------------------------------------------------------------
+
+#[pyclass(skip_from_py_object, name = "Color", module = "pxr_rs.Gf")]
+#[derive(Clone)]
+pub struct PyColor(pub Color);
+
+#[pymethods]
+impl PyColor {
+    /// Flexible constructor:
+    ///   Color()                         — black in LinearRec709
+    ///   Color(ColorSpace)               — black in given space
+    ///   Color(Vec3f, ColorSpace)         — rgb in given space
+    ///   Color(Color)                    — copy
+    ///   Color(Color, ColorSpace)        — convert to target space
+    #[new]
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 0 {
+            return Ok(Self(Color::black()));
+        }
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            // Color(Color) — copy
+            if let Ok(c) = obj.extract::<PyRef<'_, PyColor>>() {
+                return Ok(Self(c.0.clone()));
+            }
+            // Color(ColorSpace) — black in given space
+            if let Ok(cs) = obj.extract::<PyRef<'_, PyColorSpace>>() {
+                return Ok(Self(Color::black_in(cs.0.clone())));
+            }
+        }
+        if n == 2 {
+            let a0 = args.get_item(0)?;
+            let a1 = args.get_item(1)?;
+            // Color(Vec3f, ColorSpace) — rgb in given space
+            if let Ok(v) = a0.extract::<PyRef<'_, super::vec::PyVec3f>>() {
+                let cs: PyRef<'_, PyColorSpace> = a1.extract()?;
+                return Ok(Self(Color::new(v.0, cs.0.clone())));
+            }
+            // Color(Color, ColorSpace) — convert to target space
+            if let Ok(src) = a0.extract::<PyRef<'_, PyColor>>() {
+                let cs: PyRef<'_, PyColorSpace> = a1.extract()?;
+                return Ok(Self(Color::convert(&src.0, cs.0.clone())));
+            }
+        }
+        Err(PyTypeError::new_err("Color: unsupported constructor arguments"))
+    }
+
+    fn __repr__(&self) -> String {
+        let rgb = self.0.rgb();
+        let cs_name = self.0.color_space().name().as_str().to_string();
+        format!("Gf.Color(Gf.Vec3f({}, {}, {}), Gf.ColorSpace(\"{}\"))", rgb.x, rgb.y, rgb.z, cs_name)
+    }
+    fn __str__(&self) -> String { format!("{}", self.0) }
+    fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
+    fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
+
+    #[pyo3(name = "GetRGB")]
+    fn get_rgb(&self) -> super::vec::PyVec3f { super::vec::PyVec3f(self.0.rgb()) }
+
+    #[pyo3(name = "GetColorSpace")]
+    fn get_color_space(&self) -> PyColorSpace { PyColorSpace(self.0.color_space().clone()) }
+
+    #[pyo3(name = "SetFromPlanckianLocus")]
+    fn set_from_planckian_locus(&mut self, kelvin: f32, luminance: f32) {
+        self.0.set_from_planckian_locus(kelvin, luminance);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -1773,5 +2249,9 @@ pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyLine>()?;
     m.add_class::<PyLineSeg>()?;
     m.add_class::<PyRay>()?;
+    m.add_class::<PyFrustum>()?;
+    m.add_class::<PyColorSpaceNames>()?;
+    m.add_class::<PyColorSpace>()?;
+    m.add_class::<PyColor>()?;
     Ok(())
 }

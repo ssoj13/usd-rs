@@ -354,7 +354,7 @@ macro_rules! vt_array {
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
-        pub struct $rust_name { inner: Array<$elem> }
+        pub struct $rust_name { pub(crate) inner: Array<$elem> }
 
         #[pymethods]
         impl $rust_name {
@@ -472,7 +472,7 @@ macro_rules! vt_array {
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
-        pub struct $rust_name { inner: Array<$elem> }
+        pub struct $rust_name { pub(crate) inner: Array<$elem> }
 
         #[pymethods]
         impl $rust_name {
@@ -574,7 +574,7 @@ macro_rules! vt_array {
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
-        pub struct $rust_name { inner: Array<$elem> }
+        pub struct $rust_name { pub(crate) inner: Array<$elem> }
 
         #[pymethods]
         impl $rust_name {
@@ -651,7 +651,7 @@ macro_rules! vt_array {
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
-        pub struct $rust_name { inner: Array<$elem> }
+        pub struct $rust_name { pub(crate) inner: Array<$elem> }
 
         #[pymethods]
         impl $rust_name {
@@ -734,7 +734,7 @@ macro_rules! vt_array {
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
-        pub struct $rust_name { inner: Array<$elem> }
+        pub struct $rust_name { pub(crate) inner: Array<$elem> }
 
         #[pymethods]
         impl $rust_name {
@@ -889,7 +889,7 @@ vt_array!(string_like,
 /// `TokenArray` — each token exposed to Python as a `str`.
 #[pyclass(skip_from_py_object,name = "TokenArray", module = "pxr_rs.Vt")]
 #[derive(Clone)]
-pub struct PyTokenArray { inner: Array<usd_tf::Token> }
+pub struct PyTokenArray { pub(crate) inner: Array<usd_tf::Token> }
 
 #[pymethods]
 impl PyTokenArray {
@@ -1072,7 +1072,7 @@ fn flat_to_mat4f(flat: &[f32]) -> Option<usd_gf::Matrix4f> {
 
 #[pyclass(skip_from_py_object,name = "Matrix4dArray", module = "pxr_rs.Vt")]
 #[derive(Clone)]
-pub struct PyMatrix4dArray { inner: Array<usd_gf::Matrix4d> }
+pub struct PyMatrix4dArray { pub(crate) inner: Array<usd_gf::Matrix4d> }
 
 #[pymethods]
 impl PyMatrix4dArray {

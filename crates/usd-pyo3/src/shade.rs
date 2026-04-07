@@ -642,6 +642,52 @@ impl PyTokens {
 }
 
 // ---------------------------------------------------------------------------
+// AttributeType — mirrors UsdShadeAttributeType enum
+// ---------------------------------------------------------------------------
+
+#[pyclass(name = "AttributeType", module = "pxr_rs.UsdShade")]
+struct PyAttributeType;
+
+#[pymethods]
+impl PyAttributeType {
+    #[classattr] fn Invalid() -> i32 { 0 }
+    #[classattr] fn Input() -> i32 { 1 }
+    #[classattr] fn Output() -> i32 { 2 }
+}
+
+// ---------------------------------------------------------------------------
+// Utils — mirrors UsdShadeUtils free functions
+// ---------------------------------------------------------------------------
+
+#[pyclass(name = "Utils", module = "pxr_rs.UsdShade")]
+struct PyUtils;
+
+#[pymethods]
+impl PyUtils {
+    /// GetType(name) -> AttributeType enum value (0=Invalid, 1=Input, 2=Output)
+    #[staticmethod]
+    #[pyo3(name = "GetType")]
+    fn get_type(name: &str) -> i32 {
+        if name.starts_with("inputs:") { 1 }
+        else if name.starts_with("outputs:") { 2 }
+        else { 0 }
+    }
+
+    /// GetBaseNameAndType(name) -> (baseName, attrType)
+    #[staticmethod]
+    #[pyo3(name = "GetBaseNameAndType")]
+    fn get_base_name_and_type(name: &str) -> (String, i32) {
+        if let Some(base) = name.strip_prefix("inputs:") {
+            (base.to_string(), 1)
+        } else if let Some(base) = name.strip_prefix("outputs:") {
+            (base.to_string(), 2)
+        } else {
+            (name.to_string(), 0)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Module registration
 // ---------------------------------------------------------------------------
 
@@ -656,6 +702,8 @@ pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMaterialBindingAPI>()?;
     m.add_class::<PyCoordSysAPI>()?;
     m.add_class::<PyTokens>()?;
+    m.add_class::<PyAttributeType>()?;
+    m.add_class::<PyUtils>()?;
 
     // Singleton, matching `UsdShadeTokens` in C++
     m.add("Tokens", PyTokens)?;
