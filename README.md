@@ -65,12 +65,18 @@ A few points setting the right context:
 
 **CLI tools** — `usd cat/tree/dump/diff/resolve/edit/stitch/zip/view/meshdump/dumpcrate` — all as a single `usd` binary, also callable from Python via `pxr_rs.Cli`.
 
+**mtlx-rs** — MaterialX port (55k LOC, 800+ tests): core document model, node graphs, shader generation backends for GLSL, WGSL (via naga), MSL, MDL, OSL, Slang.
+
+**osl-rs** — Open Shading Language port (78k LOC, 78 tests): lexer, parser, AST, type system, codegen, builtins, closures, BSDF models.
+
+**opensubdiv-rs** — OpenSubdiv 3.7 port (40k LOC): Catmull-Clark, Loop, Bilinear subdivision. Far topology refiner, patch tables, stencil tables.
+
+**draco-rs** — Draco mesh compression port (76k LOC): encoder/decoder for meshes, point clouds, mesh features.
+
 ## Work in progress
 
 - **Hydra render delegate** — basic Storm pipeline works, but material networks, AOVs, and advanced shading are incomplete
 - **Python API parity** — bindings exist for all major modules but many methods are stubs. Reference test suite (465 tests from OpenUSD) shows ~80 passing, rest need API completion
-- **mtlx-rs** — MaterialX port (55k LOC): core document model, shader generation backends for GLSL, WGSL (via naga), MSL, MDL, OSL, Slang. Node graph compilation and code generation work, runtime integration with Hydra is in progress.
-- **osl-rs** — Open Shading Language port (78k LOC): lexer, parser, AST, type system, codegen, builtins, closures, BSDF models. Shader compilation works, runtime execution is partial.
 
 ## Architecture differences from C++
 
