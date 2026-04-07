@@ -15,7 +15,7 @@ A few points setting the right context:
     - compact digital asset tools both for VFX / AI / robotics / cross-applications
     - cross-platform GIS: real-time apps (maps), navigation apps
     - AI/robotic applications: on-board simulations
-    - IoT applications (potentially Jetson or kind)
+    - IoT applications (potentially Jetson or kind, that's still something to test)
 
 
 ## What's here
