@@ -12,9 +12,10 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
 
 use usd_sdf::{
-    AttributeSpec, Layer, LayerOffset, Path, PrimSpec, Specifier,
+    AttributeSpec, Layer, LayerOffset, Path, PathExpression, PrimSpec, Specifier,
 };
 use usd_sdf::path as sdf_path_fns;
+use usd_sdf::path_expression_eval::PathExpressionEval;
 use usd_tf::Token;
 
 // ============================================================================
@@ -666,6 +667,11 @@ pub struct PyLayer {
 impl PyLayer {
     pub fn layer(&self) -> &Arc<Layer> {
         &self.inner
+    }
+
+    /// Public constructor for cross-module use (e.g. from usd.rs).
+    pub fn from_layer_arc(layer: Arc<Layer>) -> Self {
+        Self { inner: layer }
     }
 
     fn from_arc(layer: Arc<Layer>) -> Self {
@@ -1348,6 +1354,19 @@ impl PyLayer {
         // Layer is always valid if it exists
         true
     }
+
+    fn __eq__(&self, other: &Self) -> bool {
+        // Two PyLayer are equal if they wrap the same layer (by Arc pointer or identifier)
+        Arc::ptr_eq(&self.inner, &other.inner)
+            || self.inner.identifier() == other.inner.identifier()
+    }
+
+    fn __hash__(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        self.inner.identifier().hash(&mut h);
+        h.finish()
+    }
 }
 
 // ============================================================================
@@ -1748,11 +1767,376 @@ fn pyobject_to_vt_value(py: Python<'_>, obj: &Py<PyAny>) -> usd_vt::Value {
 }
 
 // ============================================================================
+// ValueTypeName — wraps SdfValueTypeName
+// ============================================================================
+
+/// An attribute's value type name (e.g. "double", "float3", "token").
+///
+/// Matches C++ `SdfValueTypeName`.
+#[pyclass(skip_from_py_object, name = "ValueTypeName", module = "pxr_rs.Sdf")]
+#[derive(Clone)]
+pub struct PyValueTypeName {
+    pub(crate) name: String,
+}
+
+#[pymethods]
+impl PyValueTypeName {
+    fn __repr__(&self) -> String {
+        format!("Sdf.ValueTypeNames.{}", self.name)
+    }
+
+    fn __str__(&self) -> &str {
+        &self.name
+    }
+
+    fn __eq__(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+
+    fn __hash__(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        self.name.hash(&mut h);
+        h.finish()
+    }
+}
+
+/// Namespace containing standard value type names.
+///
+/// Registered at module level via `setattr` in `register()` rather than
+/// `#[classattr]`, because PyO3 proc-macro attributes can't be generated
+/// from `macro_rules!` inside `#[pymethods]`.
+#[pyclass(skip_from_py_object, name = "ValueTypeNames", module = "pxr_rs.Sdf")]
+pub struct PyValueTypeNames;
+
+/// Add all standard value type name constants as class attributes on
+/// `PyValueTypeNames`.
+fn register_value_type_names(py: Python<'_>) -> PyResult<()> {
+    let vtn = py.get_type::<PyValueTypeNames>();
+
+    // Helper closure to set a named attr
+    let set = |name: &str, type_name: &str| -> PyResult<()> {
+        let obj = Py::new(py, PyValueTypeName { name: type_name.to_string() })?;
+        vtn.setattr(name, obj)
+    };
+
+    // Scalar types
+    set("Bool", "bool")?;
+    set("UChar", "uchar")?;
+    set("Int", "int")?;
+    set("UInt", "uint")?;
+    set("Int64", "int64")?;
+    set("UInt64", "uint64")?;
+    set("Half", "half")?;
+    set("Float", "float")?;
+    set("Double", "double")?;
+    set("TimeCode", "timecode")?;
+    set("String", "string")?;
+    set("Token", "token")?;
+    set("Asset", "asset")?;
+
+    set("Int2", "int2")?;
+    set("Int3", "int3")?;
+    set("Int4", "int4")?;
+    set("Half2", "half2")?;
+    set("Half3", "half3")?;
+    set("Half4", "half4")?;
+    set("Float2", "float2")?;
+    set("Float3", "float3")?;
+    set("Float4", "float4")?;
+    set("Double2", "double2")?;
+    set("Double3", "double3")?;
+    set("Double4", "double4")?;
+
+    set("Point3h", "point3h")?;
+    set("Point3f", "point3f")?;
+    set("Point3d", "point3d")?;
+    set("Normal3h", "normal3h")?;
+    set("Normal3f", "normal3f")?;
+    set("Normal3d", "normal3d")?;
+    set("Color3h", "color3h")?;
+    set("Color3f", "color3f")?;
+    set("Color3d", "color3d")?;
+    set("Color4h", "color4h")?;
+    set("Color4f", "color4f")?;
+    set("Color4d", "color4d")?;
+    set("Vector3h", "vector3h")?;
+    set("Vector3f", "vector3f")?;
+    set("Vector3d", "vector3d")?;
+    set("TexCoord2h", "texCoord2h")?;
+    set("TexCoord2f", "texCoord2f")?;
+    set("TexCoord2d", "texCoord2d")?;
+    set("TexCoord3h", "texCoord3h")?;
+    set("TexCoord3f", "texCoord3f")?;
+    set("TexCoord3d", "texCoord3d")?;
+
+    set("Quath", "quath")?;
+    set("Quatf", "quatf")?;
+    set("Quatd", "quatd")?;
+
+    set("Matrix2d", "matrix2d")?;
+    set("Matrix3d", "matrix3d")?;
+    set("Matrix4d", "matrix4d")?;
+    set("Frame4d", "frame4d")?;
+
+    // Array types
+    set("BoolArray", "bool[]")?;
+    set("UCharArray", "uchar[]")?;
+    set("IntArray", "int[]")?;
+    set("UIntArray", "uint[]")?;
+    set("Int64Array", "int64[]")?;
+    set("UInt64Array", "uint64[]")?;
+    set("HalfArray", "half[]")?;
+    set("FloatArray", "float[]")?;
+    set("DoubleArray", "double[]")?;
+    set("TimeCodeArray", "timecode[]")?;
+    set("StringArray", "string[]")?;
+    set("TokenArray", "token[]")?;
+    set("AssetArray", "asset[]")?;
+
+    set("Int2Array", "int2[]")?;
+    set("Int3Array", "int3[]")?;
+    set("Int4Array", "int4[]")?;
+    set("Half2Array", "half2[]")?;
+    set("Half3Array", "half3[]")?;
+    set("Half4Array", "half4[]")?;
+    set("Float2Array", "float2[]")?;
+    set("Float3Array", "float3[]")?;
+    set("Float4Array", "float4[]")?;
+    set("Double2Array", "double2[]")?;
+    set("Double3Array", "double3[]")?;
+    set("Double4Array", "double4[]")?;
+
+    set("Point3hArray", "point3h[]")?;
+    set("Point3fArray", "point3f[]")?;
+    set("Point3dArray", "point3d[]")?;
+    set("Normal3hArray", "normal3h[]")?;
+    set("Normal3fArray", "normal3f[]")?;
+    set("Normal3dArray", "normal3d[]")?;
+    set("Color3hArray", "color3h[]")?;
+    set("Color3fArray", "color3f[]")?;
+    set("Color3dArray", "color3d[]")?;
+    set("Color4hArray", "color4h[]")?;
+    set("Color4fArray", "color4f[]")?;
+    set("Color4dArray", "color4d[]")?;
+    set("Vector3hArray", "vector3h[]")?;
+    set("Vector3fArray", "vector3f[]")?;
+    set("Vector3dArray", "vector3d[]")?;
+    set("TexCoord2hArray", "texCoord2h[]")?;
+    set("TexCoord2fArray", "texCoord2f[]")?;
+    set("TexCoord2dArray", "texCoord2d[]")?;
+    set("TexCoord3hArray", "texCoord3h[]")?;
+    set("TexCoord3fArray", "texCoord3f[]")?;
+    set("TexCoord3dArray", "texCoord3d[]")?;
+
+    set("QuathArray", "quath[]")?;
+    set("QuatfArray", "quatf[]")?;
+    set("QuatdArray", "quatd[]")?;
+
+    set("Matrix2dArray", "matrix2d[]")?;
+    set("Matrix3dArray", "matrix3d[]")?;
+    set("Matrix4dArray", "matrix4d[]")?;
+    set("Frame4dArray", "frame4d[]")?;
+
+    Ok(())
+}
+
+// ============================================================================
+// PathExpression — mirrors C++ SdfPathExpression
+// ============================================================================
+
+/// A path expression that can match paths using patterns and set operations.
+///
+/// Matches C++ `SdfPathExpression`.
+#[pyclass(skip_from_py_object, name = "PathExpression", module = "pxr_rs.Sdf")]
+#[derive(Clone)]
+pub struct PyPathExpression {
+    inner: PathExpression,
+}
+
+#[pymethods]
+impl PyPathExpression {
+    #[new]
+    #[pyo3(signature = (expr = ""))]
+    fn new(expr: &str) -> Self {
+        Self { inner: PathExpression::parse(expr) }
+    }
+
+    /// Returns the canonical text representation of this expression.
+    #[allow(non_snake_case)]
+    fn GetText(&self) -> String {
+        self.inner.get_text()
+    }
+
+    /// True if the expression is empty (matches nothing).
+    #[allow(non_snake_case)]
+    fn IsEmpty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
+    /// True if the expression is absolute (starts with `/`).
+    #[allow(non_snake_case)]
+    fn IsAbsolute(&self) -> bool {
+        self.inner.is_absolute()
+    }
+
+    /// True if the expression references other named expressions.
+    #[allow(non_snake_case)]
+    fn ContainsExpressionReferences(&self) -> bool {
+        self.inner.contains_expression_references()
+    }
+
+    /// Return the empty expression (matches nothing).
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn Nothing() -> Self {
+        Self { inner: PathExpression::new() }
+    }
+
+    /// Return the expression that matches everything (`//`).
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn Everything() -> Self {
+        Self { inner: PathExpression::everything() }
+    }
+
+    /// Return the complement of the given expression.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn MakeComplement(expr: &PyPathExpression) -> Self {
+        Self { inner: PathExpression::make_complement(expr.inner.clone()) }
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Sdf.PathExpression('{}')", self.inner.get_text())
+    }
+
+    fn __str__(&self) -> String {
+        self.inner.get_text()
+    }
+
+    fn __eq__(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+
+    fn __hash__(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        self.inner.hash(&mut h);
+        h.finish()
+    }
+
+    fn __bool__(&self) -> bool {
+        !self.inner.is_empty()
+    }
+}
+
+// ============================================================================
+// _MakeBasicMatchEval — test helper for path expression matching
+// ============================================================================
+
+/// Evaluator returned by `Sdf._MakeBasicMatchEval`.
+///
+/// Wraps `PathExpressionEval<()>` with a simple `Match(path)` API.
+#[pyclass(skip_from_py_object, name = "_BasicMatchEval", module = "pxr_rs.Sdf")]
+#[derive(Clone)]
+pub struct PyBasicMatchEval {
+    eval: PathExpressionEval<()>,
+}
+
+#[pymethods]
+impl PyBasicMatchEval {
+    /// Match the given path against the expression.
+    ///
+    /// Accepts a string or `Sdf.Path`.
+    #[allow(non_snake_case)]
+    fn Match(&self, path: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let p = if let Ok(py_path) = path.extract::<PyPath>() {
+            py_path.inner.clone()
+        } else if let Ok(s) = path.extract::<String>() {
+            Path::from_string(&s).ok_or_else(|| {
+                PyValueError::new_err(format!("Invalid SdfPath: '{s}'"))
+            })?
+        } else {
+            return Err(PyValueError::new_err(
+                "Match() argument must be a string or Sdf.Path",
+            ));
+        };
+        let result = self.eval.match_path(&p, |_p| ());
+        Ok(result.is_truthy())
+    }
+
+    fn __repr__(&self) -> &str {
+        "Sdf._BasicMatchEval()"
+    }
+}
+
+/// Create a basic match evaluator from a path expression string.
+///
+/// This is a module-level function exposed as `Sdf._MakeBasicMatchEval`.
+/// Used by the test suite as a convenience for creating evaluators.
+#[pyfunction]
+#[pyo3(name = "_MakeBasicMatchEval")]
+fn make_basic_match_eval(pattern: &str) -> PyBasicMatchEval {
+    let expr = PathExpression::parse(pattern);
+    let eval = PathExpressionEval::<()>::from_expression(&expr);
+    PyBasicMatchEval { eval }
+}
+
+// ============================================================================
+// VariableExpression — stub for Sdf.VariableExpression
+// ============================================================================
+
+/// Stub for `SdfVariableExpression`.
+///
+/// Provides enough surface area for import-time collection of test modules.
+#[pyclass(skip_from_py_object, name = "VariableExpression", module = "pxr_rs.Sdf")]
+#[derive(Clone)]
+pub struct PyVariableExpression;
+
+#[pymethods]
+impl PyVariableExpression {
+    #[new]
+    #[pyo3(signature = (expr = ""))]
+    fn new(expr: &str) -> Self {
+        let _ = expr;
+        Self
+    }
+
+    fn __repr__(&self) -> &str {
+        "Sdf.VariableExpression()"
+    }
+
+    fn __eq__(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+// ============================================================================
+// VariableExpressionASTNodes — stub namespace for AST node types
+// ============================================================================
+
+/// Stub for `Sdf.VariableExpressionASTNodes`.
+///
+/// Contains marker classes for AST node types used in variable expression tests.
+#[pyclass(skip_from_py_object, name = "LiteralNode", module = "pxr_rs.Sdf")]
+pub struct PyLiteralNode;
+
+#[pyclass(skip_from_py_object, name = "VariableNode", module = "pxr_rs.Sdf")]
+pub struct PyVariableNode;
+
+#[pyclass(skip_from_py_object, name = "ListNode", module = "pxr_rs.Sdf")]
+pub struct PyListNode;
+
+#[pyclass(skip_from_py_object, name = "FunctionNode", module = "pxr_rs.Sdf")]
+pub struct PyFunctionNode;
+
+// ============================================================================
 // Module registration
 // ============================================================================
 
 /// Register all `pxr.Sdf` classes into the submodule.
-pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPath>()?;
     m.add_class::<PyLayerOffset>()?;
     m.add_class::<PyLayer>()?;
@@ -1765,6 +2149,36 @@ pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("SpecifierDef", PySpecifier { inner: Specifier::Def })?;
     m.add("SpecifierOver", PySpecifier { inner: Specifier::Over })?;
     m.add("SpecifierClass", PySpecifier { inner: Specifier::Class })?;
+
+    // Value type names
+    m.add_class::<PyValueTypeName>()?;
+    m.add_class::<PyValueTypeNames>()?;
+    register_value_type_names(py)?;
+    // Also add as module attr so `Sdf.ValueTypeNames.Double` works
+    m.add("ValueTypeNames", py.get_type::<PyValueTypeNames>())?;
+
+    // Path expressions
+    m.add_class::<PyPathExpression>()?;
+    m.add_class::<PyBasicMatchEval>()?;
+    m.add_function(wrap_pyfunction!(make_basic_match_eval, m)?)?;
+
+    // Variable expressions
+    m.add_class::<PyVariableExpression>()?;
+
+    // VariableExpressionASTNodes — namespace with AST node type stubs
+    m.add_class::<PyLiteralNode>()?;
+    m.add_class::<PyVariableNode>()?;
+    m.add_class::<PyListNode>()?;
+    m.add_class::<PyFunctionNode>()?;
+    {
+        // Build the VariableExpressionASTNodes namespace as a module
+        let ast_mod = PyModule::new(py, "VariableExpressionASTNodes")?;
+        ast_mod.add_class::<PyLiteralNode>()?;
+        ast_mod.add_class::<PyVariableNode>()?;
+        ast_mod.add_class::<PyListNode>()?;
+        ast_mod.add_class::<PyFunctionNode>()?;
+        m.add("VariableExpressionASTNodes", ast_mod)?;
+    }
 
     Ok(())
 }

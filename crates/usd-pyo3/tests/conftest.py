@@ -2,7 +2,55 @@
 
 Ported from OpenUSD testenv/ — adapted for pxr_rs package.
 """
+import os
+from pathlib import Path
+
 import pytest
+
+
+# ---------------------------------------------------------------------------
+# Auto-chdir into test data directories
+# ---------------------------------------------------------------------------
+# OpenUSD tests assume cwd is a testenv directory with data files.
+# Convention: testFoo.py  →  testFoo/ or testFoo.testenv/ as data dir.
+# This hook changes cwd before each test module is collected and restores it
+# afterwards, so module-level code like `Usd.Stage.Open("./Test.usda")` works.
+
+def pytest_collectstart(collector):
+    """Change cwd to a test module's data dir right before it is collected.
+
+    OpenUSD tests assume cwd contains their test data. The convention is:
+    testFoo.py  ->  testFoo/ or testFoo.testenv/
+    We chdir before each module is collected (and thus imported).
+    """
+    if not hasattr(collector, "path"):
+        return
+    module_path = collector.path
+    if module_path.suffix != ".py":
+        return
+    stem = module_path.stem
+    test_dir = module_path.parent
+    for candidate in (test_dir / stem, test_dir / f"{stem}.testenv"):
+        if candidate.is_dir():
+            os.chdir(candidate)
+            return
+
+
+@pytest.fixture(autouse=True)
+def _usd_test_chdir(request):
+    """Per-test fixture: ensure cwd matches the test module's data dir."""
+    test_file = Path(request.fspath)
+    stem = test_file.stem
+    test_dir = test_file.parent
+    for candidate in (test_dir / stem, test_dir / f"{stem}.testenv"):
+        if candidate.is_dir():
+            saved = os.getcwd()
+            os.chdir(candidate)
+            yield
+            os.chdir(saved)
+            return
+    yield  # no data dir — run from wherever we are
+
 
 # Skip files that call sys.exit() or argparse at module level
 collect_ignore_glob = [
@@ -29,6 +77,8 @@ collect_ignore_glob = [
     # Helper/utility scripts (not tests)
     "**/create_symlinks.py",
     "**/__init__.py",
+    # Module-level variant editing logic needs full API surface (GetVariantEditContext etc.)
+    "**/testUsdVariantEditing.py",
     # Scripts that use argparse at module level
     "**/testUsdBakeMtlx.py",
     "**/testSdrCompliance*.py",

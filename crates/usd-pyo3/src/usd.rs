@@ -70,6 +70,38 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
     if let Some(v) = val.downcast_clone::<Vec<String>>() {
         return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
     }
+    // GfVec types → PyVec (proper Gf.Vec3d etc.)
+    if let Some(v) = val.downcast_clone::<usd_gf::Vec3d>() {
+        return Py::new(py, crate::gf::vec::PyVec3d(v))
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+    }
+    if let Some(v) = val.downcast_clone::<usd_gf::Vec3f>() {
+        return Py::new(py, crate::gf::vec::PyVec3f(v))
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+    }
+    if let Some(v) = val.downcast_clone::<usd_gf::Vec2d>() {
+        return Py::new(py, crate::gf::vec::PyVec2d(v))
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+    }
+    if let Some(v) = val.downcast_clone::<usd_gf::Vec2f>() {
+        return Py::new(py, crate::gf::vec::PyVec2f(v))
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+    }
+    if let Some(v) = val.downcast_clone::<usd_gf::Vec4d>() {
+        return Py::new(py, crate::gf::vec::PyVec4d(v))
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+    }
+    if let Some(v) = val.downcast_clone::<usd_gf::Vec4f>() {
+        return Py::new(py, crate::gf::vec::PyVec4f(v))
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+    }
+    // Legacy glam types (fallback)
     if let Some(v) = val.downcast_clone::<glam::Vec3>() {
         return PyTuple::new(py, [v.x as f64, v.y as f64, v.z as f64])
             .map(|t| t.into_any().unbind())
@@ -384,6 +416,12 @@ impl PyEditTarget {
     #[allow(non_snake_case)]
     fn IsValid(&self) -> bool {
         self.inner.is_valid()
+    }
+
+    /// Return the layer this edit target directs edits to.
+    #[allow(non_snake_case)]
+    fn GetLayer(&self) -> Option<crate::sdf::PyLayer> {
+        self.inner.layer().map(|l| crate::sdf::PyLayer::from_layer_arc(l.clone()))
     }
 
     fn __repr__(&self) -> String {
@@ -883,6 +921,18 @@ impl PyPrim {
         }
     }
 
+    /// Convenience method: return a single VariantSet by name.
+    ///
+    /// Equivalent to `prim.GetVariantSets().GetVariantSet(name)`.
+    #[allow(non_snake_case)]
+    fn GetVariantSet(&self, name: &str) -> PyVariantSet {
+        PyVariantSet {
+            prim: self.inner.clone(),
+            name: name.to_string(),
+            _stage: self._stage.clone(),
+        }
+    }
+
     // -- Metadata ----------------------------------------------------------
 
     #[allow(non_snake_case)]
@@ -1118,6 +1168,7 @@ impl PyAttribute {
     /// Get the attribute value at the given time code.
     ///
     /// Returns None if there is no value.
+    #[pyo3(signature = (time = None))]
     #[allow(non_snake_case)]
     fn Get(&self, py: Python<'_>, time: Option<&Bound<'_, PyAny>>) -> PyResult<Py<PyAny>> {
         let tc = match time {
@@ -1131,6 +1182,7 @@ impl PyAttribute {
     }
 
     /// Set the attribute value at the given time code.
+    #[pyo3(signature = (value, time = None))]
     #[allow(non_snake_case)]
     fn Set(&self, value: &Bound<'_, PyAny>, time: Option<&Bound<'_, PyAny>>) -> PyResult<bool> {
         let tc = match time {
@@ -1773,16 +1825,26 @@ impl PyStage {
         self.inner.get_root_layer().identifier().to_string()
     }
 
+    /// Returns true if the given layer is part of the local layer stack.
     #[allow(non_snake_case)]
-    fn GetSessionLayer(&self) -> Option<String> {
-        self.inner.get_session_layer().map(|l| l.identifier().to_string())
+    fn HasLocalLayer(&self, layer: &crate::sdf::PyLayer) -> bool {
+        let target_id = layer.layer().identifier().to_string();
+        self.inner.layer_stack().iter().any(|l| l.identifier() == target_id)
+    }
+
+    #[allow(non_snake_case)]
+    fn GetSessionLayer(&self) -> Option<crate::sdf::PyLayer> {
+        self.inner.get_session_layer().map(|l| crate::sdf::PyLayer::from_layer_arc(l))
     }
 
     #[pyo3(signature = (includeSessionLayers = true))]
     #[allow(non_snake_case)]
     fn GetLayerStack(&self, py: Python<'_>, includeSessionLayers: bool) -> Py<PyAny> {
-        let _ = includeSessionLayers; // TODO: filter session layers when false
-        let layers: Vec<String> = self.inner.layer_stack().iter().map(|l| l.identifier().to_string()).collect();
+        let layers: Vec<crate::sdf::PyLayer> = self.inner.layer_stack()
+            .iter()
+            .filter(|l| includeSessionLayers || !l.is_anonymous())
+            .map(|l| crate::sdf::PyLayer::from_layer_arc(l.clone()))
+            .collect();
         PyList::new(py, layers).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None())
     }
 
