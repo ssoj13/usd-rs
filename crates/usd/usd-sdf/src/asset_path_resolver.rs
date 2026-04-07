@@ -164,9 +164,12 @@ pub fn create_identifier_from_args(layer_path: &str, args: &HashMap<String, Stri
     if args.is_empty() {
         return layer_path.to_string();
     }
-    let args_str: String = args
+    // Sort keys for deterministic output matching C++ std::map ordering
+    let mut sorted_keys: Vec<&String> = args.keys().collect();
+    sorted_keys.sort();
+    let args_str: String = sorted_keys
         .iter()
-        .map(|(k, v)| format!("{}={}", k, v))
+        .map(|k| format!("{}={}", k, args[k.as_str()]))
         .collect::<Vec<_>>()
         .join("&");
     format!("{}{}{}", layer_path, FORMAT_ARGS_SEPARATOR, args_str)

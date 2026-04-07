@@ -1343,14 +1343,17 @@ impl Layer {
             return layer_path.to_string();
         }
 
+        // Sort keys for deterministic output matching C++ std::map ordering
+        let mut sorted_keys: Vec<&String> = arguments.keys().collect();
+        sorted_keys.sort();
         let mut args_str = String::new();
-        for (i, (key, value)) in arguments.iter().enumerate() {
+        for (i, key) in sorted_keys.iter().enumerate() {
             if i > 0 {
                 args_str.push('&');
             }
             args_str.push_str(key);
             args_str.push('=');
-            args_str.push_str(value);
+            args_str.push_str(&arguments[key.as_str()]);
         }
 
         format!("{}:SDF_FORMAT_ARGS:{}", layer_path, args_str)
