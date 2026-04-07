@@ -50,14 +50,11 @@ A few points setting the right context:
 
 **CLI tools** — `usd cat/tree/dump/diff/resolve/edit/stitch/zip/view/meshdump/dumpcrate` — all as a single `usd` binary, also callable from Python via `pxr_rs.Cli`.
 
-## What doesn't work yet
+## Work in progress
 
-- **USDC writer** — read-only for now, writing binary crate files not implemented
-- **Payload streaming** — payloads load but no async/deferred loading
-- **Full Hydra render delegate** — basic Storm pipeline works, but material networks, AOVs, and advanced shading are incomplete
-- **Complete Python API parity** — bindings exist for all major modules but many methods are stubs. Reference test suite (465 tests from OpenUSD) shows ~80 passing, rest need API completion
-- **Performance** — functional but not optimized. No parallel composition, no GPU instancing, no scene index caching
-- **MaterialX / OSL runtime** — ports exist but shader compilation to WGSL is partial
+- **Hydra render delegate** — basic Storm pipeline works, but material networks, AOVs, and advanced shading are incomplete
+- **Python API parity** — bindings exist for all major modules but many methods are stubs. Reference test suite (465 tests from OpenUSD) shows ~80 passing, rest need API completion
+- **MaterialX / OSL runtime** — ports exist, WGSL generation via naga works for basic cases, full shader graph compilation is partial
 
 ## Architecture differences from C++
 
