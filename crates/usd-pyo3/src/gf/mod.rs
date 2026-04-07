@@ -325,10 +325,16 @@ fn py_find_closest_points(
     Err(PyTypeError::new_err("FindClosestPoints: unsupported argument types"))
 }
 
-/// Gf.GetHomogenized(Vec4d) -> Vec4d
+/// Gf.GetHomogenized(Vec4d/Vec4f) -> same type
 #[pyfunction(name = "GetHomogenized")]
-fn py_get_homogenized(v: &vec::PyVec4d) -> vec::PyVec4d {
-    vec::PyVec4d(usd_gf::homogenize(v.0))
+fn py_get_homogenized(py: Python<'_>, v: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+    if let Ok(vd) = v.extract::<PyRef<'_, vec::PyVec4d>>() {
+        return Ok(vec::PyVec4d(usd_gf::homogenize(vd.0)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Ok(vf) = v.extract::<PyRef<'_, vec::PyVec4f>>() {
+        return Ok(vec::PyVec4f(usd_gf::homogenize_f(vf.0)).into_pyobject(py)?.into_any().unbind());
+    }
+    Err(PyTypeError::new_err("GetHomogenized: expected Vec4d or Vec4f"))
 }
 
 /// Gf.GetHomogenizedCross(Vec4d, Vec4d) -> Vec4d
@@ -337,16 +343,64 @@ fn py_get_homogenized_cross(a: &vec::PyVec4d, b: &vec::PyVec4d) -> vec::PyVec4d 
     vec::PyVec4d(usd_gf::homogeneous_cross(a.0, b.0))
 }
 
-/// Gf.Project(Vec4d) -> Vec3d
-#[pyfunction(name = "Project")]
-fn py_project(v: &vec::PyVec4d) -> vec::PyVec3d {
-    vec::PyVec3d(usd_gf::project(v.0))
+/// Gf.HomogeneousCross — polymorphic Vec4d/Vec4f
+#[pyfunction(name = "HomogeneousCross")]
+fn py_homogeneous_cross(py: Python<'_>, a: &Bound<'_, pyo3::PyAny>, b: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+    if let (Ok(ad), Ok(bd)) = (a.extract::<PyRef<'_, vec::PyVec4d>>(), b.extract::<PyRef<'_, vec::PyVec4d>>()) {
+        return Ok(vec::PyVec4d(usd_gf::homogeneous_cross(ad.0, bd.0)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let (Ok(af), Ok(bf)) = (a.extract::<PyRef<'_, vec::PyVec4f>>(), b.extract::<PyRef<'_, vec::PyVec4f>>()) {
+        return Ok(vec::PyVec4f(usd_gf::homogeneous_cross_f(af.0, bf.0)).into_pyobject(py)?.into_any().unbind());
+    }
+    Err(PyTypeError::new_err("HomogeneousCross: expected Vec4d or Vec4f"))
 }
 
-/// Gf.ApplyGamma(Vec3d, gamma) -> Vec3d  (gamma correction)
+/// Gf.Project(Vec4d/Vec4f) -> Vec3d/Vec3f
+#[pyfunction(name = "Project")]
+fn py_project(py: Python<'_>, v: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+    if let Ok(vd) = v.extract::<PyRef<'_, vec::PyVec4d>>() {
+        return Ok(vec::PyVec3d(usd_gf::project(vd.0)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Ok(vf) = v.extract::<PyRef<'_, vec::PyVec4f>>() {
+        return Ok(vec::PyVec3f(usd_gf::project_f(vf.0)).into_pyobject(py)?.into_any().unbind());
+    }
+    Err(PyTypeError::new_err("Project: expected Vec4d or Vec4f"))
+}
+
+/// Gf.GetLength(Vec) -> float — module-level vector length function
+#[pyfunction(name = "GetLength")]
+fn py_get_length(v: &Bound<'_, pyo3::PyAny>) -> PyResult<f64> {
+    if let Ok(vd) = v.extract::<PyRef<'_, vec::PyVec3d>>() { return Ok(vd.0.length()); }
+    if let Ok(vf) = v.extract::<PyRef<'_, vec::PyVec3f>>() { return Ok(vf.0.length() as f64); }
+    if let Ok(vd) = v.extract::<PyRef<'_, vec::PyVec2d>>() { return Ok(vd.0.length()); }
+    if let Ok(vf) = v.extract::<PyRef<'_, vec::PyVec2f>>() { return Ok(vf.0.length() as f64); }
+    if let Ok(vd) = v.extract::<PyRef<'_, vec::PyVec4d>>() { return Ok(vd.0.length()); }
+    if let Ok(vf) = v.extract::<PyRef<'_, vec::PyVec4f>>() { return Ok(vf.0.length() as f64); }
+    Err(PyTypeError::new_err("GetLength: expected a Vec type"))
+}
+
+/// Gf.ApplyGamma(Vec3d/Vec3f/Vec4d/Vec4f, gamma) -> same type  (gamma correction)
 #[pyfunction(name = "ApplyGamma")]
-fn py_apply_gamma(v: &vec::PyVec3d, gamma: f64) -> vec::PyVec3d {
-    vec::PyVec3d(usd_gf::apply_gamma(v.0, gamma))
+fn py_apply_gamma(py: Python<'_>, v: &Bound<'_, pyo3::PyAny>, gamma: f64) -> PyResult<Py<pyo3::PyAny>> {
+    if let Ok(vd) = v.extract::<PyRef<'_, vec::PyVec3d>>() {
+        return Ok(vec::PyVec3d(usd_gf::apply_gamma(vd.0, gamma)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Ok(vf) = v.extract::<PyRef<'_, vec::PyVec3f>>() {
+        return Ok(vec::PyVec3f(usd_gf::apply_gamma(vf.0, gamma)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Ok(vd) = v.extract::<PyRef<'_, vec::PyVec4d>>() {
+        return Ok(vec::PyVec4d(usd_gf::apply_gamma(vd.0, gamma)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Ok(vf) = v.extract::<PyRef<'_, vec::PyVec4f>>() {
+        return Ok(vec::PyVec4f(usd_gf::apply_gamma(vf.0, gamma)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Ok(vh) = v.extract::<PyRef<'_, vec::PyVec3h>>() {
+        return Ok(vec::PyVec3h(usd_gf::apply_gamma(vh.0, gamma)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Ok(vh) = v.extract::<PyRef<'_, vec::PyVec4h>>() {
+        return Ok(vec::PyVec4h(usd_gf::apply_gamma(vh.0, gamma)).into_pyobject(py)?.into_any().unbind());
+    }
+    Err(PyTypeError::new_err("ApplyGamma: unsupported type"))
 }
 
 /// Gf.GetDisplayGamma() -> float
@@ -368,6 +422,12 @@ fn py_linear_to_display(py: Python<'_>, v: &Bound<'_, pyo3::PyAny>) -> PyResult<
     if let Ok(vf) = v.extract::<PyRef<'_, vec::PyVec4f>>() {
         return Ok(vec::PyVec4f(usd_gf::linear_to_display(vf.0)).into_pyobject(py)?.into_any().unbind());
     }
+    if let Ok(vh) = v.extract::<PyRef<'_, vec::PyVec3h>>() {
+        return Ok(vec::PyVec3h(usd_gf::linear_to_display(vh.0)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Ok(vh) = v.extract::<PyRef<'_, vec::PyVec4h>>() {
+        return Ok(vec::PyVec4h(usd_gf::linear_to_display(vh.0)).into_pyobject(py)?.into_any().unbind());
+    }
     Err(PyTypeError::new_err("ConvertLinearToDisplay: unsupported type"))
 }
 
@@ -385,6 +445,12 @@ fn py_display_to_linear(py: Python<'_>, v: &Bound<'_, pyo3::PyAny>) -> PyResult<
     }
     if let Ok(vf) = v.extract::<PyRef<'_, vec::PyVec4f>>() {
         return Ok(vec::PyVec4f(usd_gf::display_to_linear(vf.0)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Ok(vh) = v.extract::<PyRef<'_, vec::PyVec3h>>() {
+        return Ok(vec::PyVec3h(usd_gf::display_to_linear(vh.0)).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Ok(vh) = v.extract::<PyRef<'_, vec::PyVec4h>>() {
+        return Ok(vec::PyVec4h(usd_gf::display_to_linear(vh.0)).into_pyobject(py)?.into_any().unbind());
     }
     Err(PyTypeError::new_err("ConvertDisplayToLinear: unsupported type"))
 }
@@ -450,13 +516,13 @@ fn py_match_closest_euler(
     (tw, fb, lr, sw)
 }
 
-/// Gf.FitPlaneToPoints(points) -> Plane
+/// Gf.FitPlaneToPoints(points) -> Plane or None
 #[pyfunction(name = "FitPlaneToPoints")]
-fn py_fit_plane(points: Vec<PyRef<'_, vec::PyVec3d>>) -> PyResult<geo::PyPlane> {
+fn py_fit_plane(py: Python<'_>, points: Vec<PyRef<'_, vec::PyVec3d>>) -> PyResult<Py<pyo3::PyAny>> {
     let pts: Vec<usd_gf::Vec3d> = points.iter().map(|p| p.0).collect();
     match usd_gf::fit_plane_to_points(&pts) {
-        Some(p) => Ok(geo::PyPlane(p)),
-        None => Err(PyTypeError::new_err("FitPlaneToPoints: could not fit plane")),
+        Some(p) => Ok(geo::PyPlane(p).into_pyobject(py)?.into_any().unbind()),
+        None => Ok(py.None().into_pyobject(py)?.into_any().unbind()),
     }
 }
 
@@ -504,7 +570,9 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_find_closest_points, m)?)?;
     m.add_function(wrap_pyfunction!(py_get_homogenized, m)?)?;
     m.add_function(wrap_pyfunction!(py_get_homogenized_cross, m)?)?;
+    m.add_function(wrap_pyfunction!(py_homogeneous_cross, m)?)?;
     m.add_function(wrap_pyfunction!(py_project, m)?)?;
+    m.add_function(wrap_pyfunction!(py_get_length, m)?)?;
     m.add_function(wrap_pyfunction!(py_apply_gamma, m)?)?;
     m.add_function(wrap_pyfunction!(py_get_display_gamma, m)?)?;
     m.add_function(wrap_pyfunction!(py_linear_to_display, m)?)?;

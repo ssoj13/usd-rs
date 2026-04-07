@@ -55,9 +55,31 @@ pub struct PyMatrix2d(pub Matrix2d);
 impl PyMatrix2d {
     #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (2, 2);
 
+    /// Matrix2d(), Matrix2d(scalar), Matrix2d(Vec2d), Matrix2d(Matrix2d),
+    /// Matrix2d(a00,a01,a10,a11)
     #[new]
-    #[pyo3(signature = (s=1.0))]
-    fn new(s: f64) -> Self { Self(Matrix2d::from_diagonal(s, s)) }
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Matrix2d::from_diagonal(1.0, 1.0))); }
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            if let Ok(v) = obj.extract::<f64>() { return Ok(Self(Matrix2d::from_diagonal(v, v))); }
+            if let Ok(m) = obj.extract::<PyRef<'_, PyMatrix2d>>() { return Ok(Self(m.0)); }
+            if let Ok(v) = obj.extract::<PyRef<'_, super::vec::PyVec2d>>() {
+                return Ok(Self(Matrix2d::from_diagonal(v.0.x, v.0.y)));
+            }
+        }
+        if n == 4 {
+            let mut m = Matrix2d::identity();
+            m[0][0] = args.get_item(0)?.extract()?;
+            m[0][1] = args.get_item(1)?.extract()?;
+            m[1][0] = args.get_item(2)?.extract()?;
+            m[1][1] = args.get_item(3)?.extract()?;
+            return Ok(Self(m));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("Matrix2d: expected (), (scalar), (Vec2d), (Matrix2d), or (4 floats)"))
+    }
 
     fn __repr__(&self) -> String {
         format!("Gf.Matrix2d(({}, {}), ({}, {}))",
@@ -85,10 +107,19 @@ impl PyMatrix2d {
 
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
-    fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
+    /// Matrix * Matrix or Matrix * scalar
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(m) = o.extract::<PyRef<'_, PyMatrix2d>>() {
+            return Ok(Self(self.0 * m.0).into_pyobject(py)?.into_any().unbind());
+        }
+        if let Ok(s) = o.extract::<f64>() {
+            return Ok(Self(self.0 * s).into_pyobject(py)?.into_any().unbind());
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f64) -> Self { Self(self.0 * s) }
     fn __truediv__(&self, s: f64) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
-        // Matrix2 has no Div<T>; scale by 1/s
         Ok(Self(self.0 * (1.0 / s)))
     }
 
@@ -98,6 +129,17 @@ impl PyMatrix2d {
 
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix2d::zero(); }
     #[pyo3(name = "SetIdentity")] fn set_identity(&mut self) { self.0 = Matrix2d::identity(); }
+    #[pyo3(name = "SetDiagonal")]
+    fn set_diagonal(&mut self, py: Python<'_>, s: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        if let Ok(v) = s.extract::<f64>() {
+            self.0.set_diagonal(v, v); return Ok(self.clone());
+        }
+        if let Ok(v) = s.extract::<PyRef<'_, super::vec::PyVec2d>>() {
+            self.0.set_diagonal(v.0.x, v.0.y); return Ok(self.clone());
+        }
+        let _ = py;
+        Err(pyo3::exceptions::PyTypeError::new_err("SetDiagonal: expected scalar or Vec2d"))
+    }
     #[pyo3(name = "GetDeterminant")] fn get_determinant(&self) -> f64 { self.0.determinant() }
     #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self {
         Self(self.0.inverse().unwrap_or_else(Matrix2d::identity))
@@ -126,9 +168,31 @@ pub struct PyMatrix2f(pub Matrix2f);
 impl PyMatrix2f {
     #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (2, 2);
 
+    /// Matrix2f(), Matrix2f(scalar), Matrix2f(Vec2f), Matrix2f(Matrix2f),
+    /// Matrix2f(a00,a01,a10,a11)
     #[new]
-    #[pyo3(signature = (s=1.0))]
-    fn new(s: f32) -> Self { Self(Matrix2f::from_diagonal(s, s)) }
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Matrix2f::from_diagonal(1.0, 1.0))); }
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            if let Ok(v) = obj.extract::<f32>() { return Ok(Self(Matrix2f::from_diagonal(v, v))); }
+            if let Ok(m) = obj.extract::<PyRef<'_, PyMatrix2f>>() { return Ok(Self(m.0)); }
+            if let Ok(v) = obj.extract::<PyRef<'_, super::vec::PyVec2f>>() {
+                return Ok(Self(Matrix2f::from_diagonal(v.0.x, v.0.y)));
+            }
+        }
+        if n == 4 {
+            let mut m = Matrix2f::identity();
+            m[0][0] = args.get_item(0)?.extract()?;
+            m[0][1] = args.get_item(1)?.extract()?;
+            m[1][0] = args.get_item(2)?.extract()?;
+            m[1][1] = args.get_item(3)?.extract()?;
+            return Ok(Self(m));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("Matrix2f: unsupported constructor"))
+    }
 
     fn __repr__(&self) -> String {
         format!("Gf.Matrix2f(({}, {}), ({}, {}))",
@@ -156,7 +220,16 @@ impl PyMatrix2f {
 
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
-    fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(m) = o.extract::<PyRef<'_, PyMatrix2f>>() {
+            return Ok(Self(self.0 * m.0).into_pyobject(py)?.into_any().unbind());
+        }
+        if let Ok(s) = o.extract::<f32>() {
+            return Ok(Self(self.0 * s).into_pyobject(py)?.into_any().unbind());
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f32) -> Self { Self(self.0 * s) }
     fn __truediv__(&self, s: f32) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
         Ok(Self(self.0 * (1.0 / s)))
@@ -164,6 +237,17 @@ impl PyMatrix2f {
 
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix2f::zero(); }
     #[pyo3(name = "SetIdentity")] fn set_identity(&mut self) { self.0 = Matrix2f::identity(); }
+    #[pyo3(name = "SetDiagonal")]
+    fn set_diagonal(&mut self, py: Python<'_>, s: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        if let Ok(v) = s.extract::<f32>() {
+            self.0.set_diagonal(v, v); return Ok(self.clone());
+        }
+        if let Ok(v) = s.extract::<PyRef<'_, super::vec::PyVec2f>>() {
+            self.0.set_diagonal(v.0.x, v.0.y); return Ok(self.clone());
+        }
+        let _ = py;
+        Err(pyo3::exceptions::PyTypeError::new_err("SetDiagonal: expected scalar or Vec2f"))
+    }
     #[pyo3(name = "GetDeterminant")] fn get_determinant(&self) -> f32 { self.0.determinant() }
     #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self {
         Self(self.0.inverse().unwrap_or_else(Matrix2f::identity))
@@ -184,22 +268,40 @@ pub struct PyMatrix3d(pub Matrix3d);
 impl PyMatrix3d {
     #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (3, 3);
 
-    /// Matrix3d(), Matrix3d(scalar), Matrix3d(Rotation), Matrix3d(Quatd)
+    /// Matrix3d(), Matrix3d(scalar), Matrix3d(Vec3d), Matrix3d(Matrix3d),
+    /// Matrix3d(Rotation), Matrix3d(Quatd), Matrix3d(9 floats)
     #[new]
-    #[pyo3(signature = (s=None))]
-    fn new(s: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<Self> {
-        let Some(obj) = s else { return Ok(Self(Matrix3d::from_diagonal_values(1.0, 1.0, 1.0))); };
-        if let Ok(v) = obj.extract::<f64>() {
-            return Ok(Self(Matrix3d::from_diagonal_values(v, v, v)));
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Matrix3d::from_diagonal_values(1.0, 1.0, 1.0))); }
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            if let Ok(v) = obj.extract::<f64>() {
+                return Ok(Self(Matrix3d::from_diagonal_values(v, v, v)));
+            }
+            if let Ok(m) = obj.extract::<PyRef<'_, PyMatrix3d>>() { return Ok(Self(m.0)); }
+            if let Ok(v) = obj.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+                return Ok(Self(Matrix3d::from_diagonal_values(v.0.x, v.0.y, v.0.z)));
+            }
+            if let Ok(r) = obj.extract::<PyRef<'_, super::geo::PyRotation>>() {
+                return Ok(Self(r.0.get_matrix3()));
+            }
+            if let Ok(q) = obj.extract::<PyRef<'_, super::quat::PyQuatd>>() {
+                let r = usd_gf::Rotation::from_quat(&q.0);
+                return Ok(Self(r.get_matrix3()));
+            }
         }
-        if let Ok(r) = obj.extract::<PyRef<'_, super::geo::PyRotation>>() {
-            return Ok(Self(r.0.get_matrix3()));
+        if n == 9 {
+            let mut m = Matrix3d::identity();
+            for i in 0..3 {
+                for j in 0..3 {
+                    m[i][j] = args.get_item(i * 3 + j)?.extract()?;
+                }
+            }
+            return Ok(Self(m));
         }
-        if let Ok(q) = obj.extract::<PyRef<'_, super::quat::PyQuatd>>() {
-            let r = usd_gf::Rotation::from_quat(&q.0);
-            return Ok(Self(r.get_matrix3()));
-        }
-        Err(pyo3::exceptions::PyTypeError::new_err("Matrix3d: expected scalar, Rotation, or Quatd"))
+        Err(pyo3::exceptions::PyTypeError::new_err("Matrix3d: unsupported constructor"))
     }
 
     fn __repr__(&self) -> String {
@@ -233,7 +335,17 @@ impl PyMatrix3d {
 
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
-    fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
+    /// Matrix3d * Matrix3d or Matrix3d * scalar
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(m) = o.extract::<PyRef<'_, PyMatrix3d>>() {
+            return Ok(Self(self.0 * m.0).into_pyobject(py)?.into_any().unbind());
+        }
+        if let Ok(s) = o.extract::<f64>() {
+            return Ok(Self(self.0 * s).into_pyobject(py)?.into_any().unbind());
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f64) -> Self { Self(self.0 * s) }
     fn __truediv__(&self, s: f64) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
         Ok(Self(self.0 * (1.0 / s)))
@@ -241,6 +353,19 @@ impl PyMatrix3d {
 
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix3d::zero(); }
     #[pyo3(name = "SetIdentity")] fn set_identity(&mut self) { self.0 = Matrix3d::identity(); }
+    #[pyo3(name = "SetDiagonal")]
+    fn set_diagonal(&mut self, py: Python<'_>, s: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        if let Ok(v) = s.extract::<f64>() {
+            self.0.set_diagonal(v, v, v); return Ok(self.clone());
+        }
+        if let Ok(v) = s.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+            self.0.set_diagonal(v.0.x, v.0.y, v.0.z); return Ok(self.clone());
+        }
+        let _ = py;
+        Err(pyo3::exceptions::PyTypeError::new_err("SetDiagonal: expected scalar or Vec3d"))
+    }
+    #[pyo3(name = "Orthonormalize")] fn orthonormalize(&mut self) -> bool { self.0.orthonormalize() }
+    #[pyo3(name = "GetOrthonormalized")] fn get_orthonormalized(&self) -> Self { Self(self.0.orthonormalized()) }
     #[pyo3(name = "GetDeterminant")] fn get_determinant(&self) -> f64 { self.0.determinant() }
     #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self {
         Self(self.0.inverse().unwrap_or_else(Matrix3d::identity))
@@ -339,9 +464,24 @@ pub struct PyMatrix3f(pub Matrix3f);
 impl PyMatrix3f {
     #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (3, 3);
 
+    /// Matrix3f(), Matrix3f(scalar), Matrix3f(Matrix3f), Matrix3f(9 floats)
     #[new]
-    #[pyo3(signature = (s=1.0))]
-    fn new(s: f32) -> Self { Self(Matrix3f::from_diagonal_values(s, s, s)) }
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Matrix3f::from_diagonal_values(1.0, 1.0, 1.0))); }
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            if let Ok(v) = obj.extract::<f32>() { return Ok(Self(Matrix3f::from_diagonal_values(v, v, v))); }
+            if let Ok(m) = obj.extract::<PyRef<'_, PyMatrix3f>>() { return Ok(Self(m.0)); }
+        }
+        if n == 9 {
+            let mut m = Matrix3f::identity();
+            for i in 0..3 { for j in 0..3 { m[i][j] = args.get_item(i * 3 + j)?.extract()?; } }
+            return Ok(Self(m));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("Matrix3f: unsupported constructor"))
+    }
 
     fn __repr__(&self) -> String {
         format!("Gf.Matrix3f(({},{},{}),({},{},{}),({},{},{}))",
@@ -374,7 +514,16 @@ impl PyMatrix3f {
 
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
-    fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(m) = o.extract::<PyRef<'_, PyMatrix3f>>() {
+            return Ok(Self(self.0 * m.0).into_pyobject(py)?.into_any().unbind());
+        }
+        if let Ok(s) = o.extract::<f32>() {
+            return Ok(Self(self.0 * s).into_pyobject(py)?.into_any().unbind());
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f32) -> Self { Self(self.0 * s) }
     fn __truediv__(&self, s: f32) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
         Ok(Self(self.0 * (1.0 / s)))
@@ -414,6 +563,7 @@ impl PyMatrix4d {
             if let Ok(v) = obj.extract::<f64>() {
                 return Ok(Self(Matrix4d::from_diagonal_values(v, v, v, v)));
             }
+            if let Ok(m) = obj.extract::<PyRef<'_, PyMatrix4d>>() { return Ok(Self(m.0)); }
             if let Ok(r) = obj.extract::<PyRef<'_, super::geo::PyRotation>>() {
                 return Ok(Self(r.0.get_matrix4()));
             }
@@ -488,7 +638,17 @@ impl PyMatrix4d {
 
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
-    fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
+    /// Matrix4d * Matrix4d or Matrix4d * scalar
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(m) = o.extract::<PyRef<'_, PyMatrix4d>>() {
+            return Ok(Self(self.0 * m.0).into_pyobject(py)?.into_any().unbind());
+        }
+        if let Ok(s) = o.extract::<f64>() {
+            return Ok(Self(self.0 * s).into_pyobject(py)?.into_any().unbind());
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f64) -> Self { Self(self.0 * s) }
     fn __truediv__(&self, s: f64) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
         Ok(Self(self.0 * (1.0 / s)))
@@ -496,6 +656,33 @@ impl PyMatrix4d {
 
     #[pyo3(name = "SetZero")] fn set_zero(&mut self) { self.0 = Matrix4d::zero(); }
     #[pyo3(name = "SetIdentity")] fn set_identity(&mut self) { self.0 = Matrix4d::identity(); }
+    #[pyo3(name = "SetDiagonal")]
+    fn set_diagonal(&mut self, py: Python<'_>, s: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        if let Ok(v) = s.extract::<f64>() {
+            self.0.set_diagonal(v, v, v, v); return Ok(self.clone());
+        }
+        if let Ok(v) = s.extract::<PyRef<'_, super::vec::PyVec4d>>() {
+            self.0.set_diagonal(v.0.x, v.0.y, v.0.z, v.0.w); return Ok(self.clone());
+        }
+        let _ = py;
+        Err(pyo3::exceptions::PyTypeError::new_err("SetDiagonal: expected scalar or Vec4d"))
+    }
+    #[pyo3(name = "Orthonormalize")] fn orthonormalize(&mut self) -> bool { self.0.orthonormalize() }
+    #[pyo3(name = "GetOrthonormalized")] fn get_orthonormalized(&self) -> Self { Self(self.0.orthonormalized()) }
+    /// Factor() -> (r, s, u, t, p) — SVD-like factoring, or None if degenerate
+    #[pyo3(name = "Factor")]
+    fn factor(&self) -> PyResult<(Self, super::vec::PyVec3d, Self, super::vec::PyVec3d, Self)> {
+        match self.0.factor() {
+            Some((r, s, u, t, p)) => Ok((Self(r), super::vec::PyVec3d(s), Self(u), super::vec::PyVec3d(t), Self(p))),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err("Factor: degenerate matrix")),
+        }
+    }
+    /// SetLookAt(eye, center, up) -> Matrix4d
+    #[staticmethod]
+    #[pyo3(name = "SetLookAt")]
+    fn set_look_at(eye: &super::vec::PyVec3d, center: &super::vec::PyVec3d, up: &super::vec::PyVec3d) -> Self {
+        Self(Matrix4d::look_at(&eye.0, &center.0, &up.0))
+    }
     #[pyo3(name = "GetDeterminant")] fn get_determinant(&self) -> f64 { self.0.determinant() }
     #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self {
         Self(self.0.inverse().unwrap_or_else(Matrix4d::identity))
@@ -666,9 +853,30 @@ pub struct PyMatrix4f(pub Matrix4f);
 impl PyMatrix4f {
     #[classattr] #[pyo3(name = "dimension")] const DIMENSION: (usize, usize) = (4, 4);
 
+    /// Matrix4f(), Matrix4f(scalar), Matrix4f(Matrix4f), Matrix4f(16 floats)
     #[new]
-    #[pyo3(signature = (s=1.0))]
-    fn new(s: f32) -> Self { Self(Matrix4f::from_diagonal_values(s, s, s, s)) }
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Matrix4f::from_diagonal_values(1.0, 1.0, 1.0, 1.0))); }
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            if let Ok(v) = obj.extract::<f32>() {
+                return Ok(Self(Matrix4f::from_diagonal_values(v, v, v, v)));
+            }
+            if let Ok(m) = obj.extract::<PyRef<'_, PyMatrix4f>>() { return Ok(Self(m.0)); }
+        }
+        if n == 16 {
+            let mut m = Matrix4f::identity();
+            for i in 0..4 {
+                for j in 0..4 {
+                    m[i][j] = args.get_item(i * 4 + j)?.extract()?;
+                }
+            }
+            return Ok(Self(m));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("Matrix4f: unsupported constructor"))
+    }
 
     fn __repr__(&self) -> String {
         format!("Gf.Matrix4f(({},{},{},{}),({},{},{},{}),({},{},{},{}),({},{},{},{}))",
@@ -703,7 +911,16 @@ impl PyMatrix4f {
 
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
-    fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(m) = o.extract::<PyRef<'_, PyMatrix4f>>() {
+            return Ok(Self(self.0 * m.0).into_pyobject(py)?.into_any().unbind());
+        }
+        if let Ok(s) = o.extract::<f32>() {
+            return Ok(Self(self.0 * s).into_pyobject(py)?.into_any().unbind());
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f32) -> Self { Self(self.0 * s) }
     fn __truediv__(&self, s: f32) -> PyResult<Self> {
         if s == 0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
         Ok(Self(self.0 * (1.0 / s)))

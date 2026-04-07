@@ -277,7 +277,13 @@ impl PyQuath {
     #[pyo3(name = "GetImaginary")] fn get_imaginary(&self) -> super::vec::PyVec3h {
         super::vec::PyVec3h(*self.0.imaginary())
     }
+    #[pyo3(name = "SetImaginary")] fn set_imaginary_method(&mut self, v: &super::vec::PyVec3h) {
+        self.0.set_imaginary(v.0);
+    }
     #[getter] fn imaginary(&self) -> super::vec::PyVec3h { super::vec::PyVec3h(*self.0.imaginary()) }
+    #[setter(imaginary)] fn set_imaginary_prop(&mut self, v: &super::vec::PyVec3h) {
+        self.0.set_imaginary(v.0);
+    }
 }
 
 // ---------------------------------------------------------------------------

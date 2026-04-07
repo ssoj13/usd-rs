@@ -150,6 +150,11 @@ impl PyRotation {
     #[pyo3(name = "GetQuat")]  fn get_quat(&self) -> super::quat::PyQuatd {
         super::quat::PyQuatd(self.0.get_quat())
     }
+    /// GetQuaternion() -> Quaternion (legacy GfQuaternion type)
+    #[pyo3(name = "GetQuaternion")] fn get_quaternion(&self) -> super::quat::PyQuaternion {
+        let q = self.0.get_quat();
+        super::quat::PyQuaternion(usd_gf::Quaternion::new(q.real(), *q.imaginary()))
+    }
     #[pyo3(name = "GetInverse")] fn get_inverse(&self) -> Self { Self(self.0.inverse()) }
 
     /// TransformDir(Vec3d) -> Vec3d: rotate a direction vector
@@ -312,9 +317,17 @@ pub struct PyRange1d(pub Range1d);
 
 #[pymethods]
 impl PyRange1d {
+    /// Range1d(), Range1d(Range1d), Range1d(min, max)
     #[new]
-    #[pyo3(signature = (min=0.0, max=0.0))]
-    fn new(min: f64, max: f64) -> Self { Self(Range1d::new(min, max)) }
+    #[pyo3(signature = (min=None, max=None))]
+    fn new(min: Option<&Bound<'_, pyo3::PyAny>>, max: Option<f64>) -> PyResult<Self> {
+        let Some(mn_obj) = min else { return Ok(Self(Range1d::new(0.0, 0.0))); };
+        // Copy constructor: Range1d(Range1d)
+        if let Ok(r) = mn_obj.extract::<PyRef<'_, PyRange1d>>() { return Ok(Self(r.0.clone())); }
+        let mn: f64 = mn_obj.extract()?;
+        let mx = max.unwrap_or(0.0);
+        Ok(Self(Range1d::new(mn, mx)))
+    }
 
     fn __repr__(&self) -> String { format!("Gf.Range1d({}, {})", self.0.min(), self.0.max()) }
     fn __str__(&self) -> String { self.__repr__() }
@@ -385,13 +398,16 @@ pub struct PyRange2d(pub Range2d);
 
 #[pymethods]
 impl PyRange2d {
+    /// Range2d(), Range2d(Range2d), Range2d(Vec2d, Vec2d)
     #[new]
     #[pyo3(signature = (min=None, max=None))]
-    fn new(min: Option<&super::vec::PyVec2d>, max: Option<&super::vec::PyVec2d>) -> Self {
-        match (min, max) {
-            (Some(mn), Some(mx)) => Self(Range2d::new(mn.0, mx.0)),
-            _ => Self(Range2d::empty()),
+    fn new(min: Option<&Bound<'_, pyo3::PyAny>>, max: Option<&super::vec::PyVec2d>) -> PyResult<Self> {
+        let Some(mn_obj) = min else { return Ok(Self(Range2d::empty())); };
+        if let Ok(r) = mn_obj.extract::<PyRef<'_, PyRange2d>>() { return Ok(Self(r.0.clone())); }
+        if let Ok(mn) = mn_obj.extract::<PyRef<'_, super::vec::PyVec2d>>() {
+            if let Some(mx) = max { return Ok(Self(Range2d::new(mn.0, mx.0))); }
         }
+        Ok(Self(Range2d::empty()))
     }
 
     fn __repr__(&self) -> String {
@@ -401,6 +417,10 @@ impl PyRange2d {
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
+    fn __hash__(&self) -> u64 {
+        let mn = *self.0.min(); let mx = *self.0.max();
+        hash_f64_n(&[mn.x, mn.y, mx.x, mx.y])
+    }
     fn __bool__(&self) -> bool { !self.0.is_empty() }
 
     #[pyo3(name = "Contains")] fn contains(&self, p: &super::vec::PyVec2d) -> bool {
@@ -626,12 +646,13 @@ impl PyBBox3d {
     #[pyo3(name = "Combine")]
     fn combine(a: &Self, b: &Self) -> Self { Self(BBox3d::combine(&a.0, &b.0)) }
 
-    #[getter] fn box_(&self) -> PyRange3d { PyRange3d(self.0.range().clone()) }
+    #[getter(r#box)]
+    fn get_box_prop(&self) -> PyRange3d { PyRange3d(self.0.range().clone()) }
     #[getter] fn matrix(&self) -> super::matrix::PyMatrix4d { super::matrix::PyMatrix4d(*self.0.matrix()) }
     #[getter] fn hasZeroAreaPrimitives(&self) -> bool { self.0.has_zero_area_primitives() }
-    #[setter] fn set_box(&mut self, r: &PyRange3d) { self.0.set_range(r.0.clone()); }
-    #[setter] fn set_matrix_prop(&mut self, m: &super::matrix::PyMatrix4d) { self.0.set_matrix(m.0); }
-    #[setter] fn set_has_zero_area_primitives_prop(&mut self, v: bool) { self.0.set_has_zero_area_primitives(v); }
+    #[setter(r#box)] fn set_box(&mut self, r: &PyRange3d) { self.0.set_range(r.0.clone()); }
+    #[setter(matrix)] fn set_matrix_prop(&mut self, m: &super::matrix::PyMatrix4d) { self.0.set_matrix(m.0); }
+    #[setter(hasZeroAreaPrimitives)] fn set_has_zero_area_primitives_prop(&mut self, v: bool) { self.0.set_has_zero_area_primitives(v); }
 }
 
 // ---------------------------------------------------------------------------
@@ -644,10 +665,31 @@ pub struct PyInterval(pub Interval);
 
 #[pymethods]
 impl PyInterval {
+    /// Interval(), Interval(Interval), Interval(min, max),
+    /// Interval(min, max, min_closed, max_closed)
     #[new]
-    #[pyo3(signature = (min=0.0, max=0.0, min_closed=true, max_closed=true))]
-    fn new(min: f64, max: f64, min_closed: bool, max_closed: bool) -> Self {
-        Self(Interval::new(min, max, min_closed, max_closed))
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Interval::new(0.0, 0.0, true, true))); }
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            if let Ok(iv) = obj.extract::<PyRef<'_, PyInterval>>() { return Ok(Self(iv.0.clone())); }
+            if let Ok(v) = obj.extract::<f64>() { return Ok(Self(Interval::new(v, v, true, true))); }
+        }
+        if n == 2 {
+            let min: f64 = args.get_item(0)?.extract()?;
+            let max: f64 = args.get_item(1)?.extract()?;
+            return Ok(Self(Interval::new(min, max, true, true)));
+        }
+        if n == 4 {
+            let min: f64 = args.get_item(0)?.extract()?;
+            let max: f64 = args.get_item(1)?.extract()?;
+            let min_closed: bool = args.get_item(2)?.extract()?;
+            let max_closed: bool = args.get_item(3)?.extract()?;
+            return Ok(Self(Interval::new(min, max, min_closed, max_closed)));
+        }
+        Err(PyTypeError::new_err("Interval: unsupported constructor"))
     }
 
     fn __repr__(&self) -> String { format!("{}", self.0) }
@@ -694,8 +736,19 @@ pub struct PyMultiInterval(pub MultiInterval);
 
 #[pymethods]
 impl PyMultiInterval {
+    /// MultiInterval(), MultiInterval(MultiInterval), MultiInterval(Interval)
     #[new]
-    fn new() -> Self { Self(MultiInterval::new()) }
+    #[pyo3(signature = (arg=None))]
+    fn new(arg: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<Self> {
+        let Some(obj) = arg else { return Ok(Self(MultiInterval::new())); };
+        if let Ok(mi) = obj.extract::<PyRef<'_, PyMultiInterval>>() { return Ok(Self(mi.0.clone())); }
+        if let Ok(iv) = obj.extract::<PyRef<'_, PyInterval>>() {
+            let mut mi = MultiInterval::new();
+            mi.add(iv.0.clone());
+            return Ok(Self(mi));
+        }
+        Err(PyTypeError::new_err("MultiInterval: expected (), (MultiInterval), or (Interval)"))
+    }
 
     fn __repr__(&self) -> String { "Gf.MultiInterval(...)".to_string() }
     fn __str__(&self) -> String { self.__repr__() }
@@ -1151,9 +1204,9 @@ pub struct PyCamera(pub usd_gf::Camera);
 
 #[pymethods]
 impl PyCamera {
-    /// Camera constants (class attributes)
-    #[classattr] const DEFAULT_HORIZONTAL_APERTURE: f64 = usd_gf::DEFAULT_HORIZONTAL_APERTURE as f64;
-    #[classattr] const DEFAULT_VERTICAL_APERTURE: f64 = usd_gf::DEFAULT_VERTICAL_APERTURE as f64;
+    /// Camera constants (class attributes) — use f64 literals for Python precision
+    #[classattr] const DEFAULT_HORIZONTAL_APERTURE: f64 = 20.955;
+    #[classattr] const DEFAULT_VERTICAL_APERTURE: f64 = 15.2908;
     #[classattr] const APERTURE_UNIT: f64 = usd_gf::APERTURE_UNIT;
     #[classattr] const FOCAL_LENGTH_UNIT: f64 = usd_gf::FOCAL_LENGTH_UNIT;
     /// Projection type enum: 0 = Perspective, 1 = Orthographic
@@ -1161,20 +1214,50 @@ impl PyCamera {
     #[classattr] const Perspective: i32 = 0;
     #[allow(non_upper_case_globals)]
     #[classattr] const Orthographic: i32 = 1;
+    /// FOV direction constants
+    #[allow(non_upper_case_globals)]
+    #[classattr] const FOVHorizontal: i32 = 0;
+    #[allow(non_upper_case_globals)]
+    #[classattr] const FOVVertical: i32 = 1;
 
+    /// Camera(), Camera(Camera) — copy constructor
     #[new]
-    fn new() -> Self { Self(usd_gf::Camera::default()) }
+    #[pyo3(signature = (other=None))]
+    fn new(other: Option<&PyCamera>) -> Self {
+        match other {
+            Some(c) => Self(c.0.clone()),
+            None => Self(usd_gf::Camera::default()),
+        }
+    }
 
-    fn __repr__(&self) -> String { "Gf.Camera(...)".to_string() }
+    fn __repr__(&self) -> String {
+        format!("Gf.Camera(Gf.Matrix4d{:?}, {}, {}, {}, {}, {}, {}, {}, Gf.Range1f({}, {}), {}, Gf.Camera.{})",
+            "(... elided ...)",
+            self.0.projection() as i32,
+            self.0.horizontal_aperture(),
+            self.0.vertical_aperture(),
+            self.0.horizontal_aperture_offset(),
+            self.0.vertical_aperture_offset(),
+            self.0.focal_length(),
+            self.0.f_stop(),
+            self.0.clipping_range().min(),
+            self.0.clipping_range().max(),
+            self.0.focus_distance(),
+            if self.0.projection() == usd_gf::CameraProjection::Perspective { "Perspective" } else { "Orthographic" },
+        )
+    }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool {
-        // Compare key fields
         self.0.horizontal_aperture() == o.0.horizontal_aperture()
             && self.0.vertical_aperture() == o.0.vertical_aperture()
+            && self.0.horizontal_aperture_offset() == o.0.horizontal_aperture_offset()
+            && self.0.vertical_aperture_offset() == o.0.vertical_aperture_offset()
             && self.0.focal_length() == o.0.focal_length()
             && self.0.f_stop() == o.0.f_stop()
             && self.0.focus_distance() == o.0.focus_distance()
-            && self.0.transform() == o.0.transform()
+            && self.0.projection() == o.0.projection()
+            && *self.0.transform() == *o.0.transform()
+            && self.0.clipping_range() == o.0.clipping_range()
     }
     fn __ne__(&self, o: &Self) -> bool { !self.__eq__(o) }
     fn __hash__(&self) -> u64 {
@@ -1203,34 +1286,42 @@ impl PyCamera {
     #[getter] fn transform(&self) -> super::matrix::PyMatrix4d {
         super::matrix::PyMatrix4d(*self.0.transform())
     }
-    #[setter] fn set_transform_prop(&mut self, m: &super::matrix::PyMatrix4d) {
+    #[setter(transform)] fn set_transform_prop(&mut self, m: &super::matrix::PyMatrix4d) {
         self.0.set_transform(m.0);
     }
     #[getter] fn horizontalAperture(&self) -> f64 { self.0.horizontal_aperture() as f64 }
-    #[setter] fn set_horizontal_aperture(&mut self, v: f64) { self.0.set_horizontal_aperture(v as f32); }
+    #[setter(horizontalAperture)] fn set_horizontal_aperture(&mut self, v: f64) { self.0.set_horizontal_aperture(v as f32); }
     #[getter] fn verticalAperture(&self) -> f64 { self.0.vertical_aperture() as f64 }
-    #[setter] fn set_vertical_aperture(&mut self, v: f64) { self.0.set_vertical_aperture(v as f32); }
+    #[setter(verticalAperture)] fn set_vertical_aperture(&mut self, v: f64) { self.0.set_vertical_aperture(v as f32); }
     #[getter] fn horizontalApertureOffset(&self) -> f64 { self.0.horizontal_aperture_offset() as f64 }
-    #[setter] fn set_horizontal_aperture_offset(&mut self, v: f64) {
+    #[setter(horizontalApertureOffset)] fn set_horizontal_aperture_offset(&mut self, v: f64) {
         self.0.set_horizontal_aperture_offset(v as f32);
     }
     #[getter] fn verticalApertureOffset(&self) -> f64 { self.0.vertical_aperture_offset() as f64 }
-    #[setter] fn set_vertical_aperture_offset(&mut self, v: f64) {
+    #[setter(verticalApertureOffset)] fn set_vertical_aperture_offset(&mut self, v: f64) {
         self.0.set_vertical_aperture_offset(v as f32);
     }
     #[getter] fn focalLength(&self) -> f64 { self.0.focal_length() as f64 }
-    #[setter] fn set_focal_length(&mut self, v: f64) { self.0.set_focal_length(v as f32); }
+    #[setter(focalLength)] fn set_focal_length(&mut self, v: f64) { self.0.set_focal_length(v as f32); }
     #[getter] fn fStop(&self) -> f64 { self.0.f_stop() as f64 }
-    #[setter] fn set_f_stop(&mut self, v: f64) { self.0.set_f_stop(v as f32); }
+    #[setter(fStop)] fn set_f_stop(&mut self, v: f64) { self.0.set_f_stop(v as f32); }
     #[getter] fn focusDistance(&self) -> f64 { self.0.focus_distance() as f64 }
-    #[setter] fn set_focus_distance(&mut self, v: f64) { self.0.set_focus_distance(v as f32); }
+    #[setter(focusDistance)] fn set_focus_distance(&mut self, v: f64) { self.0.set_focus_distance(v as f32); }
     #[getter] fn aspectRatio(&self) -> f64 { self.0.aspect_ratio() as f64 }
     #[getter] fn clippingRange(&self) -> (f64, f64) {
         let r = self.0.clipping_range();
         (r.min() as f64, r.max() as f64)
     }
-    #[setter] fn set_clipping_range(&mut self, v: (f64, f64)) {
-        self.0.set_clipping_range(usd_gf::Range1f::new(v.0 as f32, v.1 as f32));
+    #[setter(clippingRange)] fn set_clipping_range(&mut self, v: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        if let Ok(r) = v.extract::<PyRef<'_, PyRange1f>>() {
+            self.0.set_clipping_range(r.0.clone());
+            return Ok(());
+        }
+        if let Ok(t) = v.extract::<(f64, f64)>() {
+            self.0.set_clipping_range(usd_gf::Range1f::new(t.0 as f32, t.1 as f32));
+            return Ok(());
+        }
+        Err(PyTypeError::new_err("clippingRange: expected Range1f or (min, max)"))
     }
     #[getter] fn horizontalFieldOfView(&self) -> f64 {
         self.0.field_of_view(usd_gf::camera::FOVDirection::Horizontal) as f64
@@ -1252,7 +1343,7 @@ impl PyCamera {
             usd_gf::CameraProjection::Orthographic => 1,
         }
     }
-    #[setter] fn set_projection(&mut self, v: i32) {
+    #[setter(projection)] fn set_projection(&mut self, v: i32) {
         let p = if v == 1 { usd_gf::CameraProjection::Orthographic } else { usd_gf::CameraProjection::Perspective };
         self.0.set_projection(p);
     }
@@ -1347,8 +1438,41 @@ impl PyPlane {
     #[pyo3(name = "SetDistance")] fn set_distance(&mut self, d: f64) {
         self.0 = usd_gf::Plane::from_normal_distance(*self.0.normal(), d);
     }
-    #[pyo3(name = "Reorient")] fn reorient(&mut self, p: &super::vec::PyVec3d) {
+    /// Set(normal, distance) or Set(normal, point) or Set(p0, p1, p2) -> Plane
+    #[pyo3(name = "Set")]
+    #[pyo3(signature = (*args))]
+    fn set_plane(&mut self, args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 2 {
+            let a0 = args.get_item(0)?;
+            let a1 = args.get_item(1)?;
+            if let Ok(norm) = a0.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+                if let Ok(d) = a1.extract::<f64>() {
+                    self.0 = usd_gf::Plane::from_normal_distance(norm.0, d);
+                    return Ok(self.clone());
+                }
+                if let Ok(pt) = a1.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+                    self.0 = usd_gf::Plane::from_normal_point(norm.0, pt.0);
+                    return Ok(self.clone());
+                }
+            }
+        }
+        if n == 3 {
+            if let (Ok(p0), Ok(p1), Ok(p2)) = (
+                args.get_item(0)?.extract::<PyRef<'_, super::vec::PyVec3d>>(),
+                args.get_item(1)?.extract::<PyRef<'_, super::vec::PyVec3d>>(),
+                args.get_item(2)?.extract::<PyRef<'_, super::vec::PyVec3d>>(),
+            ) {
+                self.0 = usd_gf::Plane::from_three_points(p0.0, p1.0, p2.0);
+                return Ok(self.clone());
+            }
+        }
+        Err(PyTypeError::new_err("Plane.Set: unsupported arguments"))
+    }
+    /// Reorient(p) -> Plane (returns self, unlike C++ which is void)
+    #[pyo3(name = "Reorient")] fn reorient(&mut self, p: &super::vec::PyVec3d) -> Self {
         self.0.reorient(&p.0);
+        self.clone()
     }
     #[pyo3(name = "Project")] fn project(&self, p: &super::vec::PyVec3d) -> super::vec::PyVec3d {
         super::vec::PyVec3d(self.0.project(&p.0))
@@ -1381,7 +1505,11 @@ impl PyLine {
         }
     }
 
-    fn __repr__(&self) -> String { "Gf.Line(...)".to_string() }
+    fn __repr__(&self) -> String {
+        let o = self.0.origin();
+        let d = self.0.direction();
+        format!("Gf.Line(Gf.Vec3d({}, {}, {}), Gf.Vec3d({}, {}, {}))", o.x, o.y, o.z, d.x, d.y, d.z)
+    }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
@@ -1406,7 +1534,9 @@ impl PyLine {
     }
 
     #[getter] fn direction(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.direction()) }
+    #[setter] fn set_direction(&mut self, v: &super::vec::PyVec3d) { self.0.set(*self.0.origin(), v.0); }
     #[getter] fn origin(&self) -> super::vec::PyVec3d { super::vec::PyVec3d(*self.0.origin()) }
+    #[setter] fn set_origin(&mut self, v: &super::vec::PyVec3d) { self.0.set(v.0, *self.0.direction()); }
 }
 
 // ---------------------------------------------------------------------------
@@ -1428,7 +1558,11 @@ impl PyLineSeg {
         }
     }
 
-    fn __repr__(&self) -> String { "Gf.LineSeg(...)".to_string() }
+    fn __repr__(&self) -> String {
+        let s = self.0.start();
+        let e = self.0.end();
+        format!("Gf.LineSeg(Gf.Vec3d({}, {}, {}), Gf.Vec3d({}, {}, {}))", s.x, s.y, s.z, e.x, e.y, e.z)
+    }
     fn __str__(&self) -> String { self.__repr__() }
     fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
     fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
