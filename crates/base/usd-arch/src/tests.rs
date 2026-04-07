@@ -204,6 +204,7 @@ fn test_get_temp_dir() {
 // ============================================================================
 
 #[test]
+#[ignore = "cargo test runs tests from worker threads, not main — is_main_thread() is unreliable"]
 fn test_is_main_thread() {
     // From testThreads.cpp: main thread should report as main
     assert!(is_main_thread(), "Main thread should be identified as main");
@@ -222,6 +223,7 @@ fn test_concurrency() {
 }
 
 #[test]
+#[ignore = "cargo test runs tests from worker threads, not main — is_main_thread() is unreliable"]
 fn test_is_main_thread_from_spawned() {
     // Verify spawned threads are not main thread
     let handle = std::thread::spawn(|| !is_main_thread());
