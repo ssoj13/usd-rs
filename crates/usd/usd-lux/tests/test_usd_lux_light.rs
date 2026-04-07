@@ -108,11 +108,15 @@ fn test_basic_connectable_lights() {
     // GetInputs(false) is a super-set of all the built-ins.
     // There could be other inputs coming from any auto applied APISchemas.
     let prim = rect_light.get_prim();
-    eprintln!("[DEBUG] prim type_name = {:?}", prim.get_type_name());
+    let type_name = prim.get_type_name();
+    eprintln!("[DEBUG] prim type_name = {:?}", type_name);
     eprintln!("[DEBUG] prim path = {:?}", prim.get_path().get_string());
-    eprintln!("[DEBUG] prim is_valid = {:?}", prim.is_valid());
-    let all_props = prim.get_property_names();
-    eprintln!("[DEBUG] all property names ({}) = {:?}", all_props.len(), all_props.iter().map(|t| t.as_str()).collect::<Vec<_>>());
+    // Check schema registry directly
+    let schema_props = usd_core::schema_registry::get_schema_property_names(&type_name);
+    eprintln!("[DEBUG] schema_property_names for '{}' = {} items: {:?}", type_name, schema_props.len(), schema_props.iter().take(5).map(|t| t.as_str()).collect::<Vec<_>>());
+    // Check get_properties_in_namespace
+    let ns_props = prim.get_properties_in_namespace(&usd_tf::Token::new("inputs"));
+    eprintln!("[DEBUG] get_properties_in_namespace('inputs') = {} items", ns_props.len());
     let all_inputs = light_api.get_inputs(false);
     let all_input_names: Vec<String> = all_inputs
         .iter()
