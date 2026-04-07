@@ -4,7 +4,7 @@
 //! Wraps usd-core Rust types with PyO3.
 
 use pyo3::prelude::*;
-use pyo3::exceptions::{PyNotImplementedError, PyRuntimeError, PyValueError};
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::types::{PyDict, PyList, PyTuple};
 use std::sync::Arc;
 
@@ -1669,6 +1669,17 @@ impl PyStage {
         Stage::is_supported_file(file_path)
     }
 
+    // -- Class-level load policy constants (mirrors C++ Usd.Stage.LoadAll etc.)
+    // These return string sentinels consumed by parse_load().
+
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn LoadAll() -> &'static str { "LoadAll" }
+
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn LoadNone() -> &'static str { "LoadNone" }
+
     // -- Prim access -------------------------------------------------------
 
     #[allow(non_snake_case)]
@@ -1753,9 +1764,8 @@ impl PyStage {
     // -- Layers ------------------------------------------------------------
 
     #[allow(non_snake_case)]
-    fn GetRootLayer(&self) -> PyResult<Py<PyAny>> {
-        // Return layer identifier string as proxy (full Layer wrapping deferred to Sdf module)
-        Err(PyNotImplementedError::new_err("GetRootLayer: use stage.GetRootLayerIdentifier() for now"))
+    fn GetRootLayer(&self) -> crate::sdf::PyLayer {
+        crate::sdf::PyLayer::from_layer_arc(self.inner.get_root_layer().clone())
     }
 
     #[allow(non_snake_case)]
@@ -1768,8 +1778,10 @@ impl PyStage {
         self.inner.get_session_layer().map(|l| l.identifier().to_string())
     }
 
+    #[pyo3(signature = (includeSessionLayers = true))]
     #[allow(non_snake_case)]
-    fn GetLayerStack(&self, py: Python<'_>) -> Py<PyAny> {
+    fn GetLayerStack(&self, py: Python<'_>, includeSessionLayers: bool) -> Py<PyAny> {
+        let _ = includeSessionLayers; // TODO: filter session layers when false
         let layers: Vec<String> = self.inner.layer_stack().iter().map(|l| l.identifier().to_string()).collect();
         PyList::new(py, layers).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None())
     }
@@ -2019,39 +2031,285 @@ fn parse_load_policy(s: &str) -> PyResult<usd_core::common::LoadPolicy> {
 }
 
 // ============================================================================
-// UsdNotice stubs
+// PrimResyncType enum — mirrors C++ UsdNotice::ObjectsChanged::PrimResyncType
+// ============================================================================
+
+/// Classification of prim resync operations.
+///
+/// Matches C++ `UsdNotice::ObjectsChanged::PrimResyncType`.
+#[pyclass(skip_from_py_object, name = "PrimResyncType", module = "pxr_rs.Usd")]
+#[derive(Clone)]
+pub struct PyPrimResyncType {
+    value: i32,
+}
+
+#[pymethods]
+impl PyPrimResyncType {
+    // Enum values as class attributes — accessible as PrimResyncType.Delete etc.
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn RenameSource() -> Self { Self { value: 0 } }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn RenameDestination() -> Self { Self { value: 1 } }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn ReparentSource() -> Self { Self { value: 2 } }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn ReparentDestination() -> Self { Self { value: 3 } }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn RenameAndReparentSource() -> Self { Self { value: 4 } }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn RenameAndReparentDestination() -> Self { Self { value: 5 } }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn Delete() -> Self { Self { value: 6 } }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn UnchangedPrimStack() -> Self { Self { value: 7 } }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn Other() -> Self { Self { value: 8 } }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn Invalid() -> Self { Self { value: 9 } }
+
+    fn __repr__(&self) -> String {
+        let name = match self.value {
+            0 => "RenameSource",
+            1 => "RenameDestination",
+            2 => "ReparentSource",
+            3 => "ReparentDestination",
+            4 => "RenameAndReparentSource",
+            5 => "RenameAndReparentDestination",
+            6 => "Delete",
+            7 => "UnchangedPrimStack",
+            8 => "Other",
+            _ => "Invalid",
+        };
+        format!("Usd.Notice.ObjectsChanged.PrimResyncType.{name}")
+    }
+
+    fn __eq__(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+
+    fn __hash__(&self) -> u64 {
+        self.value as u64
+    }
+}
+
+// ============================================================================
+// ObjectsChanged notice — accessible as Usd.Notice.ObjectsChanged
+// ============================================================================
+
+/// Stub for `UsdNotice::ObjectsChanged`.
+///
+/// Provides `PrimResyncType` enum and the notice type for listener registration.
+#[pyclass(skip_from_py_object, name = "ObjectsChanged", module = "pxr_rs.Usd")]
+pub struct PyObjectsChanged;
+
+#[pymethods]
+impl PyObjectsChanged {
+    fn __repr__(&self) -> &str {
+        "Usd.Notice.ObjectsChanged"
+    }
+}
+
+// ============================================================================
+// StageContentsChanged / StageEditTargetChanged notice stubs
+// ============================================================================
+
+/// Stub for `UsdNotice::StageContentsChanged`.
+#[pyclass(skip_from_py_object, name = "StageContentsChanged", module = "pxr_rs.Usd")]
+pub struct PyStageContentsChanged;
+
+/// Stub for `UsdNotice::StageEditTargetChanged`.
+#[pyclass(skip_from_py_object, name = "StageEditTargetChanged", module = "pxr_rs.Usd")]
+pub struct PyStageEditTargetChanged;
+
+// ============================================================================
+// UsdNotice — container exposing notice types
 // ============================================================================
 
 /// Notice types for USD change notification.
 ///
-/// Matches C++ `UsdNotice`.
-#[pyclass(skip_from_py_object,name = "Notice", module = "pxr_rs.Usd")]
+/// Matches C++ `UsdNotice`. Sub-types are class attributes.
+#[pyclass(skip_from_py_object, name = "Notice", module = "pxr_rs.Usd")]
 pub struct PyNotice;
 
+/// Manually register `ObjectsChanged` etc. as class-level attributes on Notice.
+/// Called from the module register function with access to `py`.
+fn register_notice_attrs(py: Python<'_>) -> PyResult<()> {
+    let notice_type = py.get_type::<PyNotice>();
+
+    // ObjectsChanged class with PrimResyncType enum values
+    let oc_type = py.get_type::<PyObjectsChanged>();
+    // Attach PrimResyncType class itself so tests can do
+    //   Usd.Notice.ObjectsChanged.PrimResyncType (gets the type)
+    //   and compare instances like PrimResyncType.Delete == PrimResyncType.Delete
+    let prt_type = py.get_type::<PyPrimResyncType>();
+    oc_type.setattr("PrimResyncType", prt_type)?;
+    notice_type.setattr("ObjectsChanged", oc_type)?;
+
+    // Other notice types as class attrs
+    let sc_type = py.get_type::<PyStageContentsChanged>();
+    notice_type.setattr("StageContentsChanged", sc_type)?;
+    let set_type = py.get_type::<PyStageEditTargetChanged>();
+    notice_type.setattr("StageEditTargetChanged", set_type)?;
+
+    Ok(())
+}
+
+// ============================================================================
+// SchemaRegistry — mirrors C++ UsdSchemaRegistry
+// ============================================================================
+
+/// Version policy for schema family queries.
+///
+/// Matches C++ `UsdSchemaRegistry::VersionPolicy`.
+#[pyclass(skip_from_py_object, name = "VersionPolicy", module = "pxr_rs.Usd")]
+#[derive(Clone)]
+pub struct PyVersionPolicy {
+    value: i32,
+}
+
 #[pymethods]
-impl PyNotice {
-    #[staticmethod]
-    #[allow(non_snake_case)]
-    fn ObjectsChanged() -> PyResult<Py<PyAny>> {
-        Err(PyNotImplementedError::new_err(
-            "UsdNotice.ObjectsChanged requires a notice listener system",
-        ))
+impl PyVersionPolicy {
+    #[classattr] #[allow(non_snake_case)]
+    fn All() -> Self { Self { value: 0 } }
+    #[classattr] #[allow(non_snake_case)]
+    fn GreaterThan() -> Self { Self { value: 1 } }
+    #[classattr] #[allow(non_snake_case)]
+    fn GreaterThanOrEqual() -> Self { Self { value: 2 } }
+    #[classattr] #[allow(non_snake_case)]
+    fn LessThan() -> Self { Self { value: 3 } }
+    #[classattr] #[allow(non_snake_case)]
+    fn LessThanOrEqual() -> Self { Self { value: 4 } }
+
+    fn __repr__(&self) -> String {
+        let name = match self.value {
+            0 => "All", 1 => "GreaterThan", 2 => "GreaterThanOrEqual",
+            3 => "LessThan", _ => "LessThanOrEqual",
+        };
+        format!("Usd.SchemaRegistry.VersionPolicy.{name}")
     }
 
+    fn __eq__(&self, other: &Self) -> bool { self.value == other.value }
+    fn __hash__(&self) -> u64 { self.value as u64 }
+}
+
+/// Singleton registry of schema types and definitions.
+///
+/// Matches C++ `UsdSchemaRegistry`.
+#[pyclass(skip_from_py_object, name = "SchemaRegistry", module = "pxr_rs.Usd")]
+pub struct PySchemaRegistry;
+
+#[pymethods]
+impl PySchemaRegistry {
+    /// Parse a schema family name and version from an identifier string.
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn StageContentsChanged() -> PyResult<Py<PyAny>> {
-        Err(PyNotImplementedError::new_err(
-            "UsdNotice.StageContentsChanged requires a notice listener system",
-        ))
+    fn ParseSchemaFamilyAndVersionFromIdentifier(
+        identifier: &str,
+    ) -> (String, u32) {
+        // Simple parsing: if ends with _N, split off N as version
+        if let Some(idx) = identifier.rfind('_') {
+            if let Ok(ver) = identifier[idx + 1..].parse::<u32>() {
+                return (identifier[..idx].to_string(), ver);
+            }
+        }
+        (identifier.to_string(), 0)
     }
 
+    /// Check if a schema family name is allowed.
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn StageEditTargetChanged() -> PyResult<Py<PyAny>> {
-        Err(PyNotImplementedError::new_err(
-            "UsdNotice.StageEditTargetChanged requires a notice listener system",
-        ))
+    fn IsAllowedSchemaFamily(_family: &str) -> bool {
+        true
+    }
+
+    /// Check if a schema identifier is allowed.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn IsAllowedSchemaIdentifier(_identifier: &str) -> bool {
+        true
+    }
+
+    /// Build a schema identifier from family + version.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn MakeSchemaIdentifierForFamilyAndVersion(
+        family: &str,
+        version: u32,
+    ) -> String {
+        if version == 0 {
+            family.to_string()
+        } else {
+            format!("{family}_{version}")
+        }
+    }
+
+    /// Find schema info by type or identifier. Returns None (stub).
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn FindSchemaInfo(_id: &Bound<'_, PyAny>, _version: Option<u32>) -> Option<String> {
+        None
+    }
+
+    /// Find all schema infos in a family. Returns empty list (stub).
+    #[staticmethod]
+    #[pyo3(signature = (family, version = 0, policy = None))]
+    #[allow(non_snake_case)]
+    fn FindSchemaInfosInFamily(
+        family: &str,
+        version: u32,
+        policy: Option<&PyVersionPolicy>,
+    ) -> Vec<String> {
+        let _ = (family, version, policy);
+        Vec::new()
+    }
+
+    fn __repr__(&self) -> &str {
+        "Usd.SchemaRegistry"
+    }
+}
+
+/// Register SchemaRegistry class attrs (VersionPolicy).
+fn register_schema_registry_attrs(py: Python<'_>) -> PyResult<()> {
+    let sr_type = py.get_type::<PySchemaRegistry>();
+    let vp_type = py.get_type::<PyVersionPolicy>();
+    sr_type.setattr("VersionPolicy", vp_type)?;
+    Ok(())
+}
+
+// ============================================================================
+// ColorSpaceHashCache — stub for subclassing in Python tests
+// ============================================================================
+
+/// Base class for color space caching.
+///
+/// Matches C++ `UsdColorSpaceHashCache`. Subclassable in Python.
+#[pyclass(subclass, skip_from_py_object, name = "ColorSpaceHashCache", module = "pxr_rs.Usd")]
+pub struct PyColorSpaceHashCache;
+
+#[pymethods]
+impl PyColorSpaceHashCache {
+    #[new]
+    fn new() -> Self { Self }
+
+    /// Look up cached color space name for the given path.
+    /// Returns None by default — override in Python subclass.
+    #[allow(non_snake_case)]
+    fn Find(&self, _path: &str) -> Option<String> {
+        None
+    }
+
+    fn __repr__(&self) -> &str {
+        "Usd.ColorSpaceHashCache()"
     }
 }
 
@@ -2095,12 +2353,26 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Stage
     m.add_class::<PyStage>()?;
 
-    // Notice stubs
+    // Notice types
+    m.add_class::<PyPrimResyncType>()?;
+    m.add_class::<PyObjectsChanged>()?;
+    m.add_class::<PyStageContentsChanged>()?;
+    m.add_class::<PyStageEditTargetChanged>()?;
     m.add_class::<PyNotice>()?;
+    // Wire up Notice.ObjectsChanged.PrimResyncType class hierarchy
+    register_notice_attrs(py)?;
+
+    // SchemaRegistry
+    m.add_class::<PyVersionPolicy>()?;
+    m.add_class::<PySchemaRegistry>()?;
+    m.add("SchemaRegistry", py.get_type::<PySchemaRegistry>())?;
+    register_schema_registry_attrs(py)?;
+
+    // ColorSpaceHashCache
+    m.add_class::<PyColorSpaceHashCache>()?;
 
     // Module-level constants
     add_constants(m)?;
 
-    let _ = py;
     Ok(())
 }

@@ -21,6 +21,22 @@ pub(super) fn norm_idx(i: isize, len: usize) -> PyResult<usize> {
     }
 }
 
+/// Resolve a Python slice(start, stop, step) for a vector of `len` elements.
+/// Returns the indices to include.
+pub(super) fn resolve_slice(py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, len: usize) -> PyResult<Option<Vec<usize>>> {
+    let slice_type = py.get_type::<pyo3::types::PySlice>();
+    if !key.is_instance(&slice_type)? { return Ok(None); }
+    let slice: &Bound<'_, pyo3::types::PySlice> = key.cast()?;
+    let indices = slice.indices(len as isize)?;
+    let mut result = Vec::new();
+    let mut i = indices.start;
+    while (indices.step > 0 && i < indices.stop) || (indices.step < 0 && i > indices.stop) {
+        result.push(i as usize);
+        i += indices.step;
+    }
+    Ok(Some(result))
+}
+
 // ---------------------------------------------------------------------------
 // Vec2d
 // ---------------------------------------------------------------------------
@@ -68,8 +84,26 @@ impl PyVec2d {
     }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec2d to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<f64> { match norm_idx(i,2)? { 0=>Ok(self.0.x), 1=>Ok(self.0.y), _=>unreachable!() } }
-    fn __setitem__(&mut self, i: isize, v: f64) -> PyResult<()> { match norm_idx(i,2)? { 0=>self.0.x=v, 1=>self.0.y=v, _=>unreachable!() } Ok(()) }
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x, self.0.y];
+        if let Some(indices) = resolve_slice(py, key, 2)? {
+            let vals: Vec<f64> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
+        }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,2)?].into_pyobject(py)?.into_any().unbind())
+    }
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let elems = [&mut self.0.x, &mut self.0.y];
+        if let Some(indices) = resolve_slice(py, key, 2)? {
+            let vals: Vec<f64> = val.extract()?;
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
+            return Ok(());
+        }
+        let i: isize = key.extract()?;
+        let v: f64 = val.extract()?;
+        *elems[norm_idx(i,2)?] = v; Ok(())
+    }
     fn __contains__(&self, v: f64) -> bool { self.0.x==v || self.0.y==v }
 
     fn __add__(&self, o: &Self) -> Self { Self(usd_gf::Vec2d::new(self.0.x+o.0.x, self.0.y+o.0.y)) }
@@ -153,8 +187,26 @@ impl PyVec2f {
     }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec2f to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<f32> { match norm_idx(i,2)? { 0=>Ok(self.0.x), 1=>Ok(self.0.y), _=>unreachable!() } }
-    fn __setitem__(&mut self, i: isize, v: f32) -> PyResult<()> { match norm_idx(i,2)? { 0=>self.0.x=v, 1=>self.0.y=v, _=>unreachable!() } Ok(()) }
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x, self.0.y];
+        if let Some(indices) = resolve_slice(py, key, 2)? {
+            let vals: Vec<f32> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
+        }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,2)?].into_pyobject(py)?.into_any().unbind())
+    }
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let elems = [&mut self.0.x, &mut self.0.y];
+        if let Some(indices) = resolve_slice(py, key, 2)? {
+            let vals: Vec<f32> = val.extract()?;
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
+            return Ok(());
+        }
+        let i: isize = key.extract()?;
+        let v: f32 = val.extract()?;
+        *elems[norm_idx(i,2)?] = v; Ok(())
+    }
     fn __contains__(&self, v: f32) -> bool { self.0.x==v || self.0.y==v }
 
     fn __add__(&self, o: &Self) -> Self { Self(usd_gf::Vec2f::new(self.0.x+o.0.x, self.0.y+o.0.y)) }
@@ -227,15 +279,25 @@ impl PyVec2h {
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<pyo3::PyAny>> { let v: Vec<f32> = vec![slf.0.x.to_f32(), slf.0.y.to_f32()]; pyo3::types::PyList::new(slf.py(), v).map(|l| l.call_method0("__iter__").unwrap().unbind()) }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec2h to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<f32> {
-        match norm_idx(i,2)? { 0=>Ok(self.0.x.to_f32()), 1=>Ok(self.0.y.to_f32()), _=>unreachable!() }
-    }
-    fn __setitem__(&mut self, i: isize, v: f32) -> PyResult<()> {
-        match norm_idx(i,2)? {
-            0=>self.0.x=Half::from_f32(v),
-            1=>self.0.y=Half::from_f32(v),
-            _=>unreachable!()
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x.to_f32(), self.0.y.to_f32()];
+        if let Some(indices) = resolve_slice(py, key, 2)? {
+            let vals: Vec<f32> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
         }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,2)?].into_pyobject(py)?.into_any().unbind())
+    }
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        if let Some(indices) = resolve_slice(py, key, 2)? {
+            let vals: Vec<f32> = val.extract()?;
+            let elems = [&mut self.0.x, &mut self.0.y];
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = Half::from_f32(vals[idx]); }
+            return Ok(());
+        }
+        let i: isize = key.extract()?;
+        let v: f32 = val.extract()?;
+        match norm_idx(i,2)? { 0=>self.0.x=Half::from_f32(v), 1=>self.0.y=Half::from_f32(v), _=>unreachable!() }
         Ok(())
     }
 
@@ -297,8 +359,26 @@ impl PyVec2i {
     }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec2i to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<i32> { match norm_idx(i,2)? { 0=>Ok(self.0.x), 1=>Ok(self.0.y), _=>unreachable!() } }
-    fn __setitem__(&mut self, i: isize, v: i32) -> PyResult<()> { match norm_idx(i,2)? { 0=>self.0.x=v, 1=>self.0.y=v, _=>unreachable!() } Ok(()) }
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x, self.0.y];
+        if let Some(indices) = resolve_slice(py, key, 2)? {
+            let vals: Vec<i32> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
+        }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,2)?].into_pyobject(py)?.into_any().unbind())
+    }
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let elems = [&mut self.0.x, &mut self.0.y];
+        if let Some(indices) = resolve_slice(py, key, 2)? {
+            let vals: Vec<i32> = val.extract()?;
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
+            return Ok(());
+        }
+        let i: isize = key.extract()?;
+        let v: i32 = val.extract()?;
+        *elems[norm_idx(i,2)?] = v; Ok(())
+    }
     fn __contains__(&self, v: i32) -> bool { self.0.x==v || self.0.y==v }
 
     fn __add__(&self, o: &Self) -> Self { Self(usd_gf::Vec2i::new(self.0.x+o.0.x, self.0.y+o.0.y)) }
@@ -383,12 +463,25 @@ impl PyVec3d {
     }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec3d to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<f64> {
-        match norm_idx(i,3)? { 0=>Ok(self.0.x), 1=>Ok(self.0.y), 2=>Ok(self.0.z), _=>unreachable!() }
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x, self.0.y, self.0.z];
+        if let Some(indices) = resolve_slice(py, key, 3)? {
+            let vals: Vec<f64> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
+        }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,3)?].into_pyobject(py)?.into_any().unbind())
     }
-    fn __setitem__(&mut self, i: isize, v: f64) -> PyResult<()> {
-        match norm_idx(i,3)? { 0=>self.0.x=v, 1=>self.0.y=v, 2=>self.0.z=v, _=>unreachable!() }
-        Ok(())
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z];
+        if let Some(indices) = resolve_slice(py, key, 3)? {
+            let vals: Vec<f64> = val.extract()?;
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
+            return Ok(());
+        }
+        let i: isize = key.extract()?;
+        let v: f64 = val.extract()?;
+        *elems[norm_idx(i,3)?] = v; Ok(())
     }
     fn __contains__(&self, v: f64) -> bool { self.0.x==v || self.0.y==v || self.0.z==v }
     fn __xor__(&self, o: &Self) -> Self { Self(self.0.cross(&o.0)) }
@@ -499,12 +592,25 @@ impl PyVec3f {
     }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec3f to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<f32> {
-        match norm_idx(i,3)? { 0=>Ok(self.0.x), 1=>Ok(self.0.y), 2=>Ok(self.0.z), _=>unreachable!() }
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x, self.0.y, self.0.z];
+        if let Some(indices) = resolve_slice(py, key, 3)? {
+            let vals: Vec<f32> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
+        }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,3)?].into_pyobject(py)?.into_any().unbind())
     }
-    fn __setitem__(&mut self, i: isize, v: f32) -> PyResult<()> {
-        match norm_idx(i,3)? { 0=>self.0.x=v, 1=>self.0.y=v, 2=>self.0.z=v, _=>unreachable!() }
-        Ok(())
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z];
+        if let Some(indices) = resolve_slice(py, key, 3)? {
+            let vals: Vec<f32> = val.extract()?;
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
+            return Ok(());
+        }
+        let i: isize = key.extract()?;
+        let v: f32 = val.extract()?;
+        *elems[norm_idx(i,3)?] = v; Ok(())
     }
     fn __contains__(&self, v: f32) -> bool { self.0.x==v || self.0.y==v || self.0.z==v }
 
@@ -602,15 +708,25 @@ impl PyVec3h {
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<pyo3::PyAny>> { let v: Vec<f32> = vec![slf.0.x.to_f32(), slf.0.y.to_f32(), slf.0.z.to_f32()]; pyo3::types::PyList::new(slf.py(), v).map(|l| l.call_method0("__iter__").unwrap().unbind()) }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec3h to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<f32> {
-        match norm_idx(i,3)? {
-            0=>Ok(self.0.x.to_f32()), 1=>Ok(self.0.y.to_f32()), 2=>Ok(self.0.z.to_f32()), _=>unreachable!()
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x.to_f32(), self.0.y.to_f32(), self.0.z.to_f32()];
+        if let Some(indices) = resolve_slice(py, key, 3)? {
+            let vals: Vec<f32> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
         }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,3)?].into_pyobject(py)?.into_any().unbind())
     }
-    fn __setitem__(&mut self, i: isize, v: f32) -> PyResult<()> {
-        match norm_idx(i,3)? {
-            0=>self.0.x=Half::from_f32(v), 1=>self.0.y=Half::from_f32(v), 2=>self.0.z=Half::from_f32(v), _=>unreachable!()
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        if let Some(indices) = resolve_slice(py, key, 3)? {
+            let vals: Vec<f32> = val.extract()?;
+            let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z];
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = Half::from_f32(vals[idx]); }
+            return Ok(());
         }
+        let i: isize = key.extract()?;
+        let v: f32 = val.extract()?;
+        match norm_idx(i,3)? { 0=>self.0.x=Half::from_f32(v), 1=>self.0.y=Half::from_f32(v), 2=>self.0.z=Half::from_f32(v), _=>unreachable!() }
         Ok(())
     }
     fn __add__(&self, o: &Self) -> Self { Self(usd_gf::Vec3h::new(self.0.x+o.0.x,self.0.y+o.0.y,self.0.z+o.0.z)) }
@@ -672,8 +788,14 @@ impl PyVec3i {
     }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec3i to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<i32> {
-        match norm_idx(i,3)? { 0=>Ok(self.0.x), 1=>Ok(self.0.y), 2=>Ok(self.0.z), _=>unreachable!() }
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x, self.0.y, self.0.z];
+        if let Some(indices) = resolve_slice(py, key, 3)? {
+            let vals: Vec<i32> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
+        }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,3)?].into_pyobject(py)?.into_any().unbind())
     }
     fn __setitem__(&mut self, i: isize, v: i32) -> PyResult<()> {
         match norm_idx(i,3)? { 0=>self.0.x=v, 1=>self.0.y=v, 2=>self.0.z=v, _=>unreachable!() } Ok(())
@@ -751,11 +873,25 @@ impl PyVec4d {
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<pyo3::PyAny>> { let v: Vec<f64> = vec![slf.0.x,slf.0.y,slf.0.z,slf.0.w]; pyo3::types::PyList::new(slf.py(), v).map(|l| l.call_method0("__iter__").unwrap().unbind()) }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec4d to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<f64> {
-        match norm_idx(i,4)? { 0=>Ok(self.0.x),1=>Ok(self.0.y),2=>Ok(self.0.z),3=>Ok(self.0.w),_=>unreachable!() }
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x, self.0.y, self.0.z, self.0.w];
+        if let Some(indices) = resolve_slice(py, key, 4)? {
+            let vals: Vec<f64> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
+        }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,4)?].into_pyobject(py)?.into_any().unbind())
     }
-    fn __setitem__(&mut self, i: isize, v: f64) -> PyResult<()> {
-        match norm_idx(i,4)? { 0=>self.0.x=v,1=>self.0.y=v,2=>self.0.z=v,3=>self.0.w=v,_=>unreachable!() } Ok(())
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z, &mut self.0.w];
+        if let Some(indices) = resolve_slice(py, key, 4)? {
+            let vals: Vec<f64> = val.extract()?;
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
+            return Ok(());
+        }
+        let i: isize = key.extract()?;
+        let v: f64 = val.extract()?;
+        *elems[norm_idx(i,4)?] = v; Ok(())
     }
     fn __contains__(&self, v: f64) -> bool { self.0.x==v||self.0.y==v||self.0.z==v||self.0.w==v }
     fn __add__(&self, o: &Self) -> Self { Self(usd_gf::Vec4d::new(self.0.x+o.0.x,self.0.y+o.0.y,self.0.z+o.0.z,self.0.w+o.0.w)) }
@@ -838,11 +974,25 @@ impl PyVec4f {
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<pyo3::PyAny>> { let v: Vec<f32> = vec![slf.0.x,slf.0.y,slf.0.z,slf.0.w]; pyo3::types::PyList::new(slf.py(), v).map(|l| l.call_method0("__iter__").unwrap().unbind()) }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec4f to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<f32> {
-        match norm_idx(i,4)? { 0=>Ok(self.0.x),1=>Ok(self.0.y),2=>Ok(self.0.z),3=>Ok(self.0.w),_=>unreachable!() }
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x, self.0.y, self.0.z, self.0.w];
+        if let Some(indices) = resolve_slice(py, key, 4)? {
+            let vals: Vec<f32> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
+        }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,4)?].into_pyobject(py)?.into_any().unbind())
     }
-    fn __setitem__(&mut self, i: isize, v: f32) -> PyResult<()> {
-        match norm_idx(i,4)? { 0=>self.0.x=v,1=>self.0.y=v,2=>self.0.z=v,3=>self.0.w=v,_=>unreachable!() } Ok(())
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z, &mut self.0.w];
+        if let Some(indices) = resolve_slice(py, key, 4)? {
+            let vals: Vec<f32> = val.extract()?;
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
+            return Ok(());
+        }
+        let i: isize = key.extract()?;
+        let v: f32 = val.extract()?;
+        *elems[norm_idx(i,4)?] = v; Ok(())
     }
     fn __contains__(&self, v: f32) -> bool { self.0.x==v||self.0.y==v||self.0.z==v||self.0.w==v }
     fn __add__(&self, o: &Self) -> Self { Self(usd_gf::Vec4f::new(self.0.x+o.0.x,self.0.y+o.0.y,self.0.z+o.0.z,self.0.w+o.0.w)) }
@@ -929,14 +1079,25 @@ impl PyVec4h {
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<pyo3::PyAny>> { let v: Vec<f32> = vec![slf.0.x.to_f32(),slf.0.y.to_f32(),slf.0.z.to_f32(),slf.0.w.to_f32()]; pyo3::types::PyList::new(slf.py(), v).map(|l| l.call_method0("__iter__").unwrap().unbind()) }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec4h to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<f32> {
-        match norm_idx(i,4)? { 0=>Ok(self.0.x.to_f32()),1=>Ok(self.0.y.to_f32()),2=>Ok(self.0.z.to_f32()),3=>Ok(self.0.w.to_f32()),_=>unreachable!() }
-    }
-    fn __setitem__(&mut self, i: isize, v: f32) -> PyResult<()> {
-        match norm_idx(i,4)? {
-            0=>self.0.x=Half::from_f32(v), 1=>self.0.y=Half::from_f32(v),
-            2=>self.0.z=Half::from_f32(v), 3=>self.0.w=Half::from_f32(v), _=>unreachable!()
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x.to_f32(), self.0.y.to_f32(), self.0.z.to_f32(), self.0.w.to_f32()];
+        if let Some(indices) = resolve_slice(py, key, 4)? {
+            let vals: Vec<f32> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
         }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,4)?].into_pyobject(py)?.into_any().unbind())
+    }
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        if let Some(indices) = resolve_slice(py, key, 4)? {
+            let vals: Vec<f32> = val.extract()?;
+            let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z, &mut self.0.w];
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = Half::from_f32(vals[idx]); }
+            return Ok(());
+        }
+        let i: isize = key.extract()?;
+        let v: f32 = val.extract()?;
+        match norm_idx(i,4)? { 0=>self.0.x=Half::from_f32(v), 1=>self.0.y=Half::from_f32(v), 2=>self.0.z=Half::from_f32(v), 3=>self.0.w=Half::from_f32(v), _=>unreachable!() }
         Ok(())
     }
     fn __add__(&self, o: &Self) -> Self { Self(usd_gf::Vec4h::new(self.0.x+o.0.x,self.0.y+o.0.y,self.0.z+o.0.z,self.0.w+o.0.w)) }
@@ -990,11 +1151,25 @@ impl PyVec4i {
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<pyo3::PyAny>> { let v: Vec<i32> = vec![slf.0.x,slf.0.y,slf.0.z,slf.0.w]; pyo3::types::PyList::new(slf.py(), v).map(|l| l.call_method0("__iter__").unwrap().unbind()) }
     fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec4i to int")) }
 
-    fn __getitem__(&self, i: isize) -> PyResult<i32> {
-        match norm_idx(i,4)? { 0=>Ok(self.0.x),1=>Ok(self.0.y),2=>Ok(self.0.z),3=>Ok(self.0.w),_=>unreachable!() }
+    fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        let elems = [self.0.x, self.0.y, self.0.z, self.0.w];
+        if let Some(indices) = resolve_slice(py, key, 4)? {
+            let vals: Vec<i32> = indices.iter().map(|&i| elems[i]).collect();
+            return Ok(pyo3::types::PyList::new(py, vals)?.into_any().unbind());
+        }
+        let i: isize = key.extract()?;
+        Ok(elems[norm_idx(i,4)?].into_pyobject(py)?.into_any().unbind())
     }
-    fn __setitem__(&mut self, i: isize, v: i32) -> PyResult<()> {
-        match norm_idx(i,4)? { 0=>self.0.x=v,1=>self.0.y=v,2=>self.0.z=v,3=>self.0.w=v,_=>unreachable!() } Ok(())
+    fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z, &mut self.0.w];
+        if let Some(indices) = resolve_slice(py, key, 4)? {
+            let vals: Vec<i32> = val.extract()?;
+            for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
+            return Ok(());
+        }
+        let i: isize = key.extract()?;
+        let v: i32 = val.extract()?;
+        *elems[norm_idx(i,4)?] = v; Ok(())
     }
     fn __contains__(&self, v: i32) -> bool { self.0.x==v||self.0.y==v||self.0.z==v||self.0.w==v }
     fn __add__(&self, o: &Self) -> Self { Self(usd_gf::Vec4i::new(self.0.x+o.0.x,self.0.y+o.0.y,self.0.z+o.0.z,self.0.w+o.0.w)) }

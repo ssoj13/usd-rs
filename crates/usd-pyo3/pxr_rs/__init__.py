@@ -4,14 +4,14 @@
 
 from pxr_rs._usd import (
     Tf, Gf, Vt,
-    Ar, Kind, Sdf, Pcp, Usd,
+    Ar, Plug, Kind, Sdf, Pcp, Ts, Usd,
     UsdGeom, UsdShade, UsdLux, UsdSkel,
     Cli,
 )
 
 __all__ = [
     "Tf", "Gf", "Vt",
-    "Ar", "Kind", "Sdf", "Pcp", "Usd",
+    "Ar", "Plug", "Kind", "Sdf", "Pcp", "Ts", "Usd",
     "UsdGeom", "UsdShade", "UsdLux", "UsdSkel",
     "Cli",
 ]

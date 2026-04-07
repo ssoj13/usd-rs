@@ -757,6 +757,485 @@ fn format_msg(template: &str, args: &Bound<'_, PyTuple>) -> PyResult<String> {
 }
 
 // ============================================================================
+// MallocTag (TfMallocTag)
+// ============================================================================
+
+/// Memory tagging system — mirrors `pxr.Tf.MallocTag` / `TfMallocTag`.
+///
+/// Provides static methods for memory tracking and reporting.
+#[pyclass(skip_from_py_object, name = "MallocTag", module = "pxr_rs.Tf")]
+pub struct PyMallocTag;
+
+#[pymethods]
+impl PyMallocTag {
+    /// Initialize the memory tagging system.
+    #[staticmethod]
+    #[pyo3(name = "Initialize")]
+    fn initialize() -> bool {
+        usd_tf::malloc_tag::MallocTag::initialize().is_ok()
+    }
+
+    /// True if the tagging system is initialized.
+    #[staticmethod]
+    #[pyo3(name = "IsInitialized")]
+    fn is_initialized() -> bool {
+        usd_tf::malloc_tag::MallocTag::is_initialized()
+    }
+
+    /// Get total bytes being tracked.
+    #[staticmethod]
+    #[pyo3(name = "GetTotalBytes")]
+    fn get_total_bytes() -> usize {
+        usd_tf::malloc_tag::MallocTag::get_total_bytes()
+    }
+
+    /// Get maximum total bytes ever allocated.
+    #[staticmethod]
+    #[pyo3(name = "GetMaxTotalBytes")]
+    fn get_max_total_bytes() -> usize {
+        usd_tf::malloc_tag::MallocTag::get_max_total_bytes()
+    }
+
+    /// Get a snapshot of memory usage as a CallTree.
+    #[staticmethod]
+    #[pyo3(name = "GetCallTree")]
+    fn get_call_tree() -> PyCallTree {
+        let tree = usd_tf::malloc_tag::MallocTag::get_call_tree(true);
+        PyCallTree { inner: tree }
+    }
+
+    fn __repr__(&self) -> &str {
+        "Tf.MallocTag"
+    }
+}
+
+/// Memory usage call tree — mirrors `Tf.MallocTag.CallTree`.
+#[pyclass(skip_from_py_object, name = "CallTree", module = "pxr_rs.Tf")]
+pub struct PyCallTree {
+    inner: usd_tf::malloc_tag::CallTree,
+}
+
+#[pymethods]
+impl PyCallTree {
+    /// Create an empty CallTree (for LoadReport usage).
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: usd_tf::malloc_tag::CallTree::default(),
+        }
+    }
+
+    /// Get the root PathNode of the tree.
+    #[pyo3(name = "GetRoot")]
+    fn get_root(&self) -> PyPathNode {
+        PyPathNode::from_node(&self.inner.root)
+    }
+
+    /// Return a formatted report string.
+    #[pyo3(name = "GetPrettyPrintString")]
+    #[pyo3(signature = (max_printed_nodes = 1000))]
+    fn get_pretty_print_string(&self, max_printed_nodes: usize) -> String {
+        self.inner.get_pretty_print_string(
+            usd_tf::malloc_tag::PrintSetting::Both,
+            max_printed_nodes,
+        )
+    }
+
+    /// Print report to stdout.
+    ///
+    /// Mirrors C++ `CallTree::Report()`.
+    #[pyo3(name = "Report")]
+    #[pyo3(signature = (root_name = None))]
+    fn report(&self, root_name: Option<&str>) {
+        let mut buf = Vec::new();
+        self.inner.report(&mut buf, root_name);
+        print!("{}", String::from_utf8_lossy(&buf));
+    }
+
+    /// Load and parse a malloc tag report file.
+    ///
+    /// Returns true on success. Populates the tree from the "Tree view" section
+    /// of the report file format. Raises Tf.ErrorException if file not found.
+    ///
+    /// Mirrors C++ `CallTree::LoadReport()`.
+    #[pyo3(name = "LoadReport")]
+    fn load_report(&mut self, filepath: &str) -> PyResult<bool> {
+        let contents = std::fs::read_to_string(filepath).map_err(|e| {
+            PyException::new_err(format!("Failed to load report '{}': {}", filepath, e))
+        })?;
+        Ok(self.parse_report_string(&contents))
+    }
+
+    /// Save the current tree to a temporary file and return the path.
+    ///
+    /// Mirrors C++ `CallTree::LogReport()`.
+    #[pyo3(name = "LogReport")]
+    fn log_report(&self) -> PyResult<String> {
+        let report = self.format_tree_report();
+        let path = std::env::temp_dir().join(format!(
+            "malloc_tag_report_{}.txt",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis())
+                .unwrap_or(0)
+        ));
+        std::fs::write(&path, &report)
+            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
+        Ok(path.to_string_lossy().to_string())
+    }
+
+    fn __repr__(&self) -> &str {
+        "Tf.MallocTag.CallTree"
+    }
+
+    fn __bool__(&self) -> bool {
+        !self.inner.root.site_name.is_empty()
+    }
+}
+
+impl PyCallTree {
+    /// Parse the "Tree view" section of a malloc tag report.
+    ///
+    /// Format per line:
+    /// `<inclusive> B  <exclusive> B  <samples> samples  <tree_indent><name>`
+    ///
+    /// Where tree_indent uses `| ` for hierarchy.
+    fn parse_report_string(&mut self, contents: &str) -> bool {
+        // Parse all tree sections from the report. A report may contain multiple
+        // "Tree view" sections (one per malloc tag snapshot). Each section's root
+        // becomes a child of a synthetic root when multiple sections exist.
+        let mut trees: Vec<usd_tf::malloc_tag::PathNode> = Vec::new();
+        let mut in_tree = false;
+        let mut current_root = usd_tf::malloc_tag::PathNode::default();
+        let mut stack: Vec<(usize, usize)> = Vec::new();
+
+        for line in contents.lines() {
+            let trimmed = line.trim();
+
+            // Detect start of tree view section
+            if trimmed.starts_with("Tree view") {
+                // Save previous tree if any
+                if !current_root.site_name.is_empty() {
+                    trees.push(std::mem::take(&mut current_root));
+                    stack.clear();
+                }
+                in_tree = true;
+                continue;
+            }
+
+            // Skip header line
+            if trimmed.starts_with("inclusive") {
+                continue;
+            }
+
+            // End of tree section: empty line, separator, or new report header
+            if in_tree && (trimmed.is_empty() || trimmed.starts_with("---") || trimmed.starts_with("Call sites")) {
+                in_tree = false;
+                continue;
+            }
+
+            if !in_tree {
+                continue;
+            }
+
+            // Parse a tree line
+            let Some(node) = Self::parse_tree_line(line) else {
+                continue;
+            };
+
+            if current_root.site_name.is_empty() {
+                // First node in this section is the root
+                current_root = node.0;
+                stack.clear();
+                stack.push((node.1, 0));
+            } else {
+                let depth = node.1;
+                // Pop stack until we find a parent at lower depth
+                while stack.len() > 1 && stack.last().map(|s| s.0).unwrap_or(0) >= depth {
+                    stack.pop();
+                }
+                Self::insert_at_path(&mut current_root, &stack, node.0);
+                let child_count = Self::children_count_at_path(&current_root, &stack);
+                stack.push((depth, child_count.saturating_sub(1)));
+            }
+        }
+
+        // Save the last tree
+        if !current_root.site_name.is_empty() {
+            trees.push(current_root);
+        }
+
+        if trees.is_empty() {
+            return false;
+        }
+
+        if trees.len() == 1 {
+            // Single tree: use it directly as root
+            self.inner.root = trees.into_iter().next().unwrap();
+        } else {
+            // Multiple trees: create synthetic root with each tree as a child
+            let mut root = usd_tf::malloc_tag::PathNode::default();
+            root.site_name = String::from("__root");
+            root.children = trees;
+            // Sum up totals
+            root.bytes = root.children.iter().map(|c| c.bytes).sum();
+            root.bytes_direct = root.children.iter().map(|c| c.bytes_direct).sum();
+            root.allocations = root.children.iter().map(|c| c.allocations).sum();
+            self.inner.root = root;
+        }
+
+        true
+    }
+
+    /// Parse a single tree line, returning (PathNode, depth).
+    ///
+    /// Format: `  2,952 B         1,232 B      20 samples    | | Csd`
+    fn parse_tree_line(line: &str) -> Option<(usd_tf::malloc_tag::PathNode, usize)> {
+        // Find "samples" to split numbers from the tree part
+        let samples_idx = line.find("samples")?;
+        let num_part = &line[..samples_idx];
+        let tree_part = &line[samples_idx + "samples".len()..];
+
+        // Parse numbers: strip commas, find B-delimited values
+        let nums: Vec<&str> = num_part.split('B').collect();
+        if nums.len() < 3 {
+            return None;
+        }
+
+        let inclusive = Self::parse_bytes(nums[0])?;
+        let exclusive = Self::parse_bytes(nums[1])?;
+        // Third part before "samples" is the sample count
+        let samples = nums[2].trim().replace(',', "").parse::<usize>().ok()?;
+
+        // Parse tree indent and name from the tree part.
+        // Format after "samples    ":
+        //   `__root`           -> depth 0 (no prefix)
+        //   `| Csd`            -> depth 1 (2-char prefix)
+        //   `|   CsdAttr`      -> depth 2 (4-char prefix)
+        //   `|   | Csd`        -> depth 3 (6-char prefix)
+        //   `|   |   CsdProp`  -> depth 4 (8-char prefix)
+        // Depth = prefix_length / 2, where prefix is the `| ` / `|   ` chain.
+        let tree_str = tree_part.trim_start();
+
+        // Find where the actual name starts: skip `|` and space characters.
+        let prefix_len = tree_str
+            .chars()
+            .take_while(|&c| c == '|' || c == ' ')
+            .count();
+        let depth = prefix_len / 2;
+        let name = tree_str[prefix_len..].trim().to_string();
+        if name.is_empty() {
+            return None;
+        }
+
+        Some((
+            usd_tf::malloc_tag::PathNode {
+                bytes: inclusive,
+                bytes_direct: exclusive,
+                allocations: samples,
+                site_name: name,
+                children: Vec::new(),
+            },
+            depth,
+        ))
+    }
+
+    /// Parse a byte value like "2,952 " -> 2952.
+    fn parse_bytes(s: &str) -> Option<usize> {
+        let cleaned = s.trim().replace(',', "");
+        cleaned.parse::<usize>().ok()
+    }
+
+    /// Insert a node as child at the path described by the stack.
+    fn insert_at_path(
+        root: &mut usd_tf::malloc_tag::PathNode,
+        stack: &[(usize, usize)],
+        node: usd_tf::malloc_tag::PathNode,
+    ) {
+        let mut current = root;
+        // Skip the first stack entry (it's the root itself)
+        for &(_depth, child_idx) in stack.iter().skip(1) {
+            if child_idx < current.children.len() {
+                current = &mut current.children[child_idx];
+            } else {
+                // Invalid index, append to current
+                break;
+            }
+        }
+        current.children.push(node);
+    }
+
+    /// Count children at the path described by the stack.
+    fn children_count_at_path(
+        root: &usd_tf::malloc_tag::PathNode,
+        stack: &[(usize, usize)],
+    ) -> usize {
+        let mut current = root;
+        for &(_depth, child_idx) in stack.iter().skip(1) {
+            if child_idx < current.children.len() {
+                current = &current.children[child_idx];
+            } else {
+                break;
+            }
+        }
+        current.children.len()
+    }
+
+    /// Format the tree into the report string format for LogReport.
+    fn format_tree_report(&self) -> String {
+        let mut out = String::new();
+        out.push_str("Tree view  ==============\n");
+        out.push_str("      inclusive       exclusive\n");
+        Self::format_tree_node(&self.inner.root, 0, &mut out);
+        out
+    }
+
+    fn format_tree_node(node: &usd_tf::malloc_tag::PathNode, depth: usize, out: &mut String) {
+        // Build tree prefix: depth 0 = no prefix, depth N = "| " repeated with proper indentation
+        // e.g., depth 1: "| ", depth 2: "|   | ", depth 3: "|   |   | "
+        let prefix = if depth == 0 {
+            String::new()
+        } else {
+            let mut p = String::new();
+            for i in 0..depth {
+                if i < depth - 1 {
+                    p.push_str("|   ");
+                } else {
+                    p.push_str("| ");
+                }
+            }
+            p
+        };
+        out.push_str(&format!(
+            "{:>12} B {:>12} B {:>7} samples    {}{}\n",
+            Self::format_with_commas(node.bytes),
+            Self::format_with_commas(node.bytes_direct),
+            node.allocations,
+            prefix,
+            node.site_name,
+        ));
+        for child in &node.children {
+            Self::format_tree_node(child, depth + 1, out);
+        }
+    }
+
+    /// Format a number with comma separators (e.g., 2952 -> "2,952").
+    fn format_with_commas(n: usize) -> String {
+        let s = n.to_string();
+        let mut result = String::new();
+        for (i, c) in s.chars().rev().enumerate() {
+            if i > 0 && i % 3 == 0 {
+                result.push(',');
+            }
+            result.push(c);
+        }
+        result.chars().rev().collect()
+    }
+}
+
+/// Node in the malloc tag call tree — mirrors `Tf.MallocTag.CallTree.PathNode`.
+#[pyclass(skip_from_py_object, name = "PathNode", module = "pxr_rs.Tf")]
+#[derive(Clone)]
+pub struct PyPathNode {
+    /// Tag name at this site.
+    #[pyo3(get)]
+    #[pyo3(name = "siteName")]
+    site_name: String,
+    /// Inclusive bytes (self + descendants).
+    #[pyo3(get)]
+    #[pyo3(name = "nBytes")]
+    n_bytes: usize,
+    /// Exclusive bytes (self only).
+    #[pyo3(get)]
+    #[pyo3(name = "nBytesDirect")]
+    n_bytes_direct: usize,
+    /// Number of allocations.
+    #[pyo3(get)]
+    #[pyo3(name = "nAllocations")]
+    n_allocations: usize,
+    children_data: Vec<usd_tf::malloc_tag::PathNode>,
+}
+
+impl PyPathNode {
+    fn from_node(node: &usd_tf::malloc_tag::PathNode) -> Self {
+        Self {
+            site_name: node.site_name.clone(),
+            n_bytes: node.bytes,
+            n_bytes_direct: node.bytes_direct,
+            n_allocations: node.allocations,
+            children_data: node.children.clone(),
+        }
+    }
+}
+
+#[pymethods]
+impl PyPathNode {
+    /// Return child nodes.
+    #[pyo3(name = "GetChildren")]
+    fn get_children(&self) -> Vec<PyPathNode> {
+        self.children_data.iter().map(PyPathNode::from_node).collect()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "Tf.MallocTag.CallTree.PathNode('{}', bytes={})",
+            self.site_name, self.n_bytes
+        )
+    }
+}
+
+// ============================================================================
+// ScriptModuleLoader (TfScriptModuleLoader)
+// ============================================================================
+
+/// Script module loading system — mirrors `pxr.Tf.ScriptModuleLoader`.
+///
+/// In pure Rust USD this is largely a no-op stub since all modules are
+/// statically linked. The API is preserved for compatibility with tests
+/// that call `_LoadModulesForLibrary` / `_RegisterLibrary`.
+#[pyclass(skip_from_py_object, name = "ScriptModuleLoader", module = "pxr_rs.Tf")]
+pub struct PyScriptModuleLoader;
+
+#[pymethods]
+impl PyScriptModuleLoader {
+    /// Return the singleton loader (matches C++ constructor pattern).
+    #[new]
+    fn new() -> Self {
+        Self
+    }
+
+    /// Load modules for the named library and its dependencies.
+    ///
+    /// In Rust this is a no-op since there are no dynamic Python modules to load.
+    #[pyo3(name = "_LoadModulesForLibrary")]
+    fn load_modules_for_library(&self, lib_name: &str) {
+        usd_tf::script_module_loader::ScriptModuleLoader::load_modules_for_library(lib_name);
+    }
+
+    /// Register a library with dependencies for later loading.
+    #[pyo3(name = "_RegisterLibrary")]
+    #[pyo3(signature = (lib_name, module_name, predecessors))]
+    fn register_library(&self, lib_name: &str, module_name: &str, predecessors: Vec<String>) {
+        let pred_strs: Vec<&str> = predecessors.iter().map(|s| s.as_str()).collect();
+        usd_tf::script_module_loader::ScriptModuleLoader::register_library_info(
+            lib_name,
+            module_name,
+            &pred_strs,
+        );
+    }
+
+    /// Return all registered library names.
+    #[pyo3(name = "GetModuleNames")]
+    fn get_module_names(&self) -> Vec<String> {
+        usd_tf::script_module_loader::ScriptModuleLoader::library_names()
+    }
+
+    fn __repr__(&self) -> &str {
+        "Tf.ScriptModuleLoader"
+    }
+}
+
+// ============================================================================
 // Enum helpers
 // ============================================================================
 
@@ -855,6 +1334,16 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyStopwatch>()?;
     m.add_class::<PyDebug>()?;
     m.add_class::<PyEnum>()?;
+    m.add_class::<PyMallocTag>()?;
+    m.add_class::<PyCallTree>()?;
+    m.add_class::<PyPathNode>()?;
+    m.add_class::<PyScriptModuleLoader>()?;
+
+    // Nest CallTree and PathNode under MallocTag so `Tf.MallocTag.CallTree` works.
+    let malloc_tag_cls = m.getattr("MallocTag")?;
+    malloc_tag_cls.setattr("CallTree", py.get_type::<PyCallTree>())?;
+    let call_tree_cls = m.getattr("CallTree")?;
+    call_tree_cls.setattr("PathNode", py.get_type::<PyPathNode>())?;
 
     // Free functions
     m.add_function(wrap_pyfunction!(warn, m)?)?;

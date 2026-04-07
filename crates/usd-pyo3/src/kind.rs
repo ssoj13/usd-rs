@@ -66,6 +66,12 @@ pub struct PyKindRegistry;
 
 #[pymethods]
 impl PyKindRegistry {
+    /// Construct returns the singleton registry handle (matches pxr pattern).
+    #[new]
+    fn new() -> Self {
+        Self
+    }
+
     /// Return the singleton KindRegistry instance.
     #[classmethod]
     #[pyo3(name = "GetInstance")]
@@ -75,32 +81,28 @@ impl PyKindRegistry {
 
     /// Return true if `kind` is known to the registry.
     ///
-    /// ```python
-    /// Kind.Registry.HasKind("model")  # True
-    /// ```
+    /// Callable as classmethod (`Kind.Registry.HasKind(...)`) or on instance.
+    #[classmethod]
     #[pyo3(name = "HasKind")]
-    fn has_kind(&self, kind: &str) -> bool {
+    fn has_kind(_cls: &Bound<'_, pyo3::types::PyType>, kind: &str) -> bool {
         registry::has_kind(&Token::new(kind))
     }
 
     /// Return the base kind of `kind`, or empty string if it has none.
     ///
-    /// ```python
-    /// Kind.Registry.GetBaseKind("assembly")  # "group"
-    /// Kind.Registry.GetBaseKind("model")     # ""
-    /// ```
+    /// Callable as classmethod (`Kind.Registry.GetBaseKind(...)`) or on instance.
+    #[classmethod]
     #[pyo3(name = "GetBaseKind")]
-    fn get_base_kind(&self, kind: &str) -> String {
+    fn get_base_kind(_cls: &Bound<'_, pyo3::types::PyType>, kind: &str) -> String {
         registry::get_base_kind(&Token::new(kind)).as_str().to_string()
     }
 
     /// Return an unordered list of all registered kind strings.
     ///
-    /// ```python
-    /// kinds = Kind.Registry.GetAllKinds()
-    /// ```
+    /// Callable as classmethod (`Kind.Registry.GetAllKinds()`) or on instance.
+    #[classmethod]
     #[pyo3(name = "GetAllKinds")]
-    fn get_all_kinds(&self) -> Vec<String> {
+    fn get_all_kinds(_cls: &Bound<'_, pyo3::types::PyType>) -> Vec<String> {
         registry::get_all_kinds()
             .into_iter()
             .map(|t| t.as_str().to_string())
@@ -109,42 +111,45 @@ impl PyKindRegistry {
 
     /// True if `derived_kind` is the same as, or derives from, `base_kind`.
     ///
-    /// ```python
-    /// Kind.Registry.IsA("assembly", "model")  # True
-    /// Kind.Registry.IsA("component", "group") # False
-    /// ```
+    /// Callable as classmethod or on instance.
+    #[classmethod]
     #[pyo3(name = "IsA")]
-    fn is_a(&self, derived_kind: &str, base_kind: &str) -> bool {
+    fn is_a(_cls: &Bound<'_, pyo3::types::PyType>, derived_kind: &str, base_kind: &str) -> bool {
         registry::is_a(&Token::new(derived_kind), &Token::new(base_kind))
     }
 
     /// True if `kind` is or derives from "model".
+    #[classmethod]
     #[pyo3(name = "IsModel")]
-    fn is_model(&self, kind: &str) -> bool {
+    fn is_model(_cls: &Bound<'_, pyo3::types::PyType>, kind: &str) -> bool {
         registry::is_model_kind(&Token::new(kind))
     }
 
     /// True if `kind` is or derives from "group".
+    #[classmethod]
     #[pyo3(name = "IsGroup")]
-    fn is_group(&self, kind: &str) -> bool {
+    fn is_group(_cls: &Bound<'_, pyo3::types::PyType>, kind: &str) -> bool {
         registry::is_group_kind(&Token::new(kind))
     }
 
     /// True if `kind` is or derives from "assembly".
+    #[classmethod]
     #[pyo3(name = "IsAssembly")]
-    fn is_assembly(&self, kind: &str) -> bool {
+    fn is_assembly(_cls: &Bound<'_, pyo3::types::PyType>, kind: &str) -> bool {
         registry::is_assembly_kind(&Token::new(kind))
     }
 
     /// True if `kind` is or derives from "component".
+    #[classmethod]
     #[pyo3(name = "IsComponent")]
-    fn is_component(&self, kind: &str) -> bool {
+    fn is_component(_cls: &Bound<'_, pyo3::types::PyType>, kind: &str) -> bool {
         registry::is_component_kind(&Token::new(kind))
     }
 
     /// True if `kind` is or derives from "subcomponent".
+    #[classmethod]
     #[pyo3(name = "IsSubComponent")]
-    fn is_sub_component(&self, kind: &str) -> bool {
+    fn is_sub_component(_cls: &Bound<'_, pyo3::types::PyType>, kind: &str) -> bool {
         registry::is_subcomponent_kind(&Token::new(kind))
     }
 

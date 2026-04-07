@@ -883,5 +883,17 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("ArcTypePayload", PyArcType { inner: ArcType::Payload })?;
     m.add("ArcTypeSpecialize", PyArcType { inner: ArcType::Specialize })?;
 
+    // Module-level DependencyType constants (matches pxr.Pcp.DependencyType*, bitmask ints)
+    m.add("DependencyTypeNone", usd_pcp::DependencyType::NONE.bits())?;
+    m.add("DependencyTypeRoot", usd_pcp::DependencyType::ROOT.bits())?;
+    m.add("DependencyTypePurelyDirect", usd_pcp::DependencyType::PURELY_DIRECT.bits())?;
+    m.add("DependencyTypePartlyDirect", usd_pcp::DependencyType::PARTLY_DIRECT.bits())?;
+    m.add("DependencyTypeDirect", usd_pcp::DependencyType::DIRECT.bits())?;
+    m.add("DependencyTypeAncestral", usd_pcp::DependencyType::ANCESTRAL.bits())?;
+    m.add("DependencyTypeVirtual", usd_pcp::DependencyType::VIRTUAL.bits())?;
+    m.add("DependencyTypeNonVirtual", usd_pcp::DependencyType::NON_VIRTUAL.bits())?;
+    m.add("DependencyTypeAnyNonVirtual", usd_pcp::DependencyType::ANY_NON_VIRTUAL.bits())?;
+    m.add("DependencyTypeAnyIncludingVirtual", usd_pcp::DependencyType::ANY_INCLUDING_VIRTUAL.bits())?;
+
     Ok(())
 }

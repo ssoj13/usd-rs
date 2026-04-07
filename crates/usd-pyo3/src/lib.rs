@@ -17,6 +17,8 @@ mod vt;
 mod sdf;
 mod pcp;
 mod ar;
+mod plug;
+mod ts;
 mod usd;
 mod geom;
 mod shade;
@@ -37,9 +39,11 @@ fn _usd(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Core USD modules
     register_sub(py, m, "Ar", ar::register)?;
+    register_sub(py, m, "Plug", plug::register)?;
     register_sub(py, m, "Kind", kind::register)?;
     register_sub(py, m, "Sdf", sdf::register)?;
     register_sub(py, m, "Pcp", pcp::register)?;
+    register_sub(py, m, "Ts", ts::register)?;
     register_sub(py, m, "Usd", usd::register)?;
 
     // Schema modules
