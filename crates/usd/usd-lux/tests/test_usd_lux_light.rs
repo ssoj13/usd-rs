@@ -107,6 +107,12 @@ fn test_basic_connectable_lights() {
 
     // GetInputs(false) is a super-set of all the built-ins.
     // There could be other inputs coming from any auto applied APISchemas.
+    let prim = rect_light.get_prim();
+    eprintln!("[DEBUG] prim type_name = {:?}", prim.get_type_name());
+    eprintln!("[DEBUG] prim path = {:?}", prim.get_path().get_string());
+    eprintln!("[DEBUG] prim is_valid = {:?}", prim.is_valid());
+    let all_props = prim.get_property_names();
+    eprintln!("[DEBUG] all property names ({}) = {:?}", all_props.len(), all_props.iter().map(|t| t.as_str()).collect::<Vec<_>>());
     let all_inputs = light_api.get_inputs(false);
     let all_input_names: Vec<String> = all_inputs
         .iter()
