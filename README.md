@@ -9,7 +9,7 @@ A few points setting the right context:
   - Every line is Rust, targeting behavioral parity with the C++ reference: same composition semantics, same file format support (USDA/USDC/USDZ), same scene index architecture, same rendering pipeline concepts.
   - This repo is large and still under active work. Sudden changes and API rewrites are to expect at any moment.
   - I built this for myself as a learning exercise and a practical tool. It's public in case it's useful to someone else. Clone it, use it, drop me a line if you want.
-  - This project actively uses non-traditional development patterns, AI and agentic development, if you're not happy about this - welcome away.
+  - This project actively uses non-traditional development patterns, AI and agentic development.
   - Personally I see a huge potential in Rust coupled with AI tool to quickly develop monolithic apps with required functionality.
   - Range of applications for this library is much larger than "just VFX": it can be anything of
     - compact digital asset tools both for VFX / AI / robotics / cross-applications
