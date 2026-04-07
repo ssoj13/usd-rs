@@ -4,3 +4,30 @@ cdx*.cmd
 cld*.cmd
 ca.cmd
 *.log
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyd
+*.so
+*.whl
+*.egg-info/
+
+# Test artifacts (pytest/ar/sdf tests create temp files in cwd)
+test_Resolve.txt
+test_SiblingOfAsset.txt
+test_Asset.txt
+test.package
+testSaveWithArgs.usda
+testSetIdentifierWithArgs.usda
+dummy.test_target_format
+file.unwritable
+0.usda
+subdir/
+dir/
+dirA/
+dirB/
+env/
+test1/
+test3/
+testResolveWithCache/
