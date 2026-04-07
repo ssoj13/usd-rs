@@ -72,7 +72,7 @@ jobs:
           maturin build -m crates/usd-pyo3/Cargo.toml --release
 
       - name: Upload binary
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: usd-${{ runner.os }}
           path: |
@@ -80,7 +80,7 @@ jobs:
             target/release/usd.exe
 
       - name: Upload Python wheel
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: pxr-rs-wheel-${{ runner.os }}
           path: target/wheels/*.whl
