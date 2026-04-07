@@ -32,6 +32,14 @@ impl PyQuatd {
         if n == 1 {
             let obj = args.get_item(0)?;
             if let Ok(q) = obj.extract::<pyo3::PyRef<'_, PyQuatd>>() { return Ok(Self(q.0)); }
+            if let Ok(q) = obj.extract::<pyo3::PyRef<'_, PyQuatf>>() {
+                let im = q.0.imaginary();
+                return Ok(Self(Quatd::from_components(q.0.real() as f64, im.x as f64, im.y as f64, im.z as f64)));
+            }
+            if let Ok(q) = obj.extract::<pyo3::PyRef<'_, PyQuath>>() {
+                let im = q.0.imaginary();
+                return Ok(Self(Quatd::from_components(q.0.real().to_f32() as f64, im.x.to_f32() as f64, im.y.to_f32() as f64, im.z.to_f32() as f64)));
+            }
             let r: f64 = obj.extract()?;
             return Ok(Self(Quatd::from_components(r, 0.0, 0.0, 0.0)));
         }
@@ -73,11 +81,40 @@ impl PyQuatd {
     }
 
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
+    fn __iadd__(slf: Bound<'_, Self>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let rhs = { let b = o.extract::<PyRef<'_, Self>>()?; b.0 };
+        let lhs = { slf.borrow().0 };
+        slf.borrow_mut().0 = lhs + rhs; Ok(())
+    }
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
-    fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
+    fn __isub__(slf: Bound<'_, Self>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let rhs = { let b = o.extract::<PyRef<'_, Self>>()?; b.0 };
+        let lhs = { slf.borrow().0 };
+        slf.borrow_mut().0 = lhs - rhs; Ok(())
+    }
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(q) = o.extract::<PyRef<'_, Self>>() { return Ok(Self(self.0 * q.0).into_pyobject(py)?.into_any().unbind()); }
+        if let Ok(s) = o.extract::<f64>() { return Ok(Self(self.0 * s).into_pyobject(py)?.into_any().unbind()); }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f64) -> Self { Self(self.0 * s) }
+    fn __imul__(slf: Bound<'_, Self>, py: Python<'_>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        if let Ok(s) = o.extract::<f64>() {
+            let lhs = { slf.borrow().0 };
+            slf.borrow_mut().0 = lhs * s; return Ok(());
+        }
+        let rhs = { let b = o.extract::<PyRef<'_, Self>>()?; b.0 };
+        let lhs = { slf.borrow().0 };
+        slf.borrow_mut().0 = lhs * rhs;
+        let _ = py; Ok(())
+    }
     fn __truediv__(&self, s: f64) -> PyResult<Self> {
         if s == 0.0 { return Err(pyo3::exceptions::PyZeroDivisionError::new_err("division by zero")); }
         Ok(Self(self.0 / s))
+    }
+    fn __itruediv__(&mut self, s: f64) -> PyResult<()> {
+        if s == 0.0 { return Err(pyo3::exceptions::PyZeroDivisionError::new_err("division by zero")); }
+        self.0 = self.0 / s; Ok(())
     }
 
     #[staticmethod] #[pyo3(name = "GetZero")]     fn get_zero() -> Self { Self(Quatd::zero()) }
@@ -92,8 +129,12 @@ impl PyQuatd {
         self.0.set_imaginary(v.0);
     }
     #[pyo3(name = "GetLength")]    fn get_length(&self) -> f64 { self.0.length() }
-    #[pyo3(name = "GetNormalized")] fn get_normalized(&self) -> Self { Self(self.0.normalized()) }
-    #[pyo3(name = "Normalize")]    fn normalize(&mut self) -> f64 { self.0.normalize() }
+    #[pyo3(name = "GetNormalized")]
+    #[pyo3(signature = (eps=f64::MIN_POSITIVE))]
+    fn get_normalized(&self, eps: f64) -> Self { let mut q = self.0; q.normalize_with_eps(eps); Self(q) }
+    #[pyo3(name = "Normalize")]
+    #[pyo3(signature = (eps=f64::MIN_POSITIVE))]
+    fn normalize(&mut self, eps: f64) -> Self { self.0.normalize_with_eps(eps); self.clone() }
     #[pyo3(name = "GetInverse")]   fn get_inverse(&self) -> Self { Self(self.0.inverse()) }
     #[pyo3(name = "GetConjugate")] fn get_conjugate(&self) -> Self { Self(self.0.conjugate()) }
 
@@ -123,6 +164,14 @@ impl PyQuatf {
         if n == 1 {
             let obj = args.get_item(0)?;
             if let Ok(q) = obj.extract::<pyo3::PyRef<'_, PyQuatf>>() { return Ok(Self(q.0)); }
+            if let Ok(q) = obj.extract::<pyo3::PyRef<'_, PyQuatd>>() {
+                let im = q.0.imaginary();
+                return Ok(Self(Quatf::from_components(q.0.real() as f32, im.x as f32, im.y as f32, im.z as f32)));
+            }
+            if let Ok(q) = obj.extract::<pyo3::PyRef<'_, PyQuath>>() {
+                let im = q.0.imaginary();
+                return Ok(Self(Quatf::from_components(q.0.real().to_f32(), im.x.to_f32(), im.y.to_f32(), im.z.to_f32())));
+            }
             let r: f32 = obj.extract()?;
             return Ok(Self(Quatf::from_components(r, 0.0, 0.0, 0.0)));
         }
@@ -168,11 +217,34 @@ impl PyQuatf {
     }
 
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
+    fn __iadd__(slf: Bound<'_, Self>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let rhs = { o.extract::<PyRef<'_, Self>>()?.0 };
+        let lhs = { slf.borrow().0 }; slf.borrow_mut().0 = lhs + rhs; Ok(())
+    }
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
-    fn __mul__(&self, o: &Self) -> Self { Self(self.0 * o.0) }
+    fn __isub__(slf: Bound<'_, Self>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let rhs = { o.extract::<PyRef<'_, Self>>()?.0 };
+        let lhs = { slf.borrow().0 }; slf.borrow_mut().0 = lhs - rhs; Ok(())
+    }
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(q) = o.extract::<PyRef<'_, Self>>() { return Ok(Self(self.0 * q.0).into_pyobject(py)?.into_any().unbind()); }
+        if let Ok(s) = o.extract::<f32>() { return Ok(Self(self.0 * s).into_pyobject(py)?.into_any().unbind()); }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f32) -> Self { Self(self.0 * s) }
+    fn __imul__(slf: Bound<'_, Self>, py: Python<'_>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        if let Ok(s) = o.extract::<f32>() { let l = { slf.borrow().0 }; slf.borrow_mut().0 = l * s; return Ok(()); }
+        let rhs = { o.extract::<PyRef<'_, Self>>()?.0 };
+        let lhs = { slf.borrow().0 }; slf.borrow_mut().0 = lhs * rhs;
+        let _ = py; Ok(())
+    }
     fn __truediv__(&self, s: f32) -> PyResult<Self> {
         if s == 0.0 { return Err(pyo3::exceptions::PyZeroDivisionError::new_err("division by zero")); }
         Ok(Self(self.0 / s))
+    }
+    fn __itruediv__(&mut self, s: f32) -> PyResult<()> {
+        if s == 0.0 { return Err(pyo3::exceptions::PyZeroDivisionError::new_err("division by zero")); }
+        self.0 = self.0 / s; Ok(())
     }
 
     #[staticmethod] #[pyo3(name = "GetZero")]     fn get_zero() -> Self { Self(Quatf::zero()) }
@@ -187,8 +259,12 @@ impl PyQuatf {
         self.0.set_imaginary(v.0);
     }
     #[pyo3(name = "GetLength")]    fn get_length(&self) -> f32 { self.0.length() }
-    #[pyo3(name = "GetNormalized")] fn get_normalized(&self) -> Self { Self(self.0.normalized()) }
-    #[pyo3(name = "Normalize")]    fn normalize(&mut self) -> f32 { self.0.normalize() }
+    #[pyo3(name = "GetNormalized")]
+    #[pyo3(signature = (eps=f32::MIN_POSITIVE))]
+    fn get_normalized(&self, eps: f32) -> Self { let mut q = self.0; q.normalize_with_eps(eps); Self(q) }
+    #[pyo3(name = "Normalize")]
+    #[pyo3(signature = (eps=f32::MIN_POSITIVE))]
+    fn normalize(&mut self, eps: f32) -> Self { self.0.normalize_with_eps(eps); self.clone() }
     #[pyo3(name = "GetInverse")]   fn get_inverse(&self) -> Self { Self(self.0.inverse()) }
     #[pyo3(name = "GetConjugate")] fn get_conjugate(&self) -> Self { Self(self.0.conjugate()) }
 
@@ -218,6 +294,15 @@ impl PyQuath {
         if n == 1 {
             let obj = args.get_item(0)?;
             if let Ok(q) = obj.extract::<pyo3::PyRef<'_, PyQuath>>() { return Ok(Self(q.0)); }
+            // Cross-type: Quath(Quatf) or Quath(Quatd)
+            if let Ok(q) = obj.extract::<pyo3::PyRef<'_, PyQuatf>>() {
+                let im = q.0.imaginary();
+                return Ok(Self(Quath::from_components(Half::from_f32(q.0.real()), Half::from_f32(im.x), Half::from_f32(im.y), Half::from_f32(im.z))));
+            }
+            if let Ok(q) = obj.extract::<pyo3::PyRef<'_, PyQuatd>>() {
+                let im = q.0.imaginary();
+                return Ok(Self(Quath::from_components(Half::from_f32(q.0.real() as f32), Half::from_f32(im.x as f32), Half::from_f32(im.y as f32), Half::from_f32(im.z as f32))));
+            }
             let r: f32 = obj.extract()?;
             return Ok(Self(Quath::from_components(Half::from_f32(r), Half::from_f32(0.0), Half::from_f32(0.0), Half::from_f32(0.0))));
         }
@@ -268,8 +353,12 @@ impl PyQuath {
     #[pyo3(name = "GetReal")]      fn get_real(&self) -> f32 { self.0.real().to_f32() }
     #[pyo3(name = "SetReal")]      fn set_real(&mut self, v: f32) { self.0.set_real(Half::from_f32(v)); }
     #[pyo3(name = "GetLength")]    fn get_length(&self) -> f32 { self.0.length().to_f32() }
-    #[pyo3(name = "GetNormalized")] fn get_normalized(&self) -> Self { Self(self.0.normalized()) }
-    #[pyo3(name = "Normalize")]    fn normalize(&mut self) -> f32 { self.0.normalize().to_f32() }
+    #[pyo3(name = "GetNormalized")]
+    #[pyo3(signature = (eps=f32::MIN_POSITIVE))]
+    fn get_normalized(&self, eps: f32) -> Self { let mut q = self.0; q.normalize_with_eps(Half::from_f32(eps)); Self(q) }
+    #[pyo3(name = "Normalize")]
+    #[pyo3(signature = (eps=f32::MIN_POSITIVE))]
+    fn normalize(&mut self, eps: f32) -> Self { self.0.normalize_with_eps(Half::from_f32(eps)); self.clone() }
     #[pyo3(name = "GetInverse")]   fn get_inverse(&self) -> Self { Self(self.0.inverse()) }
 
     #[getter] fn real(&self) -> f32 { self.0.real().to_f32() }
@@ -283,6 +372,37 @@ impl PyQuath {
     #[getter] fn imaginary(&self) -> super::vec::PyVec3h { super::vec::PyVec3h(*self.0.imaginary()) }
     #[setter(imaginary)] fn set_imaginary_prop(&mut self, v: &super::vec::PyVec3h) {
         self.0.set_imaginary(v.0);
+    }
+
+    fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
+    fn __iadd__(slf: Bound<'_, Self>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let rhs = { o.extract::<PyRef<'_, Self>>()?.0 };
+        let lhs = { slf.borrow().0 }; slf.borrow_mut().0 = lhs + rhs; Ok(())
+    }
+    fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
+    fn __isub__(slf: Bound<'_, Self>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let rhs = { o.extract::<PyRef<'_, Self>>()?.0 };
+        let lhs = { slf.borrow().0 }; slf.borrow_mut().0 = lhs - rhs; Ok(())
+    }
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(q) = o.extract::<PyRef<'_, Self>>() { return Ok(Self(self.0 * q.0).into_pyobject(py)?.into_any().unbind()); }
+        if let Ok(s) = o.extract::<f32>() { return Ok(Self(self.0 * Half::from_f32(s)).into_pyobject(py)?.into_any().unbind()); }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f32) -> Self { Self(self.0 * Half::from_f32(s)) }
+    fn __imul__(slf: Bound<'_, Self>, py: Python<'_>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        if let Ok(s) = o.extract::<f32>() { let l = { slf.borrow().0 }; slf.borrow_mut().0 = l * Half::from_f32(s); return Ok(()); }
+        let rhs = { o.extract::<PyRef<'_, Self>>()?.0 };
+        let lhs = { slf.borrow().0 }; slf.borrow_mut().0 = lhs * rhs;
+        let _ = py; Ok(())
+    }
+    fn __truediv__(&self, s: f32) -> PyResult<Self> {
+        if s == 0.0 { return Err(pyo3::exceptions::PyZeroDivisionError::new_err("division by zero")); }
+        Ok(Self(self.0 / Half::from_f32(s)))
+    }
+    fn __itruediv__(&mut self, s: f32) -> PyResult<()> {
+        if s == 0.0 { return Err(pyo3::exceptions::PyZeroDivisionError::new_err("division by zero")); }
+        self.0 = self.0 / Half::from_f32(s); Ok(())
     }
 }
 
@@ -365,7 +485,7 @@ impl PyQuaternion {
     fn get_normalized(&self, eps: f64) -> Self { Self(self.0.normalized(eps)) }
     #[pyo3(name = "Normalize")]
     #[pyo3(signature = (eps=1e-10))]
-    fn normalize(&mut self, eps: f64) -> f64 { self.0.normalize(eps) }
+    fn normalize(&mut self, eps: f64) -> Self { self.0.normalize(eps); self.clone() }
     #[pyo3(name = "GetInverse")]   fn get_inverse(&self) -> Self { Self(self.0.get_inverse()) }
     // Quaternion (legacy) has no conjugate method; implement manually
     #[pyo3(name = "GetConjugate")] fn get_conjugate(&self) -> Self {
@@ -387,20 +507,30 @@ impl PyQuaternion {
         let im = self.0.imaginary();
         Self(Quaternion::new(self.0.real() * s, usd_gf::vec3::Vec3d::new(im.x * s, im.y * s, im.z * s)))
     }
-    fn __imul__(&mut self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
-        if let Ok(q) = o.extract::<pyo3::PyRef<'_, PyQuaternion>>() {
-            self.0 = self.0 * q.0; return Ok(());
-        }
+    fn __imul__(slf: Bound<'_, Self>, py: Python<'_>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
         if let Ok(s) = o.extract::<f64>() {
-            let im = self.0.imaginary();
-            self.0 = Quaternion::new(self.0.real() * s, usd_gf::vec3::Vec3d::new(im.x * s, im.y * s, im.z * s));
+            let mut m = slf.borrow_mut();
+            let im = m.0.imaginary();
+            m.0 = Quaternion::new(m.0.real() * s, usd_gf::vec3::Vec3d::new(im.x * s, im.y * s, im.z * s));
             return Ok(());
         }
-        let _ = py;
-        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *="))
+        let rhs = { o.extract::<PyRef<'_, Self>>()?.0 };
+        let mut m = slf.borrow_mut();
+        m.0 = m.0 * rhs;
+        let _ = py; Ok(())
     }
     fn __add__(&self, o: &Self) -> Self { Self(self.0 + o.0) }
+    fn __iadd__(slf: Bound<'_, Self>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let rhs = { o.extract::<PyRef<'_, Self>>()?.0 };
+        let mut m = slf.borrow_mut();
+        m.0 = m.0 + rhs; Ok(())
+    }
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
+    fn __isub__(slf: Bound<'_, Self>, o: Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        let rhs = { o.extract::<PyRef<'_, Self>>()?.0 };
+        let mut m = slf.borrow_mut();
+        m.0 = m.0 - rhs; Ok(())
+    }
     fn __neg__(&self) -> Self {
         let im = self.0.imaginary();
         Self(Quaternion::new(-self.0.real(), usd_gf::vec3::Vec3d::new(-im.x, -im.y, -im.z)))
@@ -409,6 +539,12 @@ impl PyQuaternion {
         if s == 0.0 { return Err(pyo3::exceptions::PyZeroDivisionError::new_err("division by zero")); }
         let im = self.0.imaginary();
         Ok(Self(Quaternion::new(self.0.real() / s, usd_gf::vec3::Vec3d::new(im.x / s, im.y / s, im.z / s))))
+    }
+    fn __itruediv__(&mut self, s: f64) -> PyResult<()> {
+        if s == 0.0 { return Err(pyo3::exceptions::PyZeroDivisionError::new_err("division by zero")); }
+        let im = self.0.imaginary();
+        self.0 = Quaternion::new(self.0.real() / s, usd_gf::vec3::Vec3d::new(im.x / s, im.y / s, im.z / s));
+        Ok(())
     }
 
     #[getter] fn real(&self) -> f64 { self.0.real() }

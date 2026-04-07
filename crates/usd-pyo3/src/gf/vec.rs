@@ -21,6 +21,17 @@ pub(super) fn norm_idx(i: isize, len: usize) -> PyResult<usize> {
     }
 }
 
+/// Validate that `vals` length matches `indices` length for slice assignment.
+pub(super) fn check_slice_len<T>(vals: &[T], indices: &[usize]) -> PyResult<()> {
+    if vals.len() != indices.len() {
+        return Err(PyValueError::new_err(format!(
+            "attempt to assign sequence of size {} to extended slice of size {}",
+            vals.len(), indices.len()
+        )));
+    }
+    Ok(())
+}
+
 /// Resolve a Python slice(start, stop, step) for a vector of `len` elements.
 /// Returns the indices to include.
 pub(super) fn resolve_slice(py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, len: usize) -> PyResult<Option<Vec<usize>>> {
@@ -97,6 +108,7 @@ impl PyVec2d {
         let elems = [&mut self.0.x, &mut self.0.y];
         if let Some(indices) = resolve_slice(py, key, 2)? {
             let vals: Vec<f64> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
             return Ok(());
         }
@@ -200,6 +212,7 @@ impl PyVec2f {
         let elems = [&mut self.0.x, &mut self.0.y];
         if let Some(indices) = resolve_slice(py, key, 2)? {
             let vals: Vec<f32> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
             return Ok(());
         }
@@ -291,6 +304,7 @@ impl PyVec2h {
     fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
         if let Some(indices) = resolve_slice(py, key, 2)? {
             let vals: Vec<f32> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             let elems = [&mut self.0.x, &mut self.0.y];
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = Half::from_f32(vals[idx]); }
             return Ok(());
@@ -372,6 +386,7 @@ impl PyVec2i {
         let elems = [&mut self.0.x, &mut self.0.y];
         if let Some(indices) = resolve_slice(py, key, 2)? {
             let vals: Vec<i32> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
             return Ok(());
         }
@@ -476,6 +491,7 @@ impl PyVec3d {
         let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z];
         if let Some(indices) = resolve_slice(py, key, 3)? {
             let vals: Vec<f64> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
             return Ok(());
         }
@@ -605,6 +621,7 @@ impl PyVec3f {
         let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z];
         if let Some(indices) = resolve_slice(py, key, 3)? {
             let vals: Vec<f32> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
             return Ok(());
         }
@@ -720,6 +737,7 @@ impl PyVec3h {
     fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
         if let Some(indices) = resolve_slice(py, key, 3)? {
             let vals: Vec<f32> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z];
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = Half::from_f32(vals[idx]); }
             return Ok(());
@@ -886,6 +904,7 @@ impl PyVec4d {
         let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z, &mut self.0.w];
         if let Some(indices) = resolve_slice(py, key, 4)? {
             let vals: Vec<f64> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
             return Ok(());
         }
@@ -987,6 +1006,7 @@ impl PyVec4f {
         let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z, &mut self.0.w];
         if let Some(indices) = resolve_slice(py, key, 4)? {
             let vals: Vec<f32> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
             return Ok(());
         }
@@ -1091,6 +1111,7 @@ impl PyVec4h {
     fn __setitem__(&mut self, py: Python<'_>, key: &Bound<'_, pyo3::PyAny>, val: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
         if let Some(indices) = resolve_slice(py, key, 4)? {
             let vals: Vec<f32> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z, &mut self.0.w];
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = Half::from_f32(vals[idx]); }
             return Ok(());
@@ -1164,6 +1185,7 @@ impl PyVec4i {
         let elems = [&mut self.0.x, &mut self.0.y, &mut self.0.z, &mut self.0.w];
         if let Some(indices) = resolve_slice(py, key, 4)? {
             let vals: Vec<i32> = val.extract()?;
+            check_slice_len(&vals, &indices)?;
             for (idx, &i) in indices.iter().enumerate() { *elems[i] = vals[idx]; }
             return Ok(());
         }

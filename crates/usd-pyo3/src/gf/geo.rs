@@ -169,7 +169,7 @@ impl PyRotation {
         if let Ok(vf) = v.extract::<PyRef<'_, super::vec::PyVec3f>>() {
             let d = usd_gf::Vec3d::new(vf.0.x as f64, vf.0.y as f64, vf.0.z as f64);
             let rd = self.0.transform_dir(&d);
-            return Ok(super::vec::PyVec3f(usd_gf::Vec3f::new(rd.x as f32, rd.y as f32, rd.z as f32)).into_pyobject(py)?.into_any().unbind());
+            return Ok(super::vec::PyVec3d(rd).into_pyobject(py)?.into_any().unbind());
         }
         Err(PyTypeError::new_err("TransformDir: expected Vec3d or Vec3f"))
     }
