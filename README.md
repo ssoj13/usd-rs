@@ -34,15 +34,30 @@ A few points setting the right context:
 
 ## What works
 
-**File I/O** — USDA parser/writer, USDC binary reader, USDZ package handling, Alembic reader. Open, compose, traverse, and export USD files.
+**File I/O** — USDA parser/writer, USDC binary reader/writer, USDZ package handling, Alembic reader. Open, compose, traverse, export, and round-trip USD files.
 
-**Composition** — LIVRPS arcs (Local, Inherits, VariantSets, References, Payloads, Specializes). PcpCache, PrimIndex, layer stack composition, sublayers, layer offsets, variant selections.
+**Composition** — Full LIVRPS arcs (Local, Inherits, VariantSets, References, Payloads, Specializes). PcpCache, PrimIndex, layer stack composition, sublayers, layer offsets, variant selections, parallel composition via rayon.
 
-**Stage API** — Stage.Open, Traverse, DefinePrim, attribute authoring, time samples, instancing (native + point instancer), edit targets, population masks.
+**Stage API** — Stage.Open, Traverse, DefinePrim, attribute authoring, time samples, instancing (native + point instancer), edit targets, population masks, load rules.
 
-**Schemas** — UsdGeom (Mesh, BasisCurves, Points, Xformable, Camera, PointInstancer, BBoxCache, Primvar), UsdShade (Material, Shader, ConnectableAPI, MaterialBindingAPI), UsdLux (all light types, LightListAPI, ShapingAPI, ShadowAPI), UsdSkel (Skeleton, Animation, skinning).
+**Schemas** — All USD schema domains are ported:
+- UsdGeom (Mesh, BasisCurves, Points, NurbsPatch, Xformable, Camera, PointInstancer, BBoxCache, XformCache, Primvar, Subset, MotionAPI)
+- UsdShade (Material, Shader, NodeGraph, ConnectableAPI, MaterialBindingAPI, CoordSysAPI)
+- UsdLux (all light types, LightListAPI, ShapingAPI, ShadowAPI, MeshLightAPI, VolumeLightAPI)
+- UsdSkel (Skeleton, Animation, BindingAPI, BlendShape, Cache, SkinningQuery)
+- UsdVol (Volume, VolumeFieldBase, OpenVDBAsset, Field3DAsset)
+- UsdPhysics (RigidBodyAPI, CollisionAPI, Joint types, MassAPI, MaterialAPI, Scene)
+- UsdRender (Settings, Product, Pass, Var)
+- UsdUI (NodeGraphNodeAPI, SceneGraphPrimAPI, Backdrop, AccessibilityAPI)
+- UsdMedia (SpatialAudio, AssetPreviewsAPI)
+- UsdProc (GenerativeProcedural)
+- UsdRi (MaterialAPI, SplineAPI, StatementsAPI)
+- UsdSemantics (LabelsAPI, LabelsQuery)
+- UsdHydra (GenerativeProceduralAPI)
 
-**Hydra / Rendering** — Scene index chain (flattening, material binding, visibility, instancing), Storm-equivalent renderer via wgpu (DX12/Vulkan), mesh sync, draw batching, implicit surface synthesis, subdivision surfaces via OpenSubdiv port.
+**Hydra / Rendering** — Scene index chain (flattening, material binding, visibility, instancing), Storm-equivalent renderer via wgpu (DX12/Vulkan/Metal), mesh sync, draw batching, implicit surface synthesis, subdivision surfaces via OpenSubdiv port.
+
+**Validation** — USD scene validation framework (usd-validation crate).
 
 **Viewer** — egui-based GUI with 3D viewport, prim tree, attribute inspector, layer stack, composition arcs, playback, selection, hot-reload, persistence.
 
