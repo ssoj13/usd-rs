@@ -274,6 +274,46 @@ impl PyMatrix3d {
         super::geo::PyRotation(self.0.extract_rotation())
     }
 
+    #[pyo3(name = "GetHandedness")]
+    fn get_handedness(&self) -> f64 { self.0.handedness() }
+
+    #[pyo3(name = "IsLeftHanded")]
+    fn is_left_handed(&self) -> bool { self.0.is_left_handed() }
+
+    #[pyo3(name = "IsRightHanded")]
+    fn is_right_handed(&self) -> bool { !self.0.is_left_handed() }
+
+    /// SetScale — accepts a scalar or Vec3d
+    #[pyo3(name = "SetScale")]
+    fn set_scale(&mut self, py: Python<'_>, s: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        if let Ok(v) = s.extract::<pyo3::PyRef<'_, super::vec::PyVec3d>>() {
+            self.0.set_scale_nonuniform(&v.0);
+            return Ok(self.clone());
+        }
+        if let Ok(f) = s.extract::<f64>() {
+            self.0.set_scale_uniform(f);
+            return Ok(self.clone());
+        }
+        let _ = py;
+        Err(pyo3::exceptions::PyTypeError::new_err("SetScale: expected scalar or Vec3d"))
+    }
+
+    /// SetRotate — accepts Rotation, Quatd, or Matrix3d
+    #[pyo3(name = "SetRotate")]
+    fn set_rotate(&mut self, py: Python<'_>, rot: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        if let Ok(r) = rot.extract::<pyo3::PyRef<'_, super::geo::PyRotation>>() {
+            let m = r.0.get_matrix3();
+            self.0 = m;
+            return Ok(self.clone());
+        }
+        if let Ok(q) = rot.extract::<pyo3::PyRef<'_, super::quat::PyQuatd>>() {
+            self.0.set_rotate_quat(&q.0);
+            return Ok(self.clone());
+        }
+        let _ = py;
+        Err(pyo3::exceptions::PyTypeError::new_err("SetRotate: expected Rotation or Quatd"))
+    }
+
     #[staticmethod]
     #[pyo3(name = "RotationMatrix")]
     fn rotation_matrix(axis: &super::vec::PyVec3d, angle_deg: f64) -> Self {
@@ -384,6 +424,14 @@ impl PyMatrix4d {
         if n == 2 {
             let a0 = args.get_item(0)?;
             let a1 = args.get_item(1)?;
+            // Matrix4d(Rotation, Vec3d) — rotation + translation
+            if let Ok(rot) = a0.extract::<PyRef<'_, super::geo::PyRotation>>() {
+                let mut m4 = rot.0.get_matrix4();
+                if let Ok(t) = a1.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+                    m4[3][0] = t.0.x; m4[3][1] = t.0.y; m4[3][2] = t.0.z;
+                }
+                return Ok(Self(m4));
+            }
             // Matrix4d(Matrix3d, Vec3d) — rotation + translation
             if let Ok(m3) = a0.extract::<PyRef<'_, PyMatrix3d>>() {
                 let mut m4 = Matrix4d::identity();
@@ -496,6 +544,27 @@ impl PyMatrix4d {
 
     #[pyo3(name = "GetHandedness")]
     fn get_handedness(&self) -> f64 { self.0.handedness() }
+
+    #[pyo3(name = "IsLeftHanded")]
+    fn is_left_handed(&self) -> bool { self.0.is_left_handed() }
+
+    #[pyo3(name = "IsRightHanded")]
+    fn is_right_handed(&self) -> bool { !self.0.is_left_handed() }
+
+    /// SetScale — accepts a scalar or Vec3d
+    #[pyo3(name = "SetScale")]
+    fn set_scale(&mut self, py: Python<'_>, s: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        if let Ok(v) = s.extract::<pyo3::PyRef<'_, super::vec::PyVec3d>>() {
+            self.0.set_scale_vec(&v.0);
+            return Ok(self.clone());
+        }
+        if let Ok(f) = s.extract::<f64>() {
+            self.0.set_scale(f);
+            return Ok(self.clone());
+        }
+        let _ = py;
+        Err(pyo3::exceptions::PyTypeError::new_err("SetScale: expected scalar or Vec3d"))
+    }
 
     /// SetRotate — accepts Rotation, Quatd, or Matrix3d
     #[pyo3(name = "SetRotate")]

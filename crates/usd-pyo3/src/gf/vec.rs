@@ -273,17 +273,56 @@ pub struct PyVec3d(pub usd_gf::Vec3d);
 
 #[pymethods]
 impl PyVec3d {
+    /// Vec3d(), Vec3d(scalar), Vec3d(x,y,z), Vec3d(Vec3d), Vec3d(Vec3f), Vec3d(Vec3h), Vec3d(Vec3i),
+    /// Vec3d((x,y,z)), Vec3d([x,y,z])
     #[new]
-    #[pyo3(signature = (x=0.0, y=0.0, z=0.0))]
-    fn new(x: f64, y: f64, z: f64) -> Self { Self(usd_gf::Vec3d::new(x, y, z)) }
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(usd_gf::Vec3d::new(0.0,0.0,0.0))); }
+        if n == 3 {
+            let x: f64 = args.get_item(0)?.extract()?;
+            let y: f64 = args.get_item(1)?.extract()?;
+            let z: f64 = args.get_item(2)?.extract()?;
+            return Ok(Self(usd_gf::Vec3d::new(x,y,z)));
+        }
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            // Copy constructor
+            if let Ok(v) = obj.extract::<PyRef<'_, PyVec3d>>() { return Ok(Self(v.0)); }
+            // Cross-type constructors
+            if let Ok(v) = obj.extract::<PyRef<'_, PyVec3f>>() { return Ok(Self(usd_gf::Vec3d::new(v.0.x as f64, v.0.y as f64, v.0.z as f64))); }
+            if let Ok(v) = obj.extract::<PyRef<'_, PyVec3h>>() { return Ok(Self(usd_gf::Vec3d::new(v.0.x.to_f32() as f64, v.0.y.to_f32() as f64, v.0.z.to_f32() as f64))); }
+            if let Ok(v) = obj.extract::<PyRef<'_, PyVec3i>>() { return Ok(Self(usd_gf::Vec3d::new(v.0.x as f64, v.0.y as f64, v.0.z as f64))); }
+            // Tuple/list
+            if let Ok(seq) = obj.extract::<Vec<f64>>() {
+                if seq.len() == 3 { return Ok(Self(usd_gf::Vec3d::new(seq[0], seq[1], seq[2]))); }
+            }
+            // Single scalar → broadcast
+            if let Ok(s) = obj.extract::<f64>() { return Ok(Self(usd_gf::Vec3d::new(s,s,s))); }
+        }
+        Err(PyValueError::new_err("Vec3d: expected (), (scalar), (x,y,z), Vec3d, Vec3f, Vec3h, Vec3i, or sequence"))
+    }
 
     fn __repr__(&self) -> String { format!("Gf.Vec3d({}, {}, {})", self.0.x, self.0.y, self.0.z) }
     fn __str__(&self) -> String  { format!("({}, {}, {})", self.0.x, self.0.y, self.0.z) }
     fn __len__(&self) -> usize { 3 }
-    fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
-    fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
+    fn __eq__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> bool {
+        if let Ok(v) = o.extract::<PyRef<'_, PyVec3d>>() { return self.0 == v.0; }
+        if let Ok(v) = o.extract::<PyRef<'_, PyVec3i>>() { return self.0.x == v.0.x as f64 && self.0.y == v.0.y as f64 && self.0.z == v.0.z as f64; }
+        if let Ok(v) = o.extract::<PyRef<'_, PyVec3f>>() { return self.0.x == v.0.x as f64 && self.0.y == v.0.y as f64 && self.0.z == v.0.z as f64; }
+        if let Ok(v) = o.extract::<PyRef<'_, PyVec3h>>() { return self.0.x == v.0.x.to_f32() as f64 && self.0.y == v.0.y.to_f32() as f64 && self.0.z == v.0.z.to_f32() as f64; }
+        let _ = py;
+        false
+    }
+    fn __ne__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> bool { !self.__eq__(py, o) }
     fn __hash__(&self) -> u64 { hash3(self.0.x.to_bits(), self.0.y.to_bits(), self.0.z.to_bits()) }
     fn __neg__(&self) -> Self { Self(usd_gf::Vec3d::new(-self.0.x, -self.0.y, -self.0.z)) }
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<pyo3::PyAny>> {
+        let vals: Vec<f64> = vec![slf.0.x, slf.0.y, slf.0.z];
+        pyo3::types::PyList::new(slf.py(), vals).map(|l| l.call_method0("__iter__").unwrap().unbind())
+    }
+    fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec3d to int")) }
 
     fn __getitem__(&self, i: isize) -> PyResult<f64> {
         match norm_idx(i,3)? { 0=>Ok(self.0.x), 1=>Ok(self.0.y), 2=>Ok(self.0.z), _=>unreachable!() }
@@ -296,12 +335,24 @@ impl PyVec3d {
     fn __xor__(&self, o: &Self) -> Self { Self(self.0.cross(&o.0)) }
 
     fn __add__(&self, o: &Self) -> Self { Self(usd_gf::Vec3d::new(self.0.x+o.0.x,self.0.y+o.0.y,self.0.z+o.0.z)) }
+    fn __iadd__(&mut self, o: &Self) { self.0.x+=o.0.x; self.0.y+=o.0.y; self.0.z+=o.0.z; }
     fn __sub__(&self, o: &Self) -> Self { Self(usd_gf::Vec3d::new(self.0.x-o.0.x,self.0.y-o.0.y,self.0.z-o.0.z)) }
-    fn __mul__(&self, s: f64) -> Self { Self(usd_gf::Vec3d::new(self.0.x*s,self.0.y*s,self.0.z*s)) }
-    fn __rmul__(&self, s: f64) -> Self { self.__mul__(s) }
+    fn __isub__(&mut self, o: &Self) { self.0.x-=o.0.x; self.0.y-=o.0.y; self.0.z-=o.0.z; }
+    /// v * scalar → scale, v * vec → dot product
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(v) = o.extract::<PyRef<'_, PyVec3d>>() { return Ok(self.0.dot(&v.0).into_pyobject(py)?.into_any().unbind()); }
+        if let Ok(s) = o.extract::<f64>() { return Ok(Self(usd_gf::Vec3d::new(self.0.x*s,self.0.y*s,self.0.z*s)).into_pyobject(py)?.into_any().unbind()); }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f64) -> Self { Self(usd_gf::Vec3d::new(self.0.x*s,self.0.y*s,self.0.z*s)) }
+    fn __imul__(&mut self, s: f64) { self.0.x*=s; self.0.y*=s; self.0.z*=s; }
     fn __truediv__(&self, s: f64) -> PyResult<Self> {
         if s==0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
         Ok(Self(usd_gf::Vec3d::new(self.0.x/s,self.0.y/s,self.0.z/s)))
+    }
+    fn __itruediv__(&mut self, s: f64) -> PyResult<()> {
+        if s==0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
+        self.0.x/=s; self.0.y/=s; self.0.z/=s; Ok(())
     }
 
     #[staticmethod] #[pyo3(name = "XAxis")] fn x_axis() -> Self { Self(usd_gf::Vec3d::new(1.0,0.0,0.0)) }
@@ -348,17 +399,45 @@ pub struct PyVec3f(pub usd_gf::Vec3f);
 #[pymethods]
 impl PyVec3f {
     #[new]
-    #[pyo3(signature = (x=0.0, y=0.0, z=0.0))]
-    fn new(x: f32, y: f32, z: f32) -> Self { Self(usd_gf::Vec3f::new(x, y, z)) }
+    #[pyo3(signature = (*args))]
+    fn new(args: &Bound<'_, pyo3::types::PyTuple>) -> PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(usd_gf::Vec3f::new(0.0,0.0,0.0))); }
+        if n == 3 {
+            let x: f32 = args.get_item(0)?.extract()?;
+            let y: f32 = args.get_item(1)?.extract()?;
+            let z: f32 = args.get_item(2)?.extract()?;
+            return Ok(Self(usd_gf::Vec3f::new(x,y,z)));
+        }
+        if n == 1 {
+            let obj = args.get_item(0)?;
+            if let Ok(v) = obj.extract::<PyRef<'_, PyVec3f>>() { return Ok(Self(v.0)); }
+            if let Ok(v) = obj.extract::<PyRef<'_, PyVec3d>>() { return Ok(Self(usd_gf::Vec3f::new(v.0.x as f32, v.0.y as f32, v.0.z as f32))); }
+            if let Ok(v) = obj.extract::<PyRef<'_, PyVec3h>>() { return Ok(Self(usd_gf::Vec3f::new(v.0.x.to_f32(), v.0.y.to_f32(), v.0.z.to_f32()))); }
+            if let Ok(v) = obj.extract::<PyRef<'_, PyVec3i>>() { return Ok(Self(usd_gf::Vec3f::new(v.0.x as f32, v.0.y as f32, v.0.z as f32))); }
+            if let Ok(seq) = obj.extract::<Vec<f32>>() { if seq.len()==3 { return Ok(Self(usd_gf::Vec3f::new(seq[0],seq[1],seq[2]))); } }
+            if let Ok(s) = obj.extract::<f32>() { return Ok(Self(usd_gf::Vec3f::new(s,s,s))); }
+        }
+        Err(PyValueError::new_err("Vec3f: unsupported constructor"))
+    }
 
     fn __repr__(&self) -> String { format!("Gf.Vec3f({}, {}, {})", self.0.x, self.0.y, self.0.z) }
     fn __str__(&self) -> String  { format!("({}, {}, {})", self.0.x, self.0.y, self.0.z) }
     fn __len__(&self) -> usize { 3 }
-    fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
-    fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
+    fn __eq__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> bool {
+        if let Ok(v) = o.extract::<PyRef<'_, PyVec3f>>() { return self.0 == v.0; }
+        if let Ok(v) = o.extract::<PyRef<'_, PyVec3i>>() { return self.0.x == v.0.x as f32 && self.0.y == v.0.y as f32 && self.0.z == v.0.z as f32; }
+        let _ = py; false
+    }
+    fn __ne__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> bool { !self.__eq__(py, o) }
     fn __hash__(&self) -> u64 { hash3(self.0.x.to_bits() as u64, self.0.y.to_bits() as u64, self.0.z.to_bits() as u64) }
     fn __neg__(&self) -> Self { Self(usd_gf::Vec3f::new(-self.0.x,-self.0.y,-self.0.z)) }
     fn __xor__(&self, o: &Self) -> Self { Self(self.0.cross(&o.0)) }
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<pyo3::PyAny>> {
+        let vals: Vec<f32> = vec![slf.0.x, slf.0.y, slf.0.z];
+        pyo3::types::PyList::new(slf.py(), vals).map(|l| l.call_method0("__iter__").unwrap().unbind())
+    }
+    fn __int__(&self) -> PyResult<i64> { Err(PyValueError::new_err("cannot convert Vec3f to int")) }
 
     fn __getitem__(&self, i: isize) -> PyResult<f32> {
         match norm_idx(i,3)? { 0=>Ok(self.0.x), 1=>Ok(self.0.y), 2=>Ok(self.0.z), _=>unreachable!() }
@@ -370,12 +449,23 @@ impl PyVec3f {
     fn __contains__(&self, v: f32) -> bool { self.0.x==v || self.0.y==v || self.0.z==v }
 
     fn __add__(&self, o: &Self) -> Self { Self(usd_gf::Vec3f::new(self.0.x+o.0.x,self.0.y+o.0.y,self.0.z+o.0.z)) }
+    fn __iadd__(&mut self, o: &Self) { self.0.x+=o.0.x; self.0.y+=o.0.y; self.0.z+=o.0.z; }
     fn __sub__(&self, o: &Self) -> Self { Self(usd_gf::Vec3f::new(self.0.x-o.0.x,self.0.y-o.0.y,self.0.z-o.0.z)) }
-    fn __mul__(&self, s: f32) -> Self { Self(usd_gf::Vec3f::new(self.0.x*s,self.0.y*s,self.0.z*s)) }
-    fn __rmul__(&self, s: f32) -> Self { self.__mul__(s) }
+    fn __isub__(&mut self, o: &Self) { self.0.x-=o.0.x; self.0.y-=o.0.y; self.0.z-=o.0.z; }
+    fn __mul__(&self, py: Python<'_>, o: &Bound<'_, pyo3::PyAny>) -> PyResult<Py<pyo3::PyAny>> {
+        if let Ok(v) = o.extract::<PyRef<'_, PyVec3f>>() { return Ok(self.0.dot(&v.0).into_pyobject(py)?.into_any().unbind()); }
+        if let Ok(s) = o.extract::<f32>() { return Ok(Self(usd_gf::Vec3f::new(self.0.x*s,self.0.y*s,self.0.z*s)).into_pyobject(py)?.into_any().unbind()); }
+        Err(pyo3::exceptions::PyTypeError::new_err("unsupported operand type for *"))
+    }
+    fn __rmul__(&self, s: f32) -> Self { Self(usd_gf::Vec3f::new(self.0.x*s,self.0.y*s,self.0.z*s)) }
+    fn __imul__(&mut self, s: f32) { self.0.x*=s; self.0.y*=s; self.0.z*=s; }
     fn __truediv__(&self, s: f32) -> PyResult<Self> {
         if s==0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
         Ok(Self(usd_gf::Vec3f::new(self.0.x/s,self.0.y/s,self.0.z/s)))
+    }
+    fn __itruediv__(&mut self, s: f32) -> PyResult<()> {
+        if s==0.0 { return Err(PyZeroDivisionError::new_err("division by zero")); }
+        self.0.x/=s; self.0.y/=s; self.0.z/=s; Ok(())
     }
 
     #[staticmethod] #[pyo3(name = "XAxis")] fn x_axis() -> Self { Self(usd_gf::Vec3f::new(1.0,0.0,0.0)) }

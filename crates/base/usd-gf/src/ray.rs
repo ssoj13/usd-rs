@@ -333,12 +333,7 @@ impl Ray {
             }
         }
 
-        // Ray must intersect in forward direction
-        if t_max < 0.0 {
-            return None;
-        }
-
-        Some((t_min.max(0.0), t_max))
+        Some((t_min, t_max))
     }
 
     /// Intersects ray with an oriented bounding box (BBox3d).
@@ -526,22 +521,35 @@ impl Ray {
 
         let w = 1.0 - u - v;
         let barycentric = Vec3d::new(w, u, v);
-        let front_facing = a < 0.0;
+        let front_facing = a > 0.0;
 
         Some((t, barycentric, front_facing))
     }
 
     /// Solves the quadratic equation ax^2 + bx + c = 0.
     ///
-    /// Returns Some((t1, t2)) where t1 <= t2, both non-negative.
+    /// Returns Some((t1, t2)) where t1 <= t2. Negative values are valid
+    /// (they indicate intersections behind the ray origin).
+    /// Returns None only when there is no real solution (discriminant < 0)
+    /// or when the quadratic is degenerate (a == 0 and b == 0).
     fn solve_quadratic(&self, a: f64, b: f64, c: f64) -> Option<(f64, f64)> {
+        // Degenerate: linear equation bx + c = 0
+        if a.abs() < f64::EPSILON {
+            if b.abs() < f64::EPSILON {
+                // c == 0 means all points are solutions (degenerate)
+                return if c.abs() < f64::EPSILON { None } else { None };
+            }
+            let t = -c / b;
+            return Some((t, t));
+        }
+
         let discriminant = b * b - 4.0 * a * c;
 
-        if discriminant < 0.0 {
+        if discriminant < -1e-10 {
             return None;
         }
 
-        let sqrt_d = discriminant.sqrt();
+        let sqrt_d = discriminant.max(0.0).sqrt();
         let inv_2a = 1.0 / (2.0 * a);
 
         let mut t1 = (-b - sqrt_d) * inv_2a;
@@ -551,12 +559,7 @@ impl Ray {
             std::mem::swap(&mut t1, &mut t2);
         }
 
-        // Both must be forward
-        if t2 < 0.0 {
-            return None;
-        }
-
-        Some((t1.max(0.0), t2))
+        Some((t1, t2))
     }
 }
 

@@ -22,10 +22,31 @@ pub struct PyQuatd(pub Quatd);
 
 #[pymethods]
 impl PyQuatd {
+    /// Quatd(), Quatd(real), Quatd(real, i, j, k), Quatd(real, Vec3d)
     #[new]
-    #[pyo3(signature = (real=1.0, i=0.0, j=0.0, k=0.0))]
-    fn new(real: f64, i: f64, j: f64, k: f64) -> Self {
-        Self(Quatd::from_components(real, i, j, k))
+    #[pyo3(signature = (*args))]
+    fn new(args: &pyo3::Bound<'_, pyo3::types::PyTuple>) -> pyo3::PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Quatd::identity())); }
+        if n == 1 {
+            let r: f64 = args.get_item(0)?.extract()?;
+            return Ok(Self(Quatd::from_components(r, 0.0, 0.0, 0.0)));
+        }
+        if n == 2 {
+            let r: f64 = args.get_item(0)?.extract()?;
+            if let Ok(v) = args.get_item(1)?.extract::<pyo3::PyRef<'_, super::vec::PyVec3d>>() {
+                return Ok(Self(Quatd::from_components(r, v.0.x, v.0.y, v.0.z)));
+            }
+            return Err(pyo3::exceptions::PyTypeError::new_err("Quatd: second arg must be Vec3d"));
+        }
+        if n == 4 {
+            let r: f64 = args.get_item(0)?.extract()?;
+            let i: f64 = args.get_item(1)?.extract()?;
+            let j: f64 = args.get_item(2)?.extract()?;
+            let k: f64 = args.get_item(3)?.extract()?;
+            return Ok(Self(Quatd::from_components(r, i, j, k)));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("Quatd: expected (), (real), (real, Vec3d), or (real, i, j, k)"))
     }
 
     fn __repr__(&self) -> String {
@@ -85,10 +106,31 @@ pub struct PyQuatf(pub Quatf);
 
 #[pymethods]
 impl PyQuatf {
+    /// Quatf(), Quatf(real), Quatf(real, i, j, k), Quatf(real, Vec3f)
     #[new]
-    #[pyo3(signature = (real=1.0, i=0.0, j=0.0, k=0.0))]
-    fn new(real: f32, i: f32, j: f32, k: f32) -> Self {
-        Self(Quatf::from_components(real, i, j, k))
+    #[pyo3(signature = (*args))]
+    fn new(args: &pyo3::Bound<'_, pyo3::types::PyTuple>) -> pyo3::PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Quatf::identity())); }
+        if n == 1 {
+            let r: f32 = args.get_item(0)?.extract()?;
+            return Ok(Self(Quatf::from_components(r, 0.0, 0.0, 0.0)));
+        }
+        if n == 2 {
+            let r: f32 = args.get_item(0)?.extract()?;
+            if let Ok(v) = args.get_item(1)?.extract::<pyo3::PyRef<'_, super::vec::PyVec3f>>() {
+                return Ok(Self(Quatf::from_components(r, v.0.x, v.0.y, v.0.z)));
+            }
+            return Err(pyo3::exceptions::PyTypeError::new_err("Quatf: second arg must be Vec3f"));
+        }
+        if n == 4 {
+            let r: f32 = args.get_item(0)?.extract()?;
+            let i: f32 = args.get_item(1)?.extract()?;
+            let j: f32 = args.get_item(2)?.extract()?;
+            let k: f32 = args.get_item(3)?.extract()?;
+            return Ok(Self(Quatf::from_components(r, i, j, k)));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("Quatf: expected (), (real), (real, Vec3f), or (real, i, j, k)"))
     }
 
     fn __repr__(&self) -> String {
@@ -150,15 +192,31 @@ pub struct PyQuath(pub Quath);
 
 #[pymethods]
 impl PyQuath {
+    /// Quath(), Quath(real), Quath(real, i, j, k), Quath(real, Vec3h)
     #[new]
-    #[pyo3(signature = (real=1.0, i=0.0, j=0.0, k=0.0))]
-    fn new(real: f32, i: f32, j: f32, k: f32) -> Self {
-        Self(Quath::from_components(
-            Half::from_f32(real),
-            Half::from_f32(i),
-            Half::from_f32(j),
-            Half::from_f32(k),
-        ))
+    #[pyo3(signature = (*args))]
+    fn new(args: &pyo3::Bound<'_, pyo3::types::PyTuple>) -> pyo3::PyResult<Self> {
+        let n = args.len();
+        if n == 0 { return Ok(Self(Quath::identity())); }
+        if n == 1 {
+            let r: f32 = args.get_item(0)?.extract()?;
+            return Ok(Self(Quath::from_components(Half::from_f32(r), Half::from_f32(0.0), Half::from_f32(0.0), Half::from_f32(0.0))));
+        }
+        if n == 2 {
+            let r: f32 = args.get_item(0)?.extract()?;
+            if let Ok(v) = args.get_item(1)?.extract::<pyo3::PyRef<'_, super::vec::PyVec3h>>() {
+                return Ok(Self(Quath::from_components(Half::from_f32(r), v.0.x, v.0.y, v.0.z)));
+            }
+            return Err(pyo3::exceptions::PyTypeError::new_err("Quath: second arg must be Vec3h"));
+        }
+        if n == 4 {
+            let r: f32 = args.get_item(0)?.extract()?;
+            let i: f32 = args.get_item(1)?.extract()?;
+            let j: f32 = args.get_item(2)?.extract()?;
+            let k: f32 = args.get_item(3)?.extract()?;
+            return Ok(Self(Quath::from_components(Half::from_f32(r), Half::from_f32(i), Half::from_f32(j), Half::from_f32(k))));
+        }
+        Err(pyo3::exceptions::PyTypeError::new_err("Quath: expected (), (real), (real, Vec3h), or (real, i, j, k)"))
     }
 
     fn __repr__(&self) -> String {
@@ -348,9 +406,9 @@ impl PyDualQuatd {
     fn __sub__(&self, o: &Self) -> Self { Self(self.0 - o.0) }
 
     #[getter] fn real(&self) -> PyQuatd { PyQuatd(*self.0.real()) }
-    #[setter] fn set_real_prop(&mut self, q: &PyQuatd) { self.0.set_real(q.0); }
+    #[setter(real)] fn set_real_val(&mut self, q: &PyQuatd) { self.0.set_real(q.0); }
     #[getter] fn dual(&self) -> PyQuatd { PyQuatd(*self.0.dual()) }
-    #[setter] fn set_dual_prop(&mut self, q: &PyQuatd) { self.0.set_dual(q.0); }
+    #[setter(dual)] fn set_dual_val(&mut self, q: &PyQuatd) { self.0.set_dual(q.0); }
 }
 
 // ---------------------------------------------------------------------------
