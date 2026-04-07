@@ -1715,7 +1715,7 @@ impl Attribute {
             }
         }
 
-        // Infer type from schema fallback value
+        // Infer type from schema fallback value or registered property type
         if let Some(prim) = stage.get_prim_at_path(&prim_path) {
             let prim_type = prim.type_name();
             if !prim_type.is_empty() {
@@ -1725,6 +1725,13 @@ impl Attribute {
                     if let Some(tn) = fallback.type_name() {
                         return Token::new(tn);
                     }
+                }
+                // Fall back to registered schema property types (e.g. from generatedSchema)
+                if let Some(sdf_type) = super::schema_registry::schema_get_property_type(
+                    &prim_type,
+                    attr_name.as_str(),
+                ) {
+                    return Token::new(&sdf_type);
                 }
             }
         }

@@ -36,7 +36,8 @@ pub use shader_def_parser::{
     ShaderDefParseResult, get_discovery_types, get_source_type, parse_shader_node,
 };
 pub use shader_def_utils::{
-    ShaderPropertyInfo, get_primvar_names_metadata_string, get_properties, get_source_asset,
+    ShaderPropertyInfo, get_primvar_names_metadata_string, get_properties,
+    get_sdr_property_type_and_array_size, get_source_asset,
 };
 pub use tokens::{UsdShadeTokens, tokens};
 pub use types::{

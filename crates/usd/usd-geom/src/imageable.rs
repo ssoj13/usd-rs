@@ -54,6 +54,22 @@ fn is_imageable_type(type_name: &str) -> bool {
             | "Skeleton"
             | "PointInstancer"
             | "GeomSubset"
+            // UsdLux light types (derive from BoundableLightBase -> Boundable -> Xformable -> Imageable)
+            | "RectLight"
+            | "SphereLight"
+            | "DiskLight"
+            | "CylinderLight"
+            | "PortalLight"
+            | "GeometryLight"
+            | "PluginLight"
+            | "BoundableLightBase"
+            // UsdLux non-boundable lights (derive from NonboundableLightBase -> Xformable -> Imageable)
+            | "DistantLight"
+            | "DomeLight"
+            | "DomeLight_1"
+            | "NonboundableLightBase"
+            // UsdLux light filter (derives from Xformable -> Imageable)
+            | "LightFilter"
     )
 }
 

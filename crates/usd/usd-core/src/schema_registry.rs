@@ -149,6 +149,9 @@ fn global_registry() -> &'static RwLock<DynamicRegistry> {
 struct SchemaPropertyRegistry {
     type_to_props: HashMap<Token, Vec<Token>>,
     type_to_fallbacks: HashMap<Token, HashMap<Token, Value>>,
+    /// Maps (prim_type, prop_name) -> SDF type name string (e.g. "color3f", "float").
+    /// Used by `Attribute::type_name()` when no spec exists but the schema defines the type.
+    type_to_prop_types: HashMap<Token, HashMap<Token, String>>,
 }
 
 impl SchemaPropertyRegistry {
@@ -156,6 +159,7 @@ impl SchemaPropertyRegistry {
         Self {
             type_to_props: HashMap::new(),
             type_to_fallbacks: HashMap::new(),
+            type_to_prop_types: HashMap::new(),
         }
     }
 }
@@ -186,6 +190,45 @@ pub fn register_schema_fallbacks(type_name: &str, fallbacks: &[(&str, Value)]) {
     w.type_to_fallbacks.insert(key, map);
 }
 
+/// Register SDF type names for a schema type's properties.
+/// Maps (prim_type, prop_name) -> sdf_type_name (e.g. "color3f").
+pub fn register_schema_property_types(type_name: &str, prop_types: &[(&str, &str)]) {
+    let reg = global_prop_registry();
+    let mut w = reg.write();
+    let key = Token::new(type_name);
+    let map: HashMap<Token, String> = prop_types
+        .iter()
+        .map(|(name, sdf_type)| (Token::new(name), sdf_type.to_string()))
+        .collect();
+    w.type_to_prop_types.insert(key, map);
+}
+
+/// Get the SDF type name for a schema type's property.
+/// Returns None if not registered.
+pub fn schema_get_property_type(type_name: &Token, prop_name: &str) -> Option<String> {
+    let prop_reg = global_prop_registry();
+    let r = prop_reg.read();
+    let prop_token = Token::new(prop_name);
+    if let Some(types) = r.type_to_prop_types.get(type_name) {
+        if let Some(sdf_type) = types.get(&prop_token) {
+            return Some(sdf_type.clone());
+        }
+    }
+    // Check base types
+    let dyn_reg = global_registry();
+    let dr = dyn_reg.read();
+    if let Some(info) = dr.schemas.get(type_name) {
+        for base in &info.base_type_names {
+            if let Some(types) = r.type_to_prop_types.get(base) {
+                if let Some(sdf_type) = types.get(&prop_token) {
+                    return Some(sdf_type.clone());
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Check if a schema type has a given property name as a builtin.
 pub fn schema_has_property(type_name: &Token, prop_name: &str) -> bool {
     let prop_reg = global_prop_registry();
@@ -207,6 +250,36 @@ pub fn schema_has_property(type_name: &Token, prop_name: &str) -> bool {
         }
     }
     false
+}
+
+/// Returns all schema-defined property names for a given type, including
+/// properties inherited from base types registered in the SchemaPropertyRegistry.
+/// Used by `Prim::get_properties_in_namespace` when `onlyAuthored=false`.
+pub fn get_schema_property_names(type_name: &Token) -> Vec<Token> {
+    let prop_reg = global_prop_registry();
+    let r = prop_reg.read();
+    let mut names = Vec::new();
+
+    // Direct properties
+    if let Some(props) = r.type_to_props.get(type_name) {
+        names.extend(props.iter().cloned());
+    }
+
+    // Inherited properties from base types
+    let dyn_reg = global_registry();
+    let dr = dyn_reg.read();
+    if let Some(info) = dr.schemas.get(type_name) {
+        for base in &info.base_type_names {
+            if let Some(base_props) = r.type_to_props.get(base) {
+                for p in base_props {
+                    if !names.contains(p) {
+                        names.push(p.clone());
+                    }
+                }
+            }
+        }
+    }
+    names
 }
 
 /// Check if a multiple-apply API schema instance has a given property name as a builtin.
@@ -2172,6 +2245,77 @@ pub fn register_builtin_schemas() {
             ],
         );
         register_schema_properties("TetMesh", &["tetVertexIndices", "surfaceFaceVertexIndices"]);
+
+        // ====================================================================
+        // UsdLux light types: property names + SDF type names
+        // Matches C++ generatedSchema.usda for LightAPI, ShadowAPI, ShapingAPI
+        // ====================================================================
+        {
+            // Common properties shared by all light types
+            let common_props: &[&str] = &[
+                "light:shaderId", "light:materialSyncMode",
+                "inputs:intensity", "inputs:exposure", "inputs:diffuse",
+                "inputs:specular", "inputs:normalize", "inputs:color",
+                "inputs:enableColorTemperature", "inputs:colorTemperature",
+                "inputs:shadow:enable", "inputs:shadow:color",
+                "inputs:shadow:distance", "inputs:shadow:falloff",
+                "inputs:shadow:falloffGamma",
+                "inputs:shaping:focus", "inputs:shaping:focusTint",
+                "inputs:shaping:cone:angle", "inputs:shaping:cone:softness",
+                "inputs:shaping:ies:file", "inputs:shaping:ies:angleScale",
+                "inputs:shaping:ies:normalize",
+            ];
+            let common_types: &[(&str, &str)] = &[
+                ("light:shaderId", "token"), ("light:materialSyncMode", "token"),
+                ("inputs:intensity", "float"), ("inputs:exposure", "float"),
+                ("inputs:diffuse", "float"), ("inputs:specular", "float"),
+                ("inputs:normalize", "bool"), ("inputs:color", "color3f"),
+                ("inputs:enableColorTemperature", "bool"),
+                ("inputs:colorTemperature", "float"),
+                ("inputs:shadow:enable", "bool"), ("inputs:shadow:color", "color3f"),
+                ("inputs:shadow:distance", "float"), ("inputs:shadow:falloff", "float"),
+                ("inputs:shadow:falloffGamma", "float"),
+                ("inputs:shaping:focus", "float"), ("inputs:shaping:focusTint", "color3f"),
+                ("inputs:shaping:cone:angle", "float"),
+                ("inputs:shaping:cone:softness", "float"),
+                ("inputs:shaping:ies:file", "asset"),
+                ("inputs:shaping:ies:angleScale", "float"),
+                ("inputs:shaping:ies:normalize", "bool"),
+            ];
+            let light_types: &[(&str, &[&str], &[(&str, &str)])] = &[
+                ("RectLight", &["inputs:width", "inputs:height", "inputs:texture:file"],
+                    &[("inputs:width", "float"), ("inputs:height", "float"), ("inputs:texture:file", "asset")]),
+                ("SphereLight", &["inputs:radius", "treatAsPoint"],
+                    &[("inputs:radius", "float"), ("treatAsPoint", "bool")]),
+                ("DiskLight", &["inputs:radius"],
+                    &[("inputs:radius", "float")]),
+                ("CylinderLight", &["inputs:radius", "inputs:length"],
+                    &[("inputs:radius", "float"), ("inputs:length", "float")]),
+                ("DistantLight", &["inputs:angle"],
+                    &[("inputs:angle", "float")]),
+                ("DomeLight", &["inputs:texture:file", "inputs:texture:format"],
+                    &[("inputs:texture:file", "asset"), ("inputs:texture:format", "token")]),
+                ("DomeLight_1", &["inputs:texture:file", "inputs:texture:format"],
+                    &[("inputs:texture:file", "asset"), ("inputs:texture:format", "token")]),
+                ("PortalLight", &["inputs:width", "inputs:height"],
+                    &[("inputs:width", "float"), ("inputs:height", "float")]),
+                ("GeometryLight", &[], &[]),
+                ("MeshLight", &[], &[]),
+                ("VolumeLight", &[], &[]),
+                ("PluginLight", &[], &[]),
+                ("LightFilter", &["lightFilter:shaderId"],
+                    &[("lightFilter:shaderId", "token")]),
+            ];
+            for &(type_name, extra_props, extra_types) in light_types {
+                let mut all_props: Vec<&str> = common_props.to_vec();
+                all_props.extend_from_slice(extra_props);
+                register_schema_properties(type_name, &all_props);
+
+                let mut all_types: Vec<(&str, &str)> = common_types.to_vec();
+                all_types.extend_from_slice(extra_types);
+                register_schema_property_types(type_name, &all_types);
+            }
+        }
 
         eprintln!("[PERF] register_builtin_schemas: {:?}", _t0.elapsed());
     });

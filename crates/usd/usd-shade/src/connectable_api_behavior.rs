@@ -574,6 +574,52 @@ impl ConnectableAPIBehavior for NodeGraphConnectableAPIBehavior {
 }
 
 // ============================================================================
+// LightFilterConnectableAPIBehavior
+// ============================================================================
+
+/// ConnectableAPI behavior for UsdLuxLightFilter.
+///
+/// isContainer=true, requiresEncapsulation=false, but output connections
+/// are always disallowed.  Matches C++ lightFilter.cpp.
+struct LightFilterConnectableAPIBehavior;
+
+impl ConnectableAPIBehavior for LightFilterConnectableAPIBehavior {
+    fn can_connect_input_to_source(
+        &self,
+        input: &Input,
+        source: &Attribute,
+        reason: &mut Option<String>,
+    ) -> bool {
+        // Same as LightAPI — no encapsulation
+        DefaultConnectableAPIBehavior::_can_connect_input_to_source(
+            input,
+            source,
+            reason,
+            ConnectableNodeTypes::BasicNodes,
+            false,
+        )
+    }
+
+    fn can_connect_output_to_source(
+        &self,
+        _output: &Output,
+        _source: &Attribute,
+        _reason: &mut Option<String>,
+    ) -> bool {
+        // C++ lightFilter.cpp: CanConnectOutputToSource always returns false
+        false
+    }
+
+    fn is_container(&self) -> bool {
+        true
+    }
+
+    fn requires_encapsulation(&self) -> bool {
+        false
+    }
+}
+
+// ============================================================================
 // Behavior Registry
 // ============================================================================
 
@@ -631,16 +677,12 @@ impl BehaviorRegistry {
                 as Arc<dyn ConnectableAPIBehavior>,
         );
 
-        // Register behavior for LightFilter: isContainer=true, requiresEncapsulation=false.
-        // Per C++ lightFilter.cpp:187-192: same container/encapsulation settings as LightAPI,
-        // but CanConnectOutputToSource returns false (light filter outputs are not connectable).
-        // We use the same DefaultConnectableAPIBehavior since CanConnectOutputToSource=false
-        // is the default when isContainer=false — but for LightFilter the C++ override only
-        // affects output connections, so isContainer=true, requiresEncapsulation=false matches.
+        // Register behavior for LightFilter: isContainer=true, requiresEncapsulation=false,
+        // but CanConnectOutputToSource always returns false (light filter outputs are not
+        // connectable).  Matches C++ lightFilter.cpp:187-192.
         self.register_behavior_for_type(
             "LightFilter",
-            Arc::new(DefaultConnectableAPIBehavior::with_settings(true, false))
-                as Arc<dyn ConnectableAPIBehavior>,
+            Arc::new(LightFilterConnectableAPIBehavior) as Arc<dyn ConnectableAPIBehavior>,
         );
 
         // Concrete light types also need container=true, requiresEncapsulation=false.
@@ -662,6 +704,10 @@ impl BehaviorRegistry {
                     as Arc<dyn ConnectableAPIBehavior>,
             );
         }
+
+        // Schema-defined property names and types for light types are
+        // registered in register_builtin_schemas() (usd-core), which runs
+        // at Stage creation time. No need to duplicate here.
     }
 
     /// Register a behavior for a prim type.
@@ -714,3 +760,4 @@ pub fn get_behavior(prim: &Prim) -> Option<Arc<dyn ConnectableAPIBehavior>> {
 pub fn has_behavior_for_type(type_name: &str) -> bool {
     BehaviorRegistry::get_instance().has_behavior_for_type(type_name)
 }
+

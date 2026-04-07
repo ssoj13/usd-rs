@@ -37,6 +37,65 @@ pub struct ShaderPropertyInfo {
 /// Gets all input and output properties of the given shaderDef and
 /// translates them into ShaderPropertyInfo objects.
 ///
+/// Convert SDF value type name to SDR property type and array size.
+///
+/// Matches C++ `_GetShaderPropertyTypeAndArraySize()` from shaderDefUtils.cpp.
+/// Maps SDF types (color3f, float, bool, token, etc.) to SDR types
+/// (color, float, int, string, etc.) and determines the array size for
+/// fixed-size vector types.
+pub fn get_sdr_property_type_and_array_size(sdf_type_name: &str) -> (String, usize) {
+    match sdf_type_name {
+        // Int / Bool → "int"
+        "int" | "int[]" | "bool" | "bool[]" => ("int".to_string(), 0),
+        "int2" | "int2[]" => ("int".to_string(), 2),
+        "int3" | "int3[]" => ("int".to_string(), 3),
+        "int4" | "int4[]" => ("int".to_string(), 4),
+        // String / Token / Asset → "string"
+        "string" | "string[]" | "token" | "token[]" | "asset" | "asset[]" => {
+            ("string".to_string(), 0)
+        }
+        // Float
+        "float" | "float[]" | "double" | "double[]" | "half" | "half[]" => {
+            ("float".to_string(), 0)
+        }
+        "float2" | "float2[]" | "double2" | "double2[]" | "half2" | "half2[]" => {
+            ("float".to_string(), 2)
+        }
+        "float3" | "float3[]" | "double3" | "double3[]" | "half3" | "half3[]" => {
+            ("float".to_string(), 3)
+        }
+        "float4" | "float4[]" | "double4" | "double4[]" | "half4" | "half4[]" => {
+            ("float".to_string(), 4)
+        }
+        // Color3f → "color"
+        "color3f" | "color3f[]" | "color3d" | "color3d[]" | "color3h" | "color3h[]" => {
+            ("color".to_string(), 0)
+        }
+        // Color4f → "color4"
+        "color4f" | "color4f[]" | "color4d" | "color4d[]" | "color4h" | "color4h[]" => {
+            ("color4".to_string(), 0)
+        }
+        // Point3f → "point"
+        "point3f" | "point3f[]" | "point3d" | "point3d[]" | "point3h" | "point3h[]" => {
+            ("point".to_string(), 0)
+        }
+        // Vector3f → "vector"
+        "vector3f" | "vector3f[]" | "vector3d" | "vector3d[]" | "vector3h" | "vector3h[]" => {
+            ("vector".to_string(), 0)
+        }
+        // Normal3f → "normal"
+        "normal3f" | "normal3f[]" | "normal3d" | "normal3d[]" | "normal3h" | "normal3h[]" => {
+            ("normal".to_string(), 0)
+        }
+        // Matrix4d → "matrix"
+        "matrix4d" | "matrix4d[]" | "matrix2d" | "matrix2d[]" | "matrix3d" | "matrix3d[]" => {
+            ("matrix".to_string(), 0)
+        }
+        // Unknown → fall through with original name
+        other => (other.to_string(), 0),
+    }
+}
+
 /// Matches C++ `GetProperties(const UsdShadeConnectableAPI &shaderDef)`.
 /// Note: This is a simplified version that doesn't use Sdr types.
 pub fn get_properties(shader_def: &ConnectableAPI) -> Vec<ShaderPropertyInfo> {

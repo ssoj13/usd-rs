@@ -343,14 +343,15 @@ impl Boundable {
             }
         }
 
-        // All concrete prim types from the usdGeom module have been implemented:
-        //   - Sphere, Cube, Cylinder, Cone, Capsule, Plane: implemented above
-        //   - TetMesh: implemented above
-        //   - NurbsPatch: implemented above
-        //   - BasisCurves, NurbsCurves, HermiteCurves: inherit from Curves/PointBased
-        //     and can use PointBased::compute_extent_from_integrated via their base classes
-        // This matches the C++ behavior where ComputeExtentFromPlugins returns false
-        // if no registered function is found for the prim type.
+        // Fall back to the plugin-based extent registry (handles UsdLux light
+        // types and any externally-registered extent functions).  Matches C++
+        // ComputeExtentFromPlugins which walks a TfType-keyed function table.
+        if let Some(extent) =
+            super::boundable_compute_extent::compute_extent_from_plugins(boundable, time, None)
+        {
+            return Some(vec![extent[0], extent[1]]);
+        }
+
         None
     }
 

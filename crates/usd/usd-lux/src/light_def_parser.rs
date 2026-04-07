@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use usd_core::{InitialLoadSet, Stage};
-use usd_sdf::{Layer, Path, SpecType};
+use usd_sdf::{Layer, Path, Specifier};
 use usd_sdr::discovery_result::SdrShaderNodeDiscoveryResult;
 use usd_sdr::parser_plugin::SdrParserPlugin;
 use usd_sdr::shader_node::{SdrShaderNode, SdrShaderNodeUniquePtr};
@@ -141,11 +141,13 @@ impl SdrParserPlugin for LightDefParserPlugin {
         // Open generatedSchema.usda
         let schema_layer = get_generated_schema()?;
 
-        // Create anonymous layer with a prim to compose properties into
+        // Create anonymous layer with a prim to compose properties into.
+        // Must use create_prim_spec with Specifier::Def so the prim is visible
+        // to stage composition (create_spec alone sets no specifier).
         let layer = Layer::create_anonymous(Some("lightDef.usd"));
         let prim_name = prim_type_name.as_str();
         let prim_path = Path::from(format!("/{}", prim_name).as_str());
-        layer.create_spec(&prim_path, SpecType::Prim);
+        layer.create_prim_spec(&prim_path, Specifier::Def, prim_name);
 
         // Copy properties from each schema (order matters)
         let schemas = [
@@ -166,25 +168,51 @@ impl SdrParserPlugin for LightDefParserPlugin {
         // Get shader properties
         let property_infos = get_properties(&connectable);
 
-        // Convert to SdrShaderProperty
+        // Convert to SdrShaderProperty.
+        // Must convert SDF type names (e.g. "color3f") to SDR property types
+        // (e.g. "color") matching C++ _GetShaderPropertyTypeAndArraySize().
+        // Also stores the original SDF type in sdrUsdDefinitionType metadata
+        // so get_type_as_sdf_type can round-trip correctly (C++ line 341-344).
         let sdr_properties: Vec<Box<SdrShaderProperty>> = property_infos
             .iter()
             .map(|info| {
                 let default_value = info.default_value.clone().unwrap_or_default();
-                let sdr_metadata = SdrShaderPropertyMetadata::from_token_map(
-                    &info
-                        .metadata
-                        .iter()
-                        .map(|(k, v)| (k.clone(), v.clone()))
-                        .collect::<SdrTokenMap>(),
+
+                // Build metadata: merge original + inject sdrUsdDefinitionType
+                // and isAssetIdentifier for asset-typed properties.
+                let mut meta_map: SdrTokenMap = info
+                    .metadata
+                    .iter()
+                    .map(|(k, v)| (k.clone(), v.clone()))
+                    .collect();
+                // C++: metadata[SdrPropertyMetadata->SdrUsdDefinitionType] =
+                //        shaderProperty.GetTypeName().GetAliasesAsTokens()[0]
+                meta_map.insert(
+                    Token::new("sdrUsdDefinitionType"),
+                    info.type_name.clone(),
                 );
+                // C++: _CollectShaderPropertyMetadata sets isAssetIdentifier
+                // for asset-typed properties.
+                if info.type_name == "asset" || info.type_name == "asset[]" {
+                    meta_map
+                        .insert(Token::new("__SDR__isAssetIdentifier"), "true".to_string());
+                }
+                let sdr_metadata = SdrShaderPropertyMetadata::from_token_map(&meta_map);
+
+                let (sdr_type, sdr_array_size) =
+                    usd_shade::get_sdr_property_type_and_array_size(&info.type_name);
+                let array_size = if sdr_array_size > 0 {
+                    sdr_array_size
+                } else {
+                    info.array_size
+                };
 
                 Box::new(SdrShaderProperty::new(
                     info.name.clone(),
-                    Token::new(&info.type_name),
+                    Token::new(&sdr_type),
                     default_value,
                     info.is_output,
-                    info.array_size,
+                    array_size,
                     sdr_metadata,
                     SdrTokenMap::new(),
                     Vec::new(),

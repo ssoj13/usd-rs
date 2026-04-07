@@ -700,7 +700,14 @@ impl LightAPI {
             render_context.as_str(),
             tokens().light_shader_id.as_str()
         );
-        self.prim.get_attribute(&attr_name)
+        // Only return the attribute if it actually has a spec authored.
+        // get_attribute() returns handles for any namespaced path even
+        // without a spec; has_attribute() checks the composed prim index.
+        if self.prim.has_attribute(&attr_name) {
+            self.prim.get_attribute(&attr_name)
+        } else {
+            None
+        }
     }
 
     /// Creates the shader ID attribute for the given render context.

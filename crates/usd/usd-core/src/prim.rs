@@ -1261,20 +1261,41 @@ impl Prim {
     ///
     /// Matches C++ `GetPropertiesInNamespace()`. Uses ':' delimiter to avoid
     /// false prefix matches (e.g. prefix "foo" won't match "foobar").
+    ///
+    /// Unlike `get_authored_properties_in_namespace`, this also includes
+    /// schema-defined (built-in) property names from the SchemaPropertyRegistry,
+    /// matching C++ `_GetPropertyNames(onlyAuthored=false)` which queries the
+    /// PrimDefinition for builtin properties.
     pub fn get_properties_in_namespace(
         &self,
         namespace_prefix: &Token,
     ) -> Vec<super::property::Property> {
+        // Collect all property names: authored + schema-defined builtins.
+        let mut all_names = std::collections::HashSet::new();
+
+        // Authored properties from prim data
+        if let Some(data) = self.data() {
+            for prop_name in data.property_names() {
+                all_names.insert(prop_name);
+            }
+            // Schema-defined builtin properties (C++: PrimDefinition::GetPropertyNames)
+            let type_name = data.type_name().clone();
+            if !type_name.is_empty() {
+                for name in super::schema_registry::get_schema_property_names(&type_name) {
+                    all_names.insert(name);
+                }
+            }
+        }
+
         let prefix_str = namespace_prefix.as_str();
+        let stage = self.inner.stage.clone();
+
         // Empty prefix = return all properties (matches C++)
         if prefix_str.is_empty() {
             let mut result = Vec::new();
-            if let Some(data) = self.data() {
-                let stage = self.inner.stage.clone();
-                for prop_name in data.property_names() {
-                    if let Some(prop_path) = self.path().append_property(prop_name.as_str()) {
-                        result.push(super::property::Property::new(stage.clone(), prop_path));
-                    }
+            for prop_name in &all_names {
+                if let Some(prop_path) = self.path().append_property(prop_name.as_str()) {
+                    result.push(super::property::Property::new(stage.clone(), prop_path));
                 }
             }
             return result;
@@ -1290,17 +1311,15 @@ impl Prim {
         };
 
         let mut result = Vec::new();
-        if let Some(data) = self.data() {
-            let stage = self.inner.stage.clone();
-            for prop_name in data.property_names() {
-                let s = prop_name.as_str();
-                if s.len() > terminator
-                    && s.starts_with(prefix_str.trim_end_matches(delim))
-                    && s.as_bytes().get(terminator) == Some(&(delim as u8))
-                {
-                    if let Some(prop_path) = self.path().append_property(s) {
-                        result.push(super::property::Property::new(stage.clone(), prop_path));
-                    }
+        let prefix_base = prefix_str.trim_end_matches(delim);
+        for prop_name in &all_names {
+            let s = prop_name.as_str();
+            if s.len() > terminator
+                && s.starts_with(prefix_base)
+                && s.as_bytes().get(terminator) == Some(&(delim as u8))
+            {
+                if let Some(prop_path) = self.path().append_property(s) {
+                    result.push(super::property::Property::new(stage.clone(), prop_path));
                 }
             }
         }
