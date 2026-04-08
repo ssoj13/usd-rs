@@ -3399,6 +3399,101 @@ impl PyStage {
             .and_then(|layer| layer.export_to_string().map_err(to_py_err))
     }
 
+    // -- Missing Stage methods from C++ reference ---------------------------
+
+    #[allow(non_snake_case)]
+    fn GetInterpolationType(&self) -> String {
+        format!("{:?}", self.inner.get_interpolation_type())
+    }
+
+    #[allow(non_snake_case)]
+    fn SetInterpolationType(&self, interp: &str) {
+        let it = match interp {
+            "linear" | "Linear" => usd_core::InterpolationType::Linear,
+            _ => usd_core::InterpolationType::Held,
+        };
+        self.inner.set_interpolation_type(it);
+    }
+
+    #[allow(non_snake_case)]
+    fn HasAuthoredTimeCodeRange(&self) -> bool {
+        self.inner.has_authored_time_code_range()
+    }
+
+    #[allow(non_snake_case)]
+    fn GetPathResolverContext(&self) -> String {
+        format!("{:?}", self.inner.get_path_resolver_context())
+    }
+
+    #[pyo3(signature = (paths_to_load, paths_to_unload, policy=None))]
+    #[allow(non_snake_case)]
+    fn LoadAndUnload(
+        &self,
+        paths_to_load: Vec<String>,
+        paths_to_unload: Vec<String>,
+        policy: Option<&str>,
+    ) {
+        let load_paths: Vec<usd_sdf::Path> = paths_to_load.iter()
+            .filter_map(|s| usd_sdf::Path::from_string(s))
+            .collect();
+        let unload_paths: Vec<usd_sdf::Path> = paths_to_unload.iter()
+            .filter_map(|s| usd_sdf::Path::from_string(s))
+            .collect();
+        let _ = policy;
+        let load_set: std::collections::HashSet<usd_sdf::Path> = load_paths.into_iter().collect();
+        let unload_set: std::collections::HashSet<usd_sdf::Path> = unload_paths.into_iter().collect();
+        self.inner.load_and_unload(&load_set, &unload_set, None);
+    }
+
+    #[allow(non_snake_case)]
+    fn ExpandPopulationMask(&self) {
+        let pred = usd_core::PrimFlagsPredicate::default();
+        self.inner.expand_population_mask(&pred, None, None);
+    }
+
+    #[allow(non_snake_case)]
+    #[pyo3(signature = (key, key_path=None))]
+    fn GetMetadataByDictKey(&self, key: &str, key_path: Option<&str>) -> Option<String> {
+        let _ = key_path;
+        self.inner.get_metadata(&usd_tf::Token::new(key))
+            .map(|v| format!("{:?}", v))
+    }
+
+    #[allow(non_snake_case)]
+    #[pyo3(signature = (key, key_path, value))]
+    fn SetMetadataByDictKey(&self, key: &str, key_path: &str, value: &Bound<'_, PyAny>) -> bool {
+        let _ = (key, key_path, value);
+        false // TODO: dict-key metadata authoring
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearMetadataByDictKey(&self, key: &str, key_path: &str) -> bool {
+        let _ = (key, key_path);
+        false // TODO
+    }
+
+    #[allow(non_snake_case)]
+    fn HasMetadataDictKey(&self, key: &str, key_path: &str) -> bool {
+        let _ = (key, key_path);
+        false // TODO
+    }
+
+    #[allow(non_snake_case)]
+    fn HasAuthoredMetadataDictKey(&self, key: &str, key_path: &str) -> bool {
+        let _ = (key, key_path);
+        false // TODO
+    }
+
+    #[allow(non_snake_case)]
+    fn GetLoadRules(&self) -> String {
+        format!("{:?}", self.inner.get_load_rules())
+    }
+
+    #[allow(non_snake_case)]
+    fn SetLoadRules(&self, _rules: &Bound<'_, PyAny>) {
+        // TODO: proper StageLoadRules binding
+    }
+
     // -- Repr --------------------------------------------------------------
 
     fn __repr__(&self) -> String {
