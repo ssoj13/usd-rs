@@ -753,34 +753,12 @@ impl PyPrim {
     // -- Schema / type checks ---------------------------------------------
 
     #[allow(non_snake_case)]
-    fn IsA(&self, schema_type: &str) -> bool {
-        let token = Token::new(schema_type);
-        self.inner.is_a(&token)
-    }
-
-    #[allow(non_snake_case)]
-    fn HasAPI(&self, api_name: &str) -> bool {
-        let token = Token::new(api_name);
-        self.inner.has_api(&token)
-    }
-
-    #[allow(non_snake_case)]
-    fn CanApplyAPI(&self, api_name: &str) -> bool {
-        // Delegates to schema registry. Return true if not already applied.
-        let token = Token::new(api_name);
-        !self.inner.has_api(&token)
-    }
-
-    #[allow(non_snake_case)]
-    fn ApplyAPI(&self, api_name: &str) -> bool {
-        let token = Token::new(api_name);
-        self.inner.apply_api(&token)
-    }
-
-    #[allow(non_snake_case)]
-    fn RemoveAPI(&self, api_name: &str) -> bool {
-        let token = Token::new(api_name);
-        self.inner.remove_api(&token)
+    #[pyo3(signature = (api_name, instance_name=None))]
+    fn CanApplyAPI(&self, api_name: &Bound<'_, PyAny>, instance_name: Option<&str>) -> bool {
+        let name = if let Ok(s) = api_name.extract::<String>() { s }
+            else if let Ok(n) = api_name.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
+            else { return false; };
+        !self.inner.has_api(&usd_tf::Token::new(&name))
     }
 
     #[allow(non_snake_case)]
@@ -1327,6 +1305,126 @@ impl PyPrim {
     #[allow(non_snake_case)]
     fn GetPrimIndex(&self) -> Option<crate::pcp::PyPrimIndex> {
         self.inner.prim_index().map(|idx| crate::pcp::PyPrimIndex::from_index(idx))
+    }
+
+    #[allow(non_snake_case)]
+    fn IsPseudoRoot(&self) -> bool { self.inner.is_pseudo_root() }
+    #[allow(non_snake_case)]
+    fn IsComponent(&self) -> bool { self.inner.is_component() }
+    #[allow(non_snake_case)]
+    fn IsSubComponent(&self) -> bool { self.inner.is_subcomponent() }
+    #[allow(non_snake_case)]
+    fn HasDefiningSpecifier(&self) -> bool { self.inner.has_defining_specifier() }
+    #[allow(non_snake_case)]
+    fn HasAuthoredActive(&self) -> bool { self.inner.has_authored_active() }
+    #[allow(non_snake_case)]
+    fn ClearActive(&self) -> bool { self.inner.clear_active() }
+    #[allow(non_snake_case)]
+    fn HasProperty(&self, name: &str) -> bool { self.inner.get_property_names().iter().any(|t| t.as_str() == name) }
+    #[allow(non_snake_case)]
+    fn RemoveProperty(&self, name: &str) -> bool { self.inner.remove_property(name) }
+    #[allow(non_snake_case)]
+    fn GetProperty(&self, name: &str) -> Option<PyAttribute> {
+        let attr = self.inner.get_attribute(name);
+        attr.map(|a| PyAttribute { inner: a, _stage: self._stage.clone() })
+    }
+    #[allow(non_snake_case)]
+    fn GetAuthoredAttributes(&self) -> Vec<PyAttribute> {
+        self.inner.get_attributes()
+            .into_iter()
+            .map(|a| PyAttribute { inner: a, _stage: self._stage.clone() })
+            .collect()
+    }
+    #[allow(non_snake_case)]
+    fn GetAuthoredRelationships(&self) -> Vec<PyRelationship> {
+        self.inner.get_relationships()
+            .into_iter()
+            .map(|r| PyRelationship { inner: r, _stage: self._stage.clone() })
+            .collect()
+    }
+    #[allow(non_snake_case)]
+    fn GetPropertyOrder(&self) -> Vec<String> {
+        self.inner.get_property_order().iter().map(|t| t.as_str().to_string()).collect()
+    }
+    #[allow(non_snake_case)]
+    fn SetPropertyOrder(&self, order: Vec<String>) {
+        let tokens: Vec<usd_tf::Token> = order.iter().map(|s| usd_tf::Token::new(s)).collect();
+        self.inner.set_property_order(tokens);
+    }
+    #[allow(non_snake_case)]
+    fn ClearPropertyOrder(&self) { self.inner.clear_property_order(); }
+    #[allow(non_snake_case)]
+    fn Load(&self) -> PyPrim {
+        self._stage.load(&self.inner.get_path(), None);
+        self.clone()
+    }
+    #[allow(non_snake_case)]
+    fn Unload(&self) {
+        self._stage.unload(&self.inner.get_path());
+    }
+    #[allow(non_snake_case)]
+    fn GetFilteredChildren(&self, _predicate: &Bound<'_, PyAny>) -> Vec<PyPrim> {
+        // TODO: proper predicate support — for now return all children
+        self.inner.get_children()
+            .into_iter()
+            .map(|p| PyPrim::from_prim(p, self._stage.clone()))
+            .collect()
+    }
+    #[allow(non_snake_case)]
+    fn GetFilteredChildrenNames(&self, _predicate: &Bound<'_, PyAny>) -> Vec<String> {
+        self.inner.get_children().iter().map(|p| p.get_name().as_str().to_string()).collect()
+    }
+    #[allow(non_snake_case)]
+    fn GetPrimAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyPrim>> {
+        let s = extract_path_str(path)?;
+        let rel_path = usd_sdf::Path::from_string(&s);
+        if let Some(p) = rel_path {
+            let abs = if p.is_absolute_path() { p } else {
+                self.inner.get_path().append_path(&p).unwrap_or(p)
+            };
+            Ok(self._stage.get_prim_at_path(&abs).map(|prim| PyPrim::from_prim(prim, self._stage.clone())))
+        } else {
+            Ok(None)
+        }
+    }
+    #[allow(non_snake_case)]
+    fn GetObjectAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyPrim>> {
+        self.GetPrimAtPath(path)
+    }
+    #[allow(non_snake_case)]
+    #[pyo3(signature = (schema_type))]
+    fn IsA(&self, schema_type: &Bound<'_, PyAny>) -> bool {
+        if let Ok(name) = schema_type.extract::<String>() {
+            self.inner.get_type_name().as_str() == name || self.inner.is_a(&usd_tf::Token::new(&name))
+        } else if let Ok(name) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) {
+            self.inner.is_a(&usd_tf::Token::new(&name))
+        } else {
+            false
+        }
+    }
+    #[allow(non_snake_case)]
+    #[pyo3(signature = (schema_type, instance_name=None))]
+    fn HasAPI(&self, schema_type: &Bound<'_, PyAny>, instance_name: Option<&str>) -> bool {
+        let name = if let Ok(s) = schema_type.extract::<String>() { s }
+            else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
+            else { return false; };
+        self.inner.has_api(&usd_tf::Token::new(&name))
+    }
+    #[allow(non_snake_case)]
+    #[pyo3(signature = (schema_type, instance_name=None))]
+    fn ApplyAPI(&self, schema_type: &Bound<'_, PyAny>, instance_name: Option<&str>) -> bool {
+        let name = if let Ok(s) = schema_type.extract::<String>() { s }
+            else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
+            else { return false; };
+        self.inner.apply_api(&usd_tf::Token::new(&name))
+    }
+    #[allow(non_snake_case)]
+    #[pyo3(signature = (schema_type, instance_name=None))]
+    fn RemoveAPI(&self, schema_type: &Bound<'_, PyAny>, instance_name: Option<&str>) -> bool {
+        let name = if let Ok(s) = schema_type.extract::<String>() { s }
+            else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
+            else { return false; };
+        self.inner.remove_api(&usd_tf::Token::new(&name))
     }
 
     fn __repr__(&self) -> String {
