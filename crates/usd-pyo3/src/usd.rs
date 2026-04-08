@@ -873,6 +873,15 @@ impl PyPrim {
     }
 
     #[allow(non_snake_case)]
+    fn GetAllChildrenNames(&self) -> Vec<String> {
+        self.inner
+            .get_all_children()
+            .iter()
+            .map(|p| p.get_name().as_str().to_string())
+            .collect()
+    }
+
+    #[allow(non_snake_case)]
     fn GetChild(&self, name: &Bound<'_, PyAny>) -> PyResult<Option<PyPrim>> {
         let s = extract_path_str(name)?;
         let child_path = match self.inner.path().append_child(&s) {
@@ -1313,6 +1322,11 @@ impl PyPrim {
             .into_iter()
             .map(|spec| crate::sdf::PyPrimSpec::from_spec(spec))
             .collect()
+    }
+
+    #[allow(non_snake_case)]
+    fn GetPrimIndex(&self) -> Option<crate::pcp::PyPrimIndex> {
+        self.inner.prim_index().map(|idx| crate::pcp::PyPrimIndex::from_index(idx))
     }
 
     fn __repr__(&self) -> String {

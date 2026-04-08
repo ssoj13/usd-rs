@@ -1396,6 +1396,18 @@ impl PyLayer {
         self.inner.clear_custom_layer_data();
     }
 
+    // --- Relocates -----------------------------------------------------------
+
+    #[allow(non_snake_case)]
+    fn HasRelocates(&self) -> bool {
+        self.inner.has_relocates()
+    }
+
+    #[allow(non_snake_case)]
+    fn ClearRelocates(&self) {
+        self.inner.clear_relocates();
+    }
+
     // --- Scene modification helpers -----------------------------------------
 
     #[allow(non_snake_case)]
@@ -3843,5 +3855,17 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
         m.add("VariableExpressionASTNodes", ast_mod)?;
     }
 
+    // Sdf.Find(layerFileName) → Layer or None
+    m.add_function(wrap_pyfunction!(py_sdf_find, m)?)?;
+
     Ok(())
+}
+
+/// Sdf.Find(layerFileName, scenePath=None) — locate a layer by filename.
+#[pyfunction]
+#[pyo3(name = "Find", signature = (layer_file_name, scene_path=None))]
+fn py_sdf_find(layer_file_name: &str, scene_path: Option<&str>) -> Option<PyLayer> {
+    let layer = usd_sdf::Layer::find(layer_file_name)?;
+    let _ = scene_path;
+    Some(PyLayer::from_layer_arc(layer))
 }

@@ -561,7 +561,13 @@ impl PyNodeRef {
 #[pyclass(skip_from_py_object,name = "PrimIndex", module = "pxr_rs.Pcp")]
 #[derive(Clone)]
 pub struct PyPrimIndex {
-    inner: PrimIndex,
+    pub(crate) inner: PrimIndex,
+}
+
+impl PyPrimIndex {
+    pub fn from_index(idx: PrimIndex) -> Self {
+        Self { inner: idx }
+    }
 }
 
 #[pymethods]
