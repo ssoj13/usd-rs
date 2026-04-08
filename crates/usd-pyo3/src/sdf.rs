@@ -1408,6 +1408,50 @@ impl PyLayer {
         self.inner.clear_relocates();
     }
 
+    // --- Missing Layer methods -----------------------------------------------
+
+    #[allow(non_snake_case)]
+    fn GetFileFormat(&self) -> String {
+        self.inner.get_file_format().map(|f| f.format_id().to_string()).unwrap_or_default()
+    }
+    #[allow(non_snake_case)]
+    fn GetFileFormatArguments(&self) -> std::collections::HashMap<String, String> {
+        self.inner.get_file_format_arguments().iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    }
+    #[allow(non_snake_case)]
+    fn GetExternalReferences(&self) -> Vec<String> { self.inner.get_external_references().into_iter().collect() }
+    #[allow(non_snake_case)]
+    fn GetCompositionAssetDependencies(&self) -> Vec<String> { self.inner.get_composition_asset_dependencies().into_iter().collect() }
+    #[allow(non_snake_case)]
+    fn GetExternalAssetDependencies(&self) -> Vec<String> { self.inner.get_external_asset_dependencies().into_iter().collect() }
+    #[allow(non_snake_case)]
+    fn ClearColorConfiguration(&self) { self.inner.clear_color_configuration(); }
+    #[allow(non_snake_case)]
+    fn ClearColorManagementSystem(&self) { self.inner.clear_color_management_system(); }
+    #[allow(non_snake_case)]
+    fn ClearExpressionVariables(&self) { self.inner.clear_expression_variables(); }
+    #[allow(non_snake_case)]
+    fn ClearFramesPerSecond(&self) { self.inner.clear_frames_per_second(); }
+    #[allow(non_snake_case)]
+    fn ClearFramePrecision(&self) { self.inner.clear_frame_precision(); }
+    #[allow(non_snake_case)]
+    fn ClearOwner(&self) { self.inner.clear_owner(); }
+    #[allow(non_snake_case)]
+    fn ClearSessionOwner(&self) { self.inner.clear_session_owner(); }
+    #[allow(non_snake_case)]
+    fn ApplyRootPrimOrder(&self, order: Vec<String>) -> Vec<String> {
+        let tokens: Vec<usd_tf::Token> = order.iter().map(|s| usd_tf::Token::new(s)).collect();
+        self.inner.apply_root_prim_order(&tokens).iter().map(|t| t.as_str().to_string()).collect()
+    }
+    #[allow(non_snake_case)]
+    fn UpdateCompositionAssetDependency(&self, old_path: &str, new_path: &str) {
+        self.inner.update_composition_asset_dependency(old_path, new_path);
+    }
+    #[allow(non_snake_case)]
+    fn GetBracketingTimeSamples(&self, time: f64) -> (f64, f64) {
+        self.inner.get_bracketing_time_samples(time).unwrap_or((time, time))
+    }
+
     // --- Scene modification helpers -----------------------------------------
 
     #[allow(non_snake_case)]

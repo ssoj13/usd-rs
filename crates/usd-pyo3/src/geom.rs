@@ -617,7 +617,53 @@ impl PyMesh {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Mesh" }
+    #[pyo3(name = "GetSchemaAttributeNames")]
+    pub fn get_schema_attribute_names(_include_inherited: Option<bool>) -> Vec<String> {
+        Mesh::get_schema_attribute_names(true).iter().map(|t| t.as_str().to_string()).collect()
+    }
+
+    #[staticmethod]
+    #[pyo3(name = "ValidateTopology")]
+    #[allow(non_snake_case)]
+    pub fn validate_topology(
+        faceVertexIndices: &crate::vt::PyIntArray,
+        faceVertexCounts: &crate::vt::PyIntArray,
+        numPoints: usize,
+    ) -> (bool, String) {
+        let result = Mesh::validate_topology(
+            faceVertexIndices.as_slice(),
+            faceVertexCounts.as_slice(),
+            numPoints,
+        );
+        (result.valid, result.reason)
+    }
+
+    // CamelCase aliases for all get/create methods
+    #[pyo3(name = "GetFaceVertexIndicesAttr")]
+    pub fn get_fvi_attr_cc(&self) -> PyAttribute { PyAttribute(self.0.get_face_vertex_indices_attr()) }
+    #[pyo3(name = "GetFaceVertexCountsAttr")]
+    pub fn get_fvc_attr_cc(&self) -> PyAttribute { PyAttribute(self.0.get_face_vertex_counts_attr()) }
+    #[pyo3(name = "GetSubdivisionSchemeAttr")]
+    pub fn get_subdiv_attr_cc(&self) -> PyAttribute { PyAttribute(self.0.get_subdivision_scheme_attr()) }
+    #[pyo3(name = "GetPointsAttr")]
+    pub fn get_pts_attr_cc(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_points_attr()) }
+    #[pyo3(name = "GetNormalsAttr")]
+    pub fn get_normals_attr_cc(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_normals_attr()) }
+    #[pyo3(name = "GetDoubleSidedAttr")]
+    pub fn get_ds_attr_cc(&self) -> PyAttribute { PyAttribute(self.0.gprim().get_double_sided_attr()) }
+    #[pyo3(name = "GetOrientationAttr")]
+    pub fn get_orient_attr_cc(&self) -> PyAttribute { PyAttribute(self.0.gprim().get_orientation_attr()) }
+    #[pyo3(name = "GetExtentAttr")]
+    pub fn get_extent_attr_cc(&self) -> PyAttribute { PyAttribute(self.0.boundable().get_extent_attr()) }
+    #[pyo3(name = "GetPrim")]
+    pub fn get_prim_cc(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPath")]
+    pub fn get_path_cc(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
+    #[pyo3(name = "GetFaceCount")]
+    #[pyo3(signature = (time=None))]
+    pub fn get_face_count(&self, time: Option<f64>) -> usize {
+        self.0.get_face_count(tc(time))
+    }
 
     // topology
     pub fn get_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_face_vertex_indices_attr()) }
