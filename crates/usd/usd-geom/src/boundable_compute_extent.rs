@@ -19,24 +19,84 @@ use usd_sdf::TimeCode;
 use usd_tf::Token;
 
 use usd_core::Attribute;
+use usd_core::time_code::TimeCode as UsdTimeCode;
+use usd_vt::Value;
 
 use super::boundable::Boundable;
 
-/// Read an attribute value as Vec<f32>, handling both Vec<f32> and Array<f32> storage.
+/// `Sdf.TimeCode` → `Usd.TimeCode` for attribute value resolution (default sentinel must stay default).
+#[inline]
+fn usd_time_from_sdf(time: TimeCode) -> UsdTimeCode {
+    if time.is_default() {
+        UsdTimeCode::default()
+    } else {
+        UsdTimeCode::new(time.value())
+    }
+}
+
+/// Float array from authored `VtValue` (matches breadth of `UsdGeom` points width parsing).
+fn float_vec_from_value(value: &Value) -> Vec<f32> {
+    if let Some(w) = value.get::<Vec<f32>>() {
+        return w.clone();
+    }
+    if let Some(w) = value.get::<usd_vt::Array<f32>>() {
+        return w.iter().copied().collect();
+    }
+    if let Some(w) = value.get::<Vec<f64>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(w) = value.get::<usd_vt::Array<f64>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(s) = value.get::<f32>() {
+        return vec![*s];
+    }
+    if let Some(s) = value.get::<f64>() {
+        return vec![*s as f32];
+    }
+    if let Some(s) = value.get::<i32>().copied() {
+        return vec![s as f32];
+    }
+    if let Some(s) = value.get::<i64>().copied() {
+        return vec![s as f32];
+    }
+    if let Some(w) = value.get::<Vec<i32>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(w) = value.get::<usd_vt::Array<i32>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(w) = value.get::<Vec<i64>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(w) = value.get::<usd_vt::Array<i64>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    Vec::new()
+}
+
+/// Read an attribute value as `Vec<f32>` (widths, radii, etc.).
 fn get_float_array_attr(attr: &Attribute, time: TimeCode) -> Vec<f32> {
     if !attr.is_valid() {
         return Vec::new();
     }
-    let Some(value) = attr.get(time) else {
+    let ut = usd_time_from_sdf(time);
+    if let Some(v) = attr.get_typed_vec::<f32>(ut) {
+        return v;
+    }
+    if let Some(v) = attr.get_typed_vec::<f64>(ut) {
+        return v.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(v) = attr.get_typed_vec::<i32>(ut) {
+        return v.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(v) = attr.get_typed_vec::<i64>(ut) {
+        return v.iter().map(|&x| x as f32).collect();
+    }
+    let Some(value) = attr.get(ut) else {
         return Vec::new();
     };
-    if let Some(v) = value.get::<Vec<f32>>() {
-        return v.clone();
-    }
-    if let Some(a) = value.get::<usd_vt::Array<f32>>() {
-        return a.iter().copied().collect();
-    }
-    Vec::new()
+    float_vec_from_value(&value)
 }
 
 // ============================================================================
@@ -463,7 +523,7 @@ fn compute_extent_point_based(
     if !points_attr.is_valid() {
         return None;
     }
-    let value = points_attr.get(time)?;
+    let value = points_attr.get(usd_time_from_sdf(time))?;
     let points: Vec<Vec3f> = value.get::<Vec<Vec3f>>().cloned().or_else(|| {
         value
             .get::<usd_vt::Array<Vec3f>>()
@@ -504,7 +564,7 @@ fn compute_extent_points(
     if !points_attr.is_valid() {
         return None;
     }
-    let value = points_attr.get(time)?;
+    let value = points_attr.get(usd_time_from_sdf(time))?;
     let points: Vec<Vec3f> = value.get::<Vec<Vec3f>>().cloned().or_else(|| {
         value
             .get::<usd_vt::Array<Vec3f>>()
@@ -549,7 +609,7 @@ fn compute_extent_curves(
     if !points_attr.is_valid() {
         return None;
     }
-    let value = points_attr.get(time)?;
+    let value = points_attr.get(usd_time_from_sdf(time))?;
     let points: Vec<Vec3f> = value.get::<Vec<Vec3f>>().cloned().or_else(|| {
         value
             .get::<usd_vt::Array<Vec3f>>()

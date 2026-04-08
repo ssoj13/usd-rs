@@ -325,10 +325,30 @@ impl Property {
     ///
     /// Checks the strongest layer opinion, across the full layer stack.
     /// Schema-defined properties have `custom` = false by default.
+    ///
+    /// Matches C++ `UsdProperty::IsCustom`: built-in schema properties are never
+    /// reported as custom even if a local `SdfAttributeSpec` authors `custom = true`.
     pub fn is_custom(&self) -> bool {
         let Some(stage) = self.inner.stage() else {
             return false;
         };
+        let prim_path = self.prim_path();
+        let prop_name = self.name();
+        if let Some(prim) = stage.get_prim_at_path(&prim_path) {
+            let type_name = prim.type_name();
+            if !type_name.is_empty() {
+                let registry = super::schema_registry::SchemaRegistry::get_instance();
+                if let Some(def) = registry.find_concrete_prim_definition(&type_name) {
+                    if def.property_names().contains(&prop_name) {
+                        return false;
+                    }
+                }
+                if super::schema_registry::schema_has_property(&type_name, prop_name.as_str()) {
+                    return false;
+                }
+            }
+        }
+
         let custom_key = usd_tf::Token::new("custom");
         // Strongest-wins: iterate layer stack, return first opinion found
         for layer in stage.layer_stack() {

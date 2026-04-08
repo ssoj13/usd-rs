@@ -5,6 +5,7 @@
 //! Base class for UsdGeomBasisCurves, UsdGeomNurbsCurves, and UsdGeomHermiteCurves.
 
 use super::point_based::PointBased;
+use super::points::widths_vec_from_usd_value;
 use super::tokens::usd_geom_tokens;
 use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
@@ -156,7 +157,7 @@ impl Curves {
     /// Matches C++ `CreateWidthsAttr()`.
     pub fn create_widths_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -164,22 +165,27 @@ impl Curves {
             return Attribute::invalid();
         }
 
-        if prim.has_authored_attribute(usd_geom_tokens().widths.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().widths.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().widths.as_str()) {
+            prim.get_attribute(usd_geom_tokens().widths.as_str())
+                .unwrap_or_else(Attribute::invalid)
+        } else {
+            let registry = ValueTypeRegistry::instance();
+            let float_array_type = registry.find_type_by_token(&Token::new("float[]"));
+            prim.create_attribute(
+                usd_geom_tokens().widths.as_str(),
+                &float_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid)
+        };
+
+        if attr.is_valid() {
+            if let Some(v) = default_value {
+                let _ = attr.set(v, TimeCode::default());
+            }
         }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_array_type = registry.find_type_by_token(&Token::new("float[]"));
-
-        prim.create_attribute(
-            usd_geom_tokens().widths.as_str(),
-            &float_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        attr
     }
 
     /// Get the interpolation for the widths attribute.
@@ -366,20 +372,13 @@ impl Curves {
             return false;
         }
 
-        // Get widths if available
+        // Get widths if available (same breadth as Points / vt authorship: int arrays, scalars, etc.)
         let widths_attr = self.get_widths_attr();
         let widths: Vec<f32> = if widths_attr.is_valid() {
-            if let Some(widths_value) = widths_attr.get(time) {
-                if let Some(w) = widths_value.get::<Vec<f32>>() {
-                    w.clone()
-                } else if let Some(w) = widths_value.get::<usd_vt::Array<f32>>() {
-                    w.iter().cloned().collect()
-                } else {
-                    Vec::new()
-                }
-            } else {
-                Vec::new()
-            }
+            widths_attr
+                .get(time)
+                .map(|widths_value| widths_vec_from_usd_value(&widths_value))
+                .unwrap_or_default()
         } else {
             Vec::new()
         };
@@ -421,20 +420,13 @@ impl Curves {
             return false;
         }
 
-        // Get widths if available
+        // Get widths if available (same breadth as Points / vt authorship: int arrays, scalars, etc.)
         let widths_attr = self.get_widths_attr();
         let widths: Vec<f32> = if widths_attr.is_valid() {
-            if let Some(widths_value) = widths_attr.get(time) {
-                if let Some(w) = widths_value.get::<Vec<f32>>() {
-                    w.clone()
-                } else if let Some(w) = widths_value.get::<usd_vt::Array<f32>>() {
-                    w.iter().cloned().collect()
-                } else {
-                    Vec::new()
-                }
-            } else {
-                Vec::new()
-            }
+            widths_attr
+                .get(time)
+                .map(|widths_value| widths_vec_from_usd_value(&widths_value))
+                .unwrap_or_default()
         } else {
             Vec::new()
         };

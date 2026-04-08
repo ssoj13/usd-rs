@@ -1742,7 +1742,18 @@ usd_geom_schema_with_xform!(PyCurves, yes_get_path, {
     #[pyo3(name = "GetCurveVertexCountsAttr")] pub fn get_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_curve_vertex_counts_attr()) }
     #[pyo3(name = "CreateCurveVertexCountsAttr")] pub fn create_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_curve_vertex_counts_attr(None, false)) }
     #[pyo3(name = "GetWidthsAttr")] pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_widths_attr()) }
-    #[pyo3(name = "CreateWidthsAttr")] pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_widths_attr(None, false)) }
+    #[pyo3(name = "CreateWidthsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_widths_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(self.0.create_widths_attr(v, write_sparsely)))
+    }
     #[pyo3(name = "GetWidthsInterpolation")] pub fn get_widths_interpolation(&self) -> String { self.0.get_widths_interpolation().as_str().to_owned() }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }

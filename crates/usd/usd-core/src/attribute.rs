@@ -1452,7 +1452,12 @@ impl Attribute {
     }
 
     /// Gets the attribute's value at the specified time, with type checking.
-    pub fn get_typed<T: Clone + 'static>(&self, time: TimeCode) -> Option<T> {
+    ///
+    /// Accepts both `SdfTimeCode` and `UsdTimeCode` (same as [`Self::get`]).
+    pub fn get_typed<T: Clone + 'static>(
+        &self,
+        time: impl Into<super::time_code::TimeCode>,
+    ) -> Option<T> {
         self.get(time).and_then(|v| v.downcast_clone::<T>())
     }
 
@@ -1461,9 +1466,11 @@ impl Attribute {
     /// USDC stores geometry arrays as `Array<T>` (VtArray parity), but USD-A stores them as
     /// `Vec<T>`. This method transparently handles both, so callers don't need to know which
     /// concrete type the layer backend used.
+    ///
+    /// Accepts both `SdfTimeCode` and `UsdTimeCode` (same as [`Self::get`]).
     pub fn get_typed_vec<T: Clone + Send + Sync + 'static>(
         &self,
-        time: TimeCode,
+        time: impl Into<super::time_code::TimeCode>,
     ) -> Option<Vec<T>> {
         self.get(time).and_then(|v| v.as_vec_clone::<T>())
     }
@@ -1747,6 +1754,32 @@ impl Attribute {
         let Some(stage) = self.inner.stage() else {
             return Variability::Varying;
         };
+        let prim_path = self.prim_path();
+        let prop_name = self.name();
+        // Composed prim definition (schema) wins over local `Sdf.AttributeSpec` edits (pxr parity).
+        if let Some(prim) = stage.get_prim_at_path(&prim_path) {
+            let type_name = prim.type_name();
+            if !type_name.is_empty() {
+                let registry = super::schema_registry::SchemaRegistry::get_instance();
+                if let Some(def) = registry.find_concrete_prim_definition(&type_name) {
+                    let prop_def = def.get_property_definition(&prop_name);
+                    if prop_def.is_valid() && prop_def.is_attribute() {
+                        return match prop_def.variability() {
+                            usd_sdf::Variability::Uniform => Variability::Uniform,
+                            usd_sdf::Variability::Varying => Variability::Varying,
+                        };
+                    }
+                }
+                if let Some(v) =
+                    super::schema_registry::schema_get_property_variability(&type_name, prop_name.as_str())
+                {
+                    return match v {
+                        usd_sdf::Variability::Uniform => Variability::Uniform,
+                        usd_sdf::Variability::Varying => Variability::Varying,
+                    };
+                }
+            }
+        }
         // Walk full layer stack, first opinion wins (strongest to weakest)
         for layer in stage.layer_stack() {
             if let Some(attr_spec) = layer.get_attribute_at_path(self.path()) {

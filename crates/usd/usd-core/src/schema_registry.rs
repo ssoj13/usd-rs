@@ -154,6 +154,8 @@ struct SchemaPropertyRegistry {
     /// Maps (prim_type, prop_name) -> SDF type name string (e.g. "color3f", "float").
     /// Used by `Attribute::type_name()` when no spec exists but the schema defines the type.
     type_to_prop_types: HashMap<Token, HashMap<Token, String>>,
+    /// Composed variability for registered built-in attributes (wins over local `Sdf` specs).
+    type_to_prop_variability: HashMap<Token, HashMap<Token, usd_sdf::Variability>>,
 }
 
 impl SchemaPropertyRegistry {
@@ -162,6 +164,7 @@ impl SchemaPropertyRegistry {
             type_to_props: HashMap::new(),
             type_to_fallbacks: HashMap::new(),
             type_to_prop_types: HashMap::new(),
+            type_to_prop_variability: HashMap::new(),
         }
     }
 }
@@ -203,6 +206,48 @@ pub fn register_schema_property_types(type_name: &str, prop_types: &[(&str, &str
         .map(|(name, sdf_type)| (Token::new(name), sdf_type.to_string()))
         .collect();
     w.type_to_prop_types.insert(key, map);
+}
+
+/// Register composed variability for built-in schema attributes (matches `usdGeom` / `usdLux` schematics).
+pub fn register_schema_property_variabilities(
+    type_name: &str,
+    pairs: &[(&str, usd_sdf::Variability)],
+) {
+    let reg = global_prop_registry();
+    let mut w = reg.write();
+    let key = Token::new(type_name);
+    let map: HashMap<Token, usd_sdf::Variability> = pairs
+        .iter()
+        .map(|(name, var)| (Token::new(name), *var))
+        .collect();
+    w.type_to_prop_variability.insert(key, map);
+}
+
+/// Composed variability from the lightweight schema registry, if registered.
+pub fn schema_get_property_variability(
+    type_name: &Token,
+    prop_name: &str,
+) -> Option<usd_sdf::Variability> {
+    let prop_reg = global_prop_registry();
+    let r = prop_reg.read();
+    let prop_token = Token::new(prop_name);
+    if let Some(vars) = r.type_to_prop_variability.get(type_name) {
+        if let Some(v) = vars.get(&prop_token) {
+            return Some(*v);
+        }
+    }
+    let dyn_reg = global_registry();
+    let dr = dyn_reg.read();
+    if let Some(info) = dr.schemas.get(type_name) {
+        for base in &info.base_type_names {
+            if let Some(vars) = r.type_to_prop_variability.get(base) {
+                if let Some(v) = vars.get(&prop_token) {
+                    return Some(*v);
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Get the SDF type name for a schema type's property.
@@ -2220,6 +2265,13 @@ pub fn register_builtin_schemas() {
         );
         register_schema_properties("Sphere", &["radius", "extent"]);
         register_schema_property_types("Sphere", &[("radius", "double"), ("extent", "float3[]")]);
+        register_schema_property_variabilities(
+            "Sphere",
+            &[
+                ("radius", usd_sdf::Variability::Varying),
+                ("extent", usd_sdf::Variability::Varying),
+            ],
+        );
         register_schema_fallbacks("Sphere", &[("radius", Value::from(1.0_f64))]);
         register_schema_properties("Cube", &["size", "extent"]);
         register_schema_fallbacks("Cube", &[("size", Value::from(2.0_f64))]);

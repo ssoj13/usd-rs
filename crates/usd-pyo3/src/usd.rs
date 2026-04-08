@@ -2487,6 +2487,15 @@ impl PyAttribute {
             usd_core::attribute::Variability::Uniform => "Sdf.VariabilityUniform",
         };
         dict.set_item("variability", variability_py)?;
+        dict.set_item("custom", self.inner.as_property().is_custom())?;
+        if self.inner.path().get_name() == "visibility" && dict.get_item("allowedTokens").ok().flatten().is_none()
+        {
+            let toks = usd_vt::Array::<String>::from(vec![
+                "inherited".to_string(),
+                "invisible".to_string(),
+            ]);
+            dict.set_item("allowedTokens", value_to_py(py, &usd_vt::Value::from(toks)))?;
+        }
         Ok(dict.into_any().unbind())
     }
 

@@ -17,7 +17,7 @@ use usd_tf::Token;
 use usd_vt::Value;
 
 /// Extract `float[]` / `double[]` / scalar widths from a composed `VtValue`.
-fn widths_vec_from_usd_value(widths_value: &Value) -> Vec<f32> {
+pub(crate) fn widths_vec_from_usd_value(widths_value: &Value) -> Vec<f32> {
     if let Some(w) = widths_value.get::<Vec<f32>>() {
         return w.clone();
     }
