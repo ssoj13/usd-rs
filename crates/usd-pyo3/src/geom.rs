@@ -659,30 +659,17 @@ pub struct PyScope(pub Scope);
 impl PyScope {
     #[new]
     pub fn new(prim: &PyPrim) -> Self { Self(Scope::new(prim.0.clone())) }
-
-    #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
-        Ok(Self(Scope::get(&stage.0, &p)))
-    }
-
-    #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
-        Ok(Self(Scope::define(&stage.0, &p)))
-    }
-
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[staticmethod] #[pyo3(name = "Get")]
+    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::get(&stage.0, &p))) }
+    #[staticmethod] #[pyo3(name = "Define")]
+    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::define(&stage.0, &p))) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPath")] pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
-
-    pub fn __repr__(&self) -> String {
-        if self.0.is_valid() { format!("UsdGeom.Scope('{}')", self.0.prim().path()) }
-        else { "UsdGeom.Scope(<invalid>)".to_owned() }
-    }
-
-    #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Scope" }
+    pub fn __repr__(&self) -> String { if self.0.is_valid() { format!("UsdGeom.Scope('{}')", self.0.prim().path()) } else { "UsdGeom.Scope(<invalid>)".to_owned() } }
+    #[staticmethod] #[pyo3(name = "GetSchemaAttributeNames")]
+    pub fn get_schema_attribute_names(_include_inherited: Option<bool>) -> Vec<String> { Scope::get_schema_attribute_names(true).iter().map(|t| t.as_str().to_string()).collect() }
 }
 
 // ============================================================================
