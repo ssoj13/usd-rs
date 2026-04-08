@@ -37,19 +37,23 @@ def pytest_collectstart(collector):
 
 
 @pytest.fixture(autouse=True)
-def _usd_test_chdir(request):
-    """Per-test fixture: ensure cwd matches the test module's data dir."""
+def _usd_test_chdir(request, tmp_path):
+    """Per-test fixture: run in test data dir or tmpdir (never project root)."""
     test_file = Path(request.fspath)
     stem = test_file.stem
     test_dir = test_file.parent
+    saved = os.getcwd()
+    # Try test-specific data dir first
     for candidate in (test_dir / stem, test_dir / f"{stem}.testenv"):
         if candidate.is_dir():
-            saved = os.getcwd()
             os.chdir(candidate)
             yield
             os.chdir(saved)
             return
-    yield  # no data dir — run from wherever we are
+    # No data dir — use tmpdir so tests don't pollute project root
+    os.chdir(tmp_path)
+    yield
+    os.chdir(saved)
 
 
 # Skip files that call sys.exit() or argparse at module level
