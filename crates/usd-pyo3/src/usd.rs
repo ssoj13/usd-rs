@@ -508,6 +508,29 @@ impl PyEditTarget {
         })
     }
 
+    #[allow(non_snake_case)]
+    fn IsNull(&self) -> bool { !self.inner.is_valid() }
+
+    #[allow(non_snake_case)]
+    fn MapToSpecPath(&self, scene_path: &Bound<'_, PyAny>) -> PyResult<crate::sdf::PyPath> {
+        let s = extract_path_str(scene_path)?;
+        let p = path_from_str(&s)?;
+        let spec_path = self.inner.map_to_spec_path(&p);
+        Ok(crate::sdf::PyPath::from_path(spec_path))
+    }
+
+    #[allow(non_snake_case)]
+    fn ComposeOver(&self, weaker: &PyEditTarget) -> Self {
+        Self { inner: self.inner.compose_over(&weaker.inner) }
+    }
+
+    fn __eq__(&self, other: &PyEditTarget) -> bool {
+        self.inner == other.inner
+    }
+    fn __ne__(&self, other: &PyEditTarget) -> bool {
+        self.inner != other.inner
+    }
+
     fn __repr__(&self) -> String {
         if self.inner.is_valid() {
             format!(
