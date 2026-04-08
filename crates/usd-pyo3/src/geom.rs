@@ -203,13 +203,23 @@ pub struct PyXformOp(pub XformOp);
 
 #[pymethods]
 impl PyXformOp {
+    #[pyo3(name = "GetOpType")]
     pub fn get_op_type(&self) -> String { format!("{}", self.0.op_type()) }
+    #[pyo3(name = "GetAttr")]
     pub fn get_attr(&self) -> PyAttribute { PyAttribute(self.0.attr().clone()) }
+    #[pyo3(name = "GetName")]
     pub fn get_name(&self) -> String { self.0.op_name().as_str().to_owned() }
+    #[pyo3(name = "GetBaseName")]
+    pub fn get_base_name(&self) -> String { self.0.op_name().as_str().to_owned() }
+    #[pyo3(name = "IsInverseOp")]
     pub fn is_inverse_op(&self) -> bool { self.0.is_inverse_op() }
+    #[pyo3(name = "IsDefined")]
+    pub fn is_defined(&self) -> bool { self.0.is_valid() }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
     pub fn __repr__(&self) -> String { format!("UsdGeom.XformOp('{}')", self.0.op_name()) }
+    pub fn __eq__(&self, other: &PyXformOp) -> bool { self.0.op_name() == other.0.op_name() }
+    pub fn __ne__(&self, other: &PyXformOp) -> bool { self.0.op_name() != other.0.op_name() }
 }
 
 // ============================================================================
@@ -221,19 +231,38 @@ pub struct PyPrimvar(pub Primvar);
 
 #[pymethods]
 impl PyPrimvar {
-    pub fn get_interpolation(&self) -> String {
-        self.0.get_interpolation().as_str().to_owned()
-    }
-    pub fn set_interpolation(&self, interp: &str) -> bool {
-        self.0.set_interpolation(&Token::new(interp))
-    }
+    #[pyo3(name = "GetInterpolation")]
+    pub fn get_interpolation(&self) -> String { self.0.get_interpolation().as_str().to_owned() }
+    #[pyo3(name = "SetInterpolation")]
+    pub fn set_interpolation(&self, interp: &str) -> bool { self.0.set_interpolation(&Token::new(interp)) }
+    #[pyo3(name = "HasValue")]
     pub fn has_value(&self) -> bool { self.0.has_value() }
+    #[pyo3(name = "HasAuthoredValue")]
+    pub fn has_authored_value(&self) -> bool { self.0.has_authored_value() }
+    #[pyo3(name = "IsIndexed")]
     pub fn is_indexed(&self) -> bool { self.0.is_indexed() }
+    #[pyo3(name = "GetAttr")]
     pub fn get_attr(&self) -> PyAttribute { PyAttribute(self.0.get_attr().clone()) }
+    #[pyo3(name = "GetName")]
     pub fn get_name(&self) -> String { self.0.get_attr().name().as_str().to_owned() }
+    #[pyo3(name = "GetPrimvarName")]
+    pub fn get_primvar_name(&self) -> String { self.0.get_primvar_name() }
+    #[pyo3(name = "GetTypeName")]
+    pub fn get_type_name(&self) -> String { self.0.get_type_name().as_str().to_owned() }
+    #[pyo3(name = "GetElementSize")]
+    pub fn get_element_size(&self) -> usize { self.0.get_element_size() }
+    #[pyo3(name = "SetElementSize")]
+    pub fn set_element_size(&self, size: usize) -> bool { self.0.set_element_size(size) }
+    #[pyo3(name = "IsDefined")]
+    pub fn is_defined(&self) -> bool { self.0.is_valid() }
+    #[pyo3(name = "IsPrimvar")]
+    #[staticmethod]
+    pub fn is_primvar(attr: &PyAttribute) -> bool { Primvar::is_primvar(&attr.0) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
     pub fn __repr__(&self) -> String { format!("UsdGeom.Primvar('{}')", self.0.get_attr().name()) }
+    pub fn __eq__(&self, other: &PyPrimvar) -> bool { self.0.get_attr().path() == other.0.get_attr().path() }
+    pub fn __ne__(&self, other: &PyPrimvar) -> bool { self.0.get_attr().path() != other.0.get_attr().path() }
 }
 
 // ============================================================================
@@ -257,18 +286,28 @@ impl PyBBoxCache {
         Self(BBoxCache::new(TimeCode::new(time), purposes, use_extents_hint, ignore_visibility))
     }
 
+    #[pyo3(name = "ComputeWorldBound")]
     pub fn compute_world_bound(&mut self, prim: &PyPrim) -> Vec<f64> {
         bbox_to_flat(&self.0.compute_world_bound(&prim.0))
     }
 
+    #[pyo3(name = "ComputeLocalBound")]
     pub fn compute_local_bound(&mut self, prim: &PyPrim) -> Vec<f64> {
         bbox_to_flat(&self.0.compute_local_bound(&prim.0))
     }
 
+    #[pyo3(name = "SetTime")]
     pub fn set_time(&mut self, time: f64) {
         self.0.set_time(TimeCode::new(time));
     }
 
+    #[pyo3(name = "GetTime")]
+    pub fn get_time(&self) -> f64 { self.0.get_time().value() }
+
+    #[pyo3(name = "GetUseExtentsHint")]
+    pub fn get_use_extents_hint(&self) -> bool { self.0.get_use_extents_hint() }
+
+    #[pyo3(name = "Clear")]
     pub fn clear(&mut self) { self.0.clear(); }
     pub fn __repr__(&self) -> &'static str { "UsdGeom.BBoxCache" }
 }
@@ -315,6 +354,7 @@ impl PyImageable {
     pub fn new(prim: &PyPrim) -> Self { Self(Imageable::new(prim.0.clone())) }
 
     #[staticmethod]
+    #[pyo3(name = "Get")]
     pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         let prim = stage.0.get_prim_at_path(&p)
@@ -322,19 +362,35 @@ impl PyImageable {
         Ok(Self(Imageable::new(prim)))
     }
 
+    #[pyo3(name = "GetPrim")]
     pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPath")]
+    pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
+    #[pyo3(name = "GetVisibilityAttr")]
     pub fn get_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_visibility_attr()) }
+    #[pyo3(name = "CreateVisibilityAttr")]
     pub fn create_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_visibility_attr()) }
+    #[pyo3(name = "GetPurposeAttr")]
     pub fn get_purpose_attr(&self) -> PyAttribute { PyAttribute(self.0.get_purpose_attr()) }
+    #[pyo3(name = "CreatePurposeAttr")]
     pub fn create_purpose_attr(&self) -> PyAttribute { PyAttribute(self.0.create_purpose_attr()) }
 
+    #[pyo3(name = "ComputeVisibility", signature = (time=None))]
     pub fn compute_visibility(&self, time: Option<f64>) -> String {
         self.0.compute_visibility(tc(time)).as_str().to_owned()
     }
 
+    #[pyo3(name = "ComputePurpose")]
+    pub fn compute_purpose(&self) -> String {
+        self.0.compute_purpose().as_str().to_owned()
+    }
+
+    #[pyo3(name = "MakeVisible", signature = (time=None))]
     pub fn make_visible(&self, time: Option<f64>) { self.0.make_visible(tc(time)); }
+    #[pyo3(name = "MakeInvisible", signature = (time=None))]
     pub fn make_invisible(&self, time: Option<f64>) { self.0.make_invisible(tc(time)); }
 
+    #[pyo3(name = "ComputeWorldBound")]
     pub fn compute_world_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
         let mut cache = BBoxCache::new(
             TimeCode::new(time), vec![Token::new(purpose)], false, false,
@@ -342,16 +398,39 @@ impl PyImageable {
         bbox_to_flat(&cache.compute_world_bound(self.0.prim()))
     }
 
+    #[pyo3(name = "ComputeLocalBound")]
+    pub fn compute_local_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+        let mut cache = BBoxCache::new(
+            TimeCode::new(time), vec![Token::new(purpose)], false, false,
+        );
+        bbox_to_flat(&cache.compute_local_bound(self.0.prim()))
+    }
+
+    #[pyo3(name = "ComputeLocalToWorldTransform", signature = (time=None))]
     pub fn compute_local_to_world_transform(&self, time: Option<f64>) -> Vec<f64> {
         let mut cache = XformCache::new(tc(time));
         mat4_to_flat(&cache.get_local_to_world_transform(self.0.prim()))
     }
 
+    #[pyo3(name = "ComputeParentToWorldTransform", signature = (time=None))]
+    pub fn compute_parent_to_world_transform(&self, time: Option<f64>) -> Vec<f64> {
+        let mut cache = XformCache::new(tc(time));
+        mat4_to_flat(&cache.get_parent_to_world_transform(self.0.prim()))
+    }
+
     #[staticmethod]
+    #[pyo3(name = "GetOrderedPurposeTokens")]
     pub fn get_ordered_purpose_tokens() -> Vec<String> {
         Imageable::get_ordered_purpose_tokens().iter().map(|t| t.as_str().to_owned()).collect()
     }
 
+    #[staticmethod]
+    #[pyo3(name = "GetSchemaAttributeNames")]
+    pub fn get_schema_attribute_names(_include_inherited: Option<bool>) -> Vec<String> {
+        Imageable::get_schema_attribute_names(true).iter().map(|t| t.as_str().to_string()).collect()
+    }
+
+    #[pyo3(name = "IsValid")]
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -359,9 +438,6 @@ impl PyImageable {
         if self.0.is_valid() { format!("UsdGeom.Imageable('{}')", self.0.prim().path()) }
         else { "UsdGeom.Imageable(<invalid>)".to_owned() }
     }
-
-    #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Imageable" }
 }
 
 // ============================================================================
@@ -377,6 +453,7 @@ impl PyXformable {
     pub fn new(prim: &PyPrim) -> Self { Self(Xformable::new(prim.0.clone())) }
 
     #[staticmethod]
+    #[pyo3(name = "Get")]
     pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         let prim = stage.0.get_prim_at_path(&p)
@@ -384,57 +461,115 @@ impl PyXformable {
         Ok(Self(Xformable::new(prim)))
     }
 
+    #[pyo3(name = "GetPrim")]
     pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPath")]
+    pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
+    #[pyo3(name = "GetXformOpOrderAttr")]
     pub fn get_xform_op_order_attr(&self) -> PyAttribute { PyAttribute(self.0.get_xform_op_order_attr()) }
+    #[pyo3(name = "CreateXformOpOrderAttr")]
     pub fn create_xform_op_order_attr(&self) -> PyAttribute { PyAttribute(self.0.create_xform_op_order_attr()) }
 
-    pub fn add_translate_op(&self, suffix: Option<&str>, is_inverse: bool) -> PyXformOp {
+    #[pyo3(name = "AddTranslateOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
+    pub fn add_translate_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::Translate, XformOpPrecision::Double, tok.as_ref(), is_inverse))
+        PyXformOp(self.0.add_xform_op(XformOpType::Translate, prec, tok.as_ref(), is_inverse_op))
     }
 
-    pub fn add_rotate_xyz_op(&self, suffix: Option<&str>, is_inverse: bool) -> PyXformOp {
+    #[pyo3(name = "AddRotateXYZOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
+    pub fn add_rotate_xyz_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::RotateXYZ, XformOpPrecision::Float, tok.as_ref(), is_inverse))
+        PyXformOp(self.0.add_xform_op(XformOpType::RotateXYZ, prec, tok.as_ref(), is_inverse_op))
     }
 
-    pub fn add_scale_op(&self, suffix: Option<&str>, is_inverse: bool) -> PyXformOp {
+    #[pyo3(name = "AddScaleOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
+    pub fn add_scale_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::Scale, XformOpPrecision::Float, tok.as_ref(), is_inverse))
+        PyXformOp(self.0.add_xform_op(XformOpType::Scale, prec, tok.as_ref(), is_inverse_op))
     }
 
-    pub fn add_transform_op(&self, suffix: Option<&str>, is_inverse: bool) -> PyXformOp {
+    #[pyo3(name = "AddTransformOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
+    pub fn add_transform_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::Transform, XformOpPrecision::Double, tok.as_ref(), is_inverse))
+        PyXformOp(self.0.add_xform_op(XformOpType::Transform, prec, tok.as_ref(), is_inverse_op))
     }
 
+    #[pyo3(name = "AddOrientOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
+    pub fn add_orient_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
+        let tok = suffix.map(Token::new);
+        PyXformOp(self.0.add_xform_op(XformOpType::Orient, prec, tok.as_ref(), is_inverse_op))
+    }
+
+    #[pyo3(name = "AddRotateXOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
+    pub fn add_rotate_x_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
+        let tok = suffix.map(Token::new);
+        PyXformOp(self.0.add_xform_op(XformOpType::RotateX, prec, tok.as_ref(), is_inverse_op))
+    }
+
+    #[pyo3(name = "AddRotateYOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
+    pub fn add_rotate_y_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
+        let tok = suffix.map(Token::new);
+        PyXformOp(self.0.add_xform_op(XformOpType::RotateY, prec, tok.as_ref(), is_inverse_op))
+    }
+
+    #[pyo3(name = "AddRotateZOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
+    pub fn add_rotate_z_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
+        let tok = suffix.map(Token::new);
+        PyXformOp(self.0.add_xform_op(XformOpType::RotateZ, prec, tok.as_ref(), is_inverse_op))
+    }
+
+    #[pyo3(name = "AddXformOp", signature = (op_type, precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
     pub fn add_xform_op(
         &self,
-        op_type_str: &str,
-        precision_str: &str,
+        op_type: &str,
+        precision: &str,
         suffix: Option<&str>,
-        is_inverse: bool,
+        is_inverse_op: bool,
     ) -> PyResult<PyXformOp> {
-        let op_type = parse_xform_op_type(op_type_str)?;
-        let precision = parse_xform_precision(precision_str)?;
+        let op_t = parse_xform_op_type(op_type)?;
+        let prec = parse_xform_precision(precision)?;
         let tok = suffix.map(Token::new);
-        Ok(PyXformOp(self.0.add_xform_op(op_type, precision, tok.as_ref(), is_inverse)))
+        Ok(PyXformOp(self.0.add_xform_op(op_t, prec, tok.as_ref(), is_inverse_op)))
     }
 
+    #[pyo3(name = "GetOrderedXformOps")]
     pub fn get_ordered_xform_ops(&self) -> Vec<PyXformOp> {
         self.0.get_ordered_xform_ops().into_iter().map(PyXformOp).collect()
     }
 
-    /// Returns (matrix_flat_16, resets_xform_stack).
+    #[pyo3(name = "GetLocalTransformation", signature = (time=None))]
     pub fn get_local_transformation(&self, time: Option<f64>) -> (Vec<f64>, bool) {
         let (mat, resets) = self.0.get_local_transformation_with_reset(tc(time));
         (mat4_to_flat(&mat), resets)
     }
 
+    #[pyo3(name = "TransformMightBeTimeVarying")]
+    pub fn transform_might_be_time_varying(&self) -> bool { self.0.transform_might_be_time_varying() }
+
+    #[pyo3(name = "MakeMatrixXform")]
     pub fn make_matrix_xform(&self) -> PyXformOp { PyXformOp(self.0.make_matrix_xform()) }
+    #[pyo3(name = "ClearXformOpOrder")]
     pub fn clear_xform_op_order(&self) -> bool { self.0.clear_xform_op_order() }
+    #[pyo3(name = "GetResetXformStack")]
     pub fn get_reset_xform_stack(&self) -> bool { self.0.get_reset_xform_stack() }
+    #[pyo3(name = "SetResetXformStack")]
     pub fn set_reset_xform_stack(&self, reset: bool) -> bool { self.0.set_reset_xform_stack(reset) }
+
+    #[staticmethod]
+    #[pyo3(name = "GetSchemaAttributeNames")]
+    pub fn get_schema_attribute_names(_include_inherited: Option<bool>) -> Vec<String> {
+        Xformable::get_schema_attribute_names(true).iter().map(|t| t.as_str().to_string()).collect()
+    }
+
+    #[pyo3(name = "IsValid")]
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -442,9 +577,6 @@ impl PyXformable {
         if self.0.is_valid() { format!("UsdGeom.Xformable('{}')", self.0.prim().path()) }
         else { "UsdGeom.Xformable(<invalid>)".to_owned() }
     }
-
-    #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Xformable" }
 }
 
 // ============================================================================
@@ -460,18 +592,23 @@ impl PyXform {
     pub fn new(prim: &PyPrim) -> Self { Self(Xform::new(prim.0.clone())) }
 
     #[staticmethod]
+    #[pyo3(name = "Get")]
     pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Xform::get(&stage.0, &p)))
     }
 
     #[staticmethod]
+    #[pyo3(name = "Define")]
     pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Xform::define(&stage.0, &p)))
     }
 
+    #[pyo3(name = "GetPrim")]
     pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPath")]
+    pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
