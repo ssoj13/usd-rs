@@ -344,12 +344,48 @@ impl PyNotice {
     #[pyo3(name = "RegisterGlobally")]
     fn register_globally(
         _cls: &Bound<'_, pyo3::types::PyType>,
-        notice_type: &str,
+        notice_type: &Bound<'_, PyAny>,
         callback: Py<PyAny>,
-    ) -> PyNoticeListener {
-        let key = PYTHON_NOTICE_SHIM.register(notice_type, callback);
-        PyNoticeListener { key: Some(key) }
+    ) -> PyResult<PyNoticeListener> {
+        let tag = notice_type_to_string(notice_type)?;
+        let key = PYTHON_NOTICE_SHIM.register(&tag, callback);
+        Ok(PyNoticeListener { key: Some(key) })
     }
+
+    /// Register a listener for a notice type with an optional sender.
+    ///
+    /// Matches C++ `TfNotice::Register(noticeType, callback, sender)`.
+    /// `notice_type` can be a string or a Python class (its __name__ is used).
+    /// `sender` is currently ignored (global registration).
+    #[classmethod]
+    #[pyo3(name = "Register", signature = (notice_type, callback, sender=None))]
+    fn register(
+        _cls: &Bound<'_, pyo3::types::PyType>,
+        notice_type: &Bound<'_, PyAny>,
+        callback: Py<PyAny>,
+        sender: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<PyNoticeListener> {
+        let _ = sender; // TODO: sender-scoped registration
+        let tag = notice_type_to_string(notice_type)?;
+        let key = PYTHON_NOTICE_SHIM.register(&tag, callback);
+        Ok(PyNoticeListener { key: Some(key) })
+    }
+}
+
+/// Extract notice type name from either a string or a Python class.
+fn notice_type_to_string(obj: &Bound<'_, PyAny>) -> PyResult<String> {
+    // Try string first
+    if let Ok(s) = obj.extract::<String>() {
+        return Ok(s);
+    }
+    // Try Python type/class — use __name__
+    if let Ok(name) = obj.getattr("__name__") {
+        if let Ok(s) = name.extract::<String>() {
+            return Ok(s);
+        }
+    }
+    // Try repr as fallback
+    Ok(format!("{}", obj))
 }
 
 // ---- String-keyed notice shim -------------------------------------------------
