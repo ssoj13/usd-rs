@@ -240,6 +240,12 @@ impl PyTimeCode {
         self.inner.is_numeric()
     }
 
+    #[getter]
+    #[allow(non_snake_case)]
+    fn IsPreTime(&self) -> bool {
+        self.inner.value() == f64::MIN
+    }
+
     #[allow(non_snake_case)]
     fn GetValue(&self) -> f64 {
         if self.inner.is_default() { f64::NAN } else { self.inner.value() }
