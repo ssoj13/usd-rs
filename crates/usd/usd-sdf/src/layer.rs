@@ -1982,7 +1982,8 @@ impl Layer {
 
         fn array_as_i32(value: &Value) -> Option<Vec<i32>> {
             let items = value.downcast::<Vec<Value>>()?;
-            items.iter()
+            items
+                .iter()
                 .map(|item| numeric_as_f64(item).map(|v| v as i32))
                 .collect()
         }
@@ -2004,7 +2005,8 @@ impl Layer {
 
         fn tuple_array_as_f32<const N: usize>(value: &Value) -> Option<Vec<[f32; N]>> {
             let items = value.downcast::<Vec<Value>>()?;
-            items.iter()
+            items
+                .iter()
                 .map(|item| {
                     let tuple = tuple_as_f64::<N>(item)?;
                     let mut out = [0.0; N];
@@ -2057,8 +2059,8 @@ impl Layer {
                     return Value::from_no_hash(usd_gf::Vec2f::new(x as f32, y as f32));
                 }
             }
-            "float3" | "point3f" | "normal3f" | "color3f" | "vector3f" | "Vec3f"
-            | "ColorFloat" | "PointFloat" => {
+            "float3" | "point3f" | "normal3f" | "color3f" | "vector3f" | "Vec3f" | "ColorFloat"
+            | "PointFloat" => {
                 if let Some([x, y, z]) = tuple_as_f64::<3>(val) {
                     return Value::from_no_hash(usd_gf::Vec3f::new(x as f32, y as f32, z as f32));
                 }
@@ -2115,8 +2117,8 @@ impl Layer {
                     );
                 }
             }
-            "float3[]" | "point3f[]" | "normal3f[]" | "color3f[]" | "vector3f[]"
-            | "Vec3f[]" | "ColorFloat[]" | "PointFloat[]" => {
+            "float3[]" | "point3f[]" | "normal3f[]" | "color3f[]" | "vector3f[]" | "Vec3f[]"
+            | "ColorFloat[]" | "PointFloat[]" => {
                 if let Some(values) = tuple_array_as_f32::<3>(val) {
                     return Value::from_no_hash(
                         values
@@ -2146,8 +2148,7 @@ impl Layer {
                     );
                 }
             }
-            "double3[]" | "point3d[]" | "normal3d[]" | "color3d[]" | "vector3d[]"
-            | "Vec3d[]" => {
+            "double3[]" | "point3d[]" | "normal3d[]" | "color3d[]" | "vector3d[]" | "Vec3d[]" => {
                 if let Some(values) = tuple_array_as_f64::<3>(val) {
                     return Value::from_no_hash(
                         values
@@ -3757,7 +3758,12 @@ impl Layer {
     // ========================================================================
 
     /// Matches Sdf `_GetBracketingTimes` (`pxr/usd/sdf/crateData.cpp`). `times` must be sorted.
-    fn bracketing_times_sorted(times: &[f64], query_time: f64, t_lower: &mut f64, t_upper: &mut f64) -> bool {
+    fn bracketing_times_sorted(
+        times: &[f64],
+        query_time: f64,
+        t_lower: &mut f64,
+        t_upper: &mut f64,
+    ) -> bool {
         if times.is_empty() {
             return false;
         }

@@ -1,4 +1,3 @@
-
 //! Base task class for Hydra extensions.
 //!
 //! `HdxTask` provides a non-virtual interface (NVI) Sync pattern:
@@ -9,8 +8,8 @@
 //! - `toggle_render_target` / `toggle_depth_target` for ping-pong texture swap
 //! - `are_tasks_converged` for progressive rendering queries
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::prim::HdSceneDelegate;
 use usd_hd::render::{HdRenderIndexTrait, HdTask, HdTaskContext};
 use usd_hgi::Hgi;

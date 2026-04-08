@@ -1,4 +1,3 @@
-
 //! HdSampleFilterSchema - Sample filter sprim schema.
 //!
 //! Corresponds to pxr/imaging/hd/sampleFilterSchema.h.

@@ -1,12 +1,11 @@
-
 //! Base scene index trait and implementation.
 
 use super::observer::{
     AddedPrimEntry, DirtiedPrimEntry, HdSceneIndexObserverHandle, RemovedPrimEntry,
     RenamedPrimEntry,
 };
-use crate::flo_debug::{flo_debug_enabled, summarize_dirtied_entries};
 use super::prim::HdSceneIndexPrim;
+use crate::flo_debug::{flo_debug_enabled, summarize_dirtied_entries};
 use std::collections::HashSet;
 use std::sync::{Arc, Weak};
 

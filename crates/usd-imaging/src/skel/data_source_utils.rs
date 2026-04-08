@@ -4,8 +4,8 @@
 //!
 //! Provides SharedPtrThunk (lazy cache) and GetTypedValue helper.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::HdTypedSampledDataSource;
 
 /// Lazy cache for shared pointers.
@@ -76,8 +76,8 @@ where
 }
 
 use std::sync::LazyLock;
-use usd_hd::data_source::HdValueExtract;
 use usd_hd::data_source::HdContainerDataSourceHandle;
+use usd_hd::data_source::HdValueExtract;
 use usd_sdf::Path;
 use usd_tf::Token;
 use usd_vt::{Array, Value};

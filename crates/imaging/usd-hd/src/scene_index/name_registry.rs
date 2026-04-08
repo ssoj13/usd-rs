@@ -1,4 +1,3 @@
-
 //! HdSceneIndexNameRegistry - Singleton registry for named scene index instances.
 //!
 //! Corresponds to C++ `HdSceneIndexNameRegistry` in pxr/imaging/hd/sceneIndex.h:265-303.

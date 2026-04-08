@@ -1,4 +1,3 @@
-
 //! Task controller - Orchestrates rendering tasks for Hydra.
 //!
 //! HdxTaskController manages creation and configuration of rendering tasks,
@@ -9,9 +8,9 @@
 //! Per-task params are also cached here so set_render_params / set_collection
 //! can correctly merge (C++ stores params in _delegate value cache).
 
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 use usd_gf::{Matrix4d, Vec2i, Vec4d, Vec4f, Vec4i};
 use usd_hd::enums::HdBlendFactor;
@@ -364,7 +363,8 @@ impl HdxTaskController {
             }
             // Push to actual task object.
             if let Some(task) = self.tasks.get(&task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(rt) = guard.as_any_mut().downcast_mut::<HdxRenderTask>() {
                         rt.set_params(&params);
                     }
@@ -404,7 +404,8 @@ impl HdxTaskController {
             self.apply_blend_state_for_tag(&material_tag, &mut merged);
 
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(rt) = guard.as_any_mut().downcast_mut::<HdxRenderTask>() {
                         rt.set_params(&merged);
                     }
@@ -420,7 +421,8 @@ impl HdxTaskController {
         // Also forward cull style to pick task via its params.
         if let Some(ref pick_id) = self.pick_task_id.clone() {
             if let Some(task) = self.tasks.get(pick_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(pt) = guard.as_any_mut().downcast_mut::<HdxPickTask>() {
                         let mut p = pt.get_params().clone();
                         if p.cull_style != params.cull_style {
@@ -437,7 +439,8 @@ impl HdxTaskController {
     pub fn set_render_tags(&mut self, render_tags: &[Token]) {
         for task_id in &self.render_task_ids.clone() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(rt) = guard.as_any_mut().downcast_mut::<HdxRenderTask>() {
                         rt.set_render_tags(render_tags.to_vec());
                     }
@@ -447,7 +450,8 @@ impl HdxTaskController {
 
         if let Some(ref pick_id) = self.pick_task_id.clone() {
             if let Some(task) = self.tasks.get(pick_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(pick_task) = guard.as_any_mut().downcast_mut::<HdxPickTask>() {
                         pick_task.set_render_tags(render_tags.to_vec());
                     }
@@ -519,7 +523,8 @@ impl HdxTaskController {
         let task_ids = self.render_task_ids.clone();
         for (i, task_id) in task_ids.iter().enumerate() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(rt) = guard.as_any_mut().downcast_mut::<HdxRenderTask>() {
                         let bindings = if i == 0 {
                             aov_bindings_clear.clone()
@@ -565,7 +570,8 @@ impl HdxTaskController {
         // Update aov_input_task.
         if let Some(ref task_id) = self.aov_input_task_id.clone() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxAovInputTask>() {
                         let mut p = t.get_params().clone();
                         if is_empty {
@@ -587,7 +593,8 @@ impl HdxTaskController {
         // Update colorize_selection_task: wire id buffers only when rendering color.
         if let Some(ref task_id) = self.colorize_selection_task_id.clone() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard
                         .as_any_mut()
                         .downcast_mut::<HdxColorizeSelectionTask>()
@@ -612,7 +619,8 @@ impl HdxTaskController {
         // Update pick_from_render_buffer_task.
         if let Some(ref task_id) = self.pick_from_render_buffer_task_id.clone() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard
                         .as_any_mut()
                         .downcast_mut::<HdxPickFromRenderBufferTask>()
@@ -645,7 +653,8 @@ impl HdxTaskController {
         // Update color_correction_task aov_name.
         if let Some(ref task_id) = self.color_correction_task_id.clone() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxColorCorrectionTask>() {
                         let mut p = t.get_params().clone();
                         p.aov_name = name.clone();
@@ -658,7 +667,8 @@ impl HdxTaskController {
         // Update visualize_aov_task aov_name.
         if let Some(ref task_id) = self.visualize_aov_task_id.clone() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxVisualizeAovTask>() {
                         t.set_aov_name(name.clone());
                     }
@@ -669,7 +679,8 @@ impl HdxTaskController {
         // Update bounding_box_task aov_name.
         if let Some(ref task_id) = self.bounding_box_task_id.clone() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxBoundingBoxTask>() {
                         t.set_aov_name(name.clone());
                     }
@@ -702,7 +713,8 @@ impl HdxTaskController {
     pub fn set_presentation_output(&mut self, api: &Token, _framebuffer: &[u8]) {
         if let Some(ref task_id) = self.present_task_id.clone() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxPresentTask>() {
                         let mut p = t.get_params().clone();
                         p.dst_api = api.clone();
@@ -736,7 +748,8 @@ impl HdxTaskController {
         // so it re-publishes the lighting context next sync.
         if let Some(ref task_id) = self.simple_light_task_id.clone() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxSimpleLightTask>() {
                         let mut p = t.get_params().clone();
                         // Propagate active camera to light task.
@@ -836,7 +849,8 @@ impl HdxTaskController {
     pub fn set_enable_selection(&mut self, enable: bool) {
         if let Some(ref id) = self.selection_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxSelectionTask>() {
                         let mut p = t.get_params().clone();
                         if p.enable_selection_highlight != enable
@@ -853,7 +867,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.colorize_selection_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard
                         .as_any_mut()
                         .downcast_mut::<HdxColorizeSelectionTask>()
@@ -877,7 +892,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.selection_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxSelectionTask>() {
                         let mut p = t.get_params().clone();
                         if p.selection_color != color {
@@ -891,7 +907,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.colorize_selection_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard
                         .as_any_mut()
                         .downcast_mut::<HdxColorizeSelectionTask>()
@@ -917,7 +934,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.selection_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxSelectionTask>() {
                         let mut p = t.get_params().clone();
                         if p.locate_color != color {
@@ -931,7 +949,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.colorize_selection_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard
                         .as_any_mut()
                         .downcast_mut::<HdxColorizeSelectionTask>()
@@ -957,7 +976,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.colorize_selection_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard
                         .as_any_mut()
                         .downcast_mut::<HdxColorizeSelectionTask>()
@@ -983,7 +1003,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.colorize_selection_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard
                         .as_any_mut()
                         .downcast_mut::<HdxColorizeSelectionTask>()
@@ -1015,7 +1036,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.simple_light_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxSimpleLightTask>() {
                         let mut p = t.get_params().clone();
                         if p.enable_shadows != enable {
@@ -1032,7 +1054,8 @@ impl HdxTaskController {
     pub fn set_shadow_params(&mut self, params: &HdxShadowTaskParams) {
         if let Some(ref id) = self.shadow_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxShadowTask>() {
                         t.set_params(params.clone());
                     }
@@ -1052,7 +1075,8 @@ impl HdxTaskController {
     pub fn set_color_correction_params(&mut self, params: &HdxColorCorrectionTaskParams) {
         if let Some(ref id) = self.color_correction_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxColorCorrectionTask>() {
                         // Preserve internally-managed aov_name.
                         let old_aov = t.get_params().aov_name.clone();
@@ -1076,7 +1100,8 @@ impl HdxTaskController {
     pub fn set_bbox_params(&mut self, params: &HdxBoundingBoxTaskParams) {
         if let Some(ref id) = self.bounding_box_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxBoundingBoxTask>() {
                         // Preserve internally-managed aov_name; merge in external fields.
                         let old_aov = t.get_aov_name().clone();
@@ -1099,7 +1124,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.present_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxPresentTask>() {
                         let mut p = t.get_params().clone();
                         if p.enabled != enabled {
@@ -1120,7 +1146,8 @@ impl HdxTaskController {
     /// Returns true if all rendering tasks report convergence.
     pub fn is_converged(&self) -> bool {
         for task in self.get_rendering_tasks() {
-            {let guard = task.read();
+            {
+                let guard = task.read();
                 if !guard.is_converged() {
                     return false;
                 }
@@ -1343,7 +1370,8 @@ impl HdxTaskController {
     fn set_camera_param_for_tasks(&mut self, camera_id: &Path) {
         for task_id in &self.render_task_ids.clone() {
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(rt) = guard.as_any_mut().downcast_mut::<HdxRenderTask>() {
                         let mut p = rt.get_params().unwrap_or_default();
                         p.camera = camera_id.clone();
@@ -1358,7 +1386,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.simple_light_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxSimpleLightTask>() {
                         let mut p = t.get_params().clone();
                         p.camera_path = camera_id.clone();
@@ -1370,7 +1399,8 @@ impl HdxTaskController {
 
         if let Some(ref id) = self.pick_from_render_buffer_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard
                         .as_any_mut()
                         .downcast_mut::<HdxPickFromRenderBufferTask>()
@@ -1408,7 +1438,8 @@ impl HdxTaskController {
             }
 
             if let Some(task) = self.tasks.get(task_id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(rt) = guard.as_any_mut().downcast_mut::<HdxRenderTask>() {
                         let mut p = rt.get_params().unwrap_or_default();
                         p.viewport = adjusted;
@@ -1429,7 +1460,8 @@ impl HdxTaskController {
         // Update pick_from_render_buffer viewport/framing.
         if let Some(ref id) = self.pick_from_render_buffer_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard
                         .as_any_mut()
                         .downcast_mut::<HdxPickFromRenderBufferTask>()
@@ -1452,7 +1484,8 @@ impl HdxTaskController {
         // Update present task dst_region.
         if let Some(ref id) = self.present_task_id.clone() {
             if let Some(task) = self.tasks.get(id) {
-                {let mut guard = task.write();
+                {
+                    let mut guard = task.write();
                     if let Some(t) = guard.as_any_mut().downcast_mut::<HdxPresentTask>() {
                         let mut p = t.get_params().clone();
                         let dst = if self.framing.is_valid() {
@@ -1577,7 +1610,8 @@ impl HdxTaskController {
         // Check simple light task's enable_shadows param.
         if let Some(ref id) = self.simple_light_task_id {
             if let Some(task) = self.tasks.get(id) {
-                {let guard = task.read();
+                {
+                    let guard = task.read();
                     if let Some(t) = guard.as_any().downcast_ref::<HdxSimpleLightTask>() {
                         return t.get_params().enable_shadows;
                     }
@@ -1600,7 +1634,8 @@ impl HdxTaskController {
     fn color_correction_enabled(&self) -> bool {
         if let Some(ref id) = self.color_correction_task_id {
             if let Some(task) = self.tasks.get(id) {
-                {let guard = task.read();
+                {
+                    let guard = task.read();
                     if let Some(t) = guard.as_any().downcast_ref::<HdxColorCorrectionTask>() {
                         let mode = &t.get_params().color_correction_mode;
                         return mode != &color_correction_tokens::disabled() && !mode.is_empty();
@@ -1908,7 +1943,10 @@ mod tests {
             .downcast_ref::<HdxColorizeSelectionTask>()
             .expect("colorize selection task type");
         let colorize_params = colorize.get_params();
-        assert_eq!(colorize_params.prim_id_buffer_path.as_str(), "/TC/aov_primId");
+        assert_eq!(
+            colorize_params.prim_id_buffer_path.as_str(),
+            "/TC/aov_primId"
+        );
         assert_eq!(
             colorize_params.instance_id_buffer_path.as_str(),
             "/TC/aov_instanceId"
@@ -2009,7 +2047,8 @@ mod tests {
         // Verify propagated to colorize task.
         if let Some(ref id) = c.colorize_selection_task_id {
             if let Some(task) = c.tasks.get(id) {
-                {let guard = task.read();
+                {
+                    let guard = task.read();
                     if let Some(t) = guard.as_any().downcast_ref::<HdxColorizeSelectionTask>() {
                         assert_eq!(t.get_params().outline_radius, 3);
                     }
@@ -2154,7 +2193,8 @@ mod tests {
 
         if let Some(ref id) = c.selection_task_id {
             if let Some(task) = c.tasks.get(id) {
-                {let guard = task.read();
+                {
+                    let guard = task.read();
                     if let Some(t) = guard.as_any().downcast_ref::<HdxSelectionTask>() {
                         assert!(!t.get_params().enable_selection_highlight);
                         assert!(!t.get_params().enable_locate_highlight);

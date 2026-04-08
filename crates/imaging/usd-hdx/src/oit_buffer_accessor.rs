@@ -1,4 +1,3 @@
-
 //! OIT buffer accessor - Access to OIT GPU buffers.
 //!
 //! Provides unified access to OIT counter, data, depth, and index buffers.

@@ -1,4 +1,3 @@
-
 //! Debugging scene index.
 //!
 //! A filtering scene index that checks for certain inconsistencies (without
@@ -9,9 +8,9 @@
 //!
 //! Port of pxr/imaging/hdsi/debuggingSceneIndex.
 
+use parking_lot::RwLock;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::{HdContainerDataSourceHandle, HdDataSourceBaseHandle};
 use usd_hd::scene_index::filtering::FilteringSceneIndexObserver;
 use usd_hd::scene_index::observer::*;
@@ -247,7 +246,9 @@ impl HdsiDebuggingSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }
@@ -313,9 +314,7 @@ impl HdSceneIndexBase for HdsiDebuggingSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         let child_prim_paths = match self.base.get_input_scene() {
-            Some(input) => {
-                si_ref(&input).get_child_prim_paths(prim_path)
-            }
+            Some(input) => si_ref(&input).get_child_prim_paths(prim_path),
             None => Vec::new(),
         };
 

@@ -1,4 +1,3 @@
-
 //! VtValue-backed buffer source.
 //!
 //! Corresponds to pxr/imaging/hd/vtBufferSource.h.

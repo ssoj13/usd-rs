@@ -1,12 +1,11 @@
-
 //! HDSI utility functions.
 //!
 //! Port of pxr/imaging/hdsi/utils.h and utils.cpp.
 //!
 //! Provides collection compilation and pruning utilities for scene indices.
 
-use usd_hd::scene_index::{HdSceneIndexHandle, si_ref};
 use usd_hd::scene_index::HdSceneIndexPrim;
+use usd_hd::scene_index::{HdSceneIndexHandle, si_ref};
 use usd_hd::schema::HdCollectionsSchema;
 use usd_sdf::Path as SdfPath;
 use usd_sdf::PathExpression;
@@ -58,9 +57,7 @@ impl HdCollectionExpressionEvaluator {
             return PredicateFunctionResult::make_constant(false);
         }
         let si = self.scene_index.as_ref().unwrap();
-        self.eval.match_path(path, |p| {
-            si_ref(&si).get_prim(p)
-        })
+        self.eval.match_path(path, |p| si_ref(&si).get_prim(p))
     }
 
     /// Populates `result` with all prim paths under `root` that match the expression.

@@ -1,4 +1,3 @@
-
 //! System schema for holding system-level data in scene indices.
 //!
 //! The HdSystemSchema specifies a container that will hold "system" data. Each

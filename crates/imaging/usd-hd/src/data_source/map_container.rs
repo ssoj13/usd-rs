@@ -1,4 +1,3 @@
-
 //! HdMapContainerDataSource - Apply function to container child data sources.
 //!
 //! Corresponds to pxr/imaging/hd/mapContainerDataSource.h.

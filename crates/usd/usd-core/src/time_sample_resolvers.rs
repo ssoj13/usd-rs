@@ -12,8 +12,8 @@ use usd_vt::value_type_can_compose_over;
 use crate::attribute::Attribute;
 use crate::clip_cache::ClipCache;
 use crate::clip_set::{
-    clip_source_layer_matches_resolver_layer, clips_contain_value_for_attribute,
-    get_clips_that_apply_to_node, ClipSetRefPtr,
+    ClipSetRefPtr, clip_source_layer_matches_resolver_layer, clips_contain_value_for_attribute,
+    get_clips_that_apply_to_node,
 };
 use crate::compose_time_sample_series::sdf_compose_time_sample_series_can_compose;
 use crate::resolve_info::ResolveInfo;
@@ -21,8 +21,8 @@ use crate::resolve_target::ResolveTarget;
 use crate::resolver::Resolver;
 use crate::stage::Stage;
 use crate::value_utils::{
-    usd_copy_time_samples_in_interval, value_contains_animation_block, value_contains_block,
-    DefaultValueResult,
+    DefaultValueResult, usd_copy_time_samples_in_interval, value_contains_animation_block,
+    value_contains_block,
 };
 
 fn spline_token() -> Token {
@@ -33,7 +33,10 @@ fn default_token() -> Token {
     Token::new("default")
 }
 
-fn stage_interval_to_layer_interval(interval: &Interval, layer_to_stage: &usd_sdf::LayerOffset) -> Interval {
+fn stage_interval_to_layer_interval(
+    interval: &Interval,
+    layer_to_stage: &usd_sdf::LayerOffset,
+) -> Interval {
     let inv = layer_to_stage.inverse();
     let a = inv.apply(interval.get_min());
     let b = inv.apply(interval.get_max());
@@ -146,18 +149,15 @@ impl BracketingSamplesResolver {
     }
 
     /// Matches `_BracketingSamplesResolver::ProcessClips`.
-    pub fn process_clips(
-        &mut self,
-        clip_set: &crate::clip_set::ClipSet,
-        spec_path: &Path,
-    ) -> bool {
+    pub fn process_clips(&mut self, clip_set: &crate::clip_set::ClipSet, spec_path: &Path) -> bool {
         let stage_time = self.stage_time;
         if !clips_contain_value_for_attribute(clip_set, spec_path) {
             return false;
         }
         let mut lower = 0.0;
         let mut upper = 0.0;
-        if !clip_set.get_bracketing_time_samples_for_path(spec_path, stage_time, &mut lower, &mut upper)
+        if !clip_set
+            .get_bracketing_time_samples_for_path(spec_path, stage_time, &mut lower, &mut upper)
         {
             return false;
         }
@@ -276,8 +276,7 @@ impl SamplesInIntervalResolver {
                 && self.interval.get_min() != self.partial[0].0
             {
                 let layer_time = layer_to_stage.inverse().apply(self.partial[0].0);
-                if let Some(prev) = layer.get_previous_time_sample_for_path(spec_path, layer_time)
-                {
+                if let Some(prev) = layer.get_previous_time_sample_for_path(spec_path, layer_time) {
                     if !layer_sample_type_can_compose(layer, spec_path, prev) {
                         let new_min = layer_to_stage.apply(prev);
                         self.interval.set_min(new_min);
@@ -402,10 +401,7 @@ fn walk_with_clips(
     while resolver.is_valid() {
         if is_new_node {
             spec_path = resolver.get_local_path_for_property(&prop_name);
-            node_has_specs = resolver
-                .get_node()
-                .map(|n| n.has_specs())
-                .unwrap_or(false);
+            node_has_specs = resolver.get_node().map(|n| n.has_specs()).unwrap_or(false);
         }
 
         let mut found_opinion = false;
@@ -485,10 +481,7 @@ fn walk_bracketing_with_clips(
     while resolver.is_valid() {
         if is_new_node {
             spec_path = resolver.get_local_path_for_property(&prop_name);
-            node_has_specs = resolver
-                .get_node()
-                .map(|n| n.has_specs())
-                .unwrap_or(false);
+            node_has_specs = resolver.get_node().map(|n| n.has_specs()).unwrap_or(false);
         }
 
         let mut found_opinion = false;
@@ -548,7 +541,12 @@ pub(crate) fn get_bracketing_time_samples_resolved(
         let layer = stage.root_layer();
         let spec_path = attr.path();
         let mut fo = false;
-        let _ = bsr.process_layer_at_time(&layer, &spec_path, &usd_sdf::LayerOffset::identity(), &mut fo);
+        let _ = bsr.process_layer_at_time(
+            &layer,
+            &spec_path,
+            &usd_sdf::LayerOffset::identity(),
+            &mut fo,
+        );
         bsr.process_fallback();
         return bsr.bracketing_pair();
     };
@@ -619,7 +617,12 @@ pub(crate) fn get_time_samples_in_interval_resolved(
         let layer = stage.root_layer();
         let spec_path = attr.path();
         let mut fo = false;
-        let _ = sir.process_layer_at_time(&layer, &spec_path, &usd_sdf::LayerOffset::identity(), &mut fo);
+        let _ = sir.process_layer_at_time(
+            &layer,
+            &spec_path,
+            &usd_sdf::LayerOffset::identity(),
+            &mut fo,
+        );
         return sir.partial.into_iter().map(|(t, _)| t).collect();
     };
 

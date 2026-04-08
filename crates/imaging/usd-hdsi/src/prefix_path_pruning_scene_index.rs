@@ -1,4 +1,3 @@
-
 //! Prefix path pruning scene index.
 //!
 //! Port of pxr/imaging/hdsi/prefixPathPruningSceneIndex.
@@ -9,8 +8,8 @@
 
 use crate::tokens::PREFIX_PATH_PRUNING_SCENE_INDEX_TOKENS;
 use crate::utils;
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdRetainedTypedSampledDataSource,
     HdTypedSampledDataSource,
@@ -115,7 +114,9 @@ impl HdsiPrefixPathPruningSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

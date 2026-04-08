@@ -24,13 +24,13 @@ pub fn index_is_valid(index: Index) -> bool {
 }
 
 /// Mutable slice view of `Index` values (mirrors C++ `Vtr::IndexArray`).
-pub type IndexArray<'a>      = Array<'a, Index>;
+pub type IndexArray<'a> = Array<'a, Index>;
 
 /// Immutable slice view of `Index` values (mirrors C++ `Vtr::ConstIndexArray`).
 pub type ConstIndexArray<'a> = ConstArray<'a, Index>;
 
 /// Mutable slice view of `LocalIndex` values.
-pub type LocalIndexArray<'a>      = Array<'a, LocalIndex>;
+pub type LocalIndexArray<'a> = Array<'a, LocalIndex>;
 
 /// Immutable slice view of `LocalIndex` values.
 pub type ConstLocalIndexArray<'a> = ConstArray<'a, LocalIndex>;

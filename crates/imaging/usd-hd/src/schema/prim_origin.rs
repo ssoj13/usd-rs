@@ -1,4 +1,3 @@
-
 //! HdPrimOriginSchema - Prim origin schema.
 //!
 //! Tracks the original scene path of a prim (e.g. when prefixing scene index

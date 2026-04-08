@@ -9,8 +9,8 @@
 
 use std::path::Path;
 
-use usd::sdf::path::Path as SdfPath;
 use usd::sdf::Layer;
+use usd::sdf::path::Path as SdfPath;
 use usd::tf::Token;
 use usd::usd_utils::stitch_clips::{
     generate_clip_manifest_name, generate_clip_topology_name, stitch_clips, stitch_clips_template,

@@ -1,4 +1,3 @@
-
 //! HDSI tokens - Scene index utilities tokens.
 
 use once_cell::sync::Lazy;

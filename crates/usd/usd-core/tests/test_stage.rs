@@ -906,4 +906,3 @@ fn stage_save() {
         let _ = std::fs::remove_file(format!("{}.usda", prefix));
     }
 }
-

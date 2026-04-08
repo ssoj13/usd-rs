@@ -118,7 +118,12 @@ fn exec(subcmd: &str, args: &[String], capture: bool) -> PyResult<(i32, Option<S
 /// Return value used by output-producing commands:
 /// - `capture=False` → `int` (exit code)
 /// - `capture=True`  → `str` (captured stdout; raises on non-zero exit)
-fn output_result(py: Python<'_>, code: i32, text: Option<String>, capture: bool) -> PyResult<Py<PyAny>> {
+fn output_result(
+    py: Python<'_>,
+    code: i32,
+    text: Option<String>,
+    capture: bool,
+) -> PyResult<Py<PyAny>> {
     if capture {
         let s = text.unwrap_or_default();
         if code != 0 {
@@ -126,9 +131,13 @@ fn output_result(py: Python<'_>, code: i32, text: Option<String>, capture: bool)
                 "command exited with code {code}"
             )));
         }
-        s.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
+        s.into_pyobject(py)
+            .map(|o| o.into_any().unbind())
+            .map_err(Into::into)
     } else {
-        code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
+        code.into_pyobject(py)
+            .map(|o| o.into_any().unbind())
+            .map_err(Into::into)
     }
 }
 
@@ -496,9 +505,14 @@ fn diff(
     // do not raise even when capture=True.
     let (code, text) = exec("diff", &args, capture)?;
     if capture {
-        text.unwrap_or_default().into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
+        text.unwrap_or_default()
+            .into_pyobject(py)
+            .map(|o| o.into_any().unbind())
+            .map_err(Into::into)
     } else {
-        code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
+        code.into_pyobject(py)
+            .map(|o| o.into_any().unbind())
+            .map_err(Into::into)
     }
 }
 
@@ -593,7 +607,9 @@ fn edit(
     args.push(file);
 
     let (code, _) = exec("edit", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
+    code.into_pyobject(py)
+        .map(|o| o.into_any().unbind())
+        .map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -623,7 +639,9 @@ fn stitch(py: Python<'_>, files: Vec<String>, out: String) -> PyResult<Py<PyAny>
     args.push(out);
 
     let (code, _) = exec("stitch", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
+    code.into_pyobject(py)
+        .map(|o| o.into_any().unbind())
+        .map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -738,7 +756,9 @@ fn stitchclips(
     }
 
     let (code, _) = exec("stitchclips", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
+    code.into_pyobject(py)
+        .map(|o| o.into_any().unbind())
+        .map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -883,7 +903,9 @@ fn compress(
     args.push(file);
 
     let (code, _) = exec("compress", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
+    code.into_pyobject(py)
+        .map(|o| o.into_any().unbind())
+        .map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -922,7 +944,9 @@ fn fixbrokenpixarschemas(
     args.push(file);
 
     let (code, _) = exec("fixbrokenpixarschemas", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
+    code.into_pyobject(py)
+        .map(|o| o.into_any().unbind())
+        .map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -966,7 +990,9 @@ fn genschemafromsdr(
     }
 
     let (code, _) = exec("genschemafromsdr", &args, false)?;
-    code.into_pyobject(py).map(|o| o.into_any().unbind()).map_err(Into::into)
+    code.into_pyobject(py)
+        .map(|o| o.into_any().unbind())
+        .map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------

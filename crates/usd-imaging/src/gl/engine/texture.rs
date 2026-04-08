@@ -3,9 +3,9 @@
 //! Contains free functions for Value conversion, format mapping, path resolution,
 //! and HGI texture upload. All wgpu-specific functions are gated on `#[cfg(feature = "wgpu")]`.
 
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 use usd_sdf::Path;
 

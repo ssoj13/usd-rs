@@ -222,7 +222,7 @@ impl PrimData {
         data.flags
             .get_mut()
             .expect("flags accessible")
-                    .insert(PrimFlags::PSEUDO_ROOT | PrimFlags::GROUP | PrimFlags::MODEL);
+            .insert(PrimFlags::PSEUDO_ROOT | PrimFlags::GROUP | PrimFlags::MODEL);
         data
     }
 

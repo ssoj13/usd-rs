@@ -1,4 +1,3 @@
-
 //! AOV input task - AOV (Arbitrary Output Variable) input processing.
 //!
 //! Records which rendered AOV should become the canonical downstream input.
@@ -155,11 +154,12 @@ impl HdTask for HdxAovInputTask {
         // frame with StartFrame/EndFrame for Hgi garbage collection.
         // In this port EndFrame is deferred to the engine's post-backend bridge.
         // Extract driver handle first to release the immutable borrow on ctx.
-        let driver_handle = usd_hd::render::task::HdTaskBase::get_driver(ctx, &Token::new("renderDriver"))
-            .and_then(|v| {
-                use usd_hgi::HgiDriverHandle;
-                v.get::<HgiDriverHandle>().map(|h| h.get().clone())
-            });
+        let driver_handle =
+            usd_hd::render::task::HdTaskBase::get_driver(ctx, &Token::new("renderDriver"))
+                .and_then(|v| {
+                    use usd_hgi::HgiDriverHandle;
+                    v.get::<HgiDriverHandle>().map(|h| h.get().clone())
+                });
         if let Some(hgi_arc) = driver_handle {
             hgi_arc.write().start_frame();
             ctx.insert(Token::new("hgiFrameStarted"), Value::from(true));

@@ -12,13 +12,13 @@
 ///
 /// Mirrors `Bfr::points::CommonCombinationParameters<REAL>`.
 pub struct CommonCombinationParams<'a, R> {
-    pub point_data:   &'a [R],
-    pub point_size:   usize,
+    pub point_data: &'a [R],
+    pub point_size: usize,
     pub point_stride: usize,
 
     /// Optional index list; `None` means consecutive points.
     pub src_indices: Option<&'a [i32]>,
-    pub src_count:   usize,
+    pub src_count: usize,
 
     pub result_count: usize,
     /// One slice per result, each of length `point_size`.
@@ -176,13 +176,13 @@ pub fn combine_multiple<R>(
 
 /// Parameters for `combine_consecutive`.
 pub struct CombineConsecutiveParams<'a, R> {
-    pub point_data:   &'a [R],
-    pub point_size:   usize,
+    pub point_data: &'a [R],
+    pub point_size: usize,
     pub point_stride: usize,
-    pub src_count:    usize,
+    pub src_count: usize,
     pub result_count: usize,
-    pub result_data:  &'a mut [R],
-    pub weight_data:  &'a [R],
+    pub result_data: &'a mut [R],
+    pub weight_data: &'a [R],
 }
 
 /// Combine N source points into M consecutive result points.
@@ -205,8 +205,8 @@ where
             point_add(result, w[j], src, p.point_size);
         }
 
-        p_off  += p.point_stride;
-        w_off  += p.src_count;
+        p_off += p.point_stride;
+        w_off += p.src_count;
     }
 }
 
@@ -216,12 +216,12 @@ where
 
 /// Parameters for `split_face`.
 pub struct SplitFaceParams<'a, R> {
-    pub point_data:   &'a [R],
-    pub point_size:   usize,
+    pub point_data: &'a [R],
+    pub point_size: usize,
     pub point_stride: usize,
-    pub src_count:    usize,
+    pub src_count: usize,
     /// Output buffer: first element is face center, next `src_count` are edge midpoints.
-    pub result_data:  &'a mut [R],
+    pub result_data: &'a mut [R],
 }
 
 /// Compute the centroid and edge midpoints of an N-gon.
@@ -271,13 +271,13 @@ where
 ///
 /// Mirrors `Bfr::points::CopyConsecutive<REAL_DST,REAL_SRC>::Apply`.
 pub fn copy_consecutive<Dst, Src>(
-    src_data:     &[Src],
-    src_size:     usize,
-    src_stride:   usize,
-    src_indices:  &[i32],
-    src_count:    usize,
-    dst_data:     &mut [Dst],
-    dst_stride:   usize,
+    src_data: &[Src],
+    src_size: usize,
+    src_stride: usize,
+    src_indices: &[i32],
+    src_count: usize,
+    dst_data: &mut [Dst],
+    dst_stride: usize,
 ) where
     Dst: Copy + num_traits::cast::AsPrimitive<Dst>,
     Src: Copy + num_traits::cast::AsPrimitive<Dst>,
@@ -298,9 +298,7 @@ mod tests {
     #[test]
     fn combine1_no_indices() {
         // Three 3D points, combine with weights [0.5, 0.3, 0.2].
-        let pts = [1.0f32, 0.0, 0.0,
-                   0.0, 1.0, 0.0,
-                   0.0, 0.0, 1.0];
+        let pts = [1.0f32, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
         let w = [0.5f32, 0.3, 0.2];
         let mut r = [0.0f32; 3];
 
@@ -314,8 +312,10 @@ mod tests {
 
     #[test]
     fn combine1_with_indices() {
-        let pts = [1.0f32, 0.0,  // point 0
-                   0.0,    2.0]; // point 1
+        let pts = [
+            1.0f32, 0.0, // point 0
+            0.0, 2.0,
+        ]; // point 1
         let indices = [1i32, 0];
         let w = [0.4f32, 0.6];
         let mut r = [0.0f32; 2];

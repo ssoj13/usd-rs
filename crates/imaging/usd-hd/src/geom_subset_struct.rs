@@ -1,4 +1,3 @@
-
 //! HdGeomSubset - Geometry subset struct (faces/points).
 //!
 //! Corresponds to pxr/imaging/hd/geomSubset.h.

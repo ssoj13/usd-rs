@@ -1,4 +1,3 @@
-
 //! Flattening scene index - flattens hierarchy for inherited state.
 //!
 //! Port of pxr/imaging/hd/flatteningSceneIndex.h/.cpp.
@@ -24,11 +23,11 @@ use crate::data_source::{
     HdContainerDataSource, HdDataSourceBase, HdDataSourceBaseHandle, HdDataSourceLocator,
     HdDataSourceLocatorSet,
 };
-use crate::flo_debug::flo_debug_enabled;
 use crate::flattened_data_source_provider::{
     HdFlattenedDataSourceProviderContext, HdFlattenedDataSourceProviderHandle,
     HdFlattenedDataSourceProviderVector,
 };
+use crate::flo_debug::flo_debug_enabled;
 use parking_lot::RwLock as ParkingRwLock;
 use parking_lot::RwLock;
 use std::collections::{BTreeMap, HashMap};
@@ -315,8 +314,10 @@ impl HdContainerDataSource for PrimLevelWrappingDataSource {
             if debug_xform {
                 DEBUG_XFORM_GET_COMPUTES.fetch_add(1, Ordering::Relaxed);
                 if let Some(compute_started) = compute_started {
-                    DEBUG_XFORM_GET_COMPUTE_NS
-                        .fetch_add(compute_started.elapsed().as_nanos() as u64, Ordering::Relaxed);
+                    DEBUG_XFORM_GET_COMPUTE_NS.fetch_add(
+                        compute_started.elapsed().as_nanos() as u64,
+                        Ordering::Relaxed,
+                    );
                 }
             }
 
@@ -821,7 +822,9 @@ impl FilteringObserverTarget for HdFlatteningSceneIndex {
             }
             let mut additional_counts: HashMap<SdfPath, usize> = HashMap::new();
             for entry in &additional_dirty {
-                *additional_counts.entry(entry.prim_path.clone()).or_insert(0) += 1;
+                *additional_counts
+                    .entry(entry.prim_path.clone())
+                    .or_insert(0) += 1;
             }
             let input_duplicates = input_counts.values().filter(|&&n| n > 1).count();
             let additional_duplicates = additional_counts.values().filter(|&&n| n > 1).count();

@@ -8,8 +8,8 @@
 /// 2. Splice per-patch sharpness values into `PatchParam` (which Far doesn't
 ///    store inline).
 /// 3. Separate varying and face-varying patch data into independent arrays.
-use crate::far::{PatchTable, Index};
-use crate::osd::types::{PatchArray, PatchParam, PatchArrayVector, PatchParamVector};
+use crate::far::{Index, PatchTable};
+use crate::osd::types::{PatchArray, PatchArrayVector, PatchParam, PatchParamVector};
 
 /// CPU patch table — holds flat contiguous buffers for all patch data.
 ///
@@ -17,8 +17,8 @@ use crate::osd::types::{PatchArray, PatchParam, PatchArrayVector, PatchParamVect
 #[derive(Debug, Default)]
 pub struct CpuPatchTable {
     // ----- Vertex patches -----
-    pub patch_arrays:       PatchArrayVector,
-    pub index_buffer:       Vec<Index>,
+    pub patch_arrays: PatchArrayVector,
+    pub index_buffer: Vec<Index>,
     pub patch_param_buffer: PatchParamVector,
 
     // ----- Varying patches -----
@@ -26,7 +26,7 @@ pub struct CpuPatchTable {
     pub varying_index_buffer: Vec<Index>,
 
     // ----- Face-varying patches (one entry per channel) -----
-    pub fvar_patch_arrays:  Vec<PatchArrayVector>,
+    pub fvar_patch_arrays: Vec<PatchArrayVector>,
     pub fvar_index_buffers: Vec<Vec<Index>>,
     pub fvar_param_buffers: Vec<PatchParamVector>,
 }
@@ -37,13 +37,13 @@ impl CpuPatchTable {
     /// Mirrors the `CpuPatchTable(const Far::PatchTable *)` constructor.
     pub fn from_far(far: &PatchTable) -> Self {
         let n_arrays = far.get_num_patch_arrays() as usize;
-        let n_fvar   = far.get_num_f_var_channels() as usize;
+        let n_fvar = far.get_num_f_var_channels() as usize;
 
         let mut table = Self::default();
 
         // Count totals to pre-reserve
-        let mut total_patches  = 0i32;
-        let mut total_indices  = 0i32;
+        let mut total_patches = 0i32;
+        let mut total_indices = 0i32;
         for j in 0..n_arrays as i32 {
             let np = far.get_num_patches(j);
             let nv = far.get_patch_array_descriptor(j).get_num_control_vertices();
@@ -53,9 +53,13 @@ impl CpuPatchTable {
         table.patch_arrays.reserve(n_arrays);
         table.index_buffer.reserve(total_indices as usize);
 
-        let varying_nv = far.get_varying_patch_descriptor().get_num_control_vertices();
+        let varying_nv = far
+            .get_varying_patch_descriptor()
+            .get_num_control_vertices();
         table.varying_patch_arrays.reserve(n_arrays);
-        table.varying_index_buffer.reserve((total_patches * varying_nv) as usize);
+        table
+            .varying_index_buffer
+            .reserve((total_patches * varying_nv) as usize);
 
         table.fvar_patch_arrays.resize(n_fvar, Vec::new());
         table.fvar_index_buffers.resize(n_fvar, Vec::new());
@@ -68,14 +72,14 @@ impl CpuPatchTable {
         }
         table.patch_param_buffer.reserve(total_patches as usize);
 
-        let param_table      = far.get_patch_param_table();
-        let sharpness_idx    = far.get_sharpness_index_table();
-        let sharpness_vals   = far.get_sharpness_values();
+        let param_table = far.get_patch_param_table();
+        let sharpness_idx = far.get_sharpness_index_table();
+        let sharpness_vals = far.get_sharpness_values();
 
         // Build per-array data
         for j in 0..n_arrays as i32 {
             let num_p = far.get_num_patches(j);
-            let desc  = far.get_patch_array_descriptor(j);
+            let desc = far.get_patch_array_descriptor(j);
 
             // Vertex patch array
             let pa = PatchArray::new(
@@ -105,10 +109,12 @@ impl CpuPatchTable {
             // Face-varying arrays per channel
             for fvc in 0..n_fvar as i32 {
                 let fvc_idx = fvc as usize;
-                let reg_desc  = far.get_f_var_patch_descriptor_regular(fvc);
-                let irr_desc  = far.get_f_var_patch_descriptor_irregular(fvc);
+                let reg_desc = far.get_f_var_patch_descriptor_regular(fvc);
+                let irr_desc = far.get_f_var_patch_descriptor_irregular(fvc);
                 let fvar_pa = PatchArray::new_mixed(
-                    reg_desc, irr_desc, num_p,
+                    reg_desc,
+                    irr_desc,
+                    num_p,
                     table.fvar_index_buffers[fvc_idx].len() as i32,
                     table.fvar_param_buffers[fvc_idx].len() as i32,
                 );
@@ -136,7 +142,9 @@ impl CpuPatchTable {
                     }
                 }
                 let fp = &param_table[patch_idx];
-                table.patch_param_buffer.push(PatchParam::from_far(fp, sharpness));
+                table
+                    .patch_param_buffer
+                    .push(PatchParam::from_far(fp, sharpness));
             }
         }
 
@@ -186,13 +194,19 @@ impl CpuPatchTable {
     }
 
     pub fn get_varying_patch_array_buffer(&self) -> Option<&[PatchArray]> {
-        if self.varying_patch_arrays.is_empty() { None }
-        else { Some(&self.varying_patch_arrays) }
+        if self.varying_patch_arrays.is_empty() {
+            None
+        } else {
+            Some(&self.varying_patch_arrays)
+        }
     }
 
     pub fn get_varying_patch_index_buffer(&self) -> Option<&[Index]> {
-        if self.varying_index_buffer.is_empty() { None }
-        else { Some(&self.varying_index_buffer) }
+        if self.varying_index_buffer.is_empty() {
+            None
+        } else {
+            Some(&self.varying_index_buffer)
+        }
     }
 
     pub fn get_varying_patch_index_size(&self) -> usize {

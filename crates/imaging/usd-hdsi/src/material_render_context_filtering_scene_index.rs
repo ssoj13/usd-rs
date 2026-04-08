@@ -1,11 +1,10 @@
-
 //! Material render context filtering scene index.
 //!
 //! Filters material networks to the first matching render context in priority order.
 //! Port of pxr/imaging/hdsi/materialRenderContextFilteringSceneIndex.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     cast_to_container,
@@ -181,7 +180,9 @@ impl HdsiMaterialRenderContextFilteringSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

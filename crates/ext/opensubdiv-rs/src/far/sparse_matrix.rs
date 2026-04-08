@@ -9,34 +9,42 @@
 ///
 /// Mirrors C++ `Far::SparseMatrix<REAL>`.
 pub struct SparseMatrix<R: Copy + Default> {
-    num_rows:     i32,
-    num_columns:  i32,
+    num_rows: i32,
+    num_columns: i32,
     num_elements: i32,
     /// row_offsets has num_rows+1 entries; row_offsets[i] is the index
     /// into columns/elements where row i begins.
-    row_offsets:  Vec<i32>,
-    columns:      Vec<i32>,
-    elements:     Vec<R>,
+    row_offsets: Vec<i32>,
+    columns: Vec<i32>,
+    elements: Vec<R>,
 }
 
 impl<R: Copy + Default> SparseMatrix<R> {
     pub fn new() -> Self {
         Self {
-            num_rows:     0,
-            num_columns:  0,
+            num_rows: 0,
+            num_columns: 0,
             num_elements: 0,
-            row_offsets:  Vec::new(),
-            columns:      Vec::new(),
-            elements:     Vec::new(),
+            row_offsets: Vec::new(),
+            columns: Vec::new(),
+            elements: Vec::new(),
         }
     }
 
-    pub fn get_num_rows(&self) -> i32 { self.num_rows }
-    pub fn get_num_columns(&self) -> i32 { self.num_columns }
-    pub fn get_num_elements(&self) -> i32 { self.num_elements }
+    pub fn get_num_rows(&self) -> i32 {
+        self.num_rows
+    }
+    pub fn get_num_columns(&self) -> i32 {
+        self.num_columns
+    }
+    pub fn get_num_elements(&self) -> i32 {
+        self.num_elements
+    }
 
     /// Current capacity (allocated element count).
-    pub fn get_capacity(&self) -> i32 { self.elements.len() as i32 }
+    pub fn get_capacity(&self) -> i32 {
+        self.elements.len() as i32
+    }
 
     pub fn get_row_size(&self, row: i32) -> i32 {
         self.row_offsets[(row + 1) as usize] - self.row_offsets[row as usize]
@@ -44,25 +52,25 @@ impl<R: Copy + Default> SparseMatrix<R> {
 
     pub fn get_row_columns(&self, row: i32) -> &[i32] {
         let start = self.row_offsets[row as usize] as usize;
-        let end   = self.row_offsets[(row + 1) as usize] as usize;
+        let end = self.row_offsets[(row + 1) as usize] as usize;
         &self.columns[start..end]
     }
 
     pub fn get_row_elements(&self, row: i32) -> &[R] {
         let start = self.row_offsets[row as usize] as usize;
-        let end   = self.row_offsets[(row + 1) as usize] as usize;
+        let end = self.row_offsets[(row + 1) as usize] as usize;
         &self.elements[start..end]
     }
 
     pub fn get_row_columns_mut(&mut self, row: i32) -> &mut [i32] {
         let start = self.row_offsets[row as usize] as usize;
-        let end   = self.row_offsets[(row + 1) as usize] as usize;
+        let end = self.row_offsets[(row + 1) as usize] as usize;
         &mut self.columns[start..end]
     }
 
     pub fn get_row_elements_mut(&mut self, row: i32) -> &mut [R] {
         let start = self.row_offsets[row as usize] as usize;
-        let end   = self.row_offsets[(row + 1) as usize] as usize;
+        let end = self.row_offsets[(row + 1) as usize] as usize;
         &mut self.elements[start..end]
     }
 
@@ -71,18 +79,25 @@ impl<R: Copy + Default> SparseMatrix<R> {
     /// Safe because `columns` and `elements` are distinct Vec fields with no aliasing.
     pub fn get_row_data_mut(&mut self, row: i32) -> (&mut [i32], &mut [R]) {
         let start = self.row_offsets[row as usize] as usize;
-        let end   = self.row_offsets[(row + 1) as usize] as usize;
-        (&mut self.columns[start..end], &mut self.elements[start..end])
+        let end = self.row_offsets[(row + 1) as usize] as usize;
+        (
+            &mut self.columns[start..end],
+            &mut self.elements[start..end],
+        )
     }
 
-    pub fn get_columns(&self) -> &[i32] { &self.columns[..self.num_elements as usize] }
-    pub fn get_elements(&self) -> &[R]  { &self.elements[..self.num_elements as usize] }
+    pub fn get_columns(&self) -> &[i32] {
+        &self.columns[..self.num_elements as usize]
+    }
+    pub fn get_elements(&self) -> &[R] {
+        &self.elements[..self.num_elements as usize]
+    }
 
     /// (Re)initialise the matrix, reserving storage for `num_elements_to_reserve`
     /// non-zero entries.  Row sizes must still be set via `set_row_size`.
     pub fn resize(&mut self, num_rows: i32, num_cols: i32, num_elements_to_reserve: i32) {
-        self.num_rows     = num_rows;
-        self.num_columns  = num_cols;
+        self.num_rows = num_rows;
+        self.num_columns = num_cols;
         self.num_elements = 0;
 
         self.row_offsets.clear();
@@ -100,8 +115,7 @@ impl<R: Copy + Default> SparseMatrix<R> {
     /// Must be called for each row in order (0, 1, …, num_rows-1).
     pub fn set_row_size(&mut self, row_index: i32, row_size: i32) {
         debug_assert_eq!(
-            self.row_offsets[row_index as usize],
-            self.num_elements,
+            self.row_offsets[row_index as usize], self.num_elements,
             "set_row_size must be called in row order"
         );
         let new_end = self.row_offsets[row_index as usize] + row_size;
@@ -115,12 +129,12 @@ impl<R: Copy + Default> SparseMatrix<R> {
 
     /// Deep-copy from `src`.
     pub fn copy_from(&mut self, src: &SparseMatrix<R>) {
-        self.num_rows     = src.num_rows;
-        self.num_columns  = src.num_columns;
+        self.num_rows = src.num_rows;
+        self.num_columns = src.num_columns;
         self.num_elements = src.num_elements;
-        self.row_offsets  = src.row_offsets.clone();
-        self.columns      = src.columns.clone();
-        self.elements     = src.elements.clone();
+        self.row_offsets = src.row_offsets.clone();
+        self.columns = src.columns.clone();
+        self.elements = src.elements.clone();
     }
 
     /// Write column indices and weights into a pre-sized row in a single call.
@@ -129,24 +143,26 @@ impl<R: Copy + Default> SparseMatrix<R> {
     /// `get_row_columns_mut` and `get_row_elements_mut` in the same scope.
     pub fn assign_row(&mut self, row: i32, indices: &[i32], weights: &[R]) {
         let start = self.row_offsets[row as usize] as usize;
-        let len   = indices.len();
-        self.columns [start..start + len].copy_from_slice(indices);
+        let len = indices.len();
+        self.columns[start..start + len].copy_from_slice(indices);
         self.elements[start..start + len].copy_from_slice(weights);
     }
 
     /// Swap contents with another matrix.
     pub fn swap(&mut self, other: &mut SparseMatrix<R>) {
-        std::mem::swap(&mut self.num_rows,     &mut other.num_rows);
-        std::mem::swap(&mut self.num_columns,  &mut other.num_columns);
+        std::mem::swap(&mut self.num_rows, &mut other.num_rows);
+        std::mem::swap(&mut self.num_columns, &mut other.num_columns);
         std::mem::swap(&mut self.num_elements, &mut other.num_elements);
-        std::mem::swap(&mut self.row_offsets,  &mut other.row_offsets);
-        std::mem::swap(&mut self.columns,      &mut other.columns);
-        std::mem::swap(&mut self.elements,     &mut other.elements);
+        std::mem::swap(&mut self.row_offsets, &mut other.row_offsets);
+        std::mem::swap(&mut self.columns, &mut other.columns);
+        std::mem::swap(&mut self.elements, &mut other.elements);
     }
 }
 
 impl<R: Copy + Default> Default for SparseMatrix<R> {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -173,11 +189,13 @@ mod tests {
         // Write columns
         {
             let c = m.get_row_columns_mut(0);
-            c[0] = 1; c[1] = 3;
+            c[0] = 1;
+            c[1] = 3;
         }
         {
             let e = m.get_row_elements_mut(0);
-            e[0] = 0.5; e[1] = 0.5;
+            e[0] = 0.5;
+            e[1] = 0.5;
         }
 
         let cols = m.get_row_columns(0);

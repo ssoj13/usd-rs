@@ -6,12 +6,12 @@
 //! incident faces) from a `FaceSurface` and then constructs a `PatchTree`
 //! via `PatchTreeBuilder`.
 
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
-use crate::sdc::crease::SHARPNESS_INFINITE;
 use super::face_surface::FaceSurface;
 use super::irregular_patch_type::IrregularPatchSharedPtr;
+use crate::sdc::crease::SHARPNESS_INFINITE;
 
 pub type Index = super::face_surface::Index;
 
@@ -33,8 +33,8 @@ pub struct IrregPatchOptions {
 impl Default for IrregPatchOptions {
     fn default() -> Self {
         IrregPatchOptions {
-            sharp_level:      6,
-            smooth_level:     2,
+            sharp_level: 6,
+            smooth_level: 2,
             double_precision: false,
         }
     }
@@ -48,14 +48,14 @@ impl Default for IrregPatchOptions {
 /// collective control hull.
 #[derive(Clone, Default, Debug)]
 struct CornerHull {
-    num_control_faces:     i32,
-    num_control_verts:     i32,
-    next_control_vert:     i32,
+    num_control_faces: i32,
+    num_control_verts: i32,
+    next_control_vert: i32,
     surface_indices_offset: i32,
-    is_val2_interior:      bool,
-    pre_val2_interior:     bool,
-    single_shared_vert:    bool,
-    single_shared_face:    bool,
+    is_val2_interior: bool,
+    pre_val2_interior: bool,
+    single_shared_vert: bool,
+    single_shared_face: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -66,20 +66,20 @@ struct CornerHull {
 ///
 /// Mirrors `Bfr::IrregularPatchBuilder`.
 pub struct IrregularPatchBuilder<'a> {
-    surface:                &'a FaceSurface<'a>,
-    options:                IrregPatchOptions,
+    surface: &'a FaceSurface<'a>,
+    options: IrregPatchOptions,
 
-    num_control_verts:      i32,
-    num_control_faces:      i32,
+    num_control_verts: i32,
+    num_control_faces: i32,
     num_control_face_verts: i32,
-    control_faces_overlap:  bool,
-    use_control_vert_map:   bool,
+    control_faces_overlap: bool,
+    use_control_vert_map: bool,
 
-    corner_hulls:           Vec<CornerHull>,
+    corner_hulls: Vec<CornerHull>,
 
     // Only populated when use_control_vert_map == true:
-    control_vert_map:       HashMap<Index, i32>,
-    control_verts:          Vec<Index>,
+    control_vert_map: HashMap<Index, i32>,
+    control_verts: Vec<Index>,
 }
 
 impl<'a> IrregularPatchBuilder<'a> {
@@ -89,14 +89,14 @@ impl<'a> IrregularPatchBuilder<'a> {
         let mut builder = IrregularPatchBuilder {
             surface,
             options,
-            num_control_verts:      0,
-            num_control_faces:      0,
+            num_control_verts: 0,
+            num_control_faces: 0,
             num_control_face_verts: 0,
-            control_faces_overlap:  false,
-            use_control_vert_map:   false,
-            corner_hulls:           vec![CornerHull::default(); face_size],
-            control_vert_map:       HashMap::new(),
-            control_verts:          Vec::new(),
+            control_faces_overlap: false,
+            use_control_vert_map: false,
+            corner_hulls: vec![CornerHull::default(); face_size],
+            control_vert_map: HashMap::new(),
+            control_verts: Vec::new(),
         };
         builder.initialize_control_hull_inventory();
         builder
@@ -110,8 +110,12 @@ impl<'a> IrregularPatchBuilder<'a> {
     //  Public queries
     // -----------------------------------------------------------------------
 
-    pub fn get_num_control_vertices(&self) -> i32 { self.num_control_verts }
-    pub fn control_hull_depends_on_mesh_indices(&self) -> bool { self.use_control_vert_map }
+    pub fn get_num_control_vertices(&self) -> i32 {
+        self.num_control_verts
+    }
+    pub fn control_hull_depends_on_mesh_indices(&self) -> bool {
+        self.use_control_vert_map
+    }
 
     /// Fill `cv_indices` with the mesh indices of control vertices.
     pub fn gather_control_vertex_indices(&self, cv_indices: &mut [Index]) -> i32 {
@@ -129,7 +133,9 @@ impl<'a> IrregularPatchBuilder<'a> {
 
         for corner in 0..face_size {
             let hull = &self.corner_hulls[corner];
-            if hull.num_control_verts == 0 { continue; }
+            if hull.num_control_verts == 0 {
+                continue;
+            }
 
             let c_top = self.surface.get_corner_topology(corner);
             let c_sub = self.surface.get_corner_subset(corner);
@@ -153,7 +159,11 @@ impl<'a> IrregularPatchBuilder<'a> {
                     next_face = c_top.get_face_next(next_face);
                     let fv_off = c_top.get_face_index_offset(next_face) as usize;
                     let s = c_top.get_face_size(next_face) as usize;
-                    let l = if j == n_after - 1 { 1 + hull.pre_val2_interior as usize } else { 0 };
+                    let l = if j == n_after - 1 {
+                        1 + hull.pre_val2_interior as usize
+                    } else {
+                        0
+                    };
                     let m = (s - 2) - if c_sub.is_boundary() { 0 } else { l };
                     for k in 1..=m {
                         cv_indices[num] = idx[fv_off + k];
@@ -173,7 +183,11 @@ impl<'a> IrregularPatchBuilder<'a> {
                 for j in 0..n_before {
                     let fv_off = c_top.get_face_index_offset(next_face) as usize;
                     let s = c_top.get_face_size(next_face) as usize;
-                    let l = if j == n_before - 1 { 1 + hull.pre_val2_interior as usize } else { 0 };
+                    let l = if j == n_before - 1 {
+                        1 + hull.pre_val2_interior as usize
+                    } else {
+                        0
+                    };
                     let m = (s - 2) - l;
                     for k in 1..=m {
                         cv_indices[num] = idx[fv_off + k];
@@ -197,27 +211,28 @@ impl<'a> IrregularPatchBuilder<'a> {
     /// a TopologyRefiner, runs adaptive refinement, and builds a PatchTree via
     /// PatchTreeBuilder — full C++ parity.
     pub fn build(&self) -> IrregularPatchSharedPtr {
+        use super::patch_tree_builder::{
+            IrregularBasis, PatchTreeBuilderOptions, RefinerFaceAdapter,
+        };
         use crate::far::{
-            TopologyDescriptor,
-            TopologyDescriptorFactory, TopologyRefinerFactory,
+            TopologyDescriptor, TopologyDescriptorFactory, TopologyRefinerFactory,
             topology_refiner_factory::FactoryOptions,
         };
-        use super::patch_tree_builder::{PatchTreeBuilderOptions, RefinerFaceAdapter, IrregularBasis};
 
         let face_size = self.surface.get_face_size() as i32;
 
         // Step 1: Allocate topology arrays sized by worst-case bounds.
-        let num_faces     = self.num_control_faces;
+        let num_faces = self.num_control_faces;
         let num_face_verts = self.num_control_face_verts;
-        let max_corners   = face_size;          // one per base face corner
-        let max_creases   = self.num_control_verts; // one per hull edge at most
+        let max_corners = face_size; // one per base face corner
+        let max_creases = self.num_control_verts; // one per hull edge at most
 
-        let mut face_sizes        = vec![0i32; num_faces as usize];
+        let mut face_sizes = vec![0i32; num_faces as usize];
         let mut face_vert_indices = vec![0i32; num_face_verts as usize];
-        let mut corner_indices    = vec![0i32; max_corners as usize];
-        let mut crease_indices    = vec![0i32; (max_creases * 2) as usize];
-        let mut corner_weights    = vec![0.0f32; max_corners as usize];
-        let mut crease_weights    = vec![0.0f32; max_creases as usize];
+        let mut corner_indices = vec![0i32; max_corners as usize];
+        let mut crease_indices = vec![0i32; (max_creases * 2) as usize];
+        let mut corner_weights = vec![0.0f32; max_corners as usize];
+        let mut crease_weights = vec![0.0f32; max_creases as usize];
 
         // Step 2: Gather local face topology.
         self.gather_control_faces(&mut face_sizes, &mut face_vert_indices);
@@ -238,7 +253,7 @@ impl<'a> IrregularPatchBuilder<'a> {
         };
 
         // Step 4: Overlap adjustments — deduplicate faces and sharpen boundary edges.
-        let mut actual_num_faces  = num_faces;
+        let mut actual_num_faces = num_faces;
         let mut actual_num_fverts = num_face_verts;
         if self.control_faces_overlap {
             if actual_num_faces > 2 {
@@ -260,46 +275,48 @@ impl<'a> IrregularPatchBuilder<'a> {
 
         // Step 5: Build Far::TopologyDescriptor from the gathered arrays.
         let mut desc = TopologyDescriptor {
-            num_vertices:          self.num_control_verts,
-            num_faces:             actual_num_faces,
-            num_verts_per_face:    face_sizes[..actual_num_faces as usize].to_vec(),
+            num_vertices: self.num_control_verts,
+            num_faces: actual_num_faces,
+            num_verts_per_face: face_sizes[..actual_num_faces as usize].to_vec(),
             vert_indices_per_face: face_vert_indices[..actual_num_fverts as usize].to_vec(),
             ..TopologyDescriptor::default()
         };
         if num_corners > 0 {
-            desc.num_corners             = num_corners;
-            desc.corner_vertex_indices   = corner_indices[..num_corners as usize].to_vec();
-            desc.corner_weights          = corner_weights[..num_corners as usize].to_vec();
+            desc.num_corners = num_corners;
+            desc.corner_vertex_indices = corner_indices[..num_corners as usize].to_vec();
+            desc.corner_weights = corner_weights[..num_corners as usize].to_vec();
         }
         if num_creases > 0 {
-            desc.num_creases                = num_creases;
-            desc.crease_vertex_index_pairs  = crease_indices[..(num_creases * 2) as usize].to_vec();
-            desc.crease_weights             = crease_weights[..num_creases as usize].to_vec();
+            desc.num_creases = num_creases;
+            desc.crease_vertex_index_pairs = crease_indices[..(num_creases * 2) as usize].to_vec();
+            desc.crease_weights = crease_weights[..num_creases as usize].to_vec();
         }
 
         // Step 6: Create Far::TopologyRefiner for the local control hull.
-        let scheme_type    = self.surface.get_sdc_scheme();
+        let scheme_type = self.surface.get_sdc_scheme();
         let scheme_options = self.surface.get_sdc_options_in_effect();
-        let factory_opts   = FactoryOptions::new(scheme_type, scheme_options);
+        let factory_opts = FactoryOptions::new(scheme_type, scheme_options);
 
         let mut refiner = TopologyDescriptorFactory::create(&desc, factory_opts)
             .expect("IrregularPatchBuilder: failed to create TopologyRefiner");
 
         // Step 7: Apply adaptive refinement and build PatchTree via PatchTreeBuilder.
         let ptb_opts = PatchTreeBuilderOptions {
-            irregular_basis:          IrregularBasis::Gregory,
-            max_patch_depth_sharp:    self.options.sharp_level,
-            max_patch_depth_smooth:   self.options.smooth_level,
-            use_double_precision:     self.options.double_precision,
+            irregular_basis: IrregularBasis::Gregory,
+            max_patch_depth_sharp: self.options.sharp_level,
+            max_patch_depth_smooth: self.options.smooth_level,
+            use_double_precision: self.options.double_precision,
             include_interior_patches: false,
         };
 
         let adapter = RefinerFaceAdapter::refine_and_create(&mut refiner, &ptb_opts);
-        let tree    = adapter.build_patch_tree(&ptb_opts);
+        let tree = adapter.build_patch_tree(&ptb_opts);
 
-        debug_assert_eq!(tree.num_control_points, self.num_control_verts,
+        debug_assert_eq!(
+            tree.num_control_points, self.num_control_verts,
             "PatchTree CV count {} != hull CV count {}",
-            tree.num_control_points, self.num_control_verts);
+            tree.num_control_points, self.num_control_verts
+        );
 
         Arc::new(*tree)
     }
@@ -314,7 +331,7 @@ impl<'a> IrregularPatchBuilder<'a> {
     /// Per-corner faces follow, using the same traversal pattern as
     /// `gather_control_vertex_indices` but emitting local indices.
     fn gather_control_faces(&self, face_sizes: &mut [i32], face_verts: &mut [i32]) {
-        let face_size  = self.surface.get_face_size() as usize;
+        let face_size = self.surface.get_face_size() as usize;
         let num_cverts = self.num_control_verts;
 
         // --- Base face: [0, 1, ..., face_size-1] ---
@@ -323,27 +340,32 @@ impl<'a> IrregularPatchBuilder<'a> {
             face_verts[i] = i as i32;
         }
 
-        let mut face_out  = 1usize;     // next slot in face_sizes[]
-        let mut fvert_out = face_size;  // next slot in face_verts[]
+        let mut face_out = 1usize; // next slot in face_sizes[]
+        let mut fvert_out = face_size; // next slot in face_verts[]
 
         for corner in 0..face_size {
-            let hull  = &self.corner_hulls[corner];
-            if hull.num_control_faces == 0 { continue; }
+            let hull = &self.corner_hulls[corner];
+            if hull.num_control_faces == 0 {
+                continue;
+            }
 
-            let c_top  = self.surface.get_corner_topology(corner);
-            let c_sub  = self.surface.get_corner_subset(corner);
+            let c_top = self.surface.get_corner_topology(corner);
+            let c_sub = self.surface.get_corner_subset(corner);
             let src_idx = self.get_corner_indices(corner);
 
             // ---- singleSharedFace: one back-to-back face (all-val2 case) ----
             if hull.single_shared_face {
-                let nf   = c_top.get_face_after(1);
-                let s    = c_top.get_face_size(nf) as usize;
+                let nf = c_top.get_face_after(1);
+                let s = c_top.get_face_size(nf) as usize;
                 let foff = c_top.get_face_index_offset(nf) as usize;
                 face_sizes[face_out] = s as i32;
                 self.get_control_face_vertices_map(
                     &mut face_verts[fvert_out..fvert_out + s],
-                    s, corner as i32, &src_idx[foff..]);
-                face_out  += 1;
+                    s,
+                    corner as i32,
+                    &src_idx[foff..],
+                );
+                face_out += 1;
                 fvert_out += s;
                 continue;
             }
@@ -357,7 +379,7 @@ impl<'a> IrregularPatchBuilder<'a> {
                 let n_after = c_sub.num_faces_after as usize - 1;
                 for j in 0..n_after {
                     next_face = c_top.get_face_next(next_face);
-                    let s    = c_top.get_face_size(next_face) as usize;
+                    let s = c_top.get_face_size(next_face) as usize;
                     let foff = c_top.get_face_index_offset(next_face) as usize;
                     let is_last = j == n_after - 1;
 
@@ -365,18 +387,35 @@ impl<'a> IrregularPatchBuilder<'a> {
                     if self.use_control_vert_map {
                         self.get_control_face_vertices_map(
                             &mut face_verts[fvert_out..fvert_out + s],
-                            s, corner as i32, &src_idx[foff..]);
+                            s,
+                            corner as i32,
+                            &src_idx[foff..],
+                        );
                     } else if c_sub.is_boundary() {
                         // Boundary: trivial sequential — no wrap-around needed.
                         self.get_control_face_vertices_seq(
                             &mut face_verts[fvert_out..fvert_out + s],
-                            s, corner as i32, next_vert);
+                            s,
+                            corner as i32,
+                            next_vert,
+                        );
                     } else {
                         // Interior general case.
-                        let pre_val2 = if is_last { hull.pre_val2_interior as i32 } else { 0 };
+                        let pre_val2 = if is_last {
+                            hull.pre_val2_interior as i32
+                        } else {
+                            0
+                        };
                         self.get_control_face_vertices_general(
                             &mut face_verts[fvert_out..fvert_out + s],
-                            s, corner as i32, next_vert, is_last, pre_val2, num_cverts, face_size);
+                            s,
+                            corner as i32,
+                            next_vert,
+                            is_last,
+                            pre_val2,
+                            num_cverts,
+                            face_size,
+                        );
                     }
 
                     // Advance next_vert by the number of new perimeter verts this face adds.
@@ -385,12 +424,16 @@ impl<'a> IrregularPatchBuilder<'a> {
                     let advance = if c_sub.is_boundary() {
                         s as i32 - 2
                     } else {
-                        let pre = if is_last { hull.pre_val2_interior as i32 } else { 0 };
+                        let pre = if is_last {
+                            hull.pre_val2_interior as i32
+                        } else {
+                            0
+                        };
                         (s as i32 - 2) - pre
                     };
                     next_vert += advance;
 
-                    face_out  += 1;
+                    face_out += 1;
                     fvert_out += s;
                 }
             }
@@ -405,7 +448,7 @@ impl<'a> IrregularPatchBuilder<'a> {
                 let mut next_face = c_top.get_face_first(c_sub);
                 let n_before = c_sub.num_faces_before as usize;
                 for j in 0..n_before {
-                    let s    = c_top.get_face_size(next_face) as usize;
+                    let s = c_top.get_face_size(next_face) as usize;
                     let foff = c_top.get_face_index_offset(next_face) as usize;
                     let is_last = j == n_before - 1;
 
@@ -413,20 +456,38 @@ impl<'a> IrregularPatchBuilder<'a> {
                     if self.use_control_vert_map {
                         self.get_control_face_vertices_map(
                             &mut face_verts[fvert_out..fvert_out + s],
-                            s, corner as i32, &src_idx[foff..]);
+                            s,
+                            corner as i32,
+                            &src_idx[foff..],
+                        );
                     } else {
-                        let pre_val2 = if is_last { hull.pre_val2_interior as i32 } else { 0 };
+                        let pre_val2 = if is_last {
+                            hull.pre_val2_interior as i32
+                        } else {
+                            0
+                        };
                         self.get_control_face_vertices_general(
                             &mut face_verts[fvert_out..fvert_out + s],
-                            s, corner as i32, next_vert, is_last, pre_val2, num_cverts, face_size);
+                            s,
+                            corner as i32,
+                            next_vert,
+                            is_last,
+                            pre_val2,
+                            num_cverts,
+                            face_size,
+                        );
                     }
 
                     // Always advance, including for the last face — C++ line 517.
-                    let pre = if is_last { hull.pre_val2_interior as i32 } else { 0 };
+                    let pre = if is_last {
+                        hull.pre_val2_interior as i32
+                    } else {
+                        0
+                    };
                     next_vert += (s as i32 - 2) - pre;
 
-                    next_face  = c_top.get_face_next(next_face);
-                    face_out  += 1;
+                    next_face = c_top.get_face_next(next_face);
+                    face_out += 1;
                     fvert_out += s;
                 }
             }
@@ -492,8 +553,8 @@ impl<'a> IrregularPatchBuilder<'a> {
 
         // Number of "simple" sequential verts before the special last two.
         // Simple count = (S - 2) - 1 - (lastFace ? numVal2InLast : 0)
-        let simple_count = (num_f_verts as i32 - 2) - 1
-            - if last_face { num_val2_in_last } else { 0 };
+        let simple_count =
+            (num_f_verts as i32 - 2) - 1 - if last_face { num_val2_in_last } else { 0 };
         let simple_count = simple_count.max(0) as usize;
 
         let mut out_idx = 1usize;
@@ -503,13 +564,13 @@ impl<'a> IrregularPatchBuilder<'a> {
         for _ in 0..simple_count {
             f_verts[out_idx] = cur_perim;
             cur_perim += 1;
-            out_idx   += 1;
+            out_idx += 1;
         }
 
         // 2. Next-to-last perimeter vertex — may wrap to face_size.
         let next_to_last = cur_perim;
         let next_to_last_v = if next_to_last >= num_cverts {
-            face_size as i32   // wraps to first non-base-face vert
+            face_size as i32 // wraps to first non-base-face vert
         } else {
             next_to_last
         };
@@ -559,11 +620,7 @@ impl<'a> IrregularPatchBuilder<'a> {
     /// Returns the number of sharp vertices found.
     ///
     /// Mirrors C++ `gatherControlVertexSharpness()`.
-    fn gather_control_vertex_sharpness(
-        &self,
-        indices: &mut [i32],
-        weights: &mut [f32],
-    ) -> i32 {
+    fn gather_control_vertex_sharpness(&self, indices: &mut [i32], weights: &mut [f32]) -> i32 {
         let face_size = self.surface.get_face_size() as usize;
         let mut count = 0i32;
 
@@ -606,11 +663,7 @@ impl<'a> IrregularPatchBuilder<'a> {
     ///   Pass 2 — interior edges from each corner to its perimeter vertices.
     ///
     /// Mirrors C++ `gatherControlEdgeSharpness()`.
-    fn gather_control_edge_sharpness(
-        &self,
-        indices: &mut [i32],
-        weights: &mut [f32],
-    ) -> i32 {
+    fn gather_control_edge_sharpness(&self, indices: &mut [i32], weights: &mut [f32]) -> i32 {
         let face_size = self.surface.get_face_size() as usize;
         let mut count = 0i32;
 
@@ -622,10 +675,14 @@ impl<'a> IrregularPatchBuilder<'a> {
             let c_top = self.surface.get_corner_topology(c);
             let c_sub = self.surface.get_corner_subset(c);
 
-            if !c_top.get_tag().has_sharp_edges() { continue; }
+            if !c_top.get_tag().has_sharp_edges() {
+                continue;
+            }
 
             // Skip leading-boundary corner: boundary AND no faces before it.
-            if c_sub.is_boundary() && c_sub.num_faces_before == 0 { continue; }
+            if c_sub.is_boundary() && c_sub.num_faces_before == 0 {
+                continue;
+            }
 
             // The "forward" edge of corner c in the base face connects c -> (c+1)%N.
             let corner_face = c_top.get_face();
@@ -633,22 +690,26 @@ impl<'a> IrregularPatchBuilder<'a> {
             if s > 0.0 {
                 let v0 = c as i32;
                 let v1 = ((c + 1) % face_size) as i32;
-                indices[(count * 2) as usize]     = v0;
+                indices[(count * 2) as usize] = v0;
                 indices[(count * 2 + 1) as usize] = v1;
-                weights[count as usize]            = s;
+                weights[count as usize] = s;
                 count += 1;
             }
         }
 
         // --- Pass 2: interior edges (corner → perimeter vertices) ---
         for c in 0..face_size {
-            let hull  = &self.corner_hulls[c];
-            if hull.num_control_faces == 0 { continue; }
+            let hull = &self.corner_hulls[c];
+            if hull.num_control_faces == 0 {
+                continue;
+            }
 
             let c_top = self.surface.get_corner_topology(c);
             let c_sub = self.surface.get_corner_subset(c);
 
-            if !c_top.get_tag().has_sharp_edges() { continue; }
+            if !c_top.get_tag().has_sharp_edges() {
+                continue;
+            }
 
             let corner_v = c as i32;
             let mut next_vert = hull.next_control_vert;
@@ -672,11 +733,11 @@ impl<'a> IrregularPatchBuilder<'a> {
                         } else if next_vert < self.num_control_verts {
                             next_vert
                         } else {
-                            face_size as i32  // wrap to first perimeter vert
+                            face_size as i32 // wrap to first perimeter vert
                         };
-                        indices[(count * 2) as usize]     = corner_v;
+                        indices[(count * 2) as usize] = corner_v;
                         indices[(count * 2 + 1) as usize] = edge_vert;
-                        weights[count as usize]            = edge_s;
+                        weights[count as usize] = edge_s;
                         count += 1;
                     }
 
@@ -720,9 +781,9 @@ impl<'a> IrregularPatchBuilder<'a> {
                         } else {
                             face_size as i32
                         };
-                        indices[(count * 2) as usize]     = corner_v;
+                        indices[(count * 2) as usize] = corner_v;
                         indices[(count * 2 + 1) as usize] = edge_vert;
-                        weights[count as usize]            = edge_s;
+                        weights[count as usize] = edge_s;
                         count += 1;
                     }
                     next_face = c_top.get_face_next(next_face);
@@ -743,9 +804,9 @@ impl<'a> IrregularPatchBuilder<'a> {
     /// Only called when `control_faces_overlap` is true and `num_faces > 2`.
     /// Mirrors C++ `removeDuplicateControlFaces()`.
     fn remove_duplicate_control_faces(
-        face_sizes:    &mut Vec<i32>,
-        face_verts:    &mut Vec<i32>,
-        num_faces:     &mut i32,
+        face_sizes: &mut Vec<i32>,
+        face_verts: &mut Vec<i32>,
+        num_faces: &mut i32,
         num_face_verts: &mut i32,
     ) {
         // Build per-face vertex-index start offsets.
@@ -760,13 +821,15 @@ impl<'a> IrregularPatchBuilder<'a> {
         let mut i = *num_faces - 1;
         while i >= 2 {
             let offsets = build_offsets(face_sizes, *num_faces);
-            let si  = face_sizes[i as usize] as usize;
-            let ai  = &face_verts[offsets[i as usize]..offsets[i as usize] + si];
+            let si = face_sizes[i as usize] as usize;
+            let ai = &face_verts[offsets[i as usize]..offsets[i as usize] + si];
 
             let mut found = false;
             for j in 1..i {
                 let sj = face_sizes[j as usize] as usize;
-                if sj != si { continue; }
+                if sj != si {
+                    continue;
+                }
                 let aj = &face_verts[offsets[j as usize]..offsets[j as usize] + sj];
                 if Self::faces_match(ai, aj) {
                     found = true;
@@ -777,7 +840,7 @@ impl<'a> IrregularPatchBuilder<'a> {
             if found {
                 // Remove face i: shift everything after it down.
                 let start = offsets[i as usize];
-                let end   = offsets[i as usize + 1];
+                let end = offsets[i as usize + 1];
                 let fv_len = *num_face_verts as usize;
                 face_verts.copy_within(end..fv_len, start);
                 *num_face_verts -= si as i32;
@@ -800,7 +863,9 @@ impl<'a> IrregularPatchBuilder<'a> {
         for rot in 0..n {
             if b[rot] == a[0] {
                 let matches = (0..n).all(|k| b[(rot + k) % n] == a[k]);
-                if matches { return true; }
+                if matches {
+                    return true;
+                }
             }
         }
         false
@@ -817,8 +882,8 @@ impl<'a> IrregularPatchBuilder<'a> {
     /// Mirrors C++ `sharpenBoundaryControlEdges()`.
     fn sharpen_boundary_control_edges(
         &self,
-        indices:    &mut [i32],
-        weights:    &mut [f32],
+        indices: &mut [i32],
+        weights: &mut [f32],
         num_creases: &mut i32,
     ) {
         let face_size = self.surface.get_face_size() as usize;
@@ -830,9 +895,9 @@ impl<'a> IrregularPatchBuilder<'a> {
                 let v0 = c as i32;
                 let v1 = ((c + 1) % face_size) as i32;
                 let nc = *num_creases as usize;
-                indices[nc * 2]     = v0;
+                indices[nc * 2] = v0;
                 indices[nc * 2 + 1] = v1;
-                weights[nc]         = SHARPNESS_INFINITE;
+                weights[nc] = SHARPNESS_INFINITE;
                 *num_creases += 1;
             }
         }
@@ -850,14 +915,14 @@ impl<'a> IrregularPatchBuilder<'a> {
         let mut num_val3_int_adj_tris = 0i32;
         let mut num_src_face_indices = 0i32;
 
-        self.num_control_faces     = 1;
-        self.num_control_verts     = face_size as i32;
+        self.num_control_faces = 1;
+        self.num_control_verts = face_size as i32;
         self.num_control_face_verts = face_size as i32;
 
         for corner in 0..face_size {
             let c_top = self.surface.get_corner_topology(corner);
             let c_sub = self.surface.get_corner_subset(corner);
-            let hull  = &mut self.corner_hulls[corner];
+            let hull = &mut self.corner_hulls[corner];
             *hull = CornerHull::default();
 
             let mut num_corner_fv = 0i32;
@@ -916,11 +981,11 @@ impl<'a> IrregularPatchBuilder<'a> {
                 hull.num_control_verts -= 1;
             }
 
-            hull.next_control_vert       = self.num_control_verts;
-            hull.surface_indices_offset  = num_src_face_indices;
+            hull.next_control_vert = self.num_control_verts;
+            hull.surface_indices_offset = num_src_face_indices;
 
-            self.num_control_faces     += hull.num_control_faces;
-            self.num_control_verts     += hull.num_control_verts;
+            self.num_control_faces += hull.num_control_faces;
+            self.num_control_verts += hull.num_control_verts;
             self.num_control_face_verts += num_corner_fv;
 
             num_src_face_indices += c_top.get_num_face_vertices();
@@ -944,7 +1009,11 @@ impl<'a> IrregularPatchBuilder<'a> {
                         break;
                     }
                     // Tag the preceding corner:
-                    let prev = if corner == 0 { face_size - 1 } else { corner - 1 };
+                    let prev = if corner == 0 {
+                        face_size - 1
+                    } else {
+                        corner - 1
+                    };
                     self.corner_hulls[prev].pre_val2_interior = true;
                     break;
                 }
@@ -954,7 +1023,7 @@ impl<'a> IrregularPatchBuilder<'a> {
                 self.num_control_verts = face_size as i32;
                 for corner in 0..face_size {
                     let hull = &mut self.corner_hulls[corner];
-                    hull.next_control_vert  = self.num_control_verts;
+                    hull.next_control_vert = self.num_control_verts;
                     hull.num_control_verts -= hull.pre_val2_interior as i32;
                     self.num_control_verts += hull.num_control_verts;
                 }
@@ -993,12 +1062,14 @@ impl<'a> IrregularPatchBuilder<'a> {
             // an immutable borrow on `self` while mutating control_vert_map /
             // control_verts.
             let verts_to_add: Vec<Index> = {
-                let hull  = &self.corner_hulls[corner];
-                if hull.num_control_faces == 0 { continue; }
+                let hull = &self.corner_hulls[corner];
+                if hull.num_control_faces == 0 {
+                    continue;
+                }
 
                 let c_top = self.surface.get_corner_topology(corner);
                 let c_sub = self.surface.get_corner_subset(corner);
-                let idx   = self.get_corner_indices(corner);
+                let idx = self.get_corner_indices(corner);
                 let mut verts = Vec::new();
 
                 if hull.single_shared_face {
@@ -1015,7 +1086,9 @@ impl<'a> IrregularPatchBuilder<'a> {
                             nf = c_top.get_face_next(nf);
                             let fv_off = c_top.get_face_index_offset(nf) as usize;
                             let s = c_top.get_face_size(nf) as usize;
-                            for k in 1..s { verts.push(idx[fv_off + k]); }
+                            for k in 1..s {
+                                verts.push(idx[fv_off + k]);
+                            }
                         }
                     }
                     if c_sub.num_faces_before > 0 {
@@ -1023,7 +1096,9 @@ impl<'a> IrregularPatchBuilder<'a> {
                         for _ in 0..c_sub.num_faces_before {
                             let fv_off = c_top.get_face_index_offset(nf) as usize;
                             let s = c_top.get_face_size(nf) as usize;
-                            for k in 1..s { verts.push(idx[fv_off + k]); }
+                            for k in 1..s {
+                                verts.push(idx[fv_off + k]);
+                            }
                             nf = c_top.get_face_next(nf);
                         }
                     }
@@ -1063,11 +1138,12 @@ impl<'a> IrregularPatchBuilder<'a> {
     /// Only valid when `use_control_vert_map` is true.
     fn get_local_control_vertex(&self, mesh_idx: Index) -> i32 {
         debug_assert!(self.use_control_vert_map);
-        *self.control_vert_map.get(&mesh_idx)
+        *self
+            .control_vert_map
+            .get(&mesh_idx)
             .expect("IrregularPatchBuilder: mesh index not in control vert map")
     }
 }
-
 
 // ---------------------------------------------------------------------------
 //  Tests
@@ -1087,16 +1163,25 @@ mod tests {
 
     #[test]
     fn faces_match_identity() {
-        assert!(IrregularPatchBuilder::faces_match(&[0, 1, 2, 3], &[0, 1, 2, 3]));
+        assert!(IrregularPatchBuilder::faces_match(
+            &[0, 1, 2, 3],
+            &[0, 1, 2, 3]
+        ));
     }
 
     #[test]
     fn faces_match_rotation() {
-        assert!(IrregularPatchBuilder::faces_match(&[0, 1, 2, 3], &[2, 3, 0, 1]));
+        assert!(IrregularPatchBuilder::faces_match(
+            &[0, 1, 2, 3],
+            &[2, 3, 0, 1]
+        ));
     }
 
     #[test]
     fn faces_no_match() {
-        assert!(!IrregularPatchBuilder::faces_match(&[0, 1, 2, 3], &[0, 1, 3, 2]));
+        assert!(!IrregularPatchBuilder::faces_match(
+            &[0, 1, 2, 3],
+            &[0, 1, 3, 2]
+        ));
     }
 }

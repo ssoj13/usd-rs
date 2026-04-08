@@ -187,15 +187,11 @@ impl SdrParserPlugin for LightDefParserPlugin {
                     .collect();
                 // C++: metadata[SdrPropertyMetadata->SdrUsdDefinitionType] =
                 //        shaderProperty.GetTypeName().GetAliasesAsTokens()[0]
-                meta_map.insert(
-                    Token::new("sdrUsdDefinitionType"),
-                    info.type_name.clone(),
-                );
+                meta_map.insert(Token::new("sdrUsdDefinitionType"), info.type_name.clone());
                 // C++: _CollectShaderPropertyMetadata sets isAssetIdentifier
                 // for asset-typed properties.
                 if info.type_name == "asset" || info.type_name == "asset[]" {
-                    meta_map
-                        .insert(Token::new("__SDR__isAssetIdentifier"), "true".to_string());
+                    meta_map.insert(Token::new("__SDR__isAssetIdentifier"), "true".to_string());
                 }
                 let sdr_metadata = SdrShaderPropertyMetadata::from_token_map(&meta_map);
 

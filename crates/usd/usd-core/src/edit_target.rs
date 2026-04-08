@@ -73,12 +73,7 @@ impl EditTarget {
     ///
     /// Matches C++ `UsdEditTarget(const SdfLayerHandle &layer, const SdfLayerOffset &offset)`.
     pub fn for_layer_at_path(layer: Arc<Layer>, source: Path, target: Path) -> Self {
-        Self::for_layer_at_path_with_offset(
-            layer,
-            source,
-            target,
-            usd_sdf::LayerOffset::identity(),
-        )
+        Self::for_layer_at_path_with_offset(layer, source, target, usd_sdf::LayerOffset::identity())
     }
 
     /// Creates an edit target with path mapping and layer offset.
@@ -160,7 +155,9 @@ impl EditTarget {
                 }
                 return path.clone();
             }
-            return map.map_target_to_source(path).unwrap_or_else(|| path.clone());
+            return map
+                .map_target_to_source(path)
+                .unwrap_or_else(|| path.clone());
         }
         path.clone()
     }

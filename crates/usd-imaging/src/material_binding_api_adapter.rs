@@ -4,9 +4,9 @@
 
 use super::api_schema_adapter::APISchemaAdapter;
 use super::collection_material_binding_schema::CollectionMaterialBindingSchemaBuilder;
+use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::direct_material_binding_schema::DirectMaterialBindingSchemaBuilder;
 use super::material_bindings_schema::MaterialBindingsSchema;
-use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::types::PropertyInvalidationType;
 use std::sync::Arc;
 use usd_core::Prim;
@@ -60,7 +60,11 @@ fn build_collection_bindings_vector_data_source(
         let collection_name = {
             let prop_name = binding.get_collection_path().get_name();
             let (stripped, matched) = Path::strip_prefix_namespace(prop_name, "collection");
-            Token::new(if matched { stripped.as_str() } else { prop_name })
+            Token::new(if matched {
+                stripped.as_str()
+            } else {
+                prop_name
+            })
         };
 
         entries.push(
@@ -231,8 +235,7 @@ impl APISchemaAdapter for MaterialBindingAPIAdapter {
         }
         Some(HdRetainedContainerDataSource::new_1(
             MaterialBindingsSchema::get_schema_token(),
-            MaterialBindingsContainerDataSource::new(binding_api)
-                as HdDataSourceBaseHandle,
+            MaterialBindingsContainerDataSource::new(binding_api) as HdDataSourceBaseHandle,
         ) as HdContainerDataSourceHandle)
     }
 
@@ -293,7 +296,12 @@ impl crate::adapter_manager::ApiSchemaAdapter for MaterialBindingAPIAdapter {
         subprim: &Token,
         applied_instance_name: &Token,
     ) -> Token {
-        <Self as APISchemaAdapter>::get_imaging_subprim_type(self, prim, subprim, applied_instance_name)
+        <Self as APISchemaAdapter>::get_imaging_subprim_type(
+            self,
+            prim,
+            subprim,
+            applied_instance_name,
+        )
     }
 
     fn get_imaging_subprim_data(
@@ -303,7 +311,13 @@ impl crate::adapter_manager::ApiSchemaAdapter for MaterialBindingAPIAdapter {
         applied_instance_name: &Token,
         stage_globals: &DataSourceStageGlobalsHandle,
     ) -> Option<HdContainerDataSourceHandle> {
-        <Self as APISchemaAdapter>::get_imaging_subprim_data(self, prim, subprim, applied_instance_name, stage_globals)
+        <Self as APISchemaAdapter>::get_imaging_subprim_data(
+            self,
+            prim,
+            subprim,
+            applied_instance_name,
+            stage_globals,
+        )
     }
 
     fn invalidate_imaging_subprim(
@@ -314,7 +328,14 @@ impl crate::adapter_manager::ApiSchemaAdapter for MaterialBindingAPIAdapter {
         properties: &[Token],
         invalidation_type: PropertyInvalidationType,
     ) -> HdDataSourceLocatorSet {
-        <Self as APISchemaAdapter>::invalidate_imaging_subprim(self, prim, subprim, applied_instance_name, properties, invalidation_type)
+        <Self as APISchemaAdapter>::invalidate_imaging_subprim(
+            self,
+            prim,
+            subprim,
+            applied_instance_name,
+            properties,
+            invalidation_type,
+        )
     }
 }
 

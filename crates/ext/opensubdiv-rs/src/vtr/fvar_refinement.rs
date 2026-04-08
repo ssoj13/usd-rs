@@ -7,11 +7,11 @@
 //! Maintains the mapping between parent and child FVarLevel values during
 //! refinement, analogous to how `Refinement` maps Level components.
 
-use crate::sdc::crease::Crease;
-use super::types::{Index, LocalIndex};
+use super::fvar_level::{CreaseEndPair, FVarLevel, ValueTag};
 use super::level::Level;
 use super::refinement::Refinement;
-use super::fvar_level::{FVarLevel, ValueTag, CreaseEndPair};
+use super::types::{Index, LocalIndex};
+use crate::sdc::crease::Crease;
 
 /// Face-varying refinement between a parent and child FVarLevel.
 ///
@@ -21,11 +21,11 @@ use super::fvar_level::{FVarLevel, ValueTag, CreaseEndPair};
 pub struct FVarRefinement {
     pub channel: i32,
 
-    refinement:   *const Refinement,
+    refinement: *const Refinement,
     parent_level: *const Level,
-    parent_fvar:  *const FVarLevel,
-    child_level:  *const Level,
-    child_fvar:   *mut   FVarLevel,
+    parent_fvar: *const FVarLevel,
+    child_level: *const Level,
+    child_fvar: *mut FVarLevel,
 
     /// Maps each child vertex-value to the sibling index within the parent.
     /// UnsafeCell allows interior mutability through &self methods (matches
@@ -83,17 +83,29 @@ impl FVarRefinement {
     // -- Raw-pointer accessors (bypass borrow checker) --
 
     #[inline]
-    fn r(&self) -> &Refinement { unsafe { &*self.refinement } }
+    fn r(&self) -> &Refinement {
+        unsafe { &*self.refinement }
+    }
     #[inline]
-    fn pl(&self) -> &Level { unsafe { &*self.parent_level } }
+    fn pl(&self) -> &Level {
+        unsafe { &*self.parent_level }
+    }
     #[inline]
-    fn pf(&self) -> &FVarLevel { unsafe { &*self.parent_fvar } }
+    fn pf(&self) -> &FVarLevel {
+        unsafe { &*self.parent_fvar }
+    }
     #[inline]
-    fn cl(&self) -> &Level { unsafe { &*self.child_level } }
+    fn cl(&self) -> &Level {
+        unsafe { &*self.child_level }
+    }
     #[inline]
-    fn cf(&self) -> &FVarLevel { unsafe { &*self.child_fvar } }
+    fn cf(&self) -> &FVarLevel {
+        unsafe { &*self.child_fvar }
+    }
     #[inline]
-    fn cf_mut(&self) -> &mut FVarLevel { unsafe { &mut *self.child_fvar } }
+    fn cf_mut(&self) -> &mut FVarLevel {
+        unsafe { &mut *self.child_fvar }
+    }
 
     // -----------------------------------------------------------------------
     // Public queries
@@ -101,15 +113,19 @@ impl FVarRefinement {
 
     /// Get the parent source (sibling index) for a child vertex value.
     pub fn get_child_value_parent_source(&self, v_index: Index, sibling: i32) -> i32 {
-        let offset = self.cf().get_vertex_value_offset(v_index, sibling as LocalIndex);
+        let offset = self
+            .cf()
+            .get_vertex_value_offset(v_index, sibling as LocalIndex);
         unsafe { (*self.child_value_parent_source.get())[offset as usize] as i32 }
     }
 
     /// Compute the fractional weight for blending a semi-sharp value.
     pub fn get_fractional_weight(
         &self,
-        p_vert: Index, p_sibling: LocalIndex,
-        c_vert: Index, _c_sibling: LocalIndex,
+        p_vert: Index,
+        p_sibling: LocalIndex,
+        c_vert: Index,
+        _c_sibling: LocalIndex,
     ) -> f32 {
         let pl = self.pl();
         let cl = self.cl();
@@ -123,16 +139,18 @@ impl FVarRefinement {
             cl.get_vertex_edges(c_vert).as_slice().to_vec()
         } else {
             let p_in_edge = pl.get_vertex_edge_local_indices(p_vert);
-            (0..p_vert_edges.size()).map(|i| {
-                let ee = refinement.get_edge_child_edges(p_vert_edges[i as usize]);
-                ee[p_in_edge[i as usize] as usize]
-            }).collect()
+            (0..p_vert_edges.size())
+                .map(|i| {
+                    let ee = refinement.get_edge_child_edges(p_vert_edges[i as usize]);
+                    ee[p_in_edge[i as usize] as usize]
+                })
+                .collect()
         };
 
         // Gather edge sharpness within the value's crease span
         let p_crease_ends = pf.get_vertex_value_crease_ends(p_vert);
         let p_start = p_crease_ends[p_sibling as usize].start_face as i32;
-        let p_end   = p_crease_ends[p_sibling as usize].end_face as i32;
+        let p_end = p_crease_ends[p_sibling as usize].end_face as i32;
         let n_edges = p_vert_edges.size();
 
         let mut p_sharp = Vec::new();
@@ -172,9 +190,9 @@ impl FVarRefinement {
         // Transfer basic properties from parent to child
         let cf = self.cf_mut();
         let pf = self.pf();
-        cf.options                = pf.options;
-        cf.is_linear              = pf.is_linear;
-        cf.has_linear_boundaries  = pf.has_linear_boundaries;
+        cf.options = pf.options;
+        cf.is_linear = pf.is_linear;
+        cf.has_linear_boundaries = pf.has_linear_boundaries;
         cf.has_dependent_sharpness = pf.has_dependent_sharpness;
 
         self.estimate_and_alloc_child_values();
@@ -191,7 +209,8 @@ impl FVarRefinement {
 
         // Build redundant face-values as post-process
         if self.cf().get_num_values() > self.cl().get_num_vertices() {
-            self.cf_mut().initialize_face_values_from_vertex_face_siblings();
+            self.cf_mut()
+                .initialize_face_values_from_vertex_face_siblings();
         } else {
             self.cf_mut().initialize_face_values_from_face_vertices();
         }
@@ -211,7 +230,7 @@ impl FVarRefinement {
 
         // Edge-vertices
         let ev_start = r.get_first_child_vertex_from_edges();
-        let ev_end   = ev_start + r.get_num_child_vertices_from_edges();
+        let ev_end = ev_start + r.get_num_child_vertices_from_edges();
         for cv in ev_start..ev_end {
             let pe = r.get_child_vertex_parent_index(cv);
             max_count += if pf.edge_topology_matches(pe) {
@@ -223,7 +242,7 @@ impl FVarRefinement {
 
         // Vertex-vertices
         let vv_start = r.get_first_child_vertex_from_vertices();
-        let vv_end   = vv_start + r.get_num_child_vertices_from_vertices();
+        let vv_end = vv_start + r.get_num_child_vertices_from_vertices();
         for cv in vv_start..vv_end {
             debug_assert!(r.is_child_vertex_complete(cv));
             let pv = r.get_child_vertex_parent_index(cv);
@@ -234,8 +253,12 @@ impl FVarRefinement {
         self.cf_mut().resize_components();
 
         // Allocate value tags and parent-source to estimated max
-        self.cf_mut().vert_value_tags.resize(max_count as usize, ValueTag::default());
-        self.child_value_parent_source.get_mut().resize(max_count as usize, 0);
+        self.cf_mut()
+            .vert_value_tags
+            .resize(max_count as usize, ValueTag::default());
+        self.child_value_parent_source
+            .get_mut()
+            .resize(max_count as usize, 0);
     }
 
     /// Trim over-allocated arrays to the actual value count and fill indices.
@@ -246,10 +269,13 @@ impl FVarRefinement {
         let cf = self.cf_mut();
         cf.vert_value_tags.resize(vc as usize, ValueTag::default());
         if has_smooth {
-            cf.vert_value_crease_ends.resize(vc as usize, CreaseEndPair::default());
+            cf.vert_value_crease_ends
+                .resize(vc as usize, CreaseEndPair::default());
         }
 
-        self.child_value_parent_source.get_mut().resize(vc as usize, 0);
+        self.child_value_parent_source
+            .get_mut()
+            .resize(vc as usize, 0);
 
         let cf = self.cf_mut();
         cf.vert_value_indices.resize(vc as usize, 0);
@@ -281,7 +307,7 @@ impl FVarRefinement {
     fn populate_from_face_verts(&self) {
         let r = self.r();
         let start = r.get_first_child_vertex_from_faces();
-        let end   = start + r.get_num_child_vertices_from_faces();
+        let end = start + r.get_num_child_vertices_from_faces();
         let cf = self.cf_mut();
 
         for cv in start..end {
@@ -296,7 +322,7 @@ impl FVarRefinement {
         let r = self.r();
         let pf = self.pf();
         let start = r.get_first_child_vertex_from_edges();
-        let end   = start + r.get_num_child_vertices_from_edges();
+        let end = start + r.get_num_child_vertices_from_edges();
 
         for cv in start..end {
             let pe = r.get_child_vertex_parent_index(cv);
@@ -320,7 +346,7 @@ impl FVarRefinement {
         let r = self.r();
         let pf = self.pf();
         let start = r.get_first_child_vertex_from_vertices();
-        let end   = start + r.get_num_child_vertices_from_vertices();
+        let end = start + r.get_num_child_vertices_from_vertices();
 
         for cv in start..end {
             let pv = r.get_child_vertex_parent_index(cv);
@@ -460,7 +486,7 @@ impl FVarRefinement {
 
         // -- Face-vertices: all matching, sequential --
         let fv_start = r.get_first_child_vertex_from_faces();
-        let fv_end   = fv_start + r.get_num_child_vertices_from_faces();
+        let fv_end = fv_start + r.get_num_child_vertices_from_faces();
         let mut c_val = cf.vert_sibling_offsets[fv_start as usize];
         for _ in fv_start..fv_end {
             cf.vert_value_tags[c_val as usize] = val_match;
@@ -474,10 +500,14 @@ impl FVarRefinement {
         let mut val_crease = val_mismatch;
         val_crease.crease = true;
 
-        let val_split = if pf.has_smooth_boundaries() { val_crease } else { val_mismatch };
+        let val_split = if pf.has_smooth_boundaries() {
+            val_crease
+        } else {
+            val_mismatch
+        };
 
         let ev_start = r.get_first_child_vertex_from_edges();
-        let ev_end   = ev_start + r.get_num_child_vertices_from_edges();
+        let ev_end = ev_start + r.get_num_child_vertices_from_edges();
 
         for cv in ev_start..ev_end {
             let pe = r.get_child_vertex_parent_index(cv);
@@ -486,7 +516,11 @@ impl FVarRefinement {
             let v_off = cf.vert_sibling_offsets[cv as usize] as usize;
             let v_cnt = cf.vert_sibling_counts[cv as usize] as usize;
 
-            let tag = if pe_tag.mismatch || pe_tag.linear { val_split } else { val_match };
+            let tag = if pe_tag.mismatch || pe_tag.linear {
+                val_split
+            } else {
+                val_match
+            };
             for i in 0..v_cnt {
                 cf.vert_value_tags[v_off + i] = tag;
             }
@@ -494,7 +528,7 @@ impl FVarRefinement {
 
         // -- Vertex-vertices: inherit parent tags (complete only) --
         let vv_start = r.get_first_child_vertex_from_vertices();
-        let vv_end   = vv_start + r.get_num_child_vertices_from_vertices();
+        let vv_end = vv_start + r.get_num_child_vertices_from_vertices();
 
         for cv in vv_start..vv_end {
             let pv = r.get_child_vertex_parent_index(cv);
@@ -518,25 +552,33 @@ impl FVarRefinement {
         let cf = self.cf_mut();
 
         // Number of child faces per edge depends on split (quad=2, tri=3)
-        let inc_faces = if r.get_regular_face_size() == 4 { 2i32 } else { 3 };
+        let inc_faces = if r.get_regular_face_size() == 4 {
+            2i32
+        } else {
+            3
+        };
 
         // -- Edge-vertices: assign sequential crease-end spans --
         let ev_start = r.get_first_child_vertex_from_edges();
-        let ev_end   = ev_start + r.get_num_child_vertices_from_edges();
+        let ev_end = ev_start + r.get_num_child_vertices_from_edges();
 
         for cv in ev_start..ev_end {
             let v_off = cf.vert_sibling_offsets[cv as usize] as usize;
             let v_cnt = cf.vert_sibling_counts[cv as usize] as usize;
 
-            if !cf.vert_value_tags[v_off].is_mismatch() { continue; }
-            if !r.is_child_vertex_complete(cv) { continue; }
+            if !cf.vert_value_tags[v_off].is_mismatch() {
+                continue;
+            }
+            if !r.is_child_vertex_complete(cv) {
+                continue;
+            }
 
             let mut cs = 0i32;
             let mut ce = cs + inc_faces - 1;
             for i in 0..v_cnt {
                 if !cf.vert_value_tags[v_off + i].is_inf_sharp() {
                     cf.vert_value_crease_ends[v_off + i].start_face = cs as LocalIndex;
-                    cf.vert_value_crease_ends[v_off + i].end_face   = ce as LocalIndex;
+                    cf.vert_value_crease_ends[v_off + i].end_face = ce as LocalIndex;
                 }
                 cs += inc_faces;
                 ce += inc_faces;
@@ -545,14 +587,18 @@ impl FVarRefinement {
 
         // -- Vertex-vertices: inherit crease-end pairs from parent --
         let vv_start = r.get_first_child_vertex_from_vertices();
-        let vv_end   = vv_start + r.get_num_child_vertices_from_vertices();
+        let vv_end = vv_start + r.get_num_child_vertices_from_vertices();
 
         for cv in vv_start..vv_end {
             let v_off = cf.vert_sibling_offsets[cv as usize] as usize;
             let v_cnt = cf.vert_sibling_counts[cv as usize] as usize;
 
-            if !cf.vert_value_tags[v_off].is_mismatch() { continue; }
-            if !r.is_child_vertex_complete(cv) { continue; }
+            if !cf.vert_value_tags[v_off].is_mismatch() {
+                continue;
+            }
+            if !r.is_child_vertex_complete(cv) {
+                continue;
+            }
 
             let pv = r.get_child_vertex_parent_index(cv);
             let p_off = pf.vert_sibling_offsets[pv as usize] as usize;
@@ -575,29 +621,37 @@ impl FVarRefinement {
         let has_dep = pf.has_dependent_sharpness;
 
         let vv_start = r.get_first_child_vertex_from_vertices();
-        let vv_end   = vv_start + r.get_num_child_vertices_from_vertices();
+        let vv_end = vv_start + r.get_num_child_vertices_from_vertices();
 
         for cv in vv_start..vv_end {
             let v_off = cf.vert_sibling_offsets[cv as usize] as usize;
             let v_cnt = cf.vert_sibling_counts[cv as usize] as usize;
 
-            if !cf.vert_value_tags[v_off].is_mismatch() { continue; }
-            if !r.is_child_vertex_complete(cv) { continue; }
+            if !cf.vert_value_tags[v_off].is_mismatch() {
+                continue;
+            }
+            if !r.is_child_vertex_complete(cv) {
+                continue;
+            }
 
             let pv = r.get_child_vertex_parent_index(cv);
             let p_vtag = pl.get_vertex_tag(pv);
-            if !p_vtag.semi_sharp() && !p_vtag.semi_sharp_edges() { continue; }
+            if !p_vtag.semi_sharp() && !p_vtag.semi_sharp_edges() {
+                continue;
+            }
 
             let c_vtag = cl.get_vertex_tag(cv);
-            if c_vtag.semi_sharp() || c_vtag.inf_sharp() { continue; }
+            if c_vtag.semi_sharp() || c_vtag.inf_sharp() {
+                continue;
+            }
 
             // No longer semi-sharp at all: clear all semi-sharp -> crease
             if !c_vtag.semi_sharp() && !c_vtag.semi_sharp_edges() {
                 for j in 0..v_cnt {
                     if cf.vert_value_tags[v_off + j].semi_sharp {
                         cf.vert_value_tags[v_off + j].semi_sharp = false;
-                        cf.vert_value_tags[v_off + j].dep_sharp  = false;
-                        cf.vert_value_tags[v_off + j].crease     = true;
+                        cf.vert_value_tags[v_off + j].dep_sharp = false;
+                        cf.vert_value_tags[v_off + j].crease = true;
                     }
                 }
                 // Handle dependent sharpness for 2-value case before continuing
@@ -614,10 +668,12 @@ impl FVarRefinement {
             } else {
                 let p_vert_edges = pl.get_vertex_edges(pv);
                 let p_in_edge = pl.get_vertex_edge_local_indices(pv);
-                (0..p_vert_edges.size()).map(|i| {
-                    let ee = r.get_edge_child_edges(p_vert_edges[i as usize]);
-                    ee[p_in_edge[i as usize] as usize]
-                }).collect()
+                (0..p_vert_edges.size())
+                    .map(|i| {
+                        let ee = r.get_edge_child_edges(p_vert_edges[i as usize]);
+                        ee[p_in_edge[i as usize] as usize]
+                    })
+                    .collect()
             };
             let n_edges = c_vert_edges.len() as i32;
 
@@ -659,8 +715,8 @@ impl FVarRefinement {
 
                     if !still_semi {
                         cf.vert_value_tags[v_off + j].semi_sharp = false;
-                        cf.vert_value_tags[v_off + j].dep_sharp  = false;
-                        cf.vert_value_tags[v_off + j].crease     = true;
+                        cf.vert_value_tags[v_off + j].dep_sharp = false;
+                        cf.vert_value_tags[v_off + j].crease = true;
                     }
                 }
             }

@@ -1,4 +1,3 @@
-
 //! Skydome task - Render environment skydome/skybox.
 //!
 //! Renders a skydome or skybox background for the scene.

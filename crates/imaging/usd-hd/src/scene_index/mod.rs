@@ -1,4 +1,3 @@
-
 //! Scene Index infrastructure for Hydra 2.0.
 //!
 //! Scene indices are the core abstraction for representing scene data

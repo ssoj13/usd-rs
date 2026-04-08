@@ -74,7 +74,9 @@ impl Payloads {
             }
         }
 
-        let result = self.prim.set_metadata(&payloads_token, usd_vt::Value::from(list_op));
+        let result = self
+            .prim
+            .set_metadata(&payloads_token, usd_vt::Value::from(list_op));
         if result {
             if let Some(stage) = self.prim.stage() {
                 if let Some(pcp_cache) = stage.pcp_cache() {
@@ -170,7 +172,9 @@ impl Payloads {
             }
         }
 
-        let result = self.prim.set_metadata(&payloads_token, usd_vt::Value::from(list_op));
+        let result = self
+            .prim
+            .set_metadata(&payloads_token, usd_vt::Value::from(list_op));
         if result {
             if let Some(stage) = self.prim.stage() {
                 if let Some(pcp_cache) = stage.pcp_cache() {
@@ -217,7 +221,9 @@ impl Payloads {
             return false;
         }
 
-        let result = self.prim.set_metadata(&payloads_token, usd_vt::Value::from(list_op));
+        let result = self
+            .prim
+            .set_metadata(&payloads_token, usd_vt::Value::from(list_op));
         if result {
             if let Some(stage) = self.prim.stage() {
                 if let Some(pcp_cache) = stage.pcp_cache() {
@@ -235,7 +241,6 @@ impl Payloads {
     pub fn prim(&self) -> &Prim {
         &self.prim
     }
-
 }
 
 impl std::ops::Deref for Payloads {

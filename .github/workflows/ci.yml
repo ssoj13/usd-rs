@@ -39,6 +39,14 @@ jobs:
         with:
           python-version: '3.13'
 
+      # Test assets (museum, Sdf parsing files, etc.) are not bundled; match OPENUSD layout.
+      - name: Checkout OpenUSD (test assets)
+        uses: actions/checkout@v6
+        with:
+          repository: PixarAnimationStudios/OpenUSD
+          path: openusd-src
+          fetch-depth: 1
+
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -58,9 +66,13 @@ jobs:
             libpango1.0-dev
 
       - name: Run unit tests
+        env:
+          OPENUSD_SRC_ROOT: ${{ github.workspace }}/openusd-src
         run: cargo test --workspace
 
       - name: Run E2E pipeline tests
+        env:
+          OPENUSD_SRC_ROOT: ${{ github.workspace }}/openusd-src
         run: cargo test --test e2e_render
 
       - name: Build release binary

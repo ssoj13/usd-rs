@@ -13,13 +13,10 @@
 //! a real TopologyRefiner.
 
 use super::patch_tree::PatchTree;
-use crate::far::{
-    PatchType, PatchParam, AdaptiveOptions, PtexIndices,
-    TopologyRefiner,
-};
-use crate::far::patch_builder::{PatchBuilder, PatchBuilderOptions, BasisType};
-use crate::far::primvar_refiner::{PrimvarRefiner, Interpolatable};
+use crate::far::patch_builder::{BasisType, PatchBuilder, PatchBuilderOptions};
+use crate::far::primvar_refiner::{Interpolatable, PrimvarRefiner};
 use crate::far::sparse_matrix::SparseMatrix;
+use crate::far::{AdaptiveOptions, PatchParam, PatchType, PtexIndices, TopologyRefiner};
 use crate::vtr::VSpan;
 
 // ---------------------------------------------------------------------------
@@ -38,25 +35,25 @@ pub enum IrregularBasis {
 #[derive(Clone, Copy, Debug)]
 pub struct PatchTreeBuilderOptions {
     /// Basis type for irregular patches.
-    pub irregular_basis:          IrregularBasis,
+    pub irregular_basis: IrregularBasis,
     /// Maximum refinement depth for sharp features.
-    pub max_patch_depth_sharp:    u8,
+    pub max_patch_depth_sharp: u8,
     /// Maximum refinement depth for smooth features.
-    pub max_patch_depth_smooth:   u8,
+    pub max_patch_depth_smooth: u8,
     /// Include non-leaf patches in the tree.
     pub include_interior_patches: bool,
     /// Use double-precision stencil matrix.
-    pub use_double_precision:     bool,
+    pub use_double_precision: bool,
 }
 
 impl Default for PatchTreeBuilderOptions {
     fn default() -> Self {
         PatchTreeBuilderOptions {
-            irregular_basis:          IrregularBasis::Gregory,
-            max_patch_depth_sharp:    4,
-            max_patch_depth_smooth:   15,
+            irregular_basis: IrregularBasis::Gregory,
+            max_patch_depth_sharp: 4,
+            max_patch_depth_smooth: 15,
             include_interior_patches: false,
-            use_double_precision:     false,
+            use_double_precision: false,
         }
     }
 }
@@ -67,14 +64,18 @@ impl Default for PatchTreeBuilderOptions {
 
 #[derive(Clone, Debug)]
 pub struct PatchFace {
-    pub face:       i32,
-    pub level:      i16,
+    pub face: i32,
+    pub level: i16,
     pub is_regular: bool,
 }
 
 impl PatchFace {
     pub fn new(level: i32, face: i32, is_regular: bool) -> Self {
-        PatchFace { face, level: level as i16, is_regular }
+        PatchFace {
+            face,
+            level: level as i16,
+            is_regular,
+        }
     }
 }
 
@@ -125,7 +126,9 @@ pub trait FaceRefiner {
     /// from those neighbours rather than from the root.
     ///
     /// Default: false (quad schemes never require this filter).
-    fn needs_ancestor_test(&self) -> bool { false }
+    fn needs_ancestor_test(&self) -> bool {
+        false
+    }
 
     /// Return true when `face` at `level` is a descendant of face 0 (root).
     ///
@@ -146,9 +149,9 @@ pub trait FaceRefiner {
 ///
 /// The refiner must already have been adaptively refined before construction.
 pub struct RefinerFaceAdapter<'a> {
-    refiner:       &'a TopologyRefiner,
+    refiner: &'a TopologyRefiner,
     patch_builder: PatchBuilder<'a>,
-    ptex_indices:  PtexIndices,
+    ptex_indices: PtexIndices,
     level_offsets: Vec<i32>,
 }
 
@@ -160,17 +163,18 @@ pub struct RefinerFaceAdapter<'a> {
 /// Called before adaptive refinement, so only the base level (level 0) is
 /// available.  Uses the internal `Level` API to access composite vertex tags.
 fn root_face_needs_refinement(refiner: &TopologyRefiner) -> bool {
-    let base    = refiner.get_level_internal(0);
-    let f_tags  = base.get_face_composite_vtag(0);
+    let base = refiner.get_level_internal(0);
+    let f_tags = base.get_face_composite_vtag(0);
     let f_verts = base.get_face_vertices(0);
 
     // Any vertex adjacent to an irregular (non-quad) face forces refinement.
-    if f_tags.incid_irreg_face() { return true; }
+    if f_tags.incid_irreg_face() {
+        return true;
+    }
 
     // An inf-sharp dart vertex requires refinement (may be isolatable in the
     // future, but conservatively always refine for now).
-    if (f_tags.rule() & crate::sdc::crease::Rule::Dart.bits() as u16 != 0)
-        && f_tags.inf_irregular()
+    if (f_tags.rule() & crate::sdc::crease::Rule::Dart.bits() as u16 != 0) && f_tags.inf_irregular()
     {
         for i in 0..f_verts.size() {
             let vt = base.get_vertex_tag(f_verts[i]);
@@ -206,19 +210,19 @@ impl<'a> RefinerFaceAdapter<'a> {
         let irreg_type = match irreg_basis {
             IrregularBasis::Regular => BasisType::Regular,
             IrregularBasis::Gregory => BasisType::Gregory,
-            IrregularBasis::Linear  => BasisType::Linear,
+            IrregularBasis::Linear => BasisType::Linear,
         };
 
         let pb_opts = PatchBuilderOptions {
-            reg_basis:                       BasisType::Regular,
-            irreg_basis:                     irreg_type,
-            fill_missing_boundary_points:    true,
-            approx_inf_sharp_with_smooth:    false,
+            reg_basis: BasisType::Regular,
+            irreg_basis: irreg_type,
+            fill_missing_boundary_points: true,
+            approx_inf_sharp_with_smooth: false,
             approx_smooth_corner_with_sharp: false,
         };
 
         let patch_builder = PatchBuilder::create(refiner, pb_opts);
-        let ptex_indices  = PtexIndices::new(refiner);
+        let ptex_indices = PtexIndices::new(refiner);
 
         // Cumulative vertex offsets per level (mirrors C++ _levelOffsets)
         let num_levels = refiner.get_num_levels() as usize;
@@ -227,7 +231,12 @@ impl<'a> RefinerFaceAdapter<'a> {
             offsets[i + 1] = offsets[i] + refiner.get_level(i as i32).get_num_vertices();
         }
 
-        Self { refiner, patch_builder, ptex_indices, level_offsets: offsets }
+        Self {
+            refiner,
+            patch_builder,
+            ptex_indices,
+            level_offsets: offsets,
+        }
     }
 
     /// Apply adaptive refinement to a TopologyRefiner, then return a new adapter.
@@ -235,9 +244,9 @@ impl<'a> RefinerFaceAdapter<'a> {
     /// Mirrors what C++ `PatchTreeBuilder` constructor does internally.
     pub fn refine_and_create(
         refiner: &'a mut TopologyRefiner,
-        opts:    &PatchTreeBuilderOptions,
+        opts: &PatchTreeBuilderOptions,
     ) -> Self {
-        let primary   = opts.max_patch_depth_sharp as u32;
+        let primary = opts.max_patch_depth_sharp as u32;
         let mut secondary = (opts.max_patch_depth_smooth as u32).min(primary);
         let mut primary_out = primary;
 
@@ -248,20 +257,17 @@ impl<'a> RefinerFaceAdapter<'a> {
         // isolated before patch construction begins.
         if secondary == 0 && root_face_needs_refinement(refiner) {
             primary_out = primary_out.max(1);
-            secondary   = 1;
+            secondary = 1;
         }
 
         let mut adapt_opts = AdaptiveOptions::new(primary_out);
         adapt_opts.set_secondary_level(secondary);
-        adapt_opts.use_inf_sharp_patch     = true;
+        adapt_opts.use_inf_sharp_patch = true;
         adapt_opts.use_single_crease_patch = false;
-        adapt_opts.consider_fvar_channels  = false;
+        adapt_opts.consider_fvar_channels = false;
 
         // Refine only face 0 (the single root face for this local neighborhood)
-        refiner.refine_adaptive(
-            adapt_opts,
-            crate::far::types::ConstIndexArray::new(&[0]),
-        );
+        refiner.refine_adaptive(adapt_opts, crate::far::types::ConstIndexArray::new(&[0]));
 
         Self::new(refiner, opts.irregular_basis)
     }
@@ -277,22 +283,32 @@ impl<'a> RefinerFaceAdapter<'a> {
     /// Collect irregular patch conversion data: (sparse_matrix, source_point_indices).
     ///
     /// Mirrors C++ `getIrregularPatchConversion<REAL>`.
-    fn irregular_patch_conversion(
-        &self,
-        pf: &PatchFace,
-    ) -> (SparseMatrix<f32>, Vec<i32>) {
+    fn irregular_patch_conversion(&self, pf: &PatchFace) -> (SparseMatrix<f32>, Vec<i32>) {
         let mut corner_spans = [VSpan::default(); 4];
         self.patch_builder.get_irregular_patch_corner_spans(
-            pf.level as i32, pf.face, &mut corner_spans, -1);
+            pf.level as i32,
+            pf.face,
+            &mut corner_spans,
+            -1,
+        );
 
         let mut conv_matrix = SparseMatrix::new();
         self.patch_builder.get_irregular_patch_conversion_matrix(
-            pf.level as i32, pf.face, &corner_spans, &mut conv_matrix);
+            pf.level as i32,
+            pf.face,
+            &corner_spans,
+            &mut conv_matrix,
+        );
 
         let num_src = conv_matrix.get_num_columns() as usize;
         let mut source_points = vec![0i32; num_src];
         self.patch_builder.get_irregular_patch_source_points(
-            pf.level as i32, pf.face, &corner_spans, &mut source_points, -1);
+            pf.level as i32,
+            pf.face,
+            &corner_spans,
+            &mut source_points,
+            -1,
+        );
 
         // Translate source point indices from level-local to global stencil space
         let offset = self.level_offsets[pf.level as usize];
@@ -305,13 +321,17 @@ impl<'a> RefinerFaceAdapter<'a> {
 }
 
 impl<'a> FaceRefiner for RefinerFaceAdapter<'a> {
-    fn num_levels(&self) -> i32 { self.refiner.get_num_levels() }
+    fn num_levels(&self) -> i32 {
+        self.refiner.get_num_levels()
+    }
 
     fn num_vertices_at(&self, level: i32) -> i32 {
         self.refiner.get_level(level).get_num_vertices()
     }
 
-    fn num_vertices_total(&self) -> i32 { self.refiner.get_num_vertices_total() }
+    fn num_vertices_total(&self) -> i32 {
+        self.refiner.get_num_vertices_total()
+    }
 
     fn num_faces_at(&self, level: i32) -> i32 {
         self.refiner.get_level(level).get_num_faces()
@@ -340,8 +360,12 @@ impl<'a> FaceRefiner for RefinerFaceAdapter<'a> {
     fn gather_patch_points(&self, level: i32, face: i32, out: &mut [i32]) -> i32 {
         // Only called for regular patches; irregular patches get local-point indices
         // assigned directly in initialize_patches().
-        let bnd_mask = self.patch_builder.get_regular_patch_boundary_mask(level, face, -1);
-        let n = self.patch_builder.get_regular_patch_points(level, face, bnd_mask, out, -1);
+        let bnd_mask = self
+            .patch_builder
+            .get_regular_patch_boundary_mask(level, face, -1);
+        let n = self
+            .patch_builder
+            .get_regular_patch_points(level, face, bnd_mask, out, -1);
         // Offset by cumulative level vertex offset so indices are global
         let offset = self.level_offsets[level as usize];
         for v in out[..n as usize].iter_mut() {
@@ -351,13 +375,22 @@ impl<'a> FaceRefiner for RefinerFaceAdapter<'a> {
     }
 
     fn patch_param(&self, level: i32, face: i32) -> PatchParam {
-        let is_regular    = self.patch_is_regular(level, face);
-        let bnd_mask      = if is_regular {
-            self.patch_builder.get_regular_patch_boundary_mask(level, face, -1)
-        } else { 0 };
+        let is_regular = self.patch_is_regular(level, face);
+        let bnd_mask = if is_regular {
+            self.patch_builder
+                .get_regular_patch_boundary_mask(level, face, -1)
+        } else {
+            0
+        };
         let compute_trans = level < self.refiner.get_max_level();
         self.patch_builder.compute_patch_param(
-            level, face, &self.ptex_indices, is_regular, bnd_mask, compute_trans)
+            level,
+            face,
+            &self.ptex_indices,
+            is_regular,
+            bnd_mask,
+            compute_trans,
+        )
     }
 
     fn regular_patch_type(&self) -> PatchType {
@@ -418,7 +451,11 @@ struct StencilRow {
 }
 
 impl StencilRow {
-    fn new(nc: usize) -> Self { StencilRow { weights: vec![0.0; nc] } }
+    fn new(nc: usize) -> Self {
+        StencilRow {
+            weights: vec![0.0; nc],
+        }
+    }
     fn identity(nc: usize, ctrl_idx: usize) -> Self {
         let mut r = Self::new(nc);
         r.weights[ctrl_idx] = 1.0;
@@ -428,12 +465,18 @@ impl StencilRow {
 
 impl Default for StencilRow {
     /// Zero-length default; `PrimvarRefiner` always calls `clear()` before use.
-    fn default() -> Self { StencilRow { weights: Vec::new() } }
+    fn default() -> Self {
+        StencilRow {
+            weights: Vec::new(),
+        }
+    }
 }
 
 impl Interpolatable for StencilRow {
     fn clear(&mut self) {
-        for w in self.weights.iter_mut() { *w = 0.0; }
+        for w in self.weights.iter_mut() {
+            *w = 0.0;
+        }
     }
     fn add_with_weight(&mut self, src: &Self, weight: f32) {
         debug_assert_eq!(self.weights.len(), src.weights.len());
@@ -456,7 +499,11 @@ struct StencilRowF64 {
 }
 
 impl StencilRowF64 {
-    fn new(nc: usize) -> Self { StencilRowF64 { weights: vec![0.0f64; nc] } }
+    fn new(nc: usize) -> Self {
+        StencilRowF64 {
+            weights: vec![0.0f64; nc],
+        }
+    }
     fn identity(nc: usize, ctrl_idx: usize) -> Self {
         let mut r = Self::new(nc);
         r.weights[ctrl_idx] = 1.0;
@@ -465,12 +512,18 @@ impl StencilRowF64 {
 }
 
 impl Default for StencilRowF64 {
-    fn default() -> Self { StencilRowF64 { weights: Vec::new() } }
+    fn default() -> Self {
+        StencilRowF64 {
+            weights: Vec::new(),
+        }
+    }
 }
 
 impl Interpolatable for StencilRowF64 {
     fn clear(&mut self) {
-        for w in self.weights.iter_mut() { *w = 0.0; }
+        for w in self.weights.iter_mut() {
+            *w = 0.0;
+        }
     }
     /// Weight arrives as f32 from the subdivision mask; widen to f64
     /// before multiply so the entire accumulation is in double precision.
@@ -489,26 +542,27 @@ impl Interpolatable for StencilRowF64 {
 //
 // NOTE: keep the structure of this function in sync with build_stencil_matrix_f64().
 fn build_stencil_matrix_f32(
-    adapter:     &RefinerFaceAdapter<'_>,
+    adapter: &RefinerFaceAdapter<'_>,
     num_control: i32,
-    out:         &mut Vec<f32>,
+    out: &mut Vec<f32>,
 ) {
-    let refiner  = adapter.refiner;
-    let nc       = num_control as usize;
+    let refiner = adapter.refiner;
+    let nc = num_control as usize;
 
     let num_refined = refiner.get_num_vertices_total() - num_control;
 
     // Count irregular patches among all leaf patches
-    let num_levels     = refiner.get_num_levels();
-    let mut num_irreg  = 0i32;
-    let irreg_size     = patch_cv_count(adapter.patch_builder.get_irreg_patch_type());
+    let num_levels = refiner.get_num_levels();
+    let mut num_irreg = 0i32;
+    let irreg_size = patch_cv_count(adapter.patch_builder.get_irreg_patch_type());
 
     // Collect irregular leaf patches while we count them
     let mut irreg_patches: Vec<PatchFace> = Vec::new();
     for level in 0..num_levels {
         let nf = refiner.get_level(level).get_num_faces();
         for face in 0..nf {
-            if adapter.face_is_patch(level, face) && adapter.face_is_leaf(level, face)
+            if adapter.face_is_patch(level, face)
+                && adapter.face_is_leaf(level, face)
                 && !adapter.patch_is_regular(level, face)
             {
                 irreg_patches.push(PatchFace::new(level, face, false));
@@ -518,7 +572,9 @@ fn build_stencil_matrix_f32(
     }
 
     let total_rows = num_refined + num_irreg * irreg_size;
-    if total_rows <= 0 { return; }
+    if total_rows <= 0 {
+        return;
+    }
 
     out.clear();
     out.resize(total_rows as usize * nc, 0.0f32);
@@ -529,9 +585,7 @@ fn build_stencil_matrix_f32(
     // accumulating blended stencils exactly as C++ does.
     if num_levels > 1 && num_refined > 0 {
         // Build identity rows for all control points (level 0)
-        let mut src_rows: Vec<StencilRow> = (0..nc)
-            .map(|i| StencilRow::identity(nc, i))
-            .collect();
+        let mut src_rows: Vec<StencilRow> = (0..nc).map(|i| StencilRow::identity(nc, i)).collect();
 
         let primvar_refiner = PrimvarRefiner::new(refiner);
 
@@ -547,7 +601,7 @@ fn build_stencil_matrix_f32(
             // Write the dst_rows into the stencil matrix.
             // Rows for level `level` start at offset = (cumulative verts up to level) - nc
             let level_vert_offset = adapter.level_offsets[level as usize] as usize;
-            let row_base = level_vert_offset - nc;  // stencil rows are for refined pts only
+            let row_base = level_vert_offset - nc; // stencil rows are for refined pts only
 
             for (i, row) in dst_rows.iter().enumerate() {
                 let dst = &mut out[(row_base + i) * nc..(row_base + i + 1) * nc];
@@ -582,11 +636,11 @@ fn build_stencil_matrix_f32(
 ///
 /// Mirrors C++ `PatchTreeBuilder::appendConversionStencilsToMatrix<float>`.
 fn append_conversion_stencils(
-    dst_row_base:  usize,
-    conv:          &SparseMatrix<f32>,
-    src_pts:       &[i32],
-    nc:            usize,
-    stencil:       &mut Vec<f32>,
+    dst_row_base: usize,
+    conv: &SparseMatrix<f32>,
+    src_pts: &[i32],
+    nc: usize,
+    stencil: &mut Vec<f32>,
 ) {
     let num_rows = conv.get_num_rows();
 
@@ -594,14 +648,16 @@ fn append_conversion_stencils(
         let dst_base = (dst_row_base + i as usize) * nc;
 
         // Zero this destination row
-        for k in 0..nc { stencil[dst_base + k] = 0.0; }
+        for k in 0..nc {
+            stencil[dst_base + k] = 0.0;
+        }
 
         let indices = conv.get_row_columns(i);
         let weights = conv.get_row_elements(i);
 
         for j in 0..conv.get_row_size(i) as usize {
             let src_global = src_pts[indices[j] as usize] as usize;
-            let w          = weights[j];
+            let w = weights[j];
 
             if src_global < nc {
                 // Control point: direct delta contribution
@@ -628,24 +684,25 @@ fn append_conversion_stencils(
 /// All accumulation is in f64; the f32 subdivision mask weights are widened
 /// before use so no precision is lost to intermediate f32 rounding.
 fn build_stencil_matrix_f64(
-    adapter:     &RefinerFaceAdapter<'_>,
+    adapter: &RefinerFaceAdapter<'_>,
     num_control: i32,
-    out:         &mut Vec<f64>,
+    out: &mut Vec<f64>,
 ) {
-    let refiner  = adapter.refiner;
-    let nc       = num_control as usize;
+    let refiner = adapter.refiner;
+    let nc = num_control as usize;
 
     let num_refined = refiner.get_num_vertices_total() - num_control;
 
-    let num_levels     = refiner.get_num_levels();
-    let mut num_irreg  = 0i32;
-    let irreg_size     = patch_cv_count(adapter.patch_builder.get_irreg_patch_type());
+    let num_levels = refiner.get_num_levels();
+    let mut num_irreg = 0i32;
+    let irreg_size = patch_cv_count(adapter.patch_builder.get_irreg_patch_type());
 
     let mut irreg_patches: Vec<PatchFace> = Vec::new();
     for level in 0..num_levels {
         let nf = refiner.get_level(level).get_num_faces();
         for face in 0..nf {
-            if adapter.face_is_patch(level, face) && adapter.face_is_leaf(level, face)
+            if adapter.face_is_patch(level, face)
+                && adapter.face_is_leaf(level, face)
                 && !adapter.patch_is_regular(level, face)
             {
                 irreg_patches.push(PatchFace::new(level, face, false));
@@ -655,7 +712,9 @@ fn build_stencil_matrix_f64(
     }
 
     let total_rows = num_refined + num_irreg * irreg_size;
-    if total_rows <= 0 { return; }
+    if total_rows <= 0 {
+        return;
+    }
 
     out.clear();
     out.resize(total_rows as usize * nc, 0.0f64);
@@ -664,9 +723,8 @@ fn build_stencil_matrix_f64(
     // StencilRowF64 accumulates in f64; mask weights arrive as f32 and are
     // widened to f64 inside add_with_weight(), matching C++ PrimvarRefinerReal<double>.
     if num_levels > 1 && num_refined > 0 {
-        let mut src_rows: Vec<StencilRowF64> = (0..nc)
-            .map(|i| StencilRowF64::identity(nc, i))
-            .collect();
+        let mut src_rows: Vec<StencilRowF64> =
+            (0..nc).map(|i| StencilRowF64::identity(nc, i)).collect();
 
         let primvar_refiner = PrimvarRefiner::new(refiner);
 
@@ -715,18 +773,20 @@ fn build_stencil_matrix_f64(
 /// Conversion matrix weights are f32 (that is what PatchBuilder produces,
 /// matching C++) but every multiply/accumulate is promoted to f64 first.
 fn append_conversion_stencils_f64(
-    dst_row_base:  usize,
-    conv:          &SparseMatrix<f32>,
-    src_pts:       &[i32],
-    nc:            usize,
-    stencil:       &mut Vec<f64>,
+    dst_row_base: usize,
+    conv: &SparseMatrix<f32>,
+    src_pts: &[i32],
+    nc: usize,
+    stencil: &mut Vec<f64>,
 ) {
     let num_rows = conv.get_num_rows();
 
     for i in 0..num_rows {
         let dst_base = (dst_row_base + i as usize) * nc;
 
-        for k in 0..nc { stencil[dst_base + k] = 0.0; }
+        for k in 0..nc {
+            stencil[dst_base + k] = 0.0;
+        }
 
         let indices = conv.get_row_columns(i);
         let weights = conv.get_row_elements(i);
@@ -734,12 +794,12 @@ fn append_conversion_stencils_f64(
         for j in 0..conv.get_row_size(i) as usize {
             let src_global = src_pts[indices[j] as usize] as usize;
             // Widen f32 weight to f64 before any arithmetic
-            let w: f64     = weights[j] as f64;
+            let w: f64 = weights[j] as f64;
 
             if src_global < nc {
                 stencil[dst_base + src_global] += w;
             } else {
-                let src_row  = src_global - nc;
+                let src_row = src_global - nc;
                 let src_base = src_row * nc;
                 if src_base + nc <= stencil.len() {
                     // Avoid aliasing: copy src row then accumulate
@@ -761,9 +821,9 @@ fn append_conversion_stencils_f64(
 ///
 /// Mirrors `Bfr::PatchTreeBuilder`.
 pub struct PatchTreeBuilder {
-    patch_tree:    Box<PatchTree>,
-    options:       PatchTreeBuilderOptions,
-    patch_faces:   Vec<PatchFace>,
+    patch_tree: Box<PatchTree>,
+    options: PatchTreeBuilderOptions,
+    patch_faces: Vec<PatchFace>,
     #[allow(dead_code)]
     level_offsets: Vec<i32>,
 }
@@ -774,20 +834,24 @@ impl PatchTreeBuilder {
         let mut pt = Box::new(PatchTree::new());
 
         let root_face_size = refiner.root_face_size();
-        let reg_face_size  = refiner.regular_face_size();
+        let reg_face_size = refiner.regular_face_size();
 
-        pt.use_double_precision     = options.use_double_precision;
+        pt.use_double_precision = options.use_double_precision;
         pt.patches_include_non_leaf = options.include_interior_patches;
-        pt.patches_are_triangular   = reg_face_size == 3;
+        pt.patches_are_triangular = reg_face_size == 3;
 
-        pt.reg_patch_type   = refiner.regular_patch_type();
+        pt.reg_patch_type = refiner.regular_patch_type();
         pt.irreg_patch_type = refiner.irregular_patch_type();
 
-        pt.reg_patch_size    = patch_cv_count(pt.reg_patch_type);
-        pt.irreg_patch_size  = patch_cv_count(pt.irreg_patch_type);
+        pt.reg_patch_size = patch_cv_count(pt.reg_patch_type);
+        pt.irreg_patch_size = patch_cv_count(pt.irreg_patch_type);
         pt.patch_point_stride = pt.reg_patch_size.max(pt.irreg_patch_size);
 
-        pt.num_sub_faces      = if root_face_size == reg_face_size { 0 } else { root_face_size };
+        pt.num_sub_faces = if root_face_size == reg_face_size {
+            0
+        } else {
+            root_face_size
+        };
         pt.num_control_points = refiner.num_vertices_at(0);
         pt.num_refined_points = refiner.num_vertices_total() - pt.num_control_points;
         pt.num_sub_patch_points = pt.num_refined_points;
@@ -799,9 +863,9 @@ impl PatchTreeBuilder {
         }
 
         PatchTreeBuilder {
-            patch_tree:   pt,
+            patch_tree: pt,
             options,
-            patch_faces:  Vec::new(),
+            patch_faces: Vec::new(),
             level_offsets: offsets,
         }
     }
@@ -819,7 +883,9 @@ impl PatchTreeBuilder {
         self.patch_tree
     }
 
-    pub fn get_patch_tree(&self) -> &PatchTree { &self.patch_tree }
+    pub fn get_patch_tree(&self) -> &PatchTree {
+        &self.patch_tree
+    }
 
     // -----------------------------------------------------------------------
     //  identify_patches — mirrors C++ identifyPatches()
@@ -860,12 +926,12 @@ impl PatchTreeBuilder {
             }
         }
 
-        let n      = self.patch_faces.len();
+        let n = self.patch_faces.len();
         let stride = self.patch_tree.patch_point_stride as usize;
         self.patch_tree.patch_points.resize(n * stride, 0);
         self.patch_tree.patch_params.resize(n, Default::default());
-        self.patch_tree.num_irreg_patches = self.patch_faces.iter()
-            .filter(|p| !p.is_regular).count() as i32;
+        self.patch_tree.num_irreg_patches =
+            self.patch_faces.iter().filter(|p| !p.is_regular).count() as i32;
 
         // Irregular patches add local-point rows on top of the refined rows
         self.patch_tree.num_sub_patch_points +=
@@ -879,12 +945,11 @@ impl PatchTreeBuilder {
     fn initialize_patches(&mut self, refiner: &dyn FaceRefiner) {
         let stride = self.patch_tree.patch_point_stride as usize;
         // Irregular patch local points come after all refined points
-        let mut irreg_pt_base = self.patch_tree.num_control_points
-            + self.patch_tree.num_refined_points;
+        let mut irreg_pt_base =
+            self.patch_tree.num_control_points + self.patch_tree.num_refined_points;
 
         for (pi, pf) in self.patch_faces.iter().enumerate() {
-            self.patch_tree.patch_params[pi] =
-                refiner.patch_param(pf.level as i32, pf.face);
+            self.patch_tree.patch_params[pi] = refiner.patch_param(pf.level as i32, pf.face);
 
             let out = &mut self.patch_tree.patch_points[pi * stride..(pi + 1) * stride];
 
@@ -922,12 +987,10 @@ impl PatchTreeBuilder {
 
 pub fn patch_cv_count(pt: PatchType) -> i32 {
     match pt {
-        PatchType::Regular          => 16,
-        PatchType::Loop             => 12,
-        PatchType::Gregory
-        | PatchType::GregoryBasis
-        | PatchType::GregoryTriangle => 20,
-        _                           =>  4, // linear / non-patch fallback
+        PatchType::Regular => 16,
+        PatchType::Loop => 12,
+        PatchType::Gregory | PatchType::GregoryBasis | PatchType::GregoryTriangle => 20,
+        _ => 4, // linear / non-patch fallback
     }
 }
 

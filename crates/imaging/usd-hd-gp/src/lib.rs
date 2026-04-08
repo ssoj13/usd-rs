@@ -1,4 +1,3 @@
-
 //! HdGp (Hydra Generative Procedurals) - Procedural primitive generation for Hydra.
 //!
 //! This module provides support for generative procedural primitives in Hydra.

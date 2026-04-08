@@ -1,4 +1,3 @@
-
 //! hdSt tokens - Storm render delegate token definitions.
 
 use once_cell::sync::Lazy;

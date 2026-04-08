@@ -1,4 +1,3 @@
-
 //! Hydra rendering infrastructure.
 //!
 //! This module provides the core rendering execution system for Hydra:

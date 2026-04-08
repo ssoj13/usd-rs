@@ -1,4 +1,3 @@
-
 //! HdMaterialConnectionSchema - Defines upstream node and output for material connections.
 //!
 //! Corresponds to pxr/imaging/hd/materialConnectionSchema.h

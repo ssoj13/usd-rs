@@ -1,4 +1,3 @@
-
 //! Hio (Hydra Image I/O) - Image and texture loading/writing library.
 //!
 //! This module provides image I/O functionality for USD, including:

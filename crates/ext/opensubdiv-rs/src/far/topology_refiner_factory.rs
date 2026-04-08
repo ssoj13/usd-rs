@@ -1,11 +1,11 @@
 // Copyright 2014 DreamWorks Animation LLC.
 // Ported to Rust from OpenSubdiv 3.7.0 far/topologyRefinerFactory.h + topologyRefinerFactory.cpp
 
+use super::error::{ErrorType, far_error, far_warning};
+use super::topology_refiner::TopologyRefiner;
+use super::types::{Index, IndexArray, LocalIndexArray};
 use crate::sdc::{Options, types::SchemeType};
 use crate::vtr::level::TopologyError;
-use super::types::{Index, IndexArray, LocalIndexArray};
-use super::topology_refiner::TopologyRefiner;
-use super::error::{far_error, far_warning, ErrorType};
 
 // ---------------------------------------------------------------------------
 // Options
@@ -15,22 +15,26 @@ use super::error::{far_error, far_warning, ErrorType};
 /// Mirrors C++ `Far::TopologyRefinerFactory<MESH>::Options`.
 #[derive(Clone, Copy)]
 pub struct FactoryOptions {
-    pub scheme_type:           SchemeType,
-    pub scheme_options:        Options,
+    pub scheme_type: SchemeType,
+    pub scheme_options: Options,
     pub validate_full_topology: bool,
 }
 
 impl FactoryOptions {
     pub fn new(scheme_type: SchemeType, scheme_options: Options) -> Self {
-        Self { scheme_type, scheme_options, validate_full_topology: false }
+        Self {
+            scheme_type,
+            scheme_options,
+            validate_full_topology: false,
+        }
     }
 }
 
 impl Default for FactoryOptions {
     fn default() -> Self {
         Self {
-            scheme_type:            SchemeType::Catmark,
-            scheme_options:         Options::new(),
+            scheme_type: SchemeType::Catmark,
+            scheme_options: Options::new(),
             validate_full_topology: false,
         }
     }
@@ -54,42 +58,32 @@ pub trait TopologyRefinerFactory {
     type Mesh;
 
     /// Specify the number of vertices, faces, and per-face vertex counts.
-    fn resize_component_topology(
-        refiner: &mut TopologyRefiner,
-        mesh:    &Self::Mesh,
-    ) -> bool;
+    fn resize_component_topology(refiner: &mut TopologyRefiner, mesh: &Self::Mesh) -> bool;
 
     /// Assign vertex, edge, and face index relationships.
-    fn assign_component_topology(
-        refiner: &mut TopologyRefiner,
-        mesh:    &Self::Mesh,
-    ) -> bool;
+    fn assign_component_topology(refiner: &mut TopologyRefiner, mesh: &Self::Mesh) -> bool;
 
     /// Assign edge/vertex sharpness and face holes.  Default: no-op, returns true.
-    fn assign_component_tags(
-        _refiner: &mut TopologyRefiner,
-        _mesh:    &Self::Mesh,
-    ) -> bool { true }
+    fn assign_component_tags(_refiner: &mut TopologyRefiner, _mesh: &Self::Mesh) -> bool {
+        true
+    }
 
     /// Assign face-varying topology.  Default: no-op, returns true.
-    fn assign_face_varying_topology(
-        _refiner: &mut TopologyRefiner,
-        _mesh:    &Self::Mesh,
-    ) -> bool { true }
+    fn assign_face_varying_topology(_refiner: &mut TopologyRefiner, _mesh: &Self::Mesh) -> bool {
+        true
+    }
 
     /// Report a topology validation error.  Default: no-op.
-    fn report_invalid_topology(
-        _err_code: TopologyError,
-        _msg:      &str,
-        _mesh:     &Self::Mesh,
-    ) {}
+    fn report_invalid_topology(_err_code: TopologyError, _msg: &str, _mesh: &Self::Mesh) {}
 
     // ---- high-level entry points ----
 
     /// Construct a `TopologyRefiner` from the given mesh.
     fn create(mesh: &Self::Mesh, options: FactoryOptions) -> Option<Box<TopologyRefiner>> {
         let mut refiner = Box::new(TopologyRefiner::new(
-            options.scheme_type, options.scheme_options));
+            options.scheme_type,
+            options.scheme_options,
+        ));
 
         if !Self::populate_base_level(&mut refiner, mesh, &options) {
             return None;
@@ -106,24 +100,40 @@ pub trait TopologyRefinerFactory {
 
     fn populate_base_level(
         refiner: &mut TopologyRefiner,
-        mesh:    &Self::Mesh,
+        mesh: &Self::Mesh,
         options: &FactoryOptions,
     ) -> bool {
         // Step 1: size the topology
-        if !Self::resize_component_topology(refiner, mesh) { return false; }
-        if !prepare_topology_sizing(refiner) { return false; }
+        if !Self::resize_component_topology(refiner, mesh) {
+            return false;
+        }
+        if !prepare_topology_sizing(refiner) {
+            return false;
+        }
 
         // Step 2: assign topology
-        if !Self::assign_component_topology(refiner, mesh) { return false; }
-        if !prepare_topology_assignment(refiner, options.validate_full_topology) { return false; }
+        if !Self::assign_component_topology(refiner, mesh) {
+            return false;
+        }
+        if !prepare_topology_assignment(refiner, options.validate_full_topology) {
+            return false;
+        }
 
         // Step 3: assign tags
-        if !Self::assign_component_tags(refiner, mesh) { return false; }
-        if !prepare_tags_and_sharpness(refiner) { return false; }
+        if !Self::assign_component_tags(refiner, mesh) {
+            return false;
+        }
+        if !prepare_tags_and_sharpness(refiner) {
+            return false;
+        }
 
         // Step 4: face-varying
-        if !Self::assign_face_varying_topology(refiner, mesh) { return false; }
-        if !prepare_fvar_channels(refiner) { return false; }
+        if !Self::assign_face_varying_topology(refiner, mesh) {
+            return false;
+        }
+        if !prepare_fvar_channels(refiner) {
+            return false;
+        }
 
         true
     }
@@ -141,17 +151,27 @@ pub trait TopologyRefinerFactory {
     }
     fn set_num_base_face_vertices(refiner: &mut TopologyRefiner, f: Index, count: i32) {
         let reg = refiner.get_reg_face_size();
-        refiner.get_level_internal_mut(0).resize_face_vertices(f, count);
-        if count != reg { refiner.set_has_irreg_faces(true); }
+        refiner
+            .get_level_internal_mut(0)
+            .resize_face_vertices(f, count);
+        if count != reg {
+            refiner.set_has_irreg_faces(true);
+        }
     }
     fn set_num_base_edge_faces(refiner: &mut TopologyRefiner, e: Index, count: i32) {
-        refiner.get_level_internal_mut(0).resize_edge_faces(e, count);
+        refiner
+            .get_level_internal_mut(0)
+            .resize_edge_faces(e, count);
     }
     fn set_num_base_vertex_faces(refiner: &mut TopologyRefiner, v: Index, count: i32) {
-        refiner.get_level_internal_mut(0).resize_vertex_faces(v, count);
+        refiner
+            .get_level_internal_mut(0)
+            .resize_vertex_faces(v, count);
     }
     fn set_num_base_vertex_edges(refiner: &mut TopologyRefiner, v: Index, count: i32) {
-        refiner.get_level_internal_mut(0).resize_vertex_edges(v, count);
+        refiner
+            .get_level_internal_mut(0)
+            .resize_vertex_edges(v, count);
     }
 
     fn get_num_base_vertices(refiner: &TopologyRefiner) -> i32 {
@@ -185,20 +205,29 @@ pub trait TopologyRefinerFactory {
         refiner.get_level_internal_mut(0).get_vertex_edges_mut(v)
     }
 
-    fn get_base_edge_face_local_indices<'a>(refiner: &'a mut TopologyRefiner, e: Index)
-        -> LocalIndexArray<'a>
-    {
-        refiner.get_level_internal_mut(0).get_edge_face_local_indices_mut(e)
+    fn get_base_edge_face_local_indices<'a>(
+        refiner: &'a mut TopologyRefiner,
+        e: Index,
+    ) -> LocalIndexArray<'a> {
+        refiner
+            .get_level_internal_mut(0)
+            .get_edge_face_local_indices_mut(e)
     }
-    fn get_base_vertex_face_local_indices<'a>(refiner: &'a mut TopologyRefiner, v: Index)
-        -> LocalIndexArray<'a>
-    {
-        refiner.get_level_internal_mut(0).get_vertex_face_local_indices_mut(v)
+    fn get_base_vertex_face_local_indices<'a>(
+        refiner: &'a mut TopologyRefiner,
+        v: Index,
+    ) -> LocalIndexArray<'a> {
+        refiner
+            .get_level_internal_mut(0)
+            .get_vertex_face_local_indices_mut(v)
     }
-    fn get_base_vertex_edge_local_indices<'a>(refiner: &'a mut TopologyRefiner, v: Index)
-        -> LocalIndexArray<'a>
-    {
-        refiner.get_level_internal_mut(0).get_vertex_edge_local_indices_mut(v)
+    fn get_base_vertex_edge_local_indices<'a>(
+        refiner: &'a mut TopologyRefiner,
+        v: Index,
+    ) -> LocalIndexArray<'a> {
+        refiner
+            .get_level_internal_mut(0)
+            .get_vertex_edge_local_indices_mut(v)
     }
 
     /// Populate local indices automatically (manifold meshes only).
@@ -207,10 +236,14 @@ pub trait TopologyRefinerFactory {
     }
 
     fn set_base_edge_non_manifold(refiner: &mut TopologyRefiner, e: Index, b: bool) {
-        refiner.get_level_internal_mut(0).set_edge_non_manifold(e, b);
+        refiner
+            .get_level_internal_mut(0)
+            .set_edge_non_manifold(e, b);
     }
     fn set_base_vertex_non_manifold(refiner: &mut TopologyRefiner, v: Index, b: bool) {
-        refiner.get_level_internal_mut(0).set_vertex_non_manifold(v, b);
+        refiner
+            .get_level_internal_mut(0)
+            .set_vertex_non_manifold(v, b);
     }
 
     // ---- tag assignment helpers ----
@@ -222,30 +255,44 @@ pub trait TopologyRefinerFactory {
         *refiner.get_level_internal_mut(0).get_edge_sharpness_mut(e) = s;
     }
     fn set_base_vertex_sharpness(refiner: &mut TopologyRefiner, v: Index, s: f32) {
-        *refiner.get_level_internal_mut(0).get_vertex_sharpness_mut(v) = s;
+        *refiner
+            .get_level_internal_mut(0)
+            .get_vertex_sharpness_mut(v) = s;
     }
     fn set_base_face_hole(refiner: &mut TopologyRefiner, f: Index, is_hole: bool) {
         refiner.get_level_internal_mut(0).set_face_hole(f, is_hole);
-        if is_hole { refiner.set_has_holes_flag(true); }
+        if is_hole {
+            refiner.set_has_holes_flag(true);
+        }
     }
 
     // ---- face-varying helpers ----
 
     fn create_base_fvar_channel(refiner: &mut TopologyRefiner, num_values: i32) -> i32 {
         let opts = refiner.get_scheme_options();
-        refiner.get_level_internal_mut(0).create_fvar_channel(num_values, opts)
+        refiner
+            .get_level_internal_mut(0)
+            .create_fvar_channel(num_values, opts)
     }
     fn create_base_fvar_channel_with_options(
-        refiner: &mut TopologyRefiner, num_values: i32, fvar_opts: Options
+        refiner: &mut TopologyRefiner,
+        num_values: i32,
+        fvar_opts: Options,
     ) -> i32 {
         let mut opts = refiner.get_scheme_options();
         opts.set_fvar_linear_interpolation(fvar_opts.get_fvar_linear_interpolation());
-        refiner.get_level_internal_mut(0).create_fvar_channel(num_values, opts)
+        refiner
+            .get_level_internal_mut(0)
+            .create_fvar_channel(num_values, opts)
     }
     fn get_base_face_fvar_values<'a>(
-        refiner: &'a mut TopologyRefiner, face: Index, channel: i32
+        refiner: &'a mut TopologyRefiner,
+        face: Index,
+        channel: i32,
     ) -> IndexArray<'a> {
-        refiner.get_level_internal_mut(0).get_face_fvar_values_mut(face, channel)
+        refiner
+            .get_level_internal_mut(0)
+            .get_face_fvar_values_mut(face, channel)
     }
 }
 
@@ -258,8 +305,10 @@ pub trait TopologyRefinerFactory {
 fn prepare_topology_sizing(refiner: &mut TopologyRefiner) -> bool {
     let lv = refiner.get_level_internal_mut(0);
     if lv.get_num_vertices() == 0 {
-        far_error(ErrorType::CodingError,
-            "TopologyRefinerFactory: no vertices specified");
+        far_error(
+            ErrorType::CodingError,
+            "TopologyRefinerFactory: no vertices specified",
+        );
         return false;
     }
 
@@ -280,8 +329,10 @@ fn prepare_topology_assignment(refiner: &mut TopologyRefiner, validate: bool) ->
     // If edges were not explicitly assigned, derive them from face-vert data.
     if lv.get_num_edges() == 0 {
         if !lv.complete_topology_from_face_vertices() {
-            far_error(ErrorType::RuntimeError,
-                "TopologyRefinerFactory: failed to complete topology from face-vertices");
+            far_error(
+                ErrorType::RuntimeError,
+                "TopologyRefinerFactory: failed to complete topology from face-vertices",
+            );
             return false;
         }
     }
@@ -305,18 +356,18 @@ fn prepare_topology_assignment(refiner: &mut TopologyRefiner, validate: bool) ->
 ///    `_infIrregular`, `_incidIrregFace`
 fn prepare_tags_and_sharpness(refiner: &mut TopologyRefiner) -> bool {
     use crate::sdc::{
-        crease::{Crease, Rule, is_infinite, is_sharp, is_semi_sharp, SHARPNESS_INFINITE},
+        crease::{Crease, Rule, SHARPNESS_INFINITE, is_infinite, is_semi_sharp, is_sharp},
         options::VtxBoundaryInterpolation,
         types::SchemeTypeTraits,
     };
 
     let options = refiner.get_scheme_options();
-    let scheme  = refiner.get_scheme_type();
-    let crease  = Crease::with_options(options);
+    let scheme = refiner.get_scheme_type();
+    let crease = Crease::with_options(options);
 
     // Whether to tag incident boundary faces as holes (VTX_BOUNDARY_NONE mode).
-    let make_boundary_holes =
-        options.get_vtx_boundary_interpolation() == VtxBoundaryInterpolation::None
+    let make_boundary_holes = options.get_vtx_boundary_interpolation()
+        == VtxBoundaryInterpolation::None
         && SchemeTypeTraits::get_local_neighborhood_size(scheme) > 0;
 
     // Whether to inf-sharpen topological corner vertices.
@@ -390,7 +441,7 @@ fn prepare_tags_and_sharpness(refiner: &mut TopologyRefiner) -> bool {
         let edge_count = lv.get_num_edges();
         for e in 0..edge_count {
             let is_boundary = lv.get_num_edge_faces(e) < 2;
-            let is_non_man  = lv.get_edge_tag(e).non_manifold();
+            let is_non_man = lv.get_edge_tag(e).non_manifold();
 
             lv.get_edge_tag_mut(e).set_boundary(is_boundary);
 
@@ -400,7 +451,8 @@ fn prepare_tags_and_sharpness(refiner: &mut TopologyRefiner) -> bool {
 
             let s = lv.get_edge_sharpness(e);
             lv.get_edge_tag_mut(e).set_inf_sharp(is_infinite(s));
-            lv.get_edge_tag_mut(e).set_semi_sharp(is_sharp(s) && !is_infinite(s));
+            lv.get_edge_tag_mut(e)
+                .set_semi_sharp(is_sharp(s) && !is_infinite(s));
         }
     }
 
@@ -409,7 +461,7 @@ fn prepare_tags_and_sharpness(refiner: &mut TopologyRefiner) -> bool {
     //   Per-vertex: take edge inventory, sharpen if needed, then set all tags.
     // -----------------------------------------------------------------------
     let has_irreg_faces = refiner.has_irreg_faces_flag();
-    let reg_face_size   = refiner.get_reg_face_size();
+    let reg_face_size = refiner.get_reg_face_size();
 
     let lv = refiner.get_level_internal_mut(0);
     let vert_count = lv.get_num_vertices();
@@ -427,22 +479,30 @@ fn prepare_tags_and_sharpness(refiner: &mut TopologyRefiner) -> bool {
         };
 
         // Edge inventory
-        let mut boundary_edge_count    = 0i32;
-        let mut inf_sharp_edge_count   = 0i32;
-        let mut semi_sharp_edge_count  = 0i32;
+        let mut boundary_edge_count = 0i32;
+        let mut inf_sharp_edge_count = 0i32;
+        let mut semi_sharp_edge_count = 0i32;
         let mut non_manifold_edge_count = 0i32;
         for &e in &v_edges {
             let et = lv.get_edge_tag(e);
-            if et.boundary()     { boundary_edge_count    += 1; }
-            if et.inf_sharp()    { inf_sharp_edge_count   += 1; }
-            if et.semi_sharp()   { semi_sharp_edge_count  += 1; }
-            if et.non_manifold() { non_manifold_edge_count += 1; }
+            if et.boundary() {
+                boundary_edge_count += 1;
+            }
+            if et.inf_sharp() {
+                inf_sharp_edge_count += 1;
+            }
+            if et.semi_sharp() {
+                semi_sharp_edge_count += 1;
+            }
+            if et.non_manifold() {
+                non_manifold_edge_count += 1;
+            }
         }
         let sharp_edge_count = inf_sharp_edge_count + semi_sharp_edge_count;
 
         // Determine if vertex is a topological corner (1 face, 2 edges)
         let is_topo_corner = v_faces.len() == 1 && v_edges.len() == 2;
-        let is_non_man     = lv.get_vertex_tag(v).non_manifold();
+        let is_non_man = lv.get_vertex_tag(v).non_manifold();
 
         // Sharpen vertex if needed
         let v_sharp_before = lv.get_vertex_sharpness(v);
@@ -451,8 +511,7 @@ fn prepare_tags_and_sharpness(refiner: &mut TopologyRefiner) -> bool {
         } else if is_non_man && sharpen_non_man && !is_infinite(v_sharp_before) {
             // Avoid sharpening non-manifold interior crease vertices
             // (non-manifold crease: exactly 2 non-man edges, no boundary, more faces than edges)
-            let is_non_man_crease =
-                non_manifold_edge_count == 2
+            let is_non_man_crease = non_manifold_edge_count == 2
                 && boundary_edge_count == 0
                 && v_faces.len() > v_edges.len()
                 && lv.test_vertex_non_manifold_crease(v);
@@ -465,18 +524,22 @@ fn prepare_tags_and_sharpness(refiner: &mut TopologyRefiner) -> bool {
 
         // Basic sharpness tags
         lv.get_vertex_tag_mut(v).set_inf_sharp(is_infinite(v_sharp));
-        lv.get_vertex_tag_mut(v).set_semi_sharp(is_semi_sharp(v_sharp));
-        lv.get_vertex_tag_mut(v).set_semi_sharp_edges(semi_sharp_edge_count > 0);
+        lv.get_vertex_tag_mut(v)
+            .set_semi_sharp(is_semi_sharp(v_sharp));
+        lv.get_vertex_tag_mut(v)
+            .set_semi_sharp_edges(semi_sharp_edge_count > 0);
 
         // Vertex-vertex subdivision rule
         let rule = crease.determine_vertex_vertex_rule_from_count(v_sharp, sharp_edge_count);
         lv.get_vertex_tag_mut(v).set_rule(rule as u16);
 
         // Topological tags
-        lv.get_vertex_tag_mut(v).set_boundary(boundary_edge_count > 0);
+        lv.get_vertex_tag_mut(v)
+            .set_boundary(boundary_edge_count > 0);
         let is_inf = lv.get_vertex_tag(v).inf_sharp();
         let is_bnd = lv.get_vertex_tag(v).boundary();
-        lv.get_vertex_tag_mut(v).set_corner(is_topo_corner && is_inf);
+        lv.get_vertex_tag_mut(v)
+            .set_corner(is_topo_corner && is_inf);
         let is_corner = lv.get_vertex_tag(v).corner();
 
         if is_non_man {
@@ -493,7 +556,8 @@ fn prepare_tags_and_sharpness(refiner: &mut TopologyRefiner) -> bool {
         lv.get_vertex_tag_mut(v).set_incomplete(false);
 
         // Inf-sharp feature tags
-        lv.get_vertex_tag_mut(v).set_inf_sharp_edges(inf_sharp_edge_count > 0);
+        lv.get_vertex_tag_mut(v)
+            .set_inf_sharp_edges(inf_sharp_edge_count > 0);
         lv.get_vertex_tag_mut(v).set_inf_sharp_crease(false);
         let inf_irreg_base = is_infinite(v_sharp) || inf_sharp_edge_count > 0;
         lv.get_vertex_tag_mut(v).set_inf_irregular(inf_irreg_base);
@@ -501,15 +565,15 @@ fn prepare_tags_and_sharpness(refiner: &mut TopologyRefiner) -> bool {
         if inf_sharp_edge_count > 0 {
             // Determine rule ignoring semi-sharp vertex sharpness
             let v_sharp_for_inf = if is_infinite(v_sharp) { v_sharp } else { 0.0 };
-            let inf_rule = crease.determine_vertex_vertex_rule_from_count(
-                v_sharp_for_inf, inf_sharp_edge_count);
+            let inf_rule = crease
+                .determine_vertex_vertex_rule_from_count(v_sharp_for_inf, inf_sharp_edge_count);
 
             if inf_rule == Rule::Crease {
                 lv.get_vertex_tag_mut(v).set_inf_sharp_crease(true);
 
                 // Regular inf-crease can only be along a manifold regular boundary
                 // or by bisecting a manifold interior region.
-                let xord    = lv.get_vertex_tag(v).xordinary();
+                let xord = lv.get_vertex_tag(v).xordinary();
                 let non_man = lv.get_vertex_tag(v).non_manifold();
                 if !xord && !non_man {
                     if is_bnd {
@@ -520,12 +584,12 @@ fn prepare_tags_and_sharpness(refiner: &mut TopologyRefiner) -> bool {
                         // and [1] vs [4]).
                         let irreg = if reg_interior_valence == 4 && v_edges.len() >= 3 {
                             lv.get_edge_tag(v_edges[0]).inf_sharp()
-                            != lv.get_edge_tag(v_edges[2]).inf_sharp()
+                                != lv.get_edge_tag(v_edges[2]).inf_sharp()
                         } else if reg_interior_valence == 6 && v_edges.len() >= 5 {
                             (lv.get_edge_tag(v_edges[0]).inf_sharp()
-                             != lv.get_edge_tag(v_edges[3]).inf_sharp())
-                            || (lv.get_edge_tag(v_edges[1]).inf_sharp()
-                                != lv.get_edge_tag(v_edges[4]).inf_sharp())
+                                != lv.get_edge_tag(v_edges[3]).inf_sharp())
+                                || (lv.get_edge_tag(v_edges[1]).inf_sharp()
+                                    != lv.get_edge_tag(v_edges[4]).inf_sharp())
                         } else {
                             false
                         };
@@ -563,9 +627,11 @@ fn prepare_fvar_channels(refiner: &mut TopologyRefiner) -> bool {
         // reg_boundary_valence depends on scheme; use 4 for Catmark.
         let reg_bv = match refiner.get_scheme_type() {
             crate::sdc::types::SchemeType::Loop => 6,
-            _                                   => 4,
+            _ => 4,
         };
-        refiner.get_level_internal_mut(0).complete_fvar_channel_topology(c, reg_bv);
+        refiner
+            .get_level_internal_mut(0)
+            .complete_fvar_channel_topology(c, reg_bv);
     }
     true
 }
@@ -595,7 +661,9 @@ impl TopologyRefinerFactory for TopologyDescriptorFactory {
         }
 
         // Pre-allocate flat face-vert storage
-        refiner.get_level_internal_mut(0).resize_face_vertices_total(total_fv);
+        refiner
+            .get_level_internal_mut(0)
+            .resize_face_vertices_total(total_fv);
         true
     }
 
@@ -634,9 +702,9 @@ impl TopologyRefinerFactory for TopologyDescriptorFactory {
                 } else {
                     let msg = format!(
                         "Edge {} specified to be sharp does not exist ({}, {})",
-                        edge_i, v0, v1);
-                    Self::report_invalid_topology(
-                        TopologyError::InvalidCreaseEdge, &msg, desc);
+                        edge_i, v0, v1
+                    );
+                    Self::report_invalid_topology(TopologyError::InvalidCreaseEdge, &msg, desc);
                 }
             }
         }
@@ -649,10 +717,8 @@ impl TopologyRefinerFactory for TopologyDescriptorFactory {
                 if idx >= 0 && idx < total_verts {
                     Self::set_base_vertex_sharpness(refiner, idx, desc.corner_weights[vi]);
                 } else {
-                    let msg = format!(
-                        "Vertex {} specified to be sharp does not exist", idx);
-                    Self::report_invalid_topology(
-                        TopologyError::InvalidCreaseVert, &msg, desc);
+                    let msg = format!("Vertex {} specified to be sharp does not exist", idx);
+                    Self::report_invalid_topology(TopologyError::InvalidCreaseVert, &msg, desc);
                 }
             }
         }
@@ -666,7 +732,8 @@ impl TopologyRefinerFactory for TopologyDescriptorFactory {
     }
 
     fn assign_face_varying_topology(
-        refiner: &mut TopologyRefiner, desc: &TopologyDescriptor
+        refiner: &mut TopologyRefiner,
+        desc: &TopologyDescriptor,
     ) -> bool {
         for ch in &desc.fvar_channels {
             let channel = Self::create_base_fvar_channel(refiner, ch.num_values);
@@ -708,9 +775,9 @@ mod tests {
         //  3---4---5
         TopologyDescriptor {
             num_vertices: 6,
-            num_faces:    2,
-            num_verts_per_face:  vec![4, 4],
-            vert_indices_per_face: vec![0,1,4,3, 1,2,5,4],
+            num_faces: 2,
+            num_verts_per_face: vec![4, 4],
+            vert_indices_per_face: vec![0, 1, 4, 3, 1, 2, 5, 4],
             ..Default::default()
         }
     }
@@ -719,7 +786,7 @@ mod tests {
     fn test_create_from_descriptor() {
         let desc = make_quad_desc();
         let opts = FactoryOptions {
-            scheme_type:   SchemeType::Catmark,
+            scheme_type: SchemeType::Catmark,
             scheme_options: Options::new(),
             validate_full_topology: false,
         };
@@ -727,7 +794,7 @@ mod tests {
         assert!(refiner.is_some());
         let refiner = refiner.unwrap();
         assert_eq!(refiner.get_level_internal(0).get_num_vertices(), 6);
-        assert_eq!(refiner.get_level_internal(0).get_num_faces(),    2);
+        assert_eq!(refiner.get_level_internal(0).get_num_faces(), 2);
     }
 
     #[test]

@@ -1,4 +1,3 @@
-
 //! HdIntegratorSchema - Integrator sprim schema.
 //!
 //! Corresponds to pxr/imaging/hd/integratorSchema.h.

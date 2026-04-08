@@ -1,4 +1,3 @@
-
 //! Common types for Hydra extensions
 
 use usd_hgi::HgiFormat;

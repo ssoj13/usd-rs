@@ -1,4 +1,3 @@
-
 //! Render setup task - Configure render pass state.
 //!
 //! Sets up camera, viewport, and rendering parameters for render tasks.

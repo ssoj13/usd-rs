@@ -1,4 +1,3 @@
-
 //! PointsShaderKey - shader variant selection for point cloud rendering.
 //!
 //! Port of C++ `HdSt_PointsShaderKey`. Simple key with VS + FS stages,

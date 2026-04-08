@@ -1,4 +1,3 @@
-
 //! Hf (Hydra Foundation) - Plugin system foundation for Hydra render delegates.
 //!
 //! This module provides the base plugin architecture that Hydra uses for

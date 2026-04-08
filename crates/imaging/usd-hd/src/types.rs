@@ -1,4 +1,3 @@
-
 //! Core types for Hydra.
 //!
 //! This module defines fundamental types used throughout Hydra including:

@@ -1,4 +1,3 @@
-
 //! HIO types for image format and data type representation.
 
 use usd_gf::Vec3i;

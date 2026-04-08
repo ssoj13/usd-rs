@@ -134,8 +134,7 @@ impl MySceneIndex {
 
         // Register a forwarding observer on the input scene.
         let weak: Weak<RwLock<Self>> = Arc::downgrade(&arc);
-        let obs: HdSceneIndexObserverHandle =
-            Arc::new(MySceneIndexObserver { owner: weak });
+        let obs: HdSceneIndexObserverHandle = Arc::new(MySceneIndexObserver { owner: weak });
         input_scene.read().add_observer(obs.clone());
         arc.write()._input_observer = Some(obs);
 
@@ -250,10 +249,7 @@ impl HdSceneIndexBase for DisabledSender {
 /// SAFETY: safe in this single-threaded test because Arc keeps the allocation
 /// alive and no concurrent mutation occurs during the notification window.
 fn disable(filter_arc: &Arc<RwLock<MySceneIndex>>) {
-    filter_arc
-        .read()
-        .enabled
-        .store(false, Ordering::SeqCst);
+    filter_arc.read().enabled.store(false, Ordering::SeqCst);
 
     let removed = vec![RemovedPrimEntry::new(SdfPath::absolute_root())];
     let sender = DisabledSender;
@@ -446,9 +442,7 @@ fn test_remove_input_scenes() {
         .read()
         .add_observer(logger.clone() as HdSceneIndexObserverHandle);
 
-    merging
-        .write()
-        .remove_input_scenes(&[handle_a, handle_b]);
+    merging.write().remove_input_scenes(&[handle_a, handle_b]);
 
     let got = logger.get_log();
 

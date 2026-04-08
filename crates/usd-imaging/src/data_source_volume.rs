@@ -181,10 +181,15 @@ mod tests {
         let stage = Stage::create_in_memory(usd_core::common::InitialLoadSet::LoadAll)
             .expect("create stage");
         let volume_prim = stage.define_prim("/Vol", "Volume").expect("define volume");
-        stage.define_prim("/Field", "OpenVDBAsset").expect("define field");
+        stage
+            .define_prim("/Field", "OpenVDBAsset")
+            .expect("define field");
 
         let volume = Volume::from_prim(&volume_prim);
-        assert!(volume.create_field_relationship(&Token::new("density"), &Path::from_string("/Field").unwrap()));
+        assert!(volume.create_field_relationship(
+            &Token::new("density"),
+            &Path::from_string("/Field").unwrap()
+        ));
 
         let globals = create_test_globals();
         let ds = DataSourceVolumeFieldBindings::new(volume, globals);

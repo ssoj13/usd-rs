@@ -57,7 +57,8 @@ impl PyPlugRegistry {
     #[pyo3(name = "GetPluginWithName")]
     fn get_plugin_with_name(&self, name: &str) -> Option<String> {
         let reg = PlugRegistry::get_instance();
-        reg.get_plugin_with_name(name).map(|p| p.get_name().to_string())
+        reg.get_plugin_with_name(name)
+            .map(|p| p.get_name().to_string())
     }
 
     fn __repr__(&self) -> &str {
@@ -79,10 +80,14 @@ macro_rules! test_plug_base {
         #[pymethods]
         impl $name {
             #[new]
-            fn new() -> Self { Self }
+            fn new() -> Self {
+                Self
+            }
 
             #[pyo3(name = "GetTypeName")]
-            fn get_type_name(&self) -> String { $py_name.to_owned() }
+            fn get_type_name(&self) -> String {
+                $py_name.to_owned()
+            }
         }
     };
 }
@@ -105,9 +110,13 @@ pub struct PyPlugin {
 #[pymethods]
 impl PyPlugin {
     #[pyo3(name = "GetName")]
-    fn get_name(&self) -> &str { &self.name }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
 
-    fn __repr__(&self) -> String { format!("Plug.Plugin('{}')", self.name) }
+    fn __repr__(&self) -> String {
+        format!("Plug.Plugin('{}')", self.name)
+    }
 }
 
 // ============================================================================

@@ -1,4 +1,3 @@
-
 //! HdDirtyBitsTranslator - Translate dirty bits to/from data source locators.
 //!
 //! Full port of pxr/imaging/hd/dirtyBitsTranslator.h/cpp

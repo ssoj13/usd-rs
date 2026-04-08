@@ -1,4 +1,3 @@
-
 //! HdExtComputationPrimvarSchema - Primvar driven by ext computation.
 //!
 //! Port of pxr/imaging/hd/extComputationPrimvarSchema.h

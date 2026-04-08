@@ -1,4 +1,3 @@
-
 //! Fallback lighting shader for Storm (ported from fallbackLightingShader.h).
 //!
 //! Provides default lighting when no lights are present in the scene.

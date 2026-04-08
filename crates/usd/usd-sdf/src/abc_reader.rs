@@ -32,7 +32,9 @@ use super::types::{SpecType, Specifier, TimeSamples, Variability};
 use alembic::PlainOldDataType;
 use alembic::abc::{IArchive, ICompoundProperty, IObject};
 use alembic::abc_core::{PropertyHeader, PropertyType, TimeSamplingType};
-use alembic::geom::{FaceSetExclusivity, ICamera, ICurves, IFaceSet, INuPatch, IPoints, IPolyMesh, ISubD, IXform};
+use alembic::geom::{
+    FaceSetExclusivity, ICamera, ICurves, IFaceSet, INuPatch, IPoints, IPolyMesh, ISubD, IXform,
+};
 
 // ============================================================================
 // Module-level byte-cast helpers (used by schema converters)
@@ -697,8 +699,8 @@ impl AlembicDataReader {
         // there are no `.arbGeomParams`/`.userProperties` conflicts. Without
         // this, archives such as `cache.abc` land as an empty `Xform` plus an
         // untyped child and never reach the real composed prim contract.
-        let collapsed_child =
-            Self::get_collapsible_xform_child(obj).filter(|child| !Self::has_schema_merge_conflict(obj, child));
+        let collapsed_child = Self::get_collapsible_xform_child(obj)
+            .filter(|child| !Self::has_schema_merge_conflict(obj, child));
 
         if let Some(child) = collapsed_child.as_ref() {
             prim.type_name = Self::map_alembic_to_usd_type_name(child);
@@ -752,10 +754,8 @@ impl AlembicDataReader {
             let mut used_grandchild_names = HashSet::new();
             for i in 0..child.getNumChildren() {
                 if let Some(grandchild) = child.getChild(i) {
-                    let clean_child_name = Self::clean_alembic_prim_name(
-                        grandchild.getName(),
-                        &used_grandchild_names,
-                    );
+                    let clean_child_name =
+                        Self::clean_alembic_prim_name(grandchild.getName(), &used_grandchild_names);
                     if clean_child_name.is_empty() {
                         continue;
                     }
@@ -1957,9 +1957,9 @@ impl AlembicDataReader {
         };
         let obj_name = obj.getFullName().to_string();
         let first_sample = curves.getSample(0).ok();
-        let is_nurbs = first_sample
-            .as_ref()
-            .is_some_and(|sample| sample.curve_type == alembic::geom::curves::CurveType::VariableOrder);
+        let is_nurbs = first_sample.as_ref().is_some_and(|sample| {
+            sample.curve_type == alembic::geom::curves::CurveType::VariableOrder
+        });
         let is_hermite = first_sample.as_ref().is_some_and(|sample| {
             sample.curve_type == alembic::geom::curves::CurveType::Cubic
                 && sample.basis == alembic::geom::curves::BasisType::Hermite
@@ -2007,8 +2007,7 @@ impl AlembicDataReader {
                 Box::new(|top: &ICompoundProperty, _: &str, sel: usize| {
                     let bytes = read_sub_array(top, ".geom", "P", sel)?;
                     let interleaved = vec3f_from_bytes(&bytes);
-                    let (_, tangents) =
-                        Self::split_hermite_point_and_tangent_arrays(&interleaved);
+                    let (_, tangents) = Self::split_hermite_point_and_tangent_arrays(&interleaved);
                     Some(Value::from_no_hash(usd_vt::Array::from(tangents)))
                 }),
             );
@@ -4110,7 +4109,9 @@ mod tests {
 
     #[test]
     fn test_open_bmw_archive_exposes_root_prims() {
-        let Some(bmw_path) = require_fixture("data/abc/bmw.abc") else { return };
+        let Some(bmw_path) = require_fixture("data/abc/bmw.abc") else {
+            return;
+        };
         let mut reader = AlembicDataReader::new();
         let args = FileFormatArguments::new();
 
@@ -4133,7 +4134,9 @@ mod tests {
 
     #[test]
     fn test_open_bed_archive_sanitizes_root_child_names() {
-        let Some(bed_path) = require_fixture("data/abc/bed.abc") else { return };
+        let Some(bed_path) = require_fixture("data/abc/bed.abc") else {
+            return;
+        };
         let mut reader = AlembicDataReader::new();
         let args = FileFormatArguments::new();
 
@@ -4141,18 +4144,25 @@ mod tests {
 
         let root_children = reader.get_children(&Path::absolute_root());
         assert!(
-            root_children.iter().any(|child| child.as_str() == "bed_group2"),
+            root_children
+                .iter()
+                .any(|child| child.as_str() == "bed_group2"),
             "expected sanitized bed_group2 root prim, got {root_children:?}",
         );
 
         let bed_group = Path::from_string("/bed_group2").expect("valid bed_group2 path");
-        assert!(reader.has_spec(&bed_group), "sanitized root prim should exist");
+        assert!(
+            reader.has_spec(&bed_group),
+            "sanitized root prim should exist"
+        );
         assert_eq!(reader.get_spec_type(&bed_group), SpecType::Prim);
     }
 
     #[test]
     fn test_open_bed_archive_keeps_nested_child_paths_consistent() {
-        let Some(bed_path) = require_fixture("data/abc/bed.abc") else { return };
+        let Some(bed_path) = require_fixture("data/abc/bed.abc") else {
+            return;
+        };
         let mut reader = AlembicDataReader::new();
         let args = FileFormatArguments::new();
 
@@ -4174,7 +4184,9 @@ mod tests {
 
     #[test]
     fn test_open_cache_archive_collapses_single_curves_child_into_parent() {
-        let Some(cache_path) = require_fixture("data/abc/cache.abc") else { return };
+        let Some(cache_path) = require_fixture("data/abc/cache.abc") else {
+            return;
+        };
         let mut reader = AlembicDataReader::new();
         let args = FileFormatArguments::new();
 
@@ -4213,5 +4225,4 @@ mod tests {
             "collapsed curves child should not survive as a separate prim",
         );
     }
-
 }

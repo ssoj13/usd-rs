@@ -1,4 +1,3 @@
-
 //! Unloaded draw mode scene index - forces bounds draw mode on unloaded prims.
 //!
 //! Matches C++ UsdImagingUnloadedDrawModeSceneIndex exactly: a stateless
@@ -15,7 +14,7 @@ use usd_hd::scene_index::observer::{
 };
 use usd_hd::scene_index::{
     FilteringObserverTarget, HdSceneIndexBase, HdSceneIndexHandle, HdSceneIndexPrim,
-    HdSingleInputFilteringSceneIndexBase, SdfPathVector, wire_filter_to_input, si_ref,
+    HdSingleInputFilteringSceneIndexBase, SdfPathVector, si_ref, wire_filter_to_input,
 };
 use usd_hd::{
     HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdOverlayContainerDataSource,

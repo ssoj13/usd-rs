@@ -277,7 +277,6 @@ impl KeyboardHandler {
             if input.key_pressed(egui::Key::Num5) && !ctrl && !shift {
                 actions.push(AppAction::ToggleOrthographic);
             }
-
         });
 
         actions

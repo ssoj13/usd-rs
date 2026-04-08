@@ -1,4 +1,3 @@
-
 //! Basis curves primvar interpolation and index building computations.
 //!
 //! Provides:
@@ -50,7 +49,12 @@ pub fn expand_varying<T: Clone>(
                 vec![fallback.clone(); num_verts]
             }
         }
-        CurveType::Cubic if matches!(topology.basis, CurveBasis::CatmullRom | CurveBasis::BSpline | CurveBasis::Hermite) => {
+        CurveType::Cubic
+            if matches!(
+                topology.basis,
+                CurveBasis::CatmullRom | CurveBasis::BSpline | CurveBasis::Hermite
+            ) =>
+        {
             expand_varying_spline(topology, authored_values, num_verts, fallback)
         }
         CurveType::Cubic => expand_varying_bezier(topology, authored_values, num_verts, fallback),

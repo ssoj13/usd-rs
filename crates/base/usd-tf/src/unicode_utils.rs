@@ -225,7 +225,10 @@ impl Iterator for Utf8CodePointIterator<'_> {
         } else if first < 0xE0 {
             // 2-byte sequence
             if self.bytes.len() < 2 {
-                (REPLACEMENT_VALUE, consumed_invalid_sequence_prefix(self.bytes, 2))
+                (
+                    REPLACEMENT_VALUE,
+                    consumed_invalid_sequence_prefix(self.bytes, 2),
+                )
             } else {
                 let b1 = self.bytes[1];
                 if (b1 & 0xC0) != 0x80 {
@@ -243,7 +246,10 @@ impl Iterator for Utf8CodePointIterator<'_> {
         } else if first < 0xF0 {
             // 3-byte sequence
             if self.bytes.len() < 3 {
-                (REPLACEMENT_VALUE, consumed_invalid_sequence_prefix(self.bytes, 3))
+                (
+                    REPLACEMENT_VALUE,
+                    consumed_invalid_sequence_prefix(self.bytes, 3),
+                )
             } else {
                 let b1 = self.bytes[1];
                 let b2 = self.bytes[2];
@@ -266,7 +272,10 @@ impl Iterator for Utf8CodePointIterator<'_> {
         } else if first < 0xF8 {
             // 4-byte sequence
             if self.bytes.len() < 4 {
-                (REPLACEMENT_VALUE, consumed_invalid_sequence_prefix(self.bytes, 4))
+                (
+                    REPLACEMENT_VALUE,
+                    consumed_invalid_sequence_prefix(self.bytes, 4),
+                )
             } else {
                 let b1 = self.bytes[1];
                 let b2 = self.bytes[2];

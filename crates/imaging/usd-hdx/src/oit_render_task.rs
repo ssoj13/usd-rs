@@ -1,4 +1,3 @@
-
 //! OIT render task - Order Independent Transparency rendering.
 //!
 //! Renders geometry with transparency using order-independent transparency techniques.

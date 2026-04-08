@@ -1,4 +1,3 @@
-
 //! Simple lighting shader for Storm (ported from simpleLightingShader.h).
 //!
 //! Standard lighting shader using GlfSimpleLighting-style parameters.

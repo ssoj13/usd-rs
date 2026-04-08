@@ -106,19 +106,19 @@ fn make_primvar_value_data_source(
             stage_globals.clone(),
             scene_index_path.clone(),
         ) as HdDataSourceBaseHandle,
-        "float2" | "float2[]" | "texCoord2f" | "texCoord2f[]" => DataSourceAttribute::<Vec<Vec2f>>::new(
-            attr.clone(),
-            stage_globals.clone(),
-            scene_index_path.clone(),
-        ) as HdDataSourceBaseHandle,
-        "point3f" | "point3f[]" | "normal3f" | "normal3f[]" | "vector3f" | "vector3f[]"
-        | "color3f" | "color3f[]" => {
-            DataSourceAttribute::<Vec<Vec3f>>::new(
+        "float2" | "float2[]" | "texCoord2f" | "texCoord2f[]" => {
+            DataSourceAttribute::<Vec<Vec2f>>::new(
                 attr.clone(),
                 stage_globals.clone(),
                 scene_index_path.clone(),
             ) as HdDataSourceBaseHandle
         }
+        "point3f" | "point3f[]" | "normal3f" | "normal3f[]" | "vector3f" | "vector3f[]"
+        | "color3f" | "color3f[]" => DataSourceAttribute::<Vec<Vec3f>>::new(
+            attr.clone(),
+            stage_globals.clone(),
+            scene_index_path.clone(),
+        ) as HdDataSourceBaseHandle,
         _ => DataSourceAttribute::<Value>::new(
             attr.clone(),
             stage_globals.clone(),
@@ -251,7 +251,8 @@ impl DataSourcePrimvars {
             let role = usd_to_hd_role(&attr.get_role_name());
             let indexed = has_indices(&self.prim, name);
             let indices_attr = if indexed {
-                self.prim.get_attribute(&format!("primvars:{}:indices", name))
+                self.prim
+                    .get_attribute(&format!("primvars:{}:indices", name))
             } else {
                 None
             };
@@ -597,7 +598,6 @@ impl DataSourcePrimvar {
             has_indices,
         }
     }
-
 }
 
 impl std::fmt::Debug for DataSourcePrimvar {

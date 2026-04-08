@@ -1,4 +1,3 @@
-
 //! Merging scene index - merges multiple scene indices.
 //!
 //! G11: InputScene has pos field.

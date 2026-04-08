@@ -1,4 +1,3 @@
-
 //! HdDependencyForwardingSceneIndex - forwards dirty notices based on __dependencies schema.
 //!
 //! Port of pxr/imaging/hd/dependencyForwardingSceneIndex.{h,cpp}

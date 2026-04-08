@@ -1,4 +1,3 @@
-
 //! Sampler parameter resolution from material node parameters.
 //!
 //! Port of the `HdGetSamplerParameters` functions from `pxr/imaging/hd/material.cpp`.

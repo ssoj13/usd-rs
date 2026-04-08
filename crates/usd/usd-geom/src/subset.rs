@@ -44,7 +44,11 @@ fn get_resolved_attr_value(attr: &Attribute, time: TimeCode) -> Option<Value> {
         return attr.get(TimeCode::default_time());
     }
 
-    if let Some(exact_time) = samples.iter().copied().find(|sample| *sample == time.value()) {
+    if let Some(exact_time) = samples
+        .iter()
+        .copied()
+        .find(|sample| *sample == time.value())
+    {
         return attr.get(TimeCode::new(exact_time));
     }
 
@@ -953,7 +957,10 @@ impl Subset {
         if !validate_geom_type(geom, element_type) {
             return (
                 false,
-                format!("Invalid geom type for elementType {}.", element_type.as_str()),
+                format!(
+                    "Invalid geom type for elementType {}.",
+                    element_type.as_str()
+                ),
             );
         }
 
@@ -971,12 +978,8 @@ impl Subset {
         let mut earliest_time_element_count =
             get_element_count(geom, element_type, earliest_time).unwrap_or(0);
         if earliest_time_element_count == 0 {
-            earliest_time_element_count = get_element_count(
-                geom,
-                element_type,
-                TimeCode::default_time(),
-            )
-            .unwrap_or(0);
+            earliest_time_element_count =
+                get_element_count(geom, element_type, TimeCode::default_time()).unwrap_or(0);
         }
 
         let mut valid = true;
@@ -1057,7 +1060,8 @@ impl Subset {
                 earliest_time_element_count
             };
 
-            if !indices_in_family.is_empty() && is_element_count_time_varying && element_count == 0 {
+            if !indices_in_family.is_empty() && is_element_count_time_varying && element_count == 0
+            {
                 valid = false;
                 reason += &format!(
                     "Geometry <{}> has no elements at time {}, but the \"{}\" GeomSubset family contains indices. ",
@@ -1072,8 +1076,7 @@ impl Subset {
                     valid = false;
                     reason += &format!(
                         "Number of unique indices at time {} does not match the element count {}. ",
-                        time,
-                        element_count
+                        time, element_count
                     );
                 }
             } else {
@@ -1117,8 +1120,7 @@ impl Subset {
                             valid = false;
                             reason += &format!(
                                 "Number of unique indices at time {} does not match the element count {}. ",
-                                time,
-                                element_count
+                                time, element_count
                             );
                         }
                     }
@@ -1127,7 +1129,8 @@ impl Subset {
                     let curve_vertex_counts =
                         get_int_array(prim, tokens.curve_vertex_counts.as_str(), time)
                             .unwrap_or_default();
-                    let segment_counts = BasisCurves::new(prim.clone()).compute_segment_counts(time);
+                    let segment_counts =
+                        BasisCurves::new(prim.clone()).compute_segment_counts(time);
 
                     for segment in &pairs_in_family {
                         let curve_index = segment.0;
@@ -1146,14 +1149,15 @@ impl Subset {
                             continue;
                         }
 
-                        let max_segments =
-                            segment_counts.get(curve_index_usize).copied().unwrap_or_default();
+                        let max_segments = segment_counts
+                            .get(curve_index_usize)
+                            .copied()
+                            .unwrap_or_default();
                         if segment.1 >= max_segments {
                             valid = false;
                             reason += &format!(
                                 "Found one or more indices that are greater than the segment count {} at time {}. ",
-                                max_segments,
-                                time
+                                max_segments, time
                             );
                         }
                     }
@@ -1164,8 +1168,7 @@ impl Subset {
                         valid = false;
                         reason += &format!(
                             "Number of unique indices at time {} does not match the element count {}. ",
-                            time,
-                            element_count
+                            time, element_count
                         );
                     }
                 }
@@ -1179,12 +1182,12 @@ impl Subset {
 
             if !is_segment {
                 if let Some(&last_index) = indices_in_family.iter().next_back() {
-                    if element_count > 0 && last_index >= 0 && last_index as usize >= element_count {
+                    if element_count > 0 && last_index >= 0 && last_index as usize >= element_count
+                    {
                         valid = false;
                         reason += &format!(
                             "Found one or more indices that are greater than the element count {} at time {}. ",
-                            element_count,
-                            time
+                            element_count, time
                         );
                     }
                 }

@@ -1,4 +1,3 @@
-
 //! HdRenderIndexAdapterSceneIndex - Scene index backed by render index.
 //!
 //! Corresponds to pxr/imaging/hd/renderIndexAdapterSceneIndex.h.

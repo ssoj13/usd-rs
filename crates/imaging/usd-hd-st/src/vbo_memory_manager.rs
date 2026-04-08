@@ -1,4 +1,3 @@
-
 //! HdStVboMemoryManager - VBO (Vertex Buffer Object) memory allocation manager.
 //!
 //! Manages GPU buffer allocation with aggregation (sub-allocation) strategy:

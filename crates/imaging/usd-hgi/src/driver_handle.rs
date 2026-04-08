@@ -1,14 +1,13 @@
-
 //! HgiDriverHandle - Hgi wrapper for HdDriver Value storage.
 //!
 //! Used to pass Hgi through the HdDriver system (HgiTokens->renderDriver).
 //! Port of storing Hgi* in VtValue in C++ HdStRenderDelegate::SetDrivers.
 
 use super::hgi::Hgi;
+use parking_lot::RwLock;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 /// Handle for passing Hgi through HdDriver.
 ///

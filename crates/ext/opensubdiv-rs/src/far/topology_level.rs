@@ -1,55 +1,77 @@
 // Copyright 2015 DreamWorks Animation LLC.
 // Ported to Rust from OpenSubdiv 3.7.0 far/topologyLevel.h
 
+use super::types::{ConstIndexArray, ConstLocalIndexArray, Index};
 use crate::sdc::crease::Rule;
-use crate::vtr::{Level, Refinement};
 use crate::vtr::array::ConstArray;
-use super::types::{Index, ConstIndexArray, ConstLocalIndexArray};
+use crate::vtr::{Level, Refinement};
 
 /// Read-only view into a single level of the topology hierarchy.
 ///
 /// Instances are owned by `TopologyRefiner` and returned as references.
 /// Mirrors C++ `Far::TopologyLevel`.
 pub struct TopologyLevel {
-    pub(crate) level:         *const Level,
+    pub(crate) level: *const Level,
     pub(crate) ref_to_parent: *const Refinement,
-    pub(crate) ref_to_child:  *const Refinement,
+    pub(crate) ref_to_child: *const Refinement,
 }
 
 impl TopologyLevel {
     /// Create an empty (null) level placeholder.
     pub fn null() -> Self {
         Self {
-            level:         std::ptr::null(),
+            level: std::ptr::null(),
             ref_to_parent: std::ptr::null(),
-            ref_to_child:  std::ptr::null(),
+            ref_to_child: std::ptr::null(),
         }
     }
 
-    fn lv(&self) -> &Level { unsafe { &*self.level } }
+    fn lv(&self) -> &Level {
+        unsafe { &*self.level }
+    }
 
     // ---- component counts ----
 
     /// Number of vertices in this level.
-    pub fn get_num_vertices(&self) -> i32 { self.lv().get_num_vertices() }
+    pub fn get_num_vertices(&self) -> i32 {
+        self.lv().get_num_vertices()
+    }
 
     /// Number of faces in this level.
-    pub fn get_num_faces(&self) -> i32 { self.lv().get_num_faces() }
+    pub fn get_num_faces(&self) -> i32 {
+        self.lv().get_num_faces()
+    }
 
     /// Number of edges in this level.
-    pub fn get_num_edges(&self) -> i32 { self.lv().get_num_edges() }
+    pub fn get_num_edges(&self) -> i32 {
+        self.lv().get_num_edges()
+    }
 
     /// Total number of face-vertex entries (sum of face sizes).
-    pub fn get_num_face_vertices(&self) -> i32 { self.lv().get_num_face_vertices_total() }
+    pub fn get_num_face_vertices(&self) -> i32 {
+        self.lv().get_num_face_vertices_total()
+    }
 
     // ---- topological relations ----
 
-    pub fn get_face_vertices(&self, f: Index) -> ConstIndexArray<'_> { self.lv().get_face_vertices(f) }
-    pub fn get_face_edges(&self, f: Index)    -> ConstIndexArray<'_> { self.lv().get_face_edges(f) }
-    pub fn get_edge_vertices(&self, e: Index) -> ConstIndexArray<'_> { self.lv().get_edge_vertices(e) }
-    pub fn get_edge_faces(&self, e: Index)    -> ConstIndexArray<'_> { self.lv().get_edge_faces(e) }
-    pub fn get_vertex_faces(&self, v: Index)  -> ConstIndexArray<'_> { self.lv().get_vertex_faces(v) }
-    pub fn get_vertex_edges(&self, v: Index)  -> ConstIndexArray<'_> { self.lv().get_vertex_edges(v) }
+    pub fn get_face_vertices(&self, f: Index) -> ConstIndexArray<'_> {
+        self.lv().get_face_vertices(f)
+    }
+    pub fn get_face_edges(&self, f: Index) -> ConstIndexArray<'_> {
+        self.lv().get_face_edges(f)
+    }
+    pub fn get_edge_vertices(&self, e: Index) -> ConstIndexArray<'_> {
+        self.lv().get_edge_vertices(e)
+    }
+    pub fn get_edge_faces(&self, e: Index) -> ConstIndexArray<'_> {
+        self.lv().get_edge_faces(e)
+    }
+    pub fn get_vertex_faces(&self, v: Index) -> ConstIndexArray<'_> {
+        self.lv().get_vertex_faces(v)
+    }
+    pub fn get_vertex_edges(&self, v: Index) -> ConstIndexArray<'_> {
+        self.lv().get_vertex_edges(v)
+    }
 
     pub fn get_vertex_face_local_indices(&self, v: Index) -> ConstLocalIndexArray<'_> {
         self.lv().get_vertex_face_local_indices(v)
@@ -68,10 +90,18 @@ impl TopologyLevel {
 
     // ---- topological properties ----
 
-    pub fn is_edge_non_manifold(&self, e: Index) -> bool { self.lv().is_edge_non_manifold(e) }
-    pub fn is_vertex_non_manifold(&self, v: Index) -> bool { self.lv().is_vertex_non_manifold(v) }
-    pub fn is_edge_boundary(&self, e: Index) -> bool { self.lv().get_edge_tag(e).boundary() }
-    pub fn is_vertex_boundary(&self, v: Index) -> bool { self.lv().get_vertex_tag(v).boundary() }
+    pub fn is_edge_non_manifold(&self, e: Index) -> bool {
+        self.lv().is_edge_non_manifold(e)
+    }
+    pub fn is_vertex_non_manifold(&self, v: Index) -> bool {
+        self.lv().is_vertex_non_manifold(v)
+    }
+    pub fn is_edge_boundary(&self, e: Index) -> bool {
+        self.lv().get_edge_tag(e).boundary()
+    }
+    pub fn is_vertex_boundary(&self, v: Index) -> bool {
+        self.lv().get_vertex_tag(v).boundary()
+    }
     /// Returns true when vertex `v` is a corner (only one adjacent face).
     ///
     /// Uses face-count `== 1` as the corner criterion, which matches C++
@@ -88,19 +118,37 @@ impl TopologyLevel {
 
     // ---- feature tags ----
 
-    pub fn get_edge_sharpness(&self, e: Index) -> f32   { self.lv().get_edge_sharpness(e) }
-    pub fn get_vertex_sharpness(&self, v: Index) -> f32 { self.lv().get_vertex_sharpness(v) }
-    pub fn is_edge_inf_sharp(&self, e: Index) -> bool   { self.lv().get_edge_tag(e).inf_sharp() }
-    pub fn is_vertex_inf_sharp(&self, v: Index) -> bool { self.lv().get_vertex_tag(v).inf_sharp() }
-    pub fn is_edge_semi_sharp(&self, e: Index) -> bool  { self.lv().get_edge_tag(e).semi_sharp() }
-    pub fn is_vertex_semi_sharp(&self, v: Index) -> bool{ self.lv().get_vertex_tag(v).semi_sharp() }
-    pub fn is_face_hole(&self, f: Index) -> bool        { self.lv().is_face_hole(f) }
+    pub fn get_edge_sharpness(&self, e: Index) -> f32 {
+        self.lv().get_edge_sharpness(e)
+    }
+    pub fn get_vertex_sharpness(&self, v: Index) -> f32 {
+        self.lv().get_vertex_sharpness(v)
+    }
+    pub fn is_edge_inf_sharp(&self, e: Index) -> bool {
+        self.lv().get_edge_tag(e).inf_sharp()
+    }
+    pub fn is_vertex_inf_sharp(&self, v: Index) -> bool {
+        self.lv().get_vertex_tag(v).inf_sharp()
+    }
+    pub fn is_edge_semi_sharp(&self, e: Index) -> bool {
+        self.lv().get_edge_tag(e).semi_sharp()
+    }
+    pub fn is_vertex_semi_sharp(&self, v: Index) -> bool {
+        self.lv().get_vertex_tag(v).semi_sharp()
+    }
+    pub fn is_face_hole(&self, f: Index) -> bool {
+        self.lv().is_face_hole(f)
+    }
 
-    pub fn get_vertex_rule(&self, v: Index) -> Rule { self.lv().get_vertex_rule(v) }
+    pub fn get_vertex_rule(&self, v: Index) -> Rule {
+        self.lv().get_vertex_rule(v)
+    }
 
     // ---- face-varying data ----
 
-    pub fn get_num_fvar_channels(&self) -> i32 { self.lv().get_num_fvar_channels() }
+    pub fn get_num_fvar_channels(&self) -> i32 {
+        self.lv().get_num_fvar_channels()
+    }
     pub fn get_num_fvar_values(&self, channel: i32) -> i32 {
         self.lv().get_num_fvar_values(channel)
     }
@@ -152,7 +200,9 @@ impl TopologyLevel {
 
     // ---- debugging ----
 
-    pub fn validate_topology(&self) -> bool { self.lv().validate_topology(None) }
+    pub fn validate_topology(&self) -> bool {
+        self.lv().validate_topology(None)
+    }
     pub fn print_topology(&self, show_children: bool) {
         let refn = if show_children && !self.ref_to_child.is_null() {
             Some(unsafe { &*self.ref_to_child })

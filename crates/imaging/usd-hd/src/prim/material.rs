@@ -1,4 +1,3 @@
-
 //! HdMaterial - Material state primitive.
 //!
 //! Represents a material/shader network in Hydra. Materials are:

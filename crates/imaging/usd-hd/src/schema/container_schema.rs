@@ -1,4 +1,3 @@
-
 //! HdContainerSchema - Generic container with arbitrary child names.
 //!
 //! Corresponds to pxr/imaging/hd/containerSchema.h

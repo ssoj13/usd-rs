@@ -3,13 +3,15 @@
 //! Port of pxr/usdImaging/usdImaging/geomModelAPIAdapter.h/.cpp
 
 use super::api_schema_adapter::APISchemaAdapter;
-use super::data_source_mapped::{AttributeMapping, DataSourceMapped, PropertyMapping, PropertyMappings};
+use super::data_source_mapped::{
+    AttributeMapping, DataSourceMapped, PropertyMapping, PropertyMappings,
+};
 use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::geom_model_schema::GeomModelSchemaBuilder;
 use super::types::PropertyInvalidationType;
 use std::sync::Arc;
 use std::sync::LazyLock;
-use usd_core::{model_api::KindValidation, model_api::ModelAPI, Prim};
+use usd_core::{Prim, model_api::KindValidation, model_api::ModelAPI};
 use usd_geom::model_api::ModelAPI as GeomModelAPI;
 use usd_hd::data_source::HdRetainedTypedSampledDataSource;
 use usd_hd::{HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdOverlayContainerDataSource};
@@ -92,11 +94,12 @@ impl APISchemaAdapter for GeomModelAPIAdapter {
         if ModelAPI::new(prim.clone())
             .is_kind(&Token::new("component"), KindValidation::ModelHierarchy)
         {
-            static APPLY_DRAW_MODE_DS: LazyLock<HdContainerDataSourceHandle> = LazyLock::new(|| {
-                GeomModelSchemaBuilder::new()
-                    .set_apply_draw_mode(HdRetainedTypedSampledDataSource::<bool>::new(true))
-                    .build()
-            });
+            static APPLY_DRAW_MODE_DS: LazyLock<HdContainerDataSourceHandle> =
+                LazyLock::new(|| {
+                    GeomModelSchemaBuilder::new()
+                        .set_apply_draw_mode(HdRetainedTypedSampledDataSource::<bool>::new(true))
+                        .build()
+                });
             geom_model_ds =
                 HdOverlayContainerDataSource::new_2(APPLY_DRAW_MODE_DS.clone(), geom_model_ds);
         }

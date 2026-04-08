@@ -1,4 +1,3 @@
-
 //! HdSt_DrawItemsCache - Caching mechanism for filtered draw items.
 //!
 //! Provides a cache of draw items per (collection, renderTags) query.

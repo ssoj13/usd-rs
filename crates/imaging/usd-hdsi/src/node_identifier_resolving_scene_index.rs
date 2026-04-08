@@ -1,4 +1,3 @@
-
 //! Node identifier resolving scene index.
 //!
 //! Port of pxr/imaging/hdsi/nodeIdentifierResolvingSceneIndex.{h,cpp}
@@ -8,8 +7,8 @@
 //! network that lacks a nodeIdentifier (nodeType), queries SDR to find the
 //! matching SdrShaderNode and sets its identifier.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::material_network_interface::HdMaterialNetworkInterface;
 use usd_hd::scene_index::material_filtering_scene_index_base::{

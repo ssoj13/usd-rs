@@ -1,4 +1,3 @@
-
 //! Hydra utility functions.
 //!
 //! Port of pxr/imaging/hd/utils.h/cpp

@@ -1,13 +1,12 @@
-
 //! HdSt_DrawTargetSceneIndex - render-to-texture target management.
 //!
 //! Filtering scene index that manages draw targets (render-to-texture).
 //! Draw targets allow rendering to offscreen textures that can then be
 //! used as inputs to materials on other prims.
 
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::scene_index::{
     AddedPrimEntry, DirtiedPrimEntry, FilteringObserverTarget, HdSceneIndexBase,
@@ -72,7 +71,8 @@ impl HdStDrawTargetSceneIndex {
 impl HdSceneIndexBase for HdStDrawTargetSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_prim(prim_path);
             }
         }
@@ -81,7 +81,8 @@ impl HdSceneIndexBase for HdStDrawTargetSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_child_prim_paths(prim_path);
             }
         }

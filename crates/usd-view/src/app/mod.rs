@@ -19,7 +19,7 @@ use usd_sdf::TimeCode;
 use crate::camera::FreeCamera;
 use crate::data_model::{ChangeNotice, DataModel, RootDataModel};
 use crate::dock::{DockTab, DockTabViewer};
-use crate::event_bus::{downcast_event, EventBus};
+use crate::event_bus::{EventBus, downcast_event};
 use crate::events::{LoadPhase, LoadProgress, StageLoadFailed, StageLoaded};
 use crate::file_watcher::FileWatcher;
 use crate::menus::MenuState;
@@ -33,7 +33,7 @@ use crate::panels::{
 use crate::persistence::{self, AppPersistState, PreferencesSettingsJson};
 use crate::playback::PlaybackState;
 use crate::recent_files::RecentFiles;
-use crate::status_bar::{draw_status_bar, StatusBarInfo};
+use crate::status_bar::{StatusBarInfo, draw_status_bar};
 
 /// Viewer configuration (CLI and initial state).
 #[derive(Debug, Clone, Default)]
@@ -610,9 +610,7 @@ impl ViewerApp {
 
     /// Opens file dialog and loads selected file.
     pub fn open_file_dialog(&mut self) {
-        let start = file_ops::dialog_start_dir(
-            self.data_model.root.file_path.as_deref(),
-        );
+        let start = file_ops::dialog_start_dir(self.data_model.root.file_path.as_deref());
         if let Some(path) = rfd::FileDialog::new()
             .set_directory(&start)
             .add_filter("USD", &["usd", "usda", "usdc", "usdz"])
@@ -654,13 +652,17 @@ impl eframe::App for ViewerApp {
 
         // Measure frame-to-frame interval to find where time is lost
         {
-            static LAST_UPDATE: std::sync::Mutex<Option<std::time::Instant>> = std::sync::Mutex::new(None);
+            static LAST_UPDATE: std::sync::Mutex<Option<std::time::Instant>> =
+                std::sync::Mutex::new(None);
             let now = std::time::Instant::now();
             if let Ok(mut last) = LAST_UPDATE.lock() {
                 if let Some(prev) = *last {
                     let gap = now.duration_since(prev);
                     if gap.as_millis() > 100 {
-                        log::info!("[PERF] update_gap: {:.1}ms (time between update() calls)", gap.as_secs_f64() * 1000.0);
+                        log::info!(
+                            "[PERF] update_gap: {:.1}ms (time between update() calls)",
+                            gap.as_secs_f64() * 1000.0
+                        );
                     }
                 }
                 *last = Some(now);
@@ -969,7 +971,11 @@ impl eframe::App for ViewerApp {
 
         // Diagnostic: log when update() finishes
         if self.playback.is_playing() || self.data_model.root.playing {
-            log::info!("[TRACE] update() end frame={} fc={}", self.data_model.root.current_time, self.frame_count);
+            log::info!(
+                "[TRACE] update() end frame={} fc={}",
+                self.data_model.root.current_time,
+                self.frame_count
+            );
         }
     }
 }

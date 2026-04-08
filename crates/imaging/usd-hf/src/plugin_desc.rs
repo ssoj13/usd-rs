@@ -1,4 +1,3 @@
-
 //! HfPluginDesc - Plugin descriptor structure.
 //!
 //! Common structure used to report registered plugins in plugin registries.

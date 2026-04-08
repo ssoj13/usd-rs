@@ -50,9 +50,9 @@ impl StageLoadRules {
     }
 
     fn has_non_none_descendant_rule(&self, path: &Path) -> bool {
-        self.rules
-            .iter()
-            .any(|(rule_path, rule)| *rule != Rule::NoneRule && *rule_path != *path && rule_path.has_prefix(path))
+        self.rules.iter().any(|(rule_path, rule)| {
+            *rule != Rule::NoneRule && *rule_path != *path && rule_path.has_prefix(path)
+        })
     }
 
     /// Creates default load rules (load everything).

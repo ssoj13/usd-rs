@@ -1,4 +1,3 @@
-
 //! HdChangeTracker - Dirty bit constants and change tracking.
 //!
 //! Tracks changes from the scene delegate, providing invalidation cues to the

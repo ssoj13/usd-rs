@@ -51,7 +51,9 @@ struct TranslationConfig {
 impl TranslationConfig {
     /// Returns whether a prim-level child should be path-translated recursively.
     fn should_translate_paths_for_name(&self, name: &Token) -> bool {
-        self.proxy_path_data_source_names.iter().any(|token| token == name)
+        self.proxy_path_data_source_names
+            .iter()
+            .any(|token| token == name)
     }
 }
 
@@ -441,7 +443,10 @@ fn extract_path_array_value(
     }
 
     if let Some(values) = value.get::<Vec<Value>>() {
-        return values.iter().map(|value| value.get::<Path>().cloned()).collect();
+        return values
+            .iter()
+            .map(|value| value.get::<Path>().cloned())
+            .collect();
     }
 
     None
@@ -453,10 +458,7 @@ fn is_valid_prim(prim: &HdSceneIndexPrim) -> bool {
 }
 
 /// Extract an `SdfPath` child from a container data source.
-fn get_container_path_value(
-    container: &HdContainerDataSourceHandle,
-    name: &Token,
-) -> Option<Path> {
+fn get_container_path_value(container: &HdContainerDataSourceHandle, name: &Token) -> Option<Path> {
     extract_path_value(&container.get(name)?, 0.0)
 }
 
@@ -473,8 +475,7 @@ fn get_prototype_path(
 ) -> Option<Path> {
     let instance_container = cast_to_container(&prim_data_source.get(&tokens::INSTANCE)?)?;
     let instancer_path = get_container_path_value(&instance_container, &tokens::INSTANCER)?;
-    let prototype_index =
-        get_container_i32_value(&instance_container, &tokens::PROTOTYPE_INDEX)?;
+    let prototype_index = get_container_i32_value(&instance_container, &tokens::PROTOTYPE_INDEX)?;
     if prototype_index < 0 {
         return None;
     }
@@ -499,7 +500,10 @@ fn translate_path(path: &Path, scene_index: &HdSceneIndexHandle) -> Path {
     }
 
     let mut result = Path::absolute_root();
-    for component in path_string.split('/').filter(|component| !component.is_empty()) {
+    for component in path_string
+        .split('/')
+        .filter(|component| !component.is_empty())
+    {
         let Some(next) = result.append_child(component) else {
             return path.clone();
         };
@@ -637,7 +641,10 @@ mod tests {
         let input = make_test_input();
         let path = Path::from_string("/Inst/Child").unwrap();
         let translated = translate_path(&path, &input);
-        assert_eq!(translated, Path::from_string("/__Prototype_1/Child").unwrap());
+        assert_eq!(
+            translated,
+            Path::from_string("/__Prototype_1/Child").unwrap()
+        );
     }
 
     #[test]
@@ -682,6 +689,8 @@ mod tests {
             dirty_locators: Default::default(),
         };
 
-        scene.read().on_prims_dirtied(&*input.read(), &[entry.clone()]);
+        scene
+            .read()
+            .on_prims_dirtied(&*input.read(), &[entry.clone()]);
     }
 }

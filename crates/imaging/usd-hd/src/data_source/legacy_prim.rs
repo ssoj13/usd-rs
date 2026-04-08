@@ -1,4 +1,3 @@
-
 //! HdDataSourceLegacyPrim - Bridge HdSceneDelegate to data source (legacy emulation).
 //!
 //! Corresponds to pxr/imaging/hd/dataSourceLegacyPrim.h/cpp.
@@ -7,11 +6,11 @@
 
 use super::base::HdDataSourceBase;
 use super::retained::{HdRetainedContainerDataSource, HdRetainedSampledDataSource};
+use super::sampled::{HdSampledDataSource, HdSampledDataSourceTime};
 use super::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBaseHandle,
     HdDataSourceLocatorSet,
 };
-use super::sampled::{HdSampledDataSource, HdSampledDataSourceTime};
 use crate::data_source::locator::HdDataSourceLocator;
 use crate::enums::{HdCullStyle, HdInterpolation};
 use crate::prim::HdSceneDelegate;
@@ -1957,7 +1956,10 @@ impl HdContainerDataSource for HdDataSourceLegacyPrim {
         } else if *name == *TOK_DISPLAY_STYLE {
             return self.get_display_style_ds();
         } else if *name == *TOK_SCENE_DELEGATE {
-            return self.scene_delegate.as_ref().map(|sd| LegacySceneDelegateDs::new(sd.clone()));
+            return self
+                .scene_delegate
+                .as_ref()
+                .map(|sd| LegacySceneDelegateDs::new(sd.clone()));
         } else if *name == *TOK_INSTANCED_BY {
             return self.get_instanced_by_ds();
         } else if *name == *TOK_VISIBILITY {

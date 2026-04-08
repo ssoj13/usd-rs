@@ -1,4 +1,3 @@
-
 //! CullingShaderKey - shader keys for GPU frustum/backface culling.
 //!
 //! Port of C++ `HdSt_CullingShaderKey` and `HdSt_CullingComputeShaderKey`.

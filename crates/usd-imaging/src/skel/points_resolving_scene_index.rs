@@ -6,8 +6,8 @@
 
 use super::data_source_resolved_ext_computation_prim::data_source_resolved_ext_computation_prim;
 use super::data_source_resolved_points_based_prim::DataSourceResolvedPointsBasedPrim;
-use super::resolved_skeleton_schema::ResolvedSkeletonSchema;
 use super::resolved_points_based_prim_container::ResolvedPointsBasedPrimContainer;
+use super::resolved_skeleton_schema::ResolvedSkeletonSchema;
 use super::tokens::{EXT_COMPUTATION_NAME_TOKENS, PRIM_TYPE_TOKENS};
 use super::xform_resolver::DataSourceXformResolver;
 use parking_lot::RwLock;
@@ -21,7 +21,7 @@ use usd_hd::scene_index::observer::{
 };
 use usd_hd::scene_index::{
     FilteringObserverTarget, HdSceneIndexBase, HdSceneIndexHandle, HdSceneIndexPrim,
-    HdSingleInputFilteringSceneIndexBase, SdfPathVector, wire_filter_to_input, si_ref,
+    HdSingleInputFilteringSceneIndexBase, SdfPathVector, si_ref, wire_filter_to_input,
 };
 use usd_sdf::Path as SdfPath;
 use usd_tf::Token;
@@ -107,11 +107,7 @@ fn populate_from_dependencies(
     }
 }
 
-fn remove_dependency(
-    map: &mut HashMap<SdfPath, HashSet<SdfPath>>,
-    key: &SdfPath,
-    value: &SdfPath,
-) {
+fn remove_dependency(map: &mut HashMap<SdfPath, HashSet<SdfPath>>, key: &SdfPath, value: &SdfPath) {
     let should_remove_key = if let Some(set) = map.get_mut(key) {
         set.remove(value);
         set.is_empty()
@@ -168,11 +164,7 @@ fn remove_dependencies_for_resolved_prim_state(
 ) {
     let skeleton_path = resolved.get_skeleton_path();
     if !skeleton_path.is_empty() {
-        remove_dependency(
-            &mut state.skel_path_to_prim_paths,
-            skeleton_path,
-            prim_path,
-        );
+        remove_dependency(&mut state.skel_path_to_prim_paths, skeleton_path, prim_path);
     }
 
     for blend_shape_path in resolved.get_blend_shape_target_paths() {
@@ -222,9 +214,7 @@ impl PointsResolvingSceneIndex {
         wire_filter_to_input(&this, &input_scene);
 
         // Initial population
-        let input_handle = this
-            .read()
-            .base.get_input_scene().cloned();
+        let input_handle = this.read().base.get_input_scene().cloned();
         if let Some(input_handle) = input_handle {
             let input_locked = input_handle.read();
             let guard = this.read();
@@ -262,7 +252,9 @@ impl PointsResolvingSceneIndex {
                 remove_dependencies_for_resolved_prim_state(&mut state, prim_path, &previous);
             }
             add_dependencies_for_resolved_prim_state(&mut state, prim_path, &resolved);
-            state.path_to_resolved_prim.insert(prim_path.clone(), resolved);
+            state
+                .path_to_resolved_prim
+                .insert(prim_path.clone(), resolved);
             true
         } else {
             false
@@ -278,7 +270,10 @@ impl PointsResolvingSceneIndex {
         self.add_resolved_prim(input_handle, prim_path)
     }
 
-    fn remove_resolved_prim(&self, prim_path: &SdfPath) -> Option<Arc<DataSourceResolvedPointsBasedPrim>> {
+    fn remove_resolved_prim(
+        &self,
+        prim_path: &SdfPath,
+    ) -> Option<Arc<DataSourceResolvedPointsBasedPrim>> {
         let mut state = self.state.lock().expect("Lock poisoned");
         let removed = state.path_to_resolved_prim.remove(prim_path);
         if let Some(ref resolved) = removed {
@@ -358,8 +353,10 @@ impl PointsResolvingSceneIndex {
 
             if let Some(dirtied_entries) = dirtied_entries.as_mut() {
                 if !*has_added_entry && (removed || added) {
-                    dirtied_entries
-                        .push(DirtiedPrimEntry::new(prim_path.clone(), HdDataSourceLocatorSet::universal()));
+                    dirtied_entries.push(DirtiedPrimEntry::new(
+                        prim_path.clone(),
+                        HdDataSourceLocatorSet::universal(),
+                    ));
                     if has_ext_computations {
                         for name in ext_computation_names() {
                             if let Some(child_path) = prim_path.append_child(name.as_str()) {
@@ -387,7 +384,8 @@ impl PointsResolvingSceneIndex {
                 if has_ext_computations && !had_ext_computations {
                     for name in ext_computation_names() {
                         if let Some(child_path) = prim_path.append_child(name.as_str()) {
-                            added_entries.push(AddedPrimEntry::new(child_path, ext_computation_token()));
+                            added_entries
+                                .push(AddedPrimEntry::new(child_path, ext_computation_token()));
                         }
                     }
                 }
@@ -569,7 +567,9 @@ impl FilteringObserverTarget for PointsResolvingSceneIndex {
 
         let mut prims_needing_refresh_to_has_added_entry = HashMap::new();
         for entry in entries {
-            if is_point_based_prim(&entry.prim_type) || self.remove_resolved_prim(&entry.prim_path).is_some() {
+            if is_point_based_prim(&entry.prim_type)
+                || self.remove_resolved_prim(&entry.prim_path).is_some()
+            {
                 prims_needing_refresh_to_has_added_entry.insert(entry.prim_path.clone(), true);
             }
         }
@@ -871,9 +871,12 @@ impl FilteringObserverTarget for PointsResolvingSceneIndex {
                 prims_needing_refresh_to_has_added_entry.insert(entry.prim_path.clone(), false);
             }
 
-            if entry.dirty_locators.intersects(&HdDataSourceLocatorSet::from_locator(
-                ResolvedSkeletonSchema::get_default_locator(),
-            )) {
+            if entry
+                .dirty_locators
+                .intersects(&HdDataSourceLocatorSet::from_locator(
+                    ResolvedSkeletonSchema::get_default_locator(),
+                ))
+            {
                 let prim_paths: Vec<_> = lookup(&skel_dependencies, &entry.prim_path)
                     .cloned()
                     .collect();
@@ -890,9 +893,12 @@ impl FilteringObserverTarget for PointsResolvingSceneIndex {
                 }
             }
 
-            if entry.dirty_locators.intersects(&HdDataSourceLocatorSet::from_locator(
-                super::blend_shape_schema::BlendShapeSchema::get_default_locator(),
-            )) {
+            if entry
+                .dirty_locators
+                .intersects(&HdDataSourceLocatorSet::from_locator(
+                    super::blend_shape_schema::BlendShapeSchema::get_default_locator(),
+                ))
+            {
                 let prim_paths: Vec<_> = lookup(&blend_dependencies, &entry.prim_path)
                     .cloned()
                     .collect();

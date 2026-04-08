@@ -1,4 +1,3 @@
-
 //! Scene index plugin registry.
 
 use super::base::HdSceneIndexHandle;

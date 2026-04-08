@@ -2317,8 +2317,7 @@ pub fn collapse_ops(ir: &mut ShaderIR) {
     }
 
     // Remove nop opcodes
-    ir.opcodes
-        .retain(|op| op.op != "nop" && !op.op.is_empty());
+    ir.opcodes.retain(|op| op.op != "nop" && !op.op.is_empty());
 }
 
 /// Coalesce temporary variables: merge temps with non-overlapping lifetimes.
@@ -3356,10 +3355,7 @@ pub fn propagate_constants_across_connections(
         // Find the source symbol and check if it's a constant
         let const_value = {
             let src_ir = &layers[src_layer].0;
-            let src_sym_idx = src_ir
-                .symbols
-                .iter()
-                .position(|s| s.name == src_param_name);
+            let src_sym_idx = src_ir.symbols.iter().position(|s| s.name == src_param_name);
             if let Some(idx) = src_sym_idx {
                 let sym = &src_ir.symbols[idx];
                 // Check if the symbol has been simplified to a constant
@@ -3382,10 +3378,7 @@ pub fn propagate_constants_across_connections(
         // If we found a constant, propagate it to the destination
         if let Some(cv) = const_value {
             let dst_ir = &mut layers[dst_layer].0;
-            let dst_sym_idx = dst_ir
-                .symbols
-                .iter()
-                .position(|s| s.name == dst_param_name);
+            let dst_sym_idx = dst_ir.symbols.iter().position(|s| s.name == dst_param_name);
             if let Some(idx) = dst_sym_idx {
                 // Remove existing defaults for this param
                 dst_ir.param_defaults.retain(|&(i, _)| i != idx);
@@ -3469,7 +3462,12 @@ pub fn optimize_group(
     connections: &[crate::shadingsys::Connection],
     level: OptLevel,
 ) -> OptStats {
-    optimize_group_with_params(layers, connections, level, &std::collections::HashMap::new())
+    optimize_group_with_params(
+        layers,
+        connections,
+        level,
+        &std::collections::HashMap::new(),
+    )
 }
 
 /// Optimize a shader group with parameter specialization then cross-connection propagation.

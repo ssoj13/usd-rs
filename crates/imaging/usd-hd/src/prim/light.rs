@@ -1,4 +1,3 @@
-
 //! HdLight - Light state primitive.
 //!
 //! Represents lights in Hydra. Supports:

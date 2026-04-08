@@ -16,7 +16,7 @@ use std::sync::Mutex;
 /// Interned string for fast O(1) comparison and hashing.
 ///
 /// Mirrors `pxr.Tf.Token` / `TfToken` from C++ OpenUSD.
-#[pyclass(skip_from_py_object,name = "Token", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "Token", module = "pxr_rs.Tf")]
 #[derive(Clone)]
 pub struct PyToken {
     inner: usd_tf::Token,
@@ -84,7 +84,7 @@ impl PyToken {
 /// Runtime type handle — mirrors `pxr.Tf.Type` / `TfType`.
 ///
 /// Use `Type.Find()` / `Type.FindByName()` to look up registered types.
-#[pyclass(skip_from_py_object,name = "Type", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "Type", module = "pxr_rs.Tf")]
 #[derive(Clone)]
 pub struct PyType {
     /// Shared with `Usd` / `UsdGeom` bindings for schema and `IsA` queries.
@@ -146,9 +146,15 @@ impl PyType {
     #[classmethod]
     #[pyo3(name = "Find")]
     fn find(_cls: &Bound<'_, pyo3::types::PyType>, arg: &Bound<'_, PyAny>) -> Self {
-        let name = if let Ok(s) = arg.extract::<String>() { s }
-            else if let Ok(n) = arg.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
-            else { return Self { inner: usd_tf::TfType::unknown() }; };
+        let name = if let Ok(s) = arg.extract::<String>() {
+            s
+        } else if let Ok(n) = arg.getattr("__name__").and_then(|n| n.extract::<String>()) {
+            n
+        } else {
+            return Self {
+                inner: usd_tf::TfType::unknown(),
+            };
+        };
         Self {
             inner: usd_tf::TfType::find_by_name(&name),
         }
@@ -281,7 +287,7 @@ impl PyType {
 /// A listener registration key — holds the revoke handle.
 ///
 /// Mirrors `pxr.Tf.Notice.Listener` / `TfNotice::Key`.
-#[pyclass(skip_from_py_object,name = "NoticeListener", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "NoticeListener", module = "pxr_rs.Tf")]
 pub struct PyNoticeListener {
     /// The revoke handle from the Rust registry; None after `Revoke()`.
     key: Option<usd_tf::notice::ListenerKey>,
@@ -322,7 +328,7 @@ impl PyNoticeListener {
 /// Python-level notice types (subclasses of this) carry a string type tag
 /// so they can be dispatched through the Rust notice system via a
 /// string-keyed shim registry.
-#[pyclass(skip_from_py_object,name = "Notice", module = "pxr_rs.Tf", subclass)]
+#[pyclass(skip_from_py_object, name = "Notice", module = "pxr_rs.Tf", subclass)]
 pub struct PyNotice {
     /// Logical type name set by the concrete Python notice subclass.
     notice_type: String,
@@ -452,8 +458,8 @@ impl PythonNoticeShim {
         // keep a manual table keyed by tag and issue callbacks directly in send().
         // We still need to return a real ListenerKey, so we mint a dummy one via
         // registering a no-op global listener and track it ourselves.
-        let key = usd_tf::notice::global_registry()
-            .register_global::<PythonStringNotice, _>(|_notice| {
+        let key =
+            usd_tf::notice::global_registry().register_global::<PythonStringNotice, _>(|_notice| {
                 // Dispatch happens in send(); this closure is a no-op placeholder
                 // required to satisfy the Rust notice registry's typed API.
             });
@@ -474,28 +480,28 @@ impl PythonNoticeShim {
         // callback, so no GIL is held and no re-entrancy issues can occur.
         #[allow(unsafe_code)]
         unsafe {
-        Python::attach_unchecked(|py| {
-            let callbacks: Vec<Py<PyAny>> = {
-                let entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
-                entries
-                    .get(tag)
-                    .map(|e| {
-                        e.callbacks
-                            .iter()
-                            .filter(|(k, _)| k.is_valid())
-                            .map(|(_, cb)| cb.clone_ref(py))
-                            .collect()
-                    })
-                    .unwrap_or_default()
-            };
+            Python::attach_unchecked(|py| {
+                let callbacks: Vec<Py<PyAny>> = {
+                    let entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+                    entries
+                        .get(tag)
+                        .map(|e| {
+                            e.callbacks
+                                .iter()
+                                .filter(|(k, _)| k.is_valid())
+                                .map(|(_, cb)| cb.clone_ref(py))
+                                .collect()
+                        })
+                        .unwrap_or_default()
+                };
 
-            for cb in callbacks {
-                // Call the Python callable with no arguments (notice value is opaque here).
-                if let Err(e) = cb.call0(py) {
-                    e.print(py);
+                for cb in callbacks {
+                    // Call the Python callable with no arguments (notice value is opaque here).
+                    if let Err(e) = cb.call0(py) {
+                        e.print(py);
+                    }
                 }
-            }
-        })
+            })
         } // end unsafe
     }
 }
@@ -505,7 +511,7 @@ impl PythonNoticeShim {
 // ============================================================================
 
 /// High-resolution timer — mirrors `pxr.Tf.Stopwatch` / `TfStopwatch`.
-#[pyclass(skip_from_py_object,name = "Stopwatch", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "Stopwatch", module = "pxr_rs.Tf")]
 pub struct PyStopwatch {
     inner: usd_tf::stopwatch::Stopwatch,
 }
@@ -602,7 +608,7 @@ impl PyStopwatch {
 ///
 /// Debug symbols are named boolean flags that gate diagnostic output.
 /// They can be toggled at runtime or via the `TF_DEBUG` environment variable.
-#[pyclass(skip_from_py_object,name = "Debug", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "Debug", module = "pxr_rs.Tf")]
 pub struct PyDebug;
 
 #[pymethods]
@@ -777,11 +783,7 @@ fn fatal(py: Python<'_>, msg: &str, args: &Bound<'_, PyTuple>) -> PyResult<()> {
         format_msg(msg, args)?
     };
     // Raise SystemExit so Python's atexit handlers still run.
-    py.run(
-        pyo3::ffi::c_str!("raise SystemExit(1)"),
-        None,
-        None,
-    )?;
+    py.run(pyo3::ffi::c_str!("raise SystemExit(1)"), None, None)?;
     // issue_fatal_error would call process::abort; we prefer SystemExit from Python.
     eprintln!("FATAL: {}", formatted);
     Ok(())
@@ -902,10 +904,8 @@ impl PyCallTree {
     #[pyo3(name = "GetPrettyPrintString")]
     #[pyo3(signature = (max_printed_nodes = 1000))]
     fn get_pretty_print_string(&self, max_printed_nodes: usize) -> String {
-        self.inner.get_pretty_print_string(
-            usd_tf::malloc_tag::PrintSetting::Both,
-            max_printed_nodes,
-        )
+        self.inner
+            .get_pretty_print_string(usd_tf::malloc_tag::PrintSetting::Both, max_printed_nodes)
     }
 
     /// Print report to stdout.
@@ -996,7 +996,11 @@ impl PyCallTree {
             }
 
             // End of tree section: empty line, separator, or new report header
-            if in_tree && (trimmed.is_empty() || trimmed.starts_with("---") || trimmed.starts_with("Call sites")) {
+            if in_tree
+                && (trimmed.is_empty()
+                    || trimmed.starts_with("---")
+                    || trimmed.starts_with("Call sites"))
+            {
                 in_tree = false;
                 continue;
             }
@@ -1240,7 +1244,10 @@ impl PyPathNode {
     /// Return child nodes.
     #[pyo3(name = "GetChildren")]
     fn get_children(&self) -> Vec<PyPathNode> {
-        self.children_data.iter().map(PyPathNode::from_node).collect()
+        self.children_data
+            .iter()
+            .map(PyPathNode::from_node)
+            .collect()
     }
 
     fn __repr__(&self) -> String {
@@ -1311,7 +1318,7 @@ impl PyScriptModuleLoader {
 /// Mirrors `Tf.Enum` / `TfEnum` usage in Python where int subclasses carry
 /// a type tag.  In practice pxr uses Python ints directly — this wrapper
 /// preserves the `typeName` attribute for introspection.
-#[pyclass(skip_from_py_object,name = "Enum", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "Enum", module = "pxr_rs.Tf")]
 #[derive(Clone)]
 pub struct PyEnum {
     value: i64,
@@ -1421,7 +1428,10 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_env_setting, m)?)?;
 
     // ErrorException attribute (pxr.Tf.ErrorException)
-    m.add("ErrorException", py.get_type::<pyo3::exceptions::PyException>())?;
+    m.add(
+        "ErrorException",
+        py.get_type::<pyo3::exceptions::PyException>(),
+    )?;
 
     Ok(())
 }

@@ -1,4 +1,3 @@
-
 //! Debugging scene index plugin.
 //!
 //! Registers debugging scene index if env var
@@ -37,7 +36,8 @@ impl HdsiDebuggingSceneIndexPlugin {
             return;
         }
         let registry = usd_hd::scene_index::HdSceneIndexPluginRegistry::get_instance();
-        { let mut reg = registry.write();
+        {
+            let mut reg = registry.write();
             reg.register_plugin(Arc::new(Self));
             reg.register_scene_index_for_renderer("", TfToken::new(PLUGIN_NAME));
         }

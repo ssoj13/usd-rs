@@ -1,4 +1,3 @@
-
 //! HdSt_TetMeshConversionSceneIndexPlugin - converts tet meshes to triangles.
 //!
 //! Storm does not natively support tetrahedral meshes. This plugin inserts a
@@ -7,8 +6,8 @@
 //!
 //! Port of C++ `HdSt_TetMeshConversionSceneIndexPlugin`.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::scene_index::{
     AddedPrimEntry, DirtiedPrimEntry, FilteringObserverTarget, HdSceneIndexBase,
@@ -49,7 +48,8 @@ impl HdStTetMeshConversionSceneIndex {
 impl HdSceneIndexBase for HdStTetMeshConversionSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let lock = input.read();
+            {
+                let lock = input.read();
                 return lock.get_prim(prim_path);
             }
         }
@@ -58,7 +58,8 @@ impl HdSceneIndexBase for HdStTetMeshConversionSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let lock = input.read();
+            {
+                let lock = input.read();
                 return lock.get_child_prim_paths(prim_path);
             }
         }

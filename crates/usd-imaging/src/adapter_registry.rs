@@ -1,9 +1,9 @@
 //! Adapter registry for mapping USD types to adapters.
 
 use super::prim_adapter::{NoOpAdapter, PrimAdapterHandle};
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_core::{Prim, SchemaRegistry};
 use usd_tf::Token;
 

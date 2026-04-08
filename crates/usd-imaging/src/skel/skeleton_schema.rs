@@ -4,15 +4,15 @@
 //!
 //! Provides data source schema for skeleton data in Hydra.
 
-use std::sync::Arc;
 use super::data_source_utils::{
     get_typed_value_from_container_vec_mat4d, get_typed_value_from_container_vec_token,
 };
+use std::sync::Arc;
 use usd_gf::matrix4::{Matrix4d, Matrix4f};
+use usd_hd::data_source::{HdTypedSampledDataSource, HdValueExtract, SampledToTypedAdapter};
 use usd_hd::{
     HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdDataSourceLocator, cast_to_container,
 };
-use usd_hd::data_source::{HdTypedSampledDataSource, HdValueExtract, SampledToTypedAdapter};
 use usd_tf::Token;
 use usd_vt::{Array, Value};
 
@@ -39,9 +39,22 @@ fn value_to_matrix4d(value: &Value) -> Option<Matrix4d> {
             let scalars: Option<Vec<f64>> = values.iter().map(value_to_f64).collect();
             if let Some(scalars) = scalars {
                 return Some(Matrix4d::new(
-                    scalars[0], scalars[1], scalars[2], scalars[3], scalars[4], scalars[5],
-                    scalars[6], scalars[7], scalars[8], scalars[9], scalars[10], scalars[11],
-                    scalars[12], scalars[13], scalars[14], scalars[15],
+                    scalars[0],
+                    scalars[1],
+                    scalars[2],
+                    scalars[3],
+                    scalars[4],
+                    scalars[5],
+                    scalars[6],
+                    scalars[7],
+                    scalars[8],
+                    scalars[9],
+                    scalars[10],
+                    scalars[11],
+                    scalars[12],
+                    scalars[13],
+                    scalars[14],
+                    scalars[15],
                 ));
             }
         }
@@ -216,7 +229,9 @@ impl SkeletonSchema {
         }
         let result = Vec::<Matrix4d>::extract(&value)
             .or_else(|| extract_matrix4d_vec(&value))
-            .or_else(|| get_typed_value_from_container_vec_mat4d(container, &tokens::BIND_TRANSFORMS))
+            .or_else(|| {
+                get_typed_value_from_container_vec_mat4d(container, &tokens::BIND_TRANSFORMS)
+            })
             .unwrap_or_default();
         if diag {
             eprintln!(

@@ -58,11 +58,8 @@ fn create_stage() -> std::sync::Arc<usd_core::stage::Stage> {
         "#,
     );
 
-    usd_core::stage::Stage::open_with_root_layer(
-        layer,
-        usd_core::common::InitialLoadSet::LoadAll,
-    )
-    .expect("open stage from layer")
+    usd_core::stage::Stage::open_with_root_layer(layer, usd_core::common::InitialLoadSet::LoadAll)
+        .expect("open stage from layer")
 }
 
 /// test_Connections: simple connect list with correct order.
@@ -207,14 +204,29 @@ fn attr_connections_in_instances() {
     eprintln!("Root is_instance: {}", root_prim.is_instance());
     eprintln!("Root is_instanceable: {}", root_prim.is_instanceable());
     let prototype = root_prim.get_prototype();
-    eprintln!("prototype path: {}, is_pseudo_root: {}", prototype.path(), prototype.is_pseudo_root());
-    eprintln!("prototype children: {:?}", prototype.get_children().iter().map(|c| c.path().to_string()).collect::<Vec<_>>());
+    eprintln!(
+        "prototype path: {}, is_pseudo_root: {}",
+        prototype.path(),
+        prototype.is_pseudo_root()
+    );
+    eprintln!(
+        "prototype children: {:?}",
+        prototype
+            .get_children()
+            .iter()
+            .map(|c| c.path().to_string())
+            .collect::<Vec<_>>()
+    );
     assert!(!prototype.is_pseudo_root(), "prototype should exist");
     let proto_path = prototype.path().clone();
 
     // Simple source list with correct order
     let foo = prototype.get_child(&usd_tf::Token::new("Foo"));
-    eprintln!("foo path: {}, is_valid: {}", foo.path(), !foo.is_pseudo_root());
+    eprintln!(
+        "foo path: {}, is_valid: {}",
+        foo.path(),
+        !foo.is_pseudo_root()
+    );
     let attr = foo.get_attribute("testAttr").expect("testAttr");
     let expected = vec![
         proto_path.append_child("Qux").unwrap(),
@@ -430,13 +442,25 @@ fn attr_connections_to_objects_in_instances() {
         proto_path.append_child("A").unwrap(),
         proto_path.append_path(&Path::from("A.attr")).unwrap(),
         proto_path.append_child("NestedInstance_1").unwrap(),
-        proto_path.append_path(&Path::from("NestedInstance_1.attr")).unwrap(),
-        proto_path.append_path(&Path::from("NestedInstance_1/B")).unwrap(),
-        proto_path.append_path(&Path::from("NestedInstance_1/B.attr")).unwrap(),
+        proto_path
+            .append_path(&Path::from("NestedInstance_1.attr"))
+            .unwrap(),
+        proto_path
+            .append_path(&Path::from("NestedInstance_1/B"))
+            .unwrap(),
+        proto_path
+            .append_path(&Path::from("NestedInstance_1/B.attr"))
+            .unwrap(),
         proto_path.append_child("NestedInstance_2").unwrap(),
-        proto_path.append_path(&Path::from("NestedInstance_2.attr")).unwrap(),
-        proto_path.append_path(&Path::from("NestedInstance_2/B")).unwrap(),
-        proto_path.append_path(&Path::from("NestedInstance_2/B.attr")).unwrap(),
+        proto_path
+            .append_path(&Path::from("NestedInstance_2.attr"))
+            .unwrap(),
+        proto_path
+            .append_path(&Path::from("NestedInstance_2/B"))
+            .unwrap(),
+        proto_path
+            .append_path(&Path::from("NestedInstance_2/B.attr"))
+            .unwrap(),
     ];
     assert_eq!(proto_attr.get_connections(), proto_expected);
 }

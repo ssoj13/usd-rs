@@ -426,15 +426,27 @@ pub fn gen_points_shader(key: &PointsProgramKey) -> WgslShaderCode {
     writeln!(src, "fn vs_main(in: VertexInput) -> VertexOutput {{").unwrap();
     writeln!(src, "    var out: VertexOutput;").unwrap();
     writeln!(src, "    let model = scene.model;").unwrap();
-    writeln!(src, "    let world_pos = (model * vec4<f32>(in.position, 1.0)).xyz;").unwrap();
-    writeln!(src, "    out.position = scene.view_proj * vec4<f32>(world_pos, 1.0);").unwrap();
+    writeln!(
+        src,
+        "    let world_pos = (model * vec4<f32>(in.position, 1.0)).xyz;"
+    )
+    .unwrap();
+    writeln!(
+        src,
+        "    out.position = scene.view_proj * vec4<f32>(world_pos, 1.0);"
+    )
+    .unwrap();
     if key.has_color {
         writeln!(src, "    out.color = in.color;").unwrap();
     } else {
         writeln!(src, "    out.color = material.diffuse_color;").unwrap();
     }
     if key.use_instancing || key.pick_buffer_rw {
-        let src_id = if key.use_instancing { "in.instance_id" } else { "0u" };
+        let src_id = if key.use_instancing {
+            "in.instance_id"
+        } else {
+            "0u"
+        };
         writeln!(src, "    out.instance_id = {};", src_id).unwrap();
     }
     writeln!(src, "    return out;").unwrap();
@@ -452,7 +464,11 @@ pub fn gen_points_shader(key: &PointsProgramKey) -> WgslShaderCode {
         )
         .unwrap();
     } else {
-        writeln!(src, "fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {{").unwrap();
+        writeln!(
+            src,
+            "fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {{"
+        )
+        .unwrap();
     }
     if key.pick_buffer_rw {
         writeln!(
@@ -518,15 +534,27 @@ pub fn gen_basis_curves_shader(key: &BasisCurvesProgramKey) -> WgslShaderCode {
     writeln!(src, "fn vs_main(in: VertexInput) -> VertexOutput {{").unwrap();
     writeln!(src, "    var out: VertexOutput;").unwrap();
     writeln!(src, "    let model = scene.model;").unwrap();
-    writeln!(src, "    let world_pos = (model * vec4<f32>(in.position, 1.0)).xyz;").unwrap();
-    writeln!(src, "    out.position = scene.view_proj * vec4<f32>(world_pos, 1.0);").unwrap();
+    writeln!(
+        src,
+        "    let world_pos = (model * vec4<f32>(in.position, 1.0)).xyz;"
+    )
+    .unwrap();
+    writeln!(
+        src,
+        "    out.position = scene.view_proj * vec4<f32>(world_pos, 1.0);"
+    )
+    .unwrap();
     if key.has_color {
         writeln!(src, "    out.color = in.color;").unwrap();
     } else {
         writeln!(src, "    out.color = material.diffuse_color;").unwrap();
     }
     if key.use_instancing || key.pick_buffer_rw {
-        let src_id = if key.use_instancing { "in.instance_id" } else { "0u" };
+        let src_id = if key.use_instancing {
+            "in.instance_id"
+        } else {
+            "0u"
+        };
         writeln!(src, "    out.instance_id = {};", src_id).unwrap();
     }
     writeln!(src, "    return out;").unwrap();
@@ -537,7 +565,11 @@ pub fn gen_basis_curves_shader(key: &BasisCurvesProgramKey) -> WgslShaderCode {
         emit_selection_highlight_fn(&mut src);
     }
     writeln!(src, "@fragment").unwrap();
-    writeln!(src, "fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {{").unwrap();
+    writeln!(
+        src,
+        "fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {{"
+    )
+    .unwrap();
     if key.pick_buffer_rw {
         writeln!(
             src,
@@ -590,13 +622,13 @@ fn uses_face_varying_storage(key: &MeshShaderKey) -> bool {
 }
 
 fn emit_face_varying_ssbo(src: &mut String, key: &MeshShaderKey) {
-    let group = slots::face_varying_group(
-        key.has_uv,
-        key.has_ibl,
-        key.use_shadows,
-        key.use_instancing,
-    );
-    writeln!(src, "// Packed face-varying payload: [header u32s | float words]").unwrap();
+    let group =
+        slots::face_varying_group(key.has_uv, key.has_ibl, key.use_shadows, key.use_instancing);
+    writeln!(
+        src,
+        "// Packed face-varying payload: [header u32s | float words]"
+    )
+    .unwrap();
     writeln!(
         src,
         "@group({}) @binding({}) var<storage, read> face_varying_data: array<u32>;",
@@ -616,21 +648,49 @@ fn emit_face_varying_helpers(src: &mut String) {
     writeln!(src, "    return bitcast<f32>(face_varying_data[idx]);").unwrap();
     writeln!(src, "}}").unwrap();
     writeln!(src, "fn fvar_channel_base(slot: u32) -> u32 {{").unwrap();
-    writeln!(src, "    return scene.fvar_base_words + face_varying_data[scene.fvar_base_words + slot];").unwrap();
+    writeln!(
+        src,
+        "    return scene.fvar_base_words + face_varying_data[scene.fvar_base_words + slot];"
+    )
+    .unwrap();
     writeln!(src, "}}").unwrap();
-    writeln!(src, "fn load_fvar_vec3(slot: u32, local_index: u32) -> vec3<f32> {{").unwrap();
-    writeln!(src, "    let base = fvar_channel_base(slot) + local_index * 3u;").unwrap();
+    writeln!(
+        src,
+        "fn load_fvar_vec3(slot: u32, local_index: u32) -> vec3<f32> {{"
+    )
+    .unwrap();
+    writeln!(
+        src,
+        "    let base = fvar_channel_base(slot) + local_index * 3u;"
+    )
+    .unwrap();
     writeln!(
         src,
         "    return vec3<f32>(fvar_word(base), fvar_word(base + 1u), fvar_word(base + 2u));"
     )
     .unwrap();
     writeln!(src, "}}").unwrap();
-    writeln!(src, "fn load_fvar_vec2(slot: u32, local_index: u32) -> vec2<f32> {{").unwrap();
-    writeln!(src, "    let base = fvar_channel_base(slot) + local_index * 2u;").unwrap();
-    writeln!(src, "    return vec2<f32>(fvar_word(base), fvar_word(base + 1u));").unwrap();
+    writeln!(
+        src,
+        "fn load_fvar_vec2(slot: u32, local_index: u32) -> vec2<f32> {{"
+    )
+    .unwrap();
+    writeln!(
+        src,
+        "    let base = fvar_channel_base(slot) + local_index * 2u;"
+    )
+    .unwrap();
+    writeln!(
+        src,
+        "    return vec2<f32>(fvar_word(base), fvar_word(base + 1u));"
+    )
+    .unwrap();
     writeln!(src, "}}").unwrap();
-    writeln!(src, "fn load_fvar_scalar(slot: u32, local_index: u32) -> f32 {{").unwrap();
+    writeln!(
+        src,
+        "fn load_fvar_scalar(slot: u32, local_index: u32) -> f32 {{"
+    )
+    .unwrap();
     writeln!(src, "    let base = fvar_channel_base(slot) + local_index;").unwrap();
     writeln!(src, "    return fvar_word(base);").unwrap();
     writeln!(src, "}}").unwrap();
@@ -914,7 +974,11 @@ fn emit_instance_xforms_ssbo(src: &mut String, group: u32) {
 
 /// Emit the resolveDeep pick-buffer storage declaration and helpers.
 fn emit_pick_buffer_ssbo(src: &mut String) {
-    writeln!(src, "// Deep-pick storage buffer (OpenUSD PickBuffer analogue)").unwrap();
+    writeln!(
+        src,
+        "// Deep-pick storage buffer (OpenUSD PickBuffer analogue)"
+    )
+    .unwrap();
     writeln!(src, "struct PickBufferData {{").unwrap();
     writeln!(src, "    data: array<atomic<i32>>,").unwrap();
     writeln!(src, "}};").unwrap();
@@ -930,8 +994,11 @@ fn emit_pick_buffer_ssbo(src: &mut String) {
     writeln!(src, "    return atomicLoad(&pick_buffer.data[u32(index)]);").unwrap();
     writeln!(src, "}}").unwrap();
     writeln!(src).unwrap();
-    writeln!(src, "fn pick_compare_swap(index: i32, expected: i32, value: i32) -> i32 {{")
-        .unwrap();
+    writeln!(
+        src,
+        "fn pick_compare_swap(index: i32, expected: i32, value: i32) -> i32 {{"
+    )
+    .unwrap();
     writeln!(
         src,
         "    return atomicCompareExchangeWeak(&pick_buffer.data[u32(index)], expected, value).old_value;"
@@ -947,11 +1014,7 @@ fn emit_pick_buffer_ssbo(src: &mut String) {
     writeln!(src, "    return cantor(a, cantor(b, c));").unwrap();
     writeln!(src, "}}").unwrap();
     writeln!(src).unwrap();
-    writeln!(
-        src,
-        "fn decode_pick_prim_id(color: vec4<f32>) -> i32 {{"
-    )
-    .unwrap();
+    writeln!(src, "fn decode_pick_prim_id(color: vec4<f32>) -> i32 {{").unwrap();
     writeln!(
         src,
         "    let r = u32(round(clamp(color.x, 0.0, 1.0) * 255.0));"
@@ -1010,11 +1073,7 @@ fn emit_pick_buffer_ssbo(src: &mut String) {
         "    let prim_prev = pick_compare_swap(prim_id_offset, -9, prim_id);"
     )
     .unwrap();
-    writeln!(
-        src,
-        "    if (prim_prev != -9 && prim_prev != prim_id) {{"
-    )
-    .unwrap();
+    writeln!(src, "    if (prim_prev != -9 && prim_prev != prim_id) {{").unwrap();
     writeln!(src, "        return false;").unwrap();
     writeln!(src, "    }}").unwrap();
     writeln!(
@@ -1045,11 +1104,7 @@ fn emit_pick_buffer_ssbo(src: &mut String) {
         "fn render_deep_picks(prim_id: i32, instance_id: i32, element_id: i32, edge_id: i32, point_id: i32) {{"
     )
     .unwrap();
-    writeln!(
-        src,
-        "    if (pick_load(0) == 0 || prim_id < 0) {{"
-    )
-    .unwrap();
+    writeln!(src, "    if (pick_load(0) == 0 || prim_id < 0) {{").unwrap();
     writeln!(src, "        return;").unwrap();
     writeln!(src, "    }}").unwrap();
     writeln!(src, "    let entry_size = 3;").unwrap();
@@ -1062,10 +1117,18 @@ fn emit_pick_buffer_ssbo(src: &mut String) {
         "    let part_id = pick_load(4) * element_id + pick_load(5) * edge_id + pick_load(6) * point_id;"
     )
     .unwrap();
-    writeln!(src, "    if (num_sub_buffers <= 0 || sub_buffer_capacity <= 0) {{").unwrap();
+    writeln!(
+        src,
+        "    if (num_sub_buffers <= 0 || sub_buffer_capacity <= 0) {{"
+    )
+    .unwrap();
     writeln!(src, "        return;").unwrap();
     writeln!(src, "    }}").unwrap();
-    writeln!(src, "    let hash_value = hash3(prim_id, instance_id, part_id);").unwrap();
+    writeln!(
+        src,
+        "    let hash_value = hash3(prim_id, instance_id, part_id);"
+    )
+    .unwrap();
     writeln!(
         src,
         "    let sub_buffer_number = ((hash_value % num_sub_buffers) + num_sub_buffers) % num_sub_buffers;"
@@ -1073,7 +1136,11 @@ fn emit_pick_buffer_ssbo(src: &mut String) {
     .unwrap();
     writeln!(src, "    var buffer_number = sub_buffer_number;").unwrap();
     writeln!(src, "    loop {{").unwrap();
-    writeln!(src, "        let size_offset = table_offset + buffer_number;").unwrap();
+    writeln!(
+        src,
+        "        let size_offset = table_offset + buffer_number;"
+    )
+    .unwrap();
     writeln!(
         src,
         "        let sub_buffer_offset = storage_offset + buffer_number * sub_buffer_capacity * entry_size;"
@@ -1113,11 +1180,7 @@ fn emit_pick_buffer_ssbo(src: &mut String) {
         "        buffer_number = (buffer_number + 1) % num_sub_buffers;"
     )
     .unwrap();
-    writeln!(
-        src,
-        "        if (buffer_number == sub_buffer_number) {{"
-    )
-    .unwrap();
+    writeln!(src, "        if (buffer_number == sub_buffer_number) {{").unwrap();
     writeln!(src, "            break;").unwrap();
     writeln!(src, "        }}").unwrap();
     writeln!(src, "    }}").unwrap();
@@ -1247,13 +1310,25 @@ fn emit_vertex_shader(src: &mut String, key: &MeshShaderKey) {
         .unwrap();
     }
     if key.has_fvar_uv {
-        writeln!(src, "    let input_uv = load_fvar_vec2(FVAR_SLOT_UV, vertex_index);").unwrap();
+        writeln!(
+            src,
+            "    let input_uv = load_fvar_vec2(FVAR_SLOT_UV, vertex_index);"
+        )
+        .unwrap();
     }
     if key.has_fvar_color {
-        writeln!(src, "    let input_color = load_fvar_vec3(FVAR_SLOT_COLOR, vertex_index);").unwrap();
+        writeln!(
+            src,
+            "    let input_color = load_fvar_vec3(FVAR_SLOT_COLOR, vertex_index);"
+        )
+        .unwrap();
     }
     if key.has_fvar_opacity {
-        writeln!(src, "    let input_opacity = load_fvar_scalar(FVAR_SLOT_OPACITY, vertex_index);").unwrap();
+        writeln!(
+            src,
+            "    let input_opacity = load_fvar_scalar(FVAR_SLOT_OPACITY, vertex_index);"
+        )
+        .unwrap();
     }
 
     // Displacement: offset position along normal before transform.
@@ -1262,7 +1337,11 @@ fn emit_vertex_shader(src: &mut String, key: &MeshShaderKey) {
         writeln!(
             src,
             "    let disp_pos = in.position + {} * material.displacement;",
-            if key.has_fvar_normals { "input_normal" } else { "in.normal" }
+            if key.has_fvar_normals {
+                "input_normal"
+            } else {
+                "in.normal"
+            }
         )
         .unwrap();
         writeln!(
@@ -1308,7 +1387,11 @@ fn emit_vertex_shader(src: &mut String, key: &MeshShaderKey) {
         writeln!(
             src,
             "    out.world_normal = normalize(normal_mat * {});",
-            if key.has_fvar_normals { "input_normal" } else { "in.normal" }
+            if key.has_fvar_normals {
+                "input_normal"
+            } else {
+                "in.normal"
+            }
         )
         .unwrap();
     }
@@ -1327,7 +1410,11 @@ fn emit_vertex_shader(src: &mut String, key: &MeshShaderKey) {
         writeln!(
             src,
             "    out.color = {};",
-            if key.has_fvar_color { "input_color" } else { "in.color" }
+            if key.has_fvar_color {
+                "input_color"
+            } else {
+                "in.color"
+            }
         )
         .unwrap();
     }
@@ -2566,7 +2653,10 @@ mod tests {
         let code = gen_mesh_shader(&key);
         assert!(code.source.contains("var<storage, read_write> pick_buffer"));
         assert!(code.source.contains("fn render_deep_picks"));
-        assert!(code.source.contains("decode_pick_prim_id(scene.ambient_color)"));
+        assert!(
+            code.source
+                .contains("decode_pick_prim_id(scene.ambient_color)")
+        );
     }
 
     #[test]

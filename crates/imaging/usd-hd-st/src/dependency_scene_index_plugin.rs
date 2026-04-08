@@ -1,4 +1,3 @@
-
 //! HdSt_DependencySceneIndexPlugin — Storm dependency declaration plugin.
 //!
 //! Adds a filtering scene index that overlays `__dependencies` onto mesh and
@@ -32,8 +31,8 @@
 //!
 //! Port of C++ `HdSt_DependencySceneIndexPlugin`.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 
 use once_cell::sync::Lazy;
 use usd_hd::data_source::{
@@ -435,7 +434,8 @@ impl HdSceneIndexBase for HdStDependencySceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let lock = input.read();
+            {
+                let lock = input.read();
                 return lock.get_child_prim_paths(prim_path);
             }
         }

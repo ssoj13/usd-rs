@@ -1,4 +1,3 @@
-
 //! HdStLightingShader - Base lighting shader.
 //!
 //! Provides shader code for lighting calculations including:

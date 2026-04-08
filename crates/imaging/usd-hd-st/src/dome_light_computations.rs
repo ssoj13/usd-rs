@@ -1,4 +1,3 @@
-
 //! Dome light environment map prefiltering computations.
 //!
 //! GPU compute dispatches that convert an equirectangular (latlong) HDRI

@@ -1,4 +1,3 @@
-
 //! HdStTextureBinder - Texture binding utilities for Storm.
 //!
 //! Manages binding of texture handles to shader texture units.

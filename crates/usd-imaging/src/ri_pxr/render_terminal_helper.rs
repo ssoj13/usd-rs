@@ -93,7 +93,10 @@ mod tests {
             RenderTerminalHelper::strip_input_prefix("inputs:maxSamples"),
             Some("maxSamples")
         );
-        assert_eq!(RenderTerminalHelper::strip_input_prefix("ri:integratorType"), None);
+        assert_eq!(
+            RenderTerminalHelper::strip_input_prefix("ri:integratorType"),
+            None
+        );
     }
 
     #[test]

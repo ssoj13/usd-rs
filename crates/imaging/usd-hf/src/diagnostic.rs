@@ -1,4 +1,3 @@
-
 //! HF diagnostic codes and validation utilities.
 //!
 //! Provides macros for issuing validation warnings and errors specific

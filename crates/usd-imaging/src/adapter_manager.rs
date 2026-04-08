@@ -5,8 +5,8 @@ use super::data_source_prim::DataSourcePrim;
 use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::prim_adapter::PrimAdapterHandle;
 use super::types::PropertyInvalidationType;
-use std::collections::HashMap;
 use parking_lot::RwLock;
+use std::collections::HashMap;
 use std::sync::Arc;
 use usd_core::Prim;
 use usd_hd::{HdContainerDataSourceHandle, HdDataSourceLocatorSet};
@@ -199,13 +199,11 @@ impl ApiSchemaAdapter for BasePrimAdapterApiSchemaAdapter {
             return None;
         }
 
-        Some(
-            Arc::new(DataSourcePrim::new(
-                prim.clone(),
-                prim.get_path().clone(),
-                stage_globals.clone(),
-            )) as HdContainerDataSourceHandle,
-        )
+        Some(Arc::new(DataSourcePrim::new(
+            prim.clone(),
+            prim.get_path().clone(),
+            stage_globals.clone(),
+        )) as HdContainerDataSourceHandle)
     }
 
     fn invalidate_imaging_subprim(
@@ -653,7 +651,10 @@ mod tests {
             None,
             false,
         );
-        translate_op.set(usd_gf::Vec3d::new(1.0, 2.0, 3.0), usd_vt::TimeCode::default());
+        translate_op.set(
+            usd_gf::Vec3d::new(1.0, 2.0, 3.0),
+            usd_vt::TimeCode::default(),
+        );
 
         let manager = AdapterManager::new_with_registry(Arc::new(
             super::super::adapter_registry::AdapterRegistry::new_with_defaults(),

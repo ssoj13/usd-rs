@@ -1,4 +1,3 @@
-
 //! OIT resolve task - Composite order independent transparency.
 //!
 //! Resolves and composites OIT fragments into final color buffer.

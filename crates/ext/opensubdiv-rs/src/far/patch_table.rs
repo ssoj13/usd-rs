@@ -1,8 +1,8 @@
-use crate::far::{Index, PatchDescriptor, PatchParam};
 use crate::far::patch_descriptor::PatchType;
 use crate::far::stencil_table::StencilTable;
-use crate::sdc::options::FVarLinearInterpolation;
+use crate::far::{Index, PatchDescriptor, PatchParam};
 use crate::osd::patch_basis::{OsdPatchParam, evaluate_patch_basis as osd_evaluate_patch_basis};
+use crate::sdc::options::FVarLinearInterpolation;
 
 /// Handle for locating a specific patch within a PatchTable.
 ///
@@ -116,23 +116,23 @@ impl PatchTable {
     /// `_varyingDesc(Far::PatchDescriptor::QUADS)` explicitly.
     pub fn new() -> Self {
         Self {
-            patch_arrays:                        Vec::new(),
-            patch_vertices:                      Vec::new(),
-            patch_params:                        Vec::new(),
+            patch_arrays: Vec::new(),
+            patch_vertices: Vec::new(),
+            patch_params: Vec::new(),
             // C++ PatchTable() constructor sets _varyingDesc(PatchDescriptor::QUADS)
-            varying_desc:                        PatchDescriptor::new(PatchType::Quads),
-            varying_vertices:                    Vec::new(),
-            fvar_channels:                       Vec::new(),
-            sharpness_indices:                   Vec::new(),
-            sharpness_values:                    Vec::new(),
-            quad_offsets_table:                  Vec::new(),
-            vertex_valence_table:                Vec::new(),
-            local_point_stencil_table:           None,
-            local_point_varying_stencil_table:   None,
-            local_point_fvar_stencil_tables:     Vec::new(),
-            max_valence:                         0,
-            num_ptex_faces:                      0,
-            is_uniform_linear:                   false,
+            varying_desc: PatchDescriptor::new(PatchType::Quads),
+            varying_vertices: Vec::new(),
+            fvar_channels: Vec::new(),
+            sharpness_indices: Vec::new(),
+            sharpness_values: Vec::new(),
+            quad_offsets_table: Vec::new(),
+            vertex_valence_table: Vec::new(),
+            local_point_stencil_table: None,
+            local_point_varying_stencil_table: None,
+            local_point_fvar_stencil_tables: Vec::new(),
+            max_valence: 0,
+            num_ptex_faces: 0,
+            is_uniform_linear: false,
         }
     }
 
@@ -182,8 +182,8 @@ impl PatchTable {
     ///
     /// Mirrors C++: `pa.vertIndex + handle.vertIndex` is the absolute start.
     pub fn get_patch_vertices(&self, handle: &PatchHandle) -> &[Index] {
-        let info  = &self.patch_arrays[handle.array_index as usize];
-        let nv    = info.descriptor.get_num_control_vertices() as usize;
+        let info = &self.patch_arrays[handle.array_index as usize];
+        let nv = info.descriptor.get_num_control_vertices() as usize;
         let start = (info.index_base + handle.vert_index) as usize;
         &self.patch_vertices[start..start + nv]
     }
@@ -195,8 +195,8 @@ impl PatchTable {
 
     /// Control-vertex indices for `patch` within `array`.
     pub fn get_patch_vertices_by_array(&self, array: i32, patch: i32) -> &[Index] {
-        let info  = &self.patch_arrays[array as usize];
-        let nv    = info.descriptor.get_num_control_vertices() as usize;
+        let info = &self.patch_arrays[array as usize];
+        let nv = info.descriptor.get_num_control_vertices() as usize;
         let start = info.index_base as usize + patch as usize * nv;
         &self.patch_vertices[start..start + nv]
     }
@@ -234,18 +234,18 @@ impl PatchTable {
 
     /// All control-vertex indices for the patches in `array`.
     pub fn get_patch_array_vertices(&self, array: i32) -> &[Index] {
-        let info  = &self.patch_arrays[array as usize];
-        let nv    = info.descriptor.get_num_control_vertices() as usize;
+        let info = &self.patch_arrays[array as usize];
+        let nv = info.descriptor.get_num_control_vertices() as usize;
         let start = info.index_base as usize;
-        let end   = start + info.num_patches as usize * nv;
+        let end = start + info.num_patches as usize * nv;
         &self.patch_vertices[start..end]
     }
 
     /// All PatchParams for the patches in `array`.
     pub fn get_patch_params_by_array(&self, array: i32) -> &[PatchParam] {
-        let info  = &self.patch_arrays[array as usize];
+        let info = &self.patch_arrays[array as usize];
         let start = info.patch_index_base as usize;
-        let end   = start + info.num_patches as usize;
+        let end = start + info.num_patches as usize;
         &self.patch_params[start..end]
     }
 
@@ -258,7 +258,9 @@ impl PatchTable {
     ///
     /// Mirrors C++: checks `INDEX_INVALID` (which is -1 as i32).
     pub fn get_single_crease_patch_sharpness_value(&self, handle: &PatchHandle) -> f32 {
-        if self.sharpness_indices.is_empty() { return 0.0; }
+        if self.sharpness_indices.is_empty() {
+            return 0.0;
+        }
         let idx = self.sharpness_indices[handle.patch_index as usize];
         // INDEX_INVALID == -1 (or 0xFFFFFFFF as unsigned, stored as i32 -1)
         if idx == -1 || (idx as usize) >= self.sharpness_values.len() {
@@ -270,10 +272,12 @@ impl PatchTable {
 
     /// Sharpness for `patch` within `array`, or 0 if not a single-crease patch.
     pub fn get_single_crease_patch_sharpness_value_by_array(&self, array: i32, patch: i32) -> f32 {
-        if self.sharpness_indices.is_empty() { return 0.0; }
-        let info      = &self.patch_arrays[array as usize];
+        if self.sharpness_indices.is_empty() {
+            return 0.0;
+        }
+        let info = &self.patch_arrays[array as usize];
         let patch_idx = (info.patch_index_base + patch) as usize;
-        let idx       = self.sharpness_indices[patch_idx];
+        let idx = self.sharpness_indices[patch_idx];
         if idx == -1 || (idx as usize) >= self.sharpness_values.len() {
             0.0
         } else {
@@ -293,10 +297,10 @@ impl PatchTable {
         if self.quad_offsets_table.is_empty() {
             return &[];
         }
-        let info  = &self.patch_arrays[handle.array_index as usize];
+        let info = &self.patch_arrays[handle.array_index as usize];
         // C++: pa.quadOffsetIndex + handle.vertIndex
         let start = (info.quad_offset_index + handle.vert_index) as usize;
-        let end   = start + 4;
+        let end = start + 4;
         if end <= self.quad_offsets_table.len() {
             &self.quad_offsets_table[start..end]
         } else {
@@ -321,38 +325,62 @@ impl PatchTable {
     ///
     /// Mirrors C++: `start = handle.patchIndex * numVaryingCVs`.
     pub fn get_patch_varying_vertices(&self, handle: &PatchHandle) -> &[Index] {
-        if self.varying_vertices.is_empty() { return &[]; }
-        let nv    = self.varying_desc.get_num_control_vertices() as usize;
-        if nv == 0 { return &[]; }
+        if self.varying_vertices.is_empty() {
+            return &[];
+        }
+        let nv = self.varying_desc.get_num_control_vertices() as usize;
+        if nv == 0 {
+            return &[];
+        }
         let start = handle.patch_index as usize * nv;
-        let end   = start + nv;
-        if end <= self.varying_vertices.len() { &self.varying_vertices[start..end] } else { &[] }
+        let end = start + nv;
+        if end <= self.varying_vertices.len() {
+            &self.varying_vertices[start..end]
+        } else {
+            &[]
+        }
     }
 
     /// Varying CV indices for `patch` within `array`.
     ///
     /// Mirrors C++: `start = (pa.patchIndex + patch) * numVaryingCVs`.
     pub fn get_patch_varying_vertices_by_array(&self, array: i32, patch: i32) -> &[Index] {
-        if self.varying_vertices.is_empty() { return &[]; }
-        let nv   = self.varying_desc.get_num_control_vertices() as usize;
-        if nv == 0 { return &[]; }
-        let info  = &self.patch_arrays[array as usize];
+        if self.varying_vertices.is_empty() {
+            return &[];
+        }
+        let nv = self.varying_desc.get_num_control_vertices() as usize;
+        if nv == 0 {
+            return &[];
+        }
+        let info = &self.patch_arrays[array as usize];
         let start = (info.patch_index_base + patch) as usize * nv;
-        let end   = start + nv;
-        if end <= self.varying_vertices.len() { &self.varying_vertices[start..end] } else { &[] }
+        let end = start + nv;
+        if end <= self.varying_vertices.len() {
+            &self.varying_vertices[start..end]
+        } else {
+            &[]
+        }
     }
 
     /// All varying CV indices for the patches in `array`.
     ///
     /// Mirrors C++: `start = pa.patchIndex * numVaryingCVs`.
     pub fn get_patch_array_varying_vertices(&self, array: i32) -> &[Index] {
-        if self.varying_vertices.is_empty() { return &[]; }
+        if self.varying_vertices.is_empty() {
+            return &[];
+        }
         let info = &self.patch_arrays[array as usize];
-        let nv   = self.varying_desc.get_num_control_vertices() as usize;
-        if nv == 0 { return &[]; }
+        let nv = self.varying_desc.get_num_control_vertices() as usize;
+        if nv == 0 {
+            return &[];
+        }
         let start = info.patch_index_base as usize * nv;
-        let end   = start + info.num_patches as usize * nv;
-        if end <= self.varying_vertices.len() { &self.varying_vertices[start..end] } else { &[] }
+        let end = start + info.num_patches as usize * nv;
+        if end <= self.varying_vertices.len() {
+            &self.varying_vertices[start..end]
+        } else {
+            &[]
+        }
     }
 
     pub fn get_varying_vertices(&self) -> &[Index] {
@@ -413,46 +441,64 @@ impl PatchTable {
     ///
     /// Mirrors C++: size depends on whether the patch is regular or irregular.
     pub fn get_patch_f_var_values(&self, handle: &PatchHandle, channel: i32) -> &[Index] {
-        let ch    = &self.fvar_channels[channel as usize];
+        let ch = &self.fvar_channels[channel as usize];
         let patch = handle.patch_index as usize;
-        let ncvs  = if patch < ch.params.len() && ch.params[patch].is_regular() {
+        let ncvs = if patch < ch.params.len() && ch.params[patch].is_regular() {
             ch.regular_desc.get_num_control_vertices() as usize
         } else {
             ch.irregular_desc.get_num_control_vertices() as usize
         };
         let start = patch * ch.stride as usize;
-        let end   = start + ncvs;
-        if end <= ch.vertices.len() { &ch.vertices[start..end] } else { &[] }
+        let end = start + ncvs;
+        if end <= ch.vertices.len() {
+            &ch.vertices[start..end]
+        } else {
+            &[]
+        }
     }
 
     /// Fvar value indices for `patch` within `array` in `channel`.
     ///
     /// Mirrors C++: delegates to global patch index lookup.
-    pub fn get_patch_f_var_values_by_array(&self, array: i32, patch: i32, channel: i32) -> &[Index] {
-        let info       = &self.patch_arrays[array as usize];
+    pub fn get_patch_f_var_values_by_array(
+        &self,
+        array: i32,
+        patch: i32,
+        channel: i32,
+    ) -> &[Index] {
+        let info = &self.patch_arrays[array as usize];
         let global_idx = info.patch_index_base + patch;
-        let ch         = &self.fvar_channels[channel as usize];
-        let ncvs       = if (global_idx as usize) < ch.params.len()
-                            && ch.params[global_idx as usize].is_regular() {
+        let ch = &self.fvar_channels[channel as usize];
+        let ncvs = if (global_idx as usize) < ch.params.len()
+            && ch.params[global_idx as usize].is_regular()
+        {
             ch.regular_desc.get_num_control_vertices() as usize
         } else {
             ch.irregular_desc.get_num_control_vertices() as usize
         };
         let start = global_idx as usize * ch.stride as usize;
-        let end   = start + ncvs;
-        if end <= ch.vertices.len() { &ch.vertices[start..end] } else { &[] }
+        let end = start + ncvs;
+        if end <= ch.vertices.len() {
+            &ch.vertices[start..end]
+        } else {
+            &[]
+        }
     }
 
     /// All fvar value indices for the patches in `array` in `channel`.
     ///
     /// Mirrors C++: `start = pa.patchIndex * stride`.
     pub fn get_patch_array_f_var_values(&self, array: i32, channel: i32) -> &[Index] {
-        let ch    = &self.fvar_channels[channel as usize];
-        let info  = &self.patch_arrays[array as usize];
+        let ch = &self.fvar_channels[channel as usize];
+        let info = &self.patch_arrays[array as usize];
         let start = info.patch_index_base as usize * ch.stride as usize;
         let count = info.num_patches as usize * ch.stride as usize;
-        let end   = start + count;
-        if end <= ch.vertices.len() { &ch.vertices[start..end] } else { &[] }
+        let end = start + count;
+        if end <= ch.vertices.len() {
+            &ch.vertices[start..end]
+        } else {
+            &[]
+        }
     }
 
     /// FVar PatchParam for the patch identified by `handle` in `channel`.
@@ -461,9 +507,14 @@ impl PatchTable {
     }
 
     /// FVar PatchParam for `patch` within `array` in `channel`.
-    pub fn get_patch_f_var_patch_param_by_array(&self, array: i32, patch: i32, channel: i32) -> PatchParam {
-        let info  = &self.patch_arrays[array as usize];
-        let idx   = (info.patch_index_base + patch) as usize;
+    pub fn get_patch_f_var_patch_param_by_array(
+        &self,
+        array: i32,
+        patch: i32,
+        channel: i32,
+    ) -> PatchParam {
+        let info = &self.patch_arrays[array as usize];
+        let idx = (info.patch_index_base + patch) as usize;
         self.fvar_channels[channel as usize].params[idx]
     }
 
@@ -471,11 +522,15 @@ impl PatchTable {
     ///
     /// Mirrors C++: `&c.patchParam[pa.patchIndex]`.
     pub fn get_patch_array_f_var_patch_params(&self, array: i32, channel: i32) -> &[PatchParam] {
-        let ch    = &self.fvar_channels[channel as usize];
-        let info  = &self.patch_arrays[array as usize];
+        let ch = &self.fvar_channels[channel as usize];
+        let info = &self.patch_arrays[array as usize];
         let start = info.patch_index_base as usize;
-        let end   = start + info.num_patches as usize;
-        if end <= ch.params.len() { &ch.params[start..end] } else { &[] }
+        let end = start + info.num_patches as usize;
+        if end <= ch.params.len() {
+            &ch.params[start..end]
+        } else {
+            &[]
+        }
     }
 
     /// All FVar PatchParams for `channel`.
@@ -558,7 +613,10 @@ impl PatchTable {
     /// Local-point stencil table for face-varying primvars in `channel`.
     ///
     /// Mirrors C++ `PatchTable::GetLocalPointFaceVaryingStencilTable(channel)`.
-    pub fn get_local_point_face_varying_stencil_table(&self, channel: i32) -> Option<&StencilTable> {
+    pub fn get_local_point_face_varying_stencil_table(
+        &self,
+        channel: i32,
+    ) -> Option<&StencilTable> {
         self.local_point_fvar_stencil_tables
             .get(channel as usize)
             .and_then(|o| o.as_deref())
@@ -611,7 +669,7 @@ impl PatchTable {
     {
         let st = match self.local_point_stencil_table.as_ref() {
             Some(st) => st,
-            None     => return,
+            None => return,
         };
         apply_stencil_table(st, src, dst);
     }
@@ -626,7 +684,7 @@ impl PatchTable {
     {
         let st = match self.local_point_varying_stencil_table.as_ref() {
             Some(st) => st,
-            None     => return,
+            None => return,
         };
         apply_stencil_table(st, src, dst);
     }
@@ -634,19 +692,18 @@ impl PatchTable {
     /// Compute local face-varying point values for `channel`.
     ///
     /// Mirrors C++ `PatchTable::ComputeLocalPointValuesFaceVarying<T>(src, dst, channel)`.
-    pub fn compute_local_point_values_face_varying<T>(
-        &self, src: &[T], dst: &mut [T], channel: i32,
-    )
+    pub fn compute_local_point_values_face_varying<T>(&self, src: &[T], dst: &mut [T], channel: i32)
     where
         T: Default + Clone,
         T: crate::far::primvar_refiner::Interpolatable,
     {
-        let st = match self.local_point_fvar_stencil_tables
+        let st = match self
+            .local_point_fvar_stencil_tables
             .get(channel as usize)
             .and_then(|o| o.as_ref())
         {
             Some(st) => st,
-            None     => return,
+            None => return,
         };
         apply_stencil_table(st, src, dst);
     }
@@ -703,18 +760,21 @@ impl PatchTable {
     pub fn evaluate_basis(
         &self,
         handle: &PatchHandle,
-        s: f32, t: f32,
-        w_p:   &mut [f32],
-        w_ds:  Option<&mut [f32]>,
-        w_dt:  Option<&mut [f32]>,
+        s: f32,
+        t: f32,
+        w_p: &mut [f32],
+        w_ds: Option<&mut [f32]>,
+        w_dt: Option<&mut [f32]>,
         w_dss: Option<&mut [f32]>,
         w_dst: Option<&mut [f32]>,
         w_dtt: Option<&mut [f32]>,
     ) -> i32 {
-        let param     = self.patch_params[handle.patch_index as usize];
-        let type_id   = patch_type_to_osd_id(self.get_patch_descriptor(handle).patch_type);
+        let param = self.patch_params[handle.patch_index as usize];
+        let type_id = patch_type_to_osd_id(self.get_patch_descriptor(handle).patch_type);
         let osd_param = OsdPatchParam::new(param.field0, param.field1, 0.0);
-        osd_evaluate_patch_basis(type_id, &osd_param, s, t, w_p, w_ds, w_dt, w_dss, w_dst, w_dtt)
+        osd_evaluate_patch_basis(
+            type_id, &osd_param, s, t, w_p, w_ds, w_dt, w_dss, w_dst, w_dtt,
+        )
     }
 
     /// Evaluate varying patch basis weights at (s, t).
@@ -726,18 +786,21 @@ impl PatchTable {
     pub fn evaluate_basis_varying(
         &self,
         handle: &PatchHandle,
-        s: f32, t: f32,
-        w_p:   &mut [f32],
-        w_ds:  Option<&mut [f32]>,
-        w_dt:  Option<&mut [f32]>,
+        s: f32,
+        t: f32,
+        w_p: &mut [f32],
+        w_ds: Option<&mut [f32]>,
+        w_dt: Option<&mut [f32]>,
         w_dss: Option<&mut [f32]>,
         w_dst: Option<&mut [f32]>,
         w_dtt: Option<&mut [f32]>,
     ) -> i32 {
-        let param     = self.patch_params[handle.patch_index as usize];
-        let type_id   = patch_type_to_osd_id(self.varying_desc.patch_type);
+        let param = self.patch_params[handle.patch_index as usize];
+        let type_id = patch_type_to_osd_id(self.varying_desc.patch_type);
         let osd_param = OsdPatchParam::new(param.field0, param.field1, 0.0);
-        osd_evaluate_patch_basis(type_id, &osd_param, s, t, w_p, w_ds, w_dt, w_dss, w_dst, w_dtt)
+        osd_evaluate_patch_basis(
+            type_id, &osd_param, s, t, w_p, w_ds, w_dt, w_dss, w_dst, w_dtt,
+        )
     }
 
     /// Evaluate face-varying patch basis weights at (s, t).
@@ -748,11 +811,12 @@ impl PatchTable {
     #[allow(clippy::too_many_arguments)]
     pub fn evaluate_basis_face_varying(
         &self,
-        handle:  &PatchHandle,
-        s: f32, t: f32,
-        w_p:   &mut [f32],
-        w_ds:  Option<&mut [f32]>,
-        w_dt:  Option<&mut [f32]>,
+        handle: &PatchHandle,
+        s: f32,
+        t: f32,
+        w_p: &mut [f32],
+        w_ds: Option<&mut [f32]>,
+        w_dt: Option<&mut [f32]>,
         w_dss: Option<&mut [f32]>,
         w_dst: Option<&mut [f32]>,
         w_dtt: Option<&mut [f32]>,
@@ -764,18 +828,25 @@ impl PatchTable {
         let fvar_param = if channel >= 0 && channel < self.fvar_channels.len() as i32 {
             let ch = &self.fvar_channels[channel as usize];
             let idx = handle.patch_index as usize;
-            if idx < ch.params.len() { ch.params[idx] } else { PatchParam::default() }
+            if idx < ch.params.len() {
+                ch.params[idx]
+            } else {
+                PatchParam::default()
+            }
         } else {
             PatchParam::default()
         };
         let patch_type = if fvar_param.is_regular() {
             self.get_f_var_patch_descriptor_regular(channel).patch_type
         } else {
-            self.get_f_var_patch_descriptor_irregular(channel).patch_type
+            self.get_f_var_patch_descriptor_irregular(channel)
+                .patch_type
         };
-        let type_id   = patch_type_to_osd_id(patch_type);
+        let type_id = patch_type_to_osd_id(patch_type);
         let osd_param = OsdPatchParam::new(fvar_param.field0, fvar_param.field1, 0.0);
-        osd_evaluate_patch_basis(type_id, &osd_param, s, t, w_p, w_ds, w_dt, w_dss, w_dst, w_dtt)
+        osd_evaluate_patch_basis(
+            type_id, &osd_param, s, t, w_p, w_ds, w_dt, w_dss, w_dst, w_dtt,
+        )
     }
 }
 
@@ -791,7 +862,7 @@ where
     T: Default + Clone,
     T: crate::far::primvar_refiner::Interpolatable,
 {
-    let sizes   = st.sizes();
+    let sizes = st.sizes();
     let indices = st.indices();
     let weights = st.weights();
 

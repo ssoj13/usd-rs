@@ -1,4 +1,3 @@
-
 //! HDSI - Hydra Scene Index Utilities
 //!
 //! Port of pxr/imaging/hdsi

@@ -1,4 +1,3 @@
-
 //! Core types for MaterialX integration with Hydra.
 
 use std::collections::{BTreeMap, BTreeSet};

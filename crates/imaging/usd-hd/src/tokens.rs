@@ -1,4 +1,3 @@
-
 //! Token definitions for Hydra.
 //!
 //! This module defines all the standard tokens used throughout Hydra for

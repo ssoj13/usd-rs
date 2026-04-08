@@ -1,4 +1,3 @@
-
 //! HdMtlx tokens.
 //!
 //! Static tokens for MaterialX shader terminal names.

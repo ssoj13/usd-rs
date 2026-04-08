@@ -20,9 +20,14 @@ use usd_gf::Vec2i;
 #[cfg(feature = "wgpu")]
 use usd_hd_st::render_pass_state::HdStAovBinding;
 #[cfg(feature = "wgpu")]
+use usd_hdx::{
+    HdxPickFromRenderBufferTask, HdxPickHit, HdxPickTask, HdxPickTaskContextParams,
+    HdxPickTaskRequest, HdxRenderTaskRequest, pick_tokens,
+};
+#[cfg(feature = "wgpu")]
 use usd_hgi::{
-    blit_cmds::{HgiTextureGpuToCpuOp, RawCpuBufferMut},
     HgiBufferDesc, HgiBufferUsage,
+    blit_cmds::{HgiTextureGpuToCpuOp, RawCpuBufferMut},
     enums::HgiSubmitWaitType as WgpuSubmitWait,
     hgi::Hgi,
     texture::HgiTextureHandle,
@@ -30,11 +35,6 @@ use usd_hgi::{
 };
 #[cfg(feature = "wgpu")]
 use usd_hgi::{enums::HgiTextureUsage, texture::HgiTextureDesc};
-#[cfg(feature = "wgpu")]
-use usd_hdx::{
-    HdxPickFromRenderBufferTask, HdxPickHit, HdxPickTask, HdxPickTaskContextParams,
-    HdxPickTaskRequest, HdxRenderTaskRequest, pick_tokens,
-};
 
 use usd_core::Prim;
 use usd_hd::prim::HdSceneDelegate;
@@ -81,9 +81,12 @@ impl Engine {
         }
 
         #[cfg(feature = "wgpu")]
-        if let Some(hits) =
-            self.test_intersection_gpu_id(pick_params, view_matrix, projection_matrix, render_params)
-        {
+        if let Some(hits) = self.test_intersection_gpu_id(
+            pick_params,
+            view_matrix,
+            projection_matrix,
+            render_params,
+        ) {
             return Some(hits);
         }
 
@@ -173,11 +176,12 @@ impl Engine {
             })
             .collect();
         self.render_pass_state.set_aov_bindings(storm_aov_bindings);
-        self.render_pass_state.set_pick_buffer(if request.bind_pick_buffer {
-            Some(pick_buffer.clone())
-        } else {
-            None
-        });
+        self.render_pass_state
+            .set_pick_buffer(if request.bind_pick_buffer {
+                Some(pick_buffer.clone())
+            } else {
+                None
+            });
     }
 
     #[cfg(feature = "wgpu")]
@@ -201,10 +205,7 @@ impl Engine {
             .render_pass
             .as_ref()
             .map(|render_pass| render_pass.get_rprim_collection().clone());
-        let st_reg = self
-            .render_delegate
-            .read()
-            .get_st_resource_registry();
+        let st_reg = self.render_delegate.read().get_st_resource_registry();
         let mut hgi = hgi_arc.write();
         let mut executed_any = false;
 
@@ -275,10 +276,7 @@ impl Engine {
         let hgi_arc = self.wgpu_hgi.as_ref()?.clone();
         let pick_color = self.wgpu_pick_color_texture.clone()?;
         let pick_depth = self.wgpu_pick_depth_texture.clone()?;
-        let st_reg = self
-            .render_delegate
-            .read()
-            .get_st_resource_registry();
+        let st_reg = self.render_delegate.read().get_st_resource_registry();
 
         // Build primId map from render index
         let pick_prim_ids: std::collections::HashMap<Path, i32> = {
@@ -323,7 +321,8 @@ impl Engine {
                     .with_debug_name("engine_pick_deep_buffer")
                     .with_usage(HgiBufferUsage::STORAGE)
                     .with_byte_size(pick_buffer_bytes.len());
-                let pick_buffer_handle = hgi.create_buffer(&pick_buffer_desc, Some(pick_buffer_bytes));
+                let pick_buffer_handle =
+                    hgi.create_buffer(&pick_buffer_desc, Some(pick_buffer_bytes));
                 if !pick_buffer_handle.is_valid() {
                     return None;
                 }
@@ -347,9 +346,7 @@ impl Engine {
                 controller
                     .get_picking_tasks()
                     .into_iter()
-                    .filter(|task| {
-                        task.read().as_any().is::<HdxPickTask>()
-                    })
+                    .filter(|task| task.read().as_any().is::<HdxPickTask>())
                     .collect::<Vec<_>>()
             }) {
                 if !tasks.is_empty() {
@@ -390,7 +387,8 @@ impl Engine {
 
                         for task in &tasks {
                             let guard = task.read();
-                            let Some(pick_task) = guard.as_any().downcast_ref::<HdxPickTask>() else {
+                            let Some(pick_task) = guard.as_any().downcast_ref::<HdxPickTask>()
+                            else {
                                 continue;
                             };
                             task_hits = pick_task.get_hits().to_vec();
@@ -566,8 +564,10 @@ impl Engine {
         } else {
             0.0001
         };
-        self.hd_engine
-            .set_task_context_data(Token::new("pickParams"), Value::from_no_hash(context_params));
+        self.hd_engine.set_task_context_data(
+            Token::new("pickParams"),
+            Value::from_no_hash(context_params),
+        );
 
         let mut tasks = self
             .task_controller
@@ -576,9 +576,7 @@ impl Engine {
                 controller
                     .get_picking_tasks()
                     .into_iter()
-                    .filter(|task| {
-                        task.read().as_any().is::<HdxPickFromRenderBufferTask>()
-                    })
+                    .filter(|task| task.read().as_any().is::<HdxPickFromRenderBufferTask>())
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
@@ -600,7 +598,8 @@ impl Engine {
         let mut intersections = Vec::new();
         for task in tasks {
             let guard = task.read();
-            let Some(pick_task) = guard.as_any().downcast_ref::<HdxPickFromRenderBufferTask>() else {
+            let Some(pick_task) = guard.as_any().downcast_ref::<HdxPickFromRenderBufferTask>()
+            else {
                 continue;
             };
 
@@ -891,10 +890,7 @@ impl Engine {
             Some(t) => t,
             None => return,
         };
-        let st_reg = self
-            .render_delegate
-            .read()
-            .get_st_resource_registry();
+        let st_reg = self.render_delegate.read().get_st_resource_registry();
 
         // Configure ID pass state: same viewport, primId AOV trigger
         let w = self.render_buffer_size.x.max(1);
@@ -1125,7 +1121,11 @@ impl Engine {
     /// Callers that need a stricter correctness fallback can layer
     /// [`Self::pick_at_pixel_via_id_pass`] on top of this method.
     #[cfg(feature = "wgpu")]
-    pub fn pick_at_pixel_from_current_aovs(&mut self, px: i32, py: i32) -> Option<IntersectionResult> {
+    pub fn pick_at_pixel_from_current_aovs(
+        &mut self,
+        px: i32,
+        py: i32,
+    ) -> Option<IntersectionResult> {
         usd_trace::trace_scope!("engine_pick_at_pixel_cached");
         let prim_id_tex = self.wgpu_prim_id_texture.clone()?;
         let instance_id_tex = self.wgpu_instance_id_texture.clone();
@@ -1266,14 +1266,14 @@ impl Engine {
         let mut pixel = [0u8; 4];
 
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                let mut blit = hgi.create_blit_cmds();
-                let op = HgiTextureGpuToCpuOp {
-                    gpu_source_texture: color_tex.clone(),
-                    // Direct WGPU texture readback uses texture space, which is
-                    // top-left-origin like the viewport coordinates we pass in.
-                    source_texel_offset: usd_gf::Vec3i::new(px, py, 0),
-                    mip_level: 0,
-                    cpu_destination_buffer: unsafe { RawCpuBufferMut::new(pixel.as_mut_ptr()) },
+            let mut blit = hgi.create_blit_cmds();
+            let op = HgiTextureGpuToCpuOp {
+                gpu_source_texture: color_tex.clone(),
+                // Direct WGPU texture readback uses texture space, which is
+                // top-left-origin like the viewport coordinates we pass in.
+                source_texel_offset: usd_gf::Vec3i::new(px, py, 0),
+                mip_level: 0,
+                cpu_destination_buffer: unsafe { RawCpuBufferMut::new(pixel.as_mut_ptr()) },
                 destination_byte_offset: 0,
                 destination_buffer_byte_size: 4,
                 copy_size: usd_gf::Vec3i::new(1, 1, 1),
@@ -1351,7 +1351,7 @@ fn convert_rgba8_to_rgba32f(raw_pixels: &[u8]) -> Vec<f32> {
 
 #[cfg(all(test, feature = "wgpu"))]
 mod tests {
-    use super::{convert_rgba16f_to_rgba32f, convert_rgba16f_to_rgba8};
+    use super::{convert_rgba16f_to_rgba8, convert_rgba16f_to_rgba32f};
     use half::f16;
 
     #[test]
@@ -1383,10 +1383,7 @@ mod tests {
             raw.extend_from_slice(&bits.to_le_bytes());
         }
 
-        assert_eq!(
-            convert_rgba16f_to_rgba32f(&raw),
-            vec![-0.25, 0.5, 1.0, 2.0]
-        );
+        assert_eq!(convert_rgba16f_to_rgba32f(&raw), vec![-0.25, 0.5, 1.0, 2.0]);
     }
 }
 

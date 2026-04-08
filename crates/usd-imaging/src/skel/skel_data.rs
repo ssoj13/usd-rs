@@ -128,18 +128,27 @@ pub fn compute_skel_data_from_source(
 ) -> SkelData {
     let diag = std::env::var_os("USD_PROFILE_SKEL_DS").is_some();
     if diag {
-        eprintln!("[compute_skel_data_from_source] path={} schema:start", prim_path);
+        eprintln!(
+            "[compute_skel_data_from_source] path={} schema:start",
+            prim_path
+        );
     }
     // Extract skeleton schema from the provided prim data source.
-    let schema = SkeletonSchema::get_from_parent(data_source)
-        .unwrap_or_else(|| SkeletonSchema::new(None));
+    let schema =
+        SkeletonSchema::get_from_parent(data_source).unwrap_or_else(|| SkeletonSchema::new(None));
     if diag {
-        eprintln!("[compute_skel_data_from_source] path={} schema:done", prim_path);
+        eprintln!(
+            "[compute_skel_data_from_source] path={} schema:done",
+            prim_path
+        );
     }
 
     // Build topology from joint tokens (matches C++ UsdSkelTopology(joints))
     if diag {
-        eprintln!("[compute_skel_data_from_source] path={} get_joints:start", prim_path);
+        eprintln!(
+            "[compute_skel_data_from_source] path={} get_joints:start",
+            prim_path
+        );
     }
     let joints = schema.get_joints();
     if diag {

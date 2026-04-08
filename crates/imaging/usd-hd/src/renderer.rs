@@ -1,4 +1,3 @@
-
 //! HdRenderer - Hydra 2.0 renderer abstraction.
 //!
 //! Corresponds to pxr/imaging/hd/renderer.h and

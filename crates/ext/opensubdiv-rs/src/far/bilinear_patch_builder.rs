@@ -5,7 +5,7 @@
 //!
 //! Mirrors C++ `Far::BilinearPatchBuilder`.
 
-use super::patch_builder::{PatchBuilder, PatchBuilderOptions, BasisType, SourcePatch};
+use super::patch_builder::{BasisType, PatchBuilder, PatchBuilderOptions, SourcePatch};
 use super::patch_descriptor::PatchType;
 use super::sparse_matrix::SparseMatrix;
 use super::topology_refiner::TopologyRefiner;
@@ -23,8 +23,8 @@ impl<'r> BilinearPatchBuilder<'r> {
     pub fn new(refiner: &'r TopologyRefiner, options: PatchBuilderOptions) -> Self {
         let mut base = PatchBuilder::create(refiner, options);
         // Bilinear: regular = Quads, irregular = Quads, native = Quads
-        base.reg_patch_type    = PatchType::Quads;
-        base.irreg_patch_type  = PatchType::Quads;
+        base.reg_patch_type = PatchType::Quads;
+        base.irreg_patch_type = PatchType::Quads;
         base.native_patch_type = PatchType::Quads;
         base.linear_patch_type = PatchType::Quads;
         Self { base }
@@ -44,13 +44,13 @@ impl<'r> BilinearPatchBuilder<'r> {
     pub fn convert_to_patch_type_f32(
         &self,
         source_patch: &SourcePatch,
-        patch_type:   PatchType,
-        matrix:       &mut SparseMatrix<f32>,
+        patch_type: PatchType,
+        matrix: &mut SparseMatrix<f32>,
     ) -> i32 {
         // Bilinear: each output point = exactly one input point (identity)
         let n = source_patch.get_num_source_points();
         let nv = match patch_type {
-            PatchType::Quads     => 4,
+            PatchType::Quads => 4,
             PatchType::Triangles => 3,
             _ => n,
         };
@@ -69,22 +69,22 @@ impl<'r> BilinearPatchBuilder<'r> {
     pub fn convert_to_patch_type_f64(
         &self,
         source_patch: &SourcePatch,
-        patch_type:   PatchType,
-        matrix:       &mut SparseMatrix<f64>,
+        patch_type: PatchType,
+        matrix: &mut SparseMatrix<f64>,
     ) -> i32 {
-        let n  = source_patch.get_num_source_points();
+        let n = source_patch.get_num_source_points();
         let nv = match patch_type {
-            PatchType::Quads     => 4,
+            PatchType::Quads => 4,
             PatchType::Triangles => 3,
             _ => n,
         };
         matrix.resize(nv, n, nv);
         for i in 0..nv {
             matrix.set_row_size(i, 1);
-            let cols  = matrix.get_row_columns_mut(i);
-            cols[0]   = i;
+            let cols = matrix.get_row_columns_mut(i);
+            cols[0] = i;
             let elems = matrix.get_row_elements_mut(i);
-            elems[0]  = 1.0;
+            elems[0] = 1.0;
         }
         nv
     }
@@ -110,26 +110,28 @@ impl<'r> BilinearPatchBuilder<'r> {
 // ---------------------------------------------------------------------------
 #[cfg(test)]
 mod tests {
+    use super::super::topology_refiner::TopologyRefiner;
     use super::*;
     use crate::sdc::{Options, types::SchemeType};
-    use super::super::topology_refiner::TopologyRefiner;
 
     #[test]
     fn bilinear_patch_types() {
         let refiner = TopologyRefiner::new(SchemeType::Bilinear, Options::default());
-        let opts    = PatchBuilderOptions::default();
-        let pb      = BilinearPatchBuilder::new(&refiner, opts);
+        let opts = PatchBuilderOptions::default();
+        let pb = BilinearPatchBuilder::new(&refiner, opts);
         assert_eq!(pb.base.get_regular_patch_type(), PatchType::Quads);
     }
 
     #[test]
     fn bilinear_identity_matrix() {
         let refiner = TopologyRefiner::new(SchemeType::Bilinear, Options::default());
-        let opts    = PatchBuilderOptions::default();
-        let pb      = BilinearPatchBuilder::new(&refiner, opts);
+        let opts = PatchBuilderOptions::default();
+        let pb = BilinearPatchBuilder::new(&refiner, opts);
 
         let mut sp = SourcePatch::new();
-        for i in 0..4usize { sp.corners[i].num_faces = 4; }
+        for i in 0..4usize {
+            sp.corners[i].num_faces = 4;
+        }
         sp.finalize(4);
 
         let mut mat: SparseMatrix<f32> = SparseMatrix::new();

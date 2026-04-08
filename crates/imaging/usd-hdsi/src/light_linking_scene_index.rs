@@ -1,4 +1,3 @@
-
 //! Light linking scene index.
 //!
 //! Processes light linking relationships between lights and geometry.
@@ -8,9 +7,9 @@
 //! Port of pxr/imaging/hdsi/lightLinkingSceneIndex.
 
 use crate::utils::HdCollectionExpressionEvaluator;
+use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::{
     HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdDataSourceLocatorSet,
     HdOverlayContainerDataSource, HdRetainedContainerDataSource, HdRetainedSmallVectorDataSource,
@@ -451,7 +450,9 @@ impl HdsiLightLinkingSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

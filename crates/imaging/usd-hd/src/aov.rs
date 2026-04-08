@@ -1,4 +1,3 @@
-
 //! AOV (Arbitrary Output Variable) descriptors and bindings.
 //!
 //! Corresponds to pxr/imaging/hd/aov.h.

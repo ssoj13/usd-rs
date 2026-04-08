@@ -1,4 +1,3 @@
-
 //! HdDrawItem - Lightweight representation of rprim resources for rendering.
 //!
 //! Corresponds to pxr/imaging/hd/drawItem.h.

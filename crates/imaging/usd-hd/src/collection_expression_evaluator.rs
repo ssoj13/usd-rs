@@ -1,4 +1,3 @@
-
 //! HdCollectionExpressionEvaluator - evaluates SdfPathExpression against scene index.
 //!
 //! Port of pxr/imaging/hd/collectionExpressionEvaluator.h/cpp

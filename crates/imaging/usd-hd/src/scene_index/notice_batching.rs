@@ -1,4 +1,3 @@
-
 //! HdNoticeBatchingSceneIndex - Batches change notices for downstream scene indices.
 //!
 //! Port of pxr/imaging/hd/noticeBatchingSceneIndex.h/cpp

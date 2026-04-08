@@ -1,4 +1,3 @@
-
 //! HdFlattenedPurposeDataSourceProvider - Flattens purpose inheritance.
 //!
 //! Port of pxr/imaging/hd/flattenedPurposeDataSourceProvider.cpp.

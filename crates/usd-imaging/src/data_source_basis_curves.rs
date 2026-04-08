@@ -114,7 +114,12 @@ impl HdContainerDataSource for DataSourceBasisCurvesTopology {
                 name,
                 self.scene_index_path,
                 self.curves.is_valid(),
-                self.curves.prim().get_attribute_names().iter().map(|t| t.to_string()).collect::<Vec<_>>()
+                self.curves
+                    .prim()
+                    .get_attribute_names()
+                    .iter()
+                    .map(|t| t.to_string())
+                    .collect::<Vec<_>>()
             );
             return None;
         }

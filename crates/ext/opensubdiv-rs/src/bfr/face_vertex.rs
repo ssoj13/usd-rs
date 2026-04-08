@@ -5,10 +5,12 @@
 //!
 //! Ported from OpenSubdiv bfr/faceVertex.h/.cpp.
 
-use crate::sdc::crease::{SHARPNESS_INFINITE, is_sharp, is_infinite as is_inf_sharp, is_semi_sharp};
+use super::face_vertex_subset::FaceVertexSubset;
 use super::vertex_descriptor::VertexDescriptor;
 use super::vertex_tag::VertexTag;
-use super::face_vertex_subset::FaceVertexSubset;
+use crate::sdc::crease::{
+    SHARPNESS_INFINITE, is_infinite as is_inf_sharp, is_semi_sharp, is_sharp,
+};
 
 pub type Index = i32;
 
@@ -16,15 +18,15 @@ pub type Index = i32;
 /// with ring-position context and unordered-face connectivity.
 pub struct FaceVertex {
     pub(crate) v_desc: VertexDescriptor,
-    pub(crate) tag:    VertexTag,
+    pub(crate) tag: VertexTag,
 
-    pub(crate) face_in_ring:     i16,
-    pub(crate) common_face_size: i16,  // 0 = heterogeneous
+    pub(crate) face_in_ring: i16,
+    pub(crate) common_face_size: i16, // 0 = heterogeneous
 
-    pub(crate) reg_face_size:   u8,
-    pub(crate) is_exp_inf_sharp:  bool,
+    pub(crate) reg_face_size: u8,
+    pub(crate) is_exp_inf_sharp: bool,
     pub(crate) is_exp_semi_sharp: bool,
-    pub(crate) is_imp_inf_sharp:  bool,
+    pub(crate) is_imp_inf_sharp: bool,
     pub(crate) is_imp_semi_sharp: bool,
 
     pub(crate) num_face_verts: i32,
@@ -38,13 +40,13 @@ impl Default for FaceVertex {
     fn default() -> Self {
         Self {
             v_desc: VertexDescriptor::default(),
-            tag:    VertexTag::default(),
+            tag: VertexTag::default(),
             face_in_ring: 0,
             common_face_size: 0,
             reg_face_size: 0,
-            is_exp_inf_sharp:  false,
+            is_exp_inf_sharp: false,
             is_exp_semi_sharp: false,
-            is_imp_inf_sharp:  false,
+            is_imp_inf_sharp: false,
             is_imp_semi_sharp: false,
             num_face_verts: 0,
             face_edge_neighbors: Vec::new(),
@@ -53,7 +55,9 @@ impl Default for FaceVertex {
 }
 
 impl FaceVertex {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     // ------------------------------------------------------------------
     //  Initialize / Finalize
@@ -62,13 +66,13 @@ impl FaceVertex {
     /// Begin specification; called before VertexDescriptor population.
     pub fn initialize(&mut self, face_size: i32, reg_face_size: i32) {
         self.common_face_size = face_size as i16;
-        self.reg_face_size    = reg_face_size as u8;
-        self.num_face_verts   = 0;
-        self.is_exp_inf_sharp  = false;
+        self.reg_face_size = reg_face_size as u8;
+        self.num_face_verts = 0;
+        self.is_exp_inf_sharp = false;
         self.is_exp_semi_sharp = false;
-        self.is_imp_inf_sharp  = false;
+        self.is_imp_inf_sharp = false;
         self.is_imp_semi_sharp = false;
-        self.v_desc.is_valid       = false;
+        self.v_desc.is_valid = false;
         self.v_desc.is_initialized = false;
     }
 
@@ -85,21 +89,22 @@ impl FaceVertex {
             self.num_face_verts = *self.v_desc.face_size_offsets.last().unwrap_or(&0);
         }
 
-        self.is_exp_inf_sharp  = is_inf_sharp(self.v_desc.vert_sharpness);
+        self.is_exp_inf_sharp = is_inf_sharp(self.v_desc.vert_sharpness);
         self.is_exp_semi_sharp = is_semi_sharp(self.v_desc.vert_sharpness);
 
         self.tag.bits_mut().clear();
 
-        let has_face_sizes   = self.v_desc.has_incident_face_sizes();
-        let common_size      = self.common_face_size;
-        let reg_size         = self.reg_face_size;
-        let exp_inf          = self.is_exp_inf_sharp;
-        let exp_semi         = self.is_exp_semi_sharp;
-        let is_manifold      = self.v_desc.is_manifold;
+        let has_face_sizes = self.v_desc.has_incident_face_sizes();
+        let common_size = self.common_face_size;
+        let reg_size = self.reg_face_size;
+        let exp_inf = self.is_exp_inf_sharp;
+        let exp_semi = self.is_exp_semi_sharp;
+        let is_manifold = self.v_desc.is_manifold;
 
         self.tag.bits_mut().set_un_common_face_sizes(has_face_sizes);
-        self.tag.bits_mut().set_irregular_face_sizes(common_size != 0 &&
-                                                     common_size as u8 != reg_size);
+        self.tag
+            .bits_mut()
+            .set_irregular_face_sizes(common_size != 0 && common_size as u8 != reg_size);
         self.tag.bits_mut().set_inf_sharp_verts(exp_inf);
         self.tag.bits_mut().set_semi_sharp_verts(exp_semi);
         self.tag.bits_mut().set_un_ordered_faces(!is_manifold);
@@ -118,16 +123,28 @@ impl FaceVertex {
     //  Simple property queries
     // ------------------------------------------------------------------
 
-    pub fn get_tag(&self) -> VertexTag { self.tag }
+    pub fn get_tag(&self) -> VertexTag {
+        self.tag
+    }
 
     /// Index of this face in the ring of incident faces around the vertex.
-    pub fn get_face(&self) -> i32 { self.face_in_ring as i32 }
+    pub fn get_face(&self) -> i32 {
+        self.face_in_ring as i32
+    }
 
-    pub fn get_num_faces(&self) -> i32 { self.v_desc.num_faces as i32 }
-    pub fn get_num_face_vertices(&self) -> i32 { self.num_face_verts }
+    pub fn get_num_faces(&self) -> i32 {
+        self.v_desc.num_faces as i32
+    }
+    pub fn get_num_face_vertices(&self) -> i32 {
+        self.num_face_verts
+    }
 
-    pub fn has_common_face_size(&self) -> bool { self.common_face_size > 0 }
-    pub fn get_common_face_size(&self) -> i32 { self.common_face_size as i32 }
+    pub fn has_common_face_size(&self) -> bool {
+        self.common_face_size > 0
+    }
+    pub fn get_common_face_size(&self) -> i32 {
+        self.common_face_size as i32
+    }
 
     // ------------------------------------------------------------------
     //  Incident-face size / traversal
@@ -184,7 +201,9 @@ impl FaceVertex {
             self.get_connected_face_next(f)
         } else {
             let mut f = self.face_in_ring as i32;
-            for _ in 0..step { f = self.get_connected_face_next(f); }
+            for _ in 0..step {
+                f = self.get_connected_face_next(f);
+            }
             f
         }
     }
@@ -201,7 +220,9 @@ impl FaceVertex {
             self.get_connected_face_prev(f)
         } else {
             let mut f = self.face_in_ring as i32;
-            for _ in 0..step { f = self.get_connected_face_prev(f); }
+            for _ in 0..step {
+                f = self.get_connected_face_prev(f);
+            }
             f
         }
     }
@@ -260,7 +281,9 @@ impl FaceVertex {
     //  Sharpness
     // ------------------------------------------------------------------
 
-    pub fn get_vertex_sharpness(&self) -> f32 { self.v_desc.vert_sharpness }
+    pub fn get_vertex_sharpness(&self) -> f32 {
+        self.v_desc.vert_sharpness
+    }
 
     /// Sharpness of face-edge by flat index (2*face + trailing).
     pub fn get_face_edge_sharpness_by_idx(&self, face_edge: i32) -> f32 {
@@ -293,7 +316,9 @@ impl FaceVertex {
         for i in 0..self.get_num_faces() {
             if self.get_face_previous(i) >= 0 {
                 let s = self.get_face_edge_sharpness_by_idx(2 * i);
-                if s > sharpness { sharpness = s; }
+                if s > sharpness {
+                    sharpness = s;
+                }
             }
         }
         sharpness
@@ -359,14 +384,26 @@ impl FaceVertex {
         subset.tag.bits_mut().set_semi_sharp_verts(false);
     }
     pub fn unsharpen_subset(&self, subset: &mut FaceVertexSubset) {
-        subset.tag.bits_mut().set_inf_sharp_verts(self.is_exp_inf_sharp);
-        subset.tag.bits_mut().set_semi_sharp_verts(self.is_exp_semi_sharp);
+        subset
+            .tag
+            .bits_mut()
+            .set_inf_sharp_verts(self.is_exp_inf_sharp);
+        subset
+            .tag
+            .bits_mut()
+            .set_semi_sharp_verts(self.is_exp_semi_sharp);
     }
     pub fn sharpen_subset_with(&self, subset: &mut FaceVertexSubset, sharpness: f32) {
         if sharpness > subset.local_sharpness {
             subset.local_sharpness = sharpness;
-            subset.tag.bits_mut().set_inf_sharp_verts(is_inf_sharp(sharpness));
-            subset.tag.bits_mut().set_semi_sharp_verts(is_semi_sharp(sharpness));
+            subset
+                .tag
+                .bits_mut()
+                .set_inf_sharp_verts(is_inf_sharp(sharpness));
+            subset
+                .tag
+                .bits_mut()
+                .set_semi_sharp_verts(is_semi_sharp(sharpness));
         }
     }
 
@@ -377,7 +414,8 @@ impl FaceVertex {
     /// Connect unordered incident faces using their face-vertex indices.
     pub fn connect_un_ordered_faces(&mut self, fv_indices: &[Index]) {
         let num_face_edges = self.get_num_faces() * 2;
-        self.face_edge_neighbors.resize(num_face_edges as usize, 0i16);
+        self.face_edge_neighbors
+            .resize(num_face_edges as usize, 0i16);
 
         // Build edge table
         let max_edges = num_face_edges as usize;
@@ -394,11 +432,21 @@ impl FaceVertex {
     //  Private helpers
     // ------------------------------------------------------------------
 
-    fn is_ordered(&self)    -> bool { !self.tag.bits().un_ordered_faces() }
-    fn is_un_ordered(&self) -> bool { self.tag.bits().un_ordered_faces() }
-    fn is_boundary(&self)   -> bool { self.tag.bits().boundary_verts() }
-    fn is_interior(&self)   -> bool { !self.tag.bits().boundary_verts() }
-    fn is_manifold(&self)   -> bool { !self.tag.bits().non_manifold_verts() }
+    fn is_ordered(&self) -> bool {
+        !self.tag.bits().un_ordered_faces()
+    }
+    fn is_un_ordered(&self) -> bool {
+        self.tag.bits().un_ordered_faces()
+    }
+    fn is_boundary(&self) -> bool {
+        self.tag.bits().boundary_verts()
+    }
+    fn is_interior(&self) -> bool {
+        !self.tag.bits().boundary_verts()
+    }
+    fn is_manifold(&self) -> bool {
+        !self.tag.bits().non_manifold_verts()
+    }
 
     fn init_complete_subset(&self, subset: &mut FaceVertexSubset) -> i32 {
         let num_faces = self.get_num_faces();
@@ -406,10 +454,10 @@ impl FaceVertex {
         subset.num_faces_total = num_faces as i16;
         if self.is_interior() {
             subset.num_faces_before = 0;
-            subset.num_faces_after  = (num_faces - 1) as i16;
+            subset.num_faces_after = (num_faces - 1) as i16;
         } else if self.is_ordered() {
             subset.num_faces_before = self.face_in_ring;
-            subset.num_faces_after  = (num_faces - 1 - self.face_in_ring as i32) as i16;
+            subset.num_faces_after = (num_faces - 1 - self.face_in_ring as i32) as i16;
         } else {
             // Unordered boundary: count forward
             let mut count_after: i16 = 0;
@@ -418,7 +466,7 @@ impl FaceVertex {
                 count_after += 1;
                 f = self.get_face_next(f);
             }
-            subset.num_faces_after  = count_after;
+            subset.num_faces_after = count_after;
             subset.num_faces_before = (num_faces - 1 - count_after as i32) as i16;
         }
         subset.num_faces_total as i32
@@ -444,7 +492,7 @@ impl FaceVertex {
         let mut f = self.get_face_previous(f_start);
         while f >= 0 {
             subset.num_faces_before += 1;
-            subset.num_faces_total  += 1;
+            subset.num_faces_total += 1;
             f = self.get_face_previous(f);
         }
         subset.set_boundary(true);
@@ -460,7 +508,9 @@ impl FaceVertex {
         fvar_sub.initialize(vtx_sub.tag);
         fvar_sub.set_boundary(true);
 
-        if vtx_sub.num_faces_total == 1 { return 1; }
+        if vtx_sub.num_faces_total == 1 {
+            return 1;
+        }
 
         let corner_face = self.face_in_ring as i32;
 
@@ -500,7 +550,7 @@ impl FaceVertex {
                     break;
                 }
                 fvar_sub.num_faces_before += 1;
-                fvar_sub.num_faces_total  += 1;
+                fvar_sub.num_faces_total += 1;
                 this_face = prev_face;
                 prev_face = self.get_face_previous(this_face);
             }
@@ -508,7 +558,11 @@ impl FaceVertex {
         fvar_sub.num_faces_total as i32
     }
 
-    fn adjust_subset_tags(&self, subset: &mut FaceVertexSubset, superset: Option<&FaceVertexSubset>) {
+    fn adjust_subset_tags(
+        &self,
+        subset: &mut FaceVertexSubset,
+        superset: Option<&FaceVertexSubset>,
+    ) {
         {
             let bits = subset.tag.bits_mut();
             if bits.boundary_verts() {
@@ -549,10 +603,14 @@ impl FaceVertex {
     }
 
     fn subset_has_irregular_faces(&self, subset: &FaceVertexSubset) -> bool {
-        if !self.tag.bits().un_common_face_sizes() { return true; }
+        if !self.tag.bits().un_common_face_sizes() {
+            return true;
+        }
         let mut f = self.get_face_first(subset);
         for _ in 0..subset.get_num_faces() {
-            if self.get_face_size(f) != self.reg_face_size as i32 { return true; }
+            if self.get_face_size(f) != self.reg_face_size as i32 {
+                return true;
+            }
             f = self.get_face_next(f);
         }
         false
@@ -564,7 +622,9 @@ impl FaceVertex {
             let mut f = self.get_face_first(subset);
             let start = if subset.is_boundary() { 1 } else { 0 };
             for _ in start..n {
-                if self.is_face_edge_inf_sharp(f, true) { return true; }
+                if self.is_face_edge_inf_sharp(f, true) {
+                    return true;
+                }
                 f = self.get_face_next(f);
             }
         }
@@ -577,7 +637,9 @@ impl FaceVertex {
             let mut f = self.get_face_first(subset);
             let start = if subset.is_boundary() { 1 } else { 0 };
             for _ in start..n {
-                if self.is_face_edge_semi_sharp(f, true) { return true; }
+                if self.is_face_edge_semi_sharp(f, true) {
+                    return true;
+                }
                 f = self.get_face_next(f);
             }
         }
@@ -587,33 +649,42 @@ impl FaceVertex {
     fn finalize_ordered_tags(&mut self) {
         self.tag.bits_mut().set_un_ordered_faces(false);
         self.tag.bits_mut().set_non_manifold_verts(false);
-        self.tag.bits_mut().set_boundary_verts(self.v_desc.is_boundary);
-        self.tag.bits_mut().set_boundary_non_sharp(self.v_desc.is_boundary);
+        self.tag
+            .bits_mut()
+            .set_boundary_verts(self.v_desc.is_boundary);
+        self.tag
+            .bits_mut()
+            .set_boundary_non_sharp(self.v_desc.is_boundary);
 
         if self.v_desc.has_edge_sharpness() {
             let is_boundary = self.v_desc.is_boundary;
-            let num_faces   = self.v_desc.num_faces as usize;
+            let num_faces = self.v_desc.num_faces as usize;
 
             if is_boundary {
                 let last = 2 * num_faces - 1;
-                let s0   = self.v_desc.face_edge_sharpness[0];
-                let sl   = self.v_desc.face_edge_sharpness[last];
+                let s0 = self.v_desc.face_edge_sharpness[0];
+                let sl = self.v_desc.face_edge_sharpness[last];
                 let non_sharp = !is_inf_sharp(s0) || !is_inf_sharp(sl);
                 self.tag.bits_mut().set_boundary_non_sharp(non_sharp);
             }
 
-            let mut num_inf  = 0i32;
+            let mut num_inf = 0i32;
             let mut num_semi = 0i32;
             let start = if is_boundary { 1 } else { 0 };
             for i in start..num_faces {
                 let s = self.v_desc.face_edge_sharpness[2 * i];
-                if is_inf_sharp(s)  { num_inf  += 1; }
-                else if is_sharp(s) { num_semi += 1; }
+                if is_inf_sharp(s) {
+                    num_inf += 1;
+                } else if is_sharp(s) {
+                    num_semi += 1;
+                }
             }
 
             self.tag.bits_mut().set_inf_sharp_edges(num_inf > 0);
             self.tag.bits_mut().set_semi_sharp_edges(num_semi > 0);
-            self.tag.bits_mut().set_inf_sharp_darts(num_inf == 1 && !is_boundary);
+            self.tag
+                .bits_mut()
+                .set_inf_sharp_darts(num_inf == 1 && !is_boundary);
 
             let num_inf_total = num_inf + if is_boundary { 2 } else { 0 };
             if num_inf_total > 2 {
@@ -684,13 +755,10 @@ impl FaceVertex {
         edges.len()
     }
 
-    fn mark_duplicate_edges(
-        &self,
-        edges: &mut Vec<Edge>,
-        fe_edges: &[i16],
-        fv_indices: &[Index],
-    ) {
-        if self.common_face_size == 3 { return; }
+    fn mark_duplicate_edges(&self, edges: &mut Vec<Edge>, fe_edges: &[i16], fv_indices: &[Index]) {
+        if self.common_face_size == 3 {
+            return;
+        }
 
         let v_corner = fv_indices[0];
         let num_faces = self.get_num_faces() as usize;
@@ -745,18 +813,18 @@ impl FaceVertex {
     }
 
     fn finalize_un_ordered_tags(&mut self, edges: &[Edge], num_edges: usize, fv_indices: &[Index]) {
-        let mut num_non_manifold  = 0i32;
-        let mut num_inf_sharp     = 0i32;
-        let mut num_semi_sharp    = 0i32;
-        let mut num_singular      = 0i32;
-        let mut has_boundary      = false;
+        let mut num_non_manifold = 0i32;
+        let mut num_inf_sharp = 0i32;
+        let mut num_semi_sharp = 0i32;
+        let mut num_singular = 0i32;
+        let mut has_boundary = false;
         let mut has_boundary_not_sharp = false;
-        let mut has_degenerate    = false;
-        let mut has_duplicate     = false;
+        let mut has_degenerate = false;
+        let mut has_duplicate = false;
 
         for e in &edges[..num_edges] {
             if e.interior {
-                num_inf_sharp  += e.inf_sharp  as i32;
+                num_inf_sharp += e.inf_sharp as i32;
                 num_semi_sharp += e.semi_sharp as i32;
             } else if e.boundary {
                 has_boundary = true;
@@ -764,7 +832,7 @@ impl FaceVertex {
             } else {
                 num_non_manifold += 1;
                 has_degenerate |= e.degenerate;
-                has_duplicate  |= e.duplicate;
+                has_duplicate |= e.duplicate;
             }
             num_singular += (e.non_manifold || e.boundary || e.inf_sharp) as i32;
         }
@@ -822,52 +890,85 @@ impl FaceVertex {
         let mut ce_count = 0;
         for e in &edges[..num_edges] {
             if e.non_manifold {
-                if ce_count < 2 { crease_end[ce_count] = e.end_vertex; ce_count += 1; }
+                if ce_count < 2 {
+                    crease_end[ce_count] = e.end_vertex;
+                    ce_count += 1;
+                }
             }
         }
-        if crease_end[0] < 0 || crease_end[1] < 0 { return false; }
+        if crease_end[0] < 0 || crease_end[1] < 0 {
+            return false;
+        }
 
         // Build face-corner leading/trailing vertex arrays
         let num_faces = self.get_num_faces() as usize;
-        let mut leading  = vec![-1i32; num_faces];
+        let mut leading = vec![-1i32; num_faces];
         let mut trailing = vec![-1i32; num_faces];
-        let mut size     = num_faces;
+        let mut size = num_faces;
 
         for i in 0..num_faces {
-            leading[i]  = self.get_face_index_leading(i as i32, fv_indices);
+            leading[i] = self.get_face_index_leading(i as i32, fv_indices);
             trailing[i] = self.get_face_index_trailing(i as i32, fv_indices);
         }
 
         // Remove manifold subsets in each direction
-        let remove_subset = |lv: &mut Vec<i32>, tv: &mut Vec<i32>, sz: &mut usize,
-                              start: i32, end: i32| -> i32 {
-            if start == end { return -1; }
-            let mut next = start;
-            loop {
-                let pos = lv[..*sz].iter().position(|&x| x == next);
-                if let Some(p) = pos {
-                    next = tv[p];
-                    lv.swap(p, *sz - 1);
-                    tv.swap(p, *sz - 1);
-                    *sz -= 1;
-                    if next == end { return 1; }
-                    if next == start { return -1; }
-                } else {
-                    return if next == start { 0 } else { -1 };
+        let remove_subset =
+            |lv: &mut Vec<i32>, tv: &mut Vec<i32>, sz: &mut usize, start: i32, end: i32| -> i32 {
+                if start == end {
+                    return -1;
                 }
-            }
-        };
+                let mut next = start;
+                loop {
+                    let pos = lv[..*sz].iter().position(|&x| x == next);
+                    if let Some(p) = pos {
+                        next = tv[p];
+                        lv.swap(p, *sz - 1);
+                        tv.swap(p, *sz - 1);
+                        *sz -= 1;
+                        if next == end {
+                            return 1;
+                        }
+                        if next == start {
+                            return -1;
+                        }
+                    } else {
+                        return if next == start { 0 } else { -1 };
+                    }
+                }
+            };
 
         loop {
-            let r = remove_subset(&mut leading, &mut trailing, &mut size, crease_end[0], crease_end[1]);
-            if r < 0 { return false; }
-            if r == 0 { break; }
+            let r = remove_subset(
+                &mut leading,
+                &mut trailing,
+                &mut size,
+                crease_end[0],
+                crease_end[1],
+            );
+            if r < 0 {
+                return false;
+            }
+            if r == 0 {
+                break;
+            }
         }
-        if size == 0 { return true; }
+        if size == 0 {
+            return true;
+        }
         loop {
-            let r = remove_subset(&mut leading, &mut trailing, &mut size, crease_end[1], crease_end[0]);
-            if r < 0 { return false; }
-            if r == 0 { break; }
+            let r = remove_subset(
+                &mut leading,
+                &mut trailing,
+                &mut size,
+                crease_end[1],
+                crease_end[0],
+            );
+            if r < 0 {
+                return false;
+            }
+            if r == 0 {
+                break;
+            }
         }
         size == 0
     }
@@ -879,44 +980,73 @@ impl FaceVertex {
 
 #[derive(Clone, Default)]
 struct Edge {
-    end_vertex:   i32,
-    boundary:     bool,
-    interior:     bool,
+    end_vertex: i32,
+    boundary: bool,
+    interior: bool,
     non_manifold: bool,
-    trailing:     bool,
-    degenerate:   bool,
-    duplicate:    bool,
-    inf_sharp:    bool,
-    semi_sharp:   bool,
-    prev_face:    i16,
-    next_face:    i16,
+    trailing: bool,
+    degenerate: bool,
+    duplicate: bool,
+    inf_sharp: bool,
+    semi_sharp: bool,
+    prev_face: i16,
+    next_face: i16,
 }
 
 impl Edge {
     fn new(end_vertex: i32) -> Self {
-        Self { end_vertex, ..Default::default() }
+        Self {
+            end_vertex,
+            ..Default::default()
+        }
     }
-    fn set_boundary(&mut self)    { self.boundary = true; }
-    fn set_interior(&mut self)    { self.boundary = false; self.interior = true; }
-    fn set_non_manifold(&mut self){ self.boundary = false; self.interior = false; self.non_manifold = true; }
-    fn set_degenerate(&mut self)  { self.set_non_manifold(); self.degenerate = true; }
-    fn set_duplicate(&mut self)   { self.set_non_manifold(); self.duplicate  = true; }
+    fn set_boundary(&mut self) {
+        self.boundary = true;
+    }
+    fn set_interior(&mut self) {
+        self.boundary = false;
+        self.interior = true;
+    }
+    fn set_non_manifold(&mut self) {
+        self.boundary = false;
+        self.interior = false;
+        self.non_manifold = true;
+    }
+    fn set_degenerate(&mut self) {
+        self.set_non_manifold();
+        self.degenerate = true;
+    }
+    fn set_duplicate(&mut self) {
+        self.set_non_manifold();
+        self.duplicate = true;
+    }
 
     fn set_sharpness(&mut self, s: f32) {
-        if is_inf_sharp(s)  { self.inf_sharp  = true; }
-        else if is_sharp(s) { self.semi_sharp = true; }
+        if is_inf_sharp(s) {
+            self.inf_sharp = true;
+        } else if is_sharp(s) {
+            self.semi_sharp = true;
+        }
     }
 
     fn set_face(&mut self, face: i32, new_trailing: bool) {
         self.trailing = new_trailing;
-        if new_trailing { self.prev_face = face as i16; }
-        else            { self.next_face = face as i16; }
+        if new_trailing {
+            self.prev_face = face as i16;
+        } else {
+            self.next_face = face as i16;
+        }
     }
 
     fn add_face(&mut self, face: i32, new_trailing: bool) {
         if self.boundary {
             if new_trailing == self.trailing
-                || (face == if self.trailing { self.prev_face } else { self.next_face } as i32)
+                || (face
+                    == if self.trailing {
+                        self.prev_face
+                    } else {
+                        self.next_face
+                    } as i32)
             {
                 self.set_non_manifold();
             } else {

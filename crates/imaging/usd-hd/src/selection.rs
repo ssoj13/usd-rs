@@ -1,4 +1,3 @@
-
 //! HdSelection - Collection of selected items per selection mode.
 //!
 //! Corresponds to pxr/imaging/hd/selection.h.

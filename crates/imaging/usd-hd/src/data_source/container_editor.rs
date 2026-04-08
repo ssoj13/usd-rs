@@ -1,4 +1,3 @@
-
 //! Utility for lazily constructing and composing data source hierarchies.
 //!
 //! Port of pxr/imaging/hd/containerDataSourceEditor.{h,cpp}

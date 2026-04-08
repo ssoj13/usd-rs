@@ -1,4 +1,3 @@
-
 //! Filtering scene indices - chain scene indices together.
 
 use super::base::HdSceneIndexBaseImpl;

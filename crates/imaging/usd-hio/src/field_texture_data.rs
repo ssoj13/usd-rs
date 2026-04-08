@@ -1,4 +1,3 @@
-
 //! HioFieldTextureData - interface for reading volume files with transformations.
 
 use super::types::HioFormat;

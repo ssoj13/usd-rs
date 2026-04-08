@@ -1,4 +1,3 @@
-
 //! HdSt_FlatteningSceneIndex - Storm plugin for flattening inherited data.
 //!
 //! Storm-specific scene index plugin that wraps the core
@@ -8,8 +7,8 @@
 //!
 //! Port of C++ Storm's flattening scene index integration.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::HdContainerDataSourceHandle;
 use usd_hd::scene_index::{HdFlatteningSceneIndex, HdSceneIndexHandle};
 

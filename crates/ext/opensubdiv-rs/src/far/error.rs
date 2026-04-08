@@ -1,6 +1,3 @@
-
-
-
 // ---------------------------------------------------------------------------
 // Error types
 // ---------------------------------------------------------------------------
@@ -10,25 +7,25 @@
 #[repr(u32)]
 pub enum ErrorType {
     /// No error.
-    NoError            = 0,
+    NoError = 0,
     /// Fatal error — program should terminate.
-    FatalError         = 1,
+    FatalError = 1,
     /// Internal programming error (continue execution).
     InternalCodingError = 2,
     /// Generic programming error (continue execution).
-    CodingError        = 3,
+    CodingError = 3,
     /// Generic runtime error (continue execution).
-    RuntimeError       = 4,
+    RuntimeError = 4,
 }
 
 impl ErrorType {
     pub fn label(self) -> &'static str {
         match self {
-            Self::NoError             => "No Error",
-            Self::FatalError          => "Fatal Error",
+            Self::NoError => "No Error",
+            Self::FatalError => "Fatal Error",
             Self::InternalCodingError => "Coding Error (internal)",
-            Self::CodingError         => "Coding Error",
-            Self::RuntimeError        => "Error",
+            Self::CodingError => "Coding Error",
+            Self::RuntimeError => "Error",
         }
     }
 }
@@ -43,10 +40,10 @@ pub type ErrorCallbackFunc = fn(ErrorType, &str);
 /// Warning callback function type, mirrors C++ `Far::WarningCallbackFunc`.
 pub type WarningCallbackFunc = fn(&str);
 
-static ERROR_CALLBACK:   std::sync::OnceLock<std::sync::Mutex<Option<ErrorCallbackFunc>>>
-    = std::sync::OnceLock::new();
-static WARNING_CALLBACK: std::sync::OnceLock<std::sync::Mutex<Option<WarningCallbackFunc>>>
-    = std::sync::OnceLock::new();
+static ERROR_CALLBACK: std::sync::OnceLock<std::sync::Mutex<Option<ErrorCallbackFunc>>> =
+    std::sync::OnceLock::new();
+static WARNING_CALLBACK: std::sync::OnceLock<std::sync::Mutex<Option<WarningCallbackFunc>>> =
+    std::sync::OnceLock::new();
 
 fn error_mutex() -> &'static std::sync::Mutex<Option<ErrorCallbackFunc>> {
     ERROR_CALLBACK.get_or_init(|| std::sync::Mutex::new(None))

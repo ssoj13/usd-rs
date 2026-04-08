@@ -1,4 +1,3 @@
-
 //! HdSt_UnboundMaterialPruningSceneIndexPlugin - prunes unbound materials.
 //!
 //! Inserts a scene index that prunes material prims not bound by any
@@ -12,9 +11,9 @@
 //!
 //! Port of C++ `HdSt_UnboundMaterialPruningSceneIndexPlugin`.
 
+use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::scene_index::{
     AddedPrimEntry, DirtiedPrimEntry, FilteringObserverTarget, HdSceneIndexBase,
@@ -62,17 +61,15 @@ impl HdStUnboundMaterialPruningSceneIndex {
 
     /// Get the set of currently bound material paths.
     pub fn bound_materials(&self) -> HashSet<SdfPath> {
-        self.bound_materials
-            .lock()
-            .expect("Lock poisoned")
-            .clone()
+        self.bound_materials.lock().expect("Lock poisoned").clone()
     }
 }
 
 impl HdSceneIndexBase for HdStUnboundMaterialPruningSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let lock = input.read();
+            {
+                let lock = input.read();
                 return lock.get_prim(prim_path);
             }
         }
@@ -81,7 +78,8 @@ impl HdSceneIndexBase for HdStUnboundMaterialPruningSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let lock = input.read();
+            {
+                let lock = input.read();
                 return lock.get_child_prim_paths(prim_path);
             }
         }

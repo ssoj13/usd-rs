@@ -1,4 +1,3 @@
-
 //! HdRenderSettings - Bprim for render settings.
 //!
 //! A buffer primitive that represents render settings applied to a render pass.

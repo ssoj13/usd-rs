@@ -82,7 +82,9 @@ impl PyLightAPI {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: LightAPI::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: LightAPI::get(&*stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -90,7 +92,9 @@ impl PyLightAPI {
     }
 
     fn get_intensity_attr(&self) -> Option<String> {
-        self.inner.get_intensity_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_intensity_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn get_exposure_attr(&self) -> Option<String> {
@@ -102,15 +106,21 @@ impl PyLightAPI {
     }
 
     fn get_normalize_attr(&self) -> Option<String> {
-        self.inner.get_normalize_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_normalize_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn get_enable_color_temperature_attr(&self) -> Option<String> {
-        self.inner.get_enable_color_temperature_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_enable_color_temperature_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn get_color_temperature_attr(&self) -> Option<String> {
-        self.inner.get_color_temperature_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_color_temperature_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn get_diffuse_attr(&self) -> Option<String> {
@@ -124,7 +134,8 @@ impl PyLightAPI {
     /// CreateInput(name, type_name) -> full input name string or None
     fn create_input(&self, name: &str, type_name: &str) -> Option<String> {
         let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        self.inner.create_input(&Token::new(name), &tn)
+        self.inner
+            .create_input(&Token::new(name), &tn)
             .map(|inp| inp.get_full_name().as_str().to_string())
     }
 
@@ -157,7 +168,9 @@ impl PyShapingAPI {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: ShapingAPI::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: ShapingAPI::get(&*stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -165,19 +178,27 @@ impl PyShapingAPI {
     }
 
     fn get_shaping_focus_attr(&self) -> Option<String> {
-        self.inner.get_shaping_focus_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_shaping_focus_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn get_shaping_cone_angle_attr(&self) -> Option<String> {
-        self.inner.get_shaping_cone_angle_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_shaping_cone_angle_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn get_shaping_cone_softness_attr(&self) -> Option<String> {
-        self.inner.get_shaping_cone_softness_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_shaping_cone_softness_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn get_shaping_ies_file_attr(&self) -> Option<String> {
-        self.inner.get_shaping_ies_file_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_shaping_ies_file_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn __repr__(&self) -> String {
@@ -209,7 +230,9 @@ impl PyShadowAPI {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: ShadowAPI::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: ShadowAPI::get(&*stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -217,19 +240,27 @@ impl PyShadowAPI {
     }
 
     fn get_shadow_enable_attr(&self) -> Option<String> {
-        self.inner.get_shadow_enable_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_shadow_enable_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn get_shadow_color_attr(&self) -> Option<String> {
-        self.inner.get_shadow_color_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_shadow_color_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn get_shadow_distance_attr(&self) -> Option<String> {
-        self.inner.get_shadow_distance_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_shadow_distance_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn get_shadow_falloff_attr(&self) -> Option<String> {
-        self.inner.get_shadow_falloff_attr().map(|a| a.path().to_string())
+        self.inner
+            .get_shadow_falloff_attr()
+            .map(|a| a.path().to_string())
     }
 
     fn __repr__(&self) -> String {
@@ -255,7 +286,9 @@ impl PyBoundableLightBase {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: BoundableLightBase::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: BoundableLightBase::get(&*stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -263,7 +296,9 @@ impl PyBoundableLightBase {
     }
 
     fn light_api(&self) -> PyLightAPI {
-        PyLightAPI { inner: self.inner.light_api() }
+        PyLightAPI {
+            inner: self.inner.light_api(),
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -289,7 +324,9 @@ impl PyNonboundableLightBase {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: NonboundableLightBase::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: NonboundableLightBase::get(&*stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -297,7 +334,9 @@ impl PyNonboundableLightBase {
     }
 
     fn light_api(&self) -> PyLightAPI {
-        PyLightAPI { inner: self.inner.light_api() }
+        PyLightAPI {
+            inner: self.inner.light_api(),
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -317,14 +356,18 @@ impl PyNonboundableLightBase {
 // --- DiskLight ---
 
 #[pyclass(name = "DiskLight", module = "pxr_rs.UsdLux")]
-struct PyDiskLight { inner: DiskLight }
+struct PyDiskLight {
+    inner: DiskLight,
+}
 
 #[pymethods]
 impl PyDiskLight {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: DiskLight::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: DiskLight::get(&*stage.inner, &p),
+        })
     }
 
     #[staticmethod]
@@ -333,27 +376,44 @@ impl PyDiskLight {
         Ok(DiskLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
-    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
-    fn __bool__(&self) -> bool { self.inner.is_valid() }
+    fn is_valid(&self) -> bool {
+        self.inner.is_valid()
+    }
+    fn get_path(&self) -> String {
+        self.inner.get_prim().path().to_string()
+    }
+    fn light_api(&self) -> PyLightAPI {
+        PyLightAPI {
+            inner: self.inner.light_api(),
+        }
+    }
+    fn __bool__(&self) -> bool {
+        self.inner.is_valid()
+    }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.DiskLight('{}')", self.inner.get_prim().path().to_string())
+        format!(
+            "UsdLux.DiskLight('{}')",
+            self.inner.get_prim().path().to_string()
+        )
     }
 }
 
 // --- RectLight ---
 
 #[pyclass(name = "RectLight", module = "pxr_rs.UsdLux")]
-struct PyRectLight { inner: RectLight }
+struct PyRectLight {
+    inner: RectLight,
+}
 
 #[pymethods]
 impl PyRectLight {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: RectLight::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: RectLight::get(&*stage.inner, &p),
+        })
     }
 
     #[staticmethod]
@@ -362,27 +422,44 @@ impl PyRectLight {
         Ok(RectLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
-    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
-    fn __bool__(&self) -> bool { self.inner.is_valid() }
+    fn is_valid(&self) -> bool {
+        self.inner.is_valid()
+    }
+    fn get_path(&self) -> String {
+        self.inner.get_prim().path().to_string()
+    }
+    fn light_api(&self) -> PyLightAPI {
+        PyLightAPI {
+            inner: self.inner.light_api(),
+        }
+    }
+    fn __bool__(&self) -> bool {
+        self.inner.is_valid()
+    }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.RectLight('{}')", self.inner.get_prim().path().to_string())
+        format!(
+            "UsdLux.RectLight('{}')",
+            self.inner.get_prim().path().to_string()
+        )
     }
 }
 
 // --- SphereLight ---
 
 #[pyclass(name = "SphereLight", module = "pxr_rs.UsdLux")]
-struct PySphereLight { inner: SphereLight }
+struct PySphereLight {
+    inner: SphereLight,
+}
 
 #[pymethods]
 impl PySphereLight {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: SphereLight::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: SphereLight::get(&*stage.inner, &p),
+        })
     }
 
     #[staticmethod]
@@ -391,29 +468,50 @@ impl PySphereLight {
         Ok(SphereLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
+    fn is_valid(&self) -> bool {
+        self.inner.is_valid()
+    }
+    fn get_path(&self) -> String {
+        self.inner.get_prim().path().to_string()
+    }
     // SphereLight exposes both light_api() and get_light_api() names
-    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.get_light_api() } }
-    fn get_light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.get_light_api() } }
-    fn __bool__(&self) -> bool { self.inner.is_valid() }
+    fn light_api(&self) -> PyLightAPI {
+        PyLightAPI {
+            inner: self.inner.get_light_api(),
+        }
+    }
+    fn get_light_api(&self) -> PyLightAPI {
+        PyLightAPI {
+            inner: self.inner.get_light_api(),
+        }
+    }
+    fn __bool__(&self) -> bool {
+        self.inner.is_valid()
+    }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.SphereLight('{}')", self.inner.get_prim().path().to_string())
+        format!(
+            "UsdLux.SphereLight('{}')",
+            self.inner.get_prim().path().to_string()
+        )
     }
 }
 
 // --- CylinderLight ---
 
 #[pyclass(name = "CylinderLight", module = "pxr_rs.UsdLux")]
-struct PyCylinderLight { inner: CylinderLight }
+struct PyCylinderLight {
+    inner: CylinderLight,
+}
 
 #[pymethods]
 impl PyCylinderLight {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: CylinderLight::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: CylinderLight::get(&*stage.inner, &p),
+        })
     }
 
     #[staticmethod]
@@ -422,27 +520,44 @@ impl PyCylinderLight {
         Ok(CylinderLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
-    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
-    fn __bool__(&self) -> bool { self.inner.is_valid() }
+    fn is_valid(&self) -> bool {
+        self.inner.is_valid()
+    }
+    fn get_path(&self) -> String {
+        self.inner.get_prim().path().to_string()
+    }
+    fn light_api(&self) -> PyLightAPI {
+        PyLightAPI {
+            inner: self.inner.light_api(),
+        }
+    }
+    fn __bool__(&self) -> bool {
+        self.inner.is_valid()
+    }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.CylinderLight('{}')", self.inner.get_prim().path().to_string())
+        format!(
+            "UsdLux.CylinderLight('{}')",
+            self.inner.get_prim().path().to_string()
+        )
     }
 }
 
 // --- DistantLight ---
 
 #[pyclass(name = "DistantLight", module = "pxr_rs.UsdLux")]
-struct PyDistantLight { inner: DistantLight }
+struct PyDistantLight {
+    inner: DistantLight,
+}
 
 #[pymethods]
 impl PyDistantLight {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: DistantLight::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: DistantLight::get(&*stage.inner, &p),
+        })
     }
 
     #[staticmethod]
@@ -451,27 +566,44 @@ impl PyDistantLight {
         Ok(DistantLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
-    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
-    fn __bool__(&self) -> bool { self.inner.is_valid() }
+    fn is_valid(&self) -> bool {
+        self.inner.is_valid()
+    }
+    fn get_path(&self) -> String {
+        self.inner.get_prim().path().to_string()
+    }
+    fn light_api(&self) -> PyLightAPI {
+        PyLightAPI {
+            inner: self.inner.light_api(),
+        }
+    }
+    fn __bool__(&self) -> bool {
+        self.inner.is_valid()
+    }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.DistantLight('{}')", self.inner.get_prim().path().to_string())
+        format!(
+            "UsdLux.DistantLight('{}')",
+            self.inner.get_prim().path().to_string()
+        )
     }
 }
 
 // --- DomeLight ---
 
 #[pyclass(name = "DomeLight", module = "pxr_rs.UsdLux")]
-struct PyDomeLight { inner: DomeLight }
+struct PyDomeLight {
+    inner: DomeLight,
+}
 
 #[pymethods]
 impl PyDomeLight {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: DomeLight::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: DomeLight::get(&*stage.inner, &p),
+        })
     }
 
     #[staticmethod]
@@ -480,20 +612,35 @@ impl PyDomeLight {
         Ok(DomeLight::define(&stage.inner, &p).map(|l| Self { inner: l }))
     }
 
-    fn is_valid(&self) -> bool { self.inner.is_valid() }
-    fn get_path(&self) -> String { self.inner.get_prim().path().to_string() }
-    fn light_api(&self) -> PyLightAPI { PyLightAPI { inner: self.inner.light_api() } }
-    fn __bool__(&self) -> bool { self.inner.is_valid() }
+    fn is_valid(&self) -> bool {
+        self.inner.is_valid()
+    }
+    fn get_path(&self) -> String {
+        self.inner.get_prim().path().to_string()
+    }
+    fn light_api(&self) -> PyLightAPI {
+        PyLightAPI {
+            inner: self.inner.light_api(),
+        }
+    }
+    fn __bool__(&self) -> bool {
+        self.inner.is_valid()
+    }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.DomeLight('{}')", self.inner.get_prim().path().to_string())
+        format!(
+            "UsdLux.DomeLight('{}')",
+            self.inner.get_prim().path().to_string()
+        )
     }
 }
 
 // --- DomeLight_1 (uses Arc<Stage> -> Option) ---
 
 #[pyclass(name = "DomeLight_1", module = "pxr_rs.UsdLux")]
-struct PyDomeLight1 { inner: DomeLight1 }
+struct PyDomeLight1 {
+    inner: DomeLight1,
+}
 
 #[pymethods]
 impl PyDomeLight1 {
@@ -518,11 +665,16 @@ impl PyDomeLight1 {
     }
 
     fn light_api(&self) -> PyLightAPI {
-        PyLightAPI { inner: LightAPI::new(self.inner.get_prim().clone()) }
+        PyLightAPI {
+            inner: LightAPI::new(self.inner.get_prim().clone()),
+        }
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.DomeLight_1('{}')", self.inner.get_prim().path().to_string())
+        format!(
+            "UsdLux.DomeLight_1('{}')",
+            self.inner.get_prim().path().to_string()
+        )
     }
 
     fn __bool__(&self) -> bool {
@@ -535,7 +687,9 @@ impl PyDomeLight1 {
 
 #[allow(deprecated)]
 #[pyclass(name = "GeometryLight", module = "pxr_rs.UsdLux")]
-struct PyGeometryLight { inner: GeometryLight }
+struct PyGeometryLight {
+    inner: GeometryLight,
+}
 
 #[allow(deprecated)]
 #[pymethods]
@@ -562,7 +716,9 @@ impl PyGeometryLight {
 
     // GeometryLight doesn't have light_api() — use LightAPI::new separately if needed
     fn light_api(&self) -> PyLightAPI {
-        PyLightAPI { inner: LightAPI::new(self.inner.prim().clone()) }
+        PyLightAPI {
+            inner: LightAPI::new(self.inner.prim().clone()),
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -577,7 +733,9 @@ impl PyGeometryLight {
 // --- PortalLight (Arc<Stage>->Option) ---
 
 #[pyclass(name = "PortalLight", module = "pxr_rs.UsdLux")]
-struct PyPortalLight { inner: PortalLight }
+struct PyPortalLight {
+    inner: PortalLight,
+}
 
 #[pymethods]
 impl PyPortalLight {
@@ -602,7 +760,9 @@ impl PyPortalLight {
     }
 
     fn light_api(&self) -> PyLightAPI {
-        PyLightAPI { inner: LightAPI::new(self.inner.prim().clone()) }
+        PyLightAPI {
+            inner: LightAPI::new(self.inner.prim().clone()),
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -617,7 +777,9 @@ impl PyPortalLight {
 // --- PluginLight (Arc<Stage>->Option) ---
 
 #[pyclass(name = "PluginLight", module = "pxr_rs.UsdLux")]
-struct PyPluginLight { inner: PluginLight }
+struct PyPluginLight {
+    inner: PluginLight,
+}
 
 #[pymethods]
 impl PyPluginLight {
@@ -642,11 +804,16 @@ impl PyPluginLight {
     }
 
     fn light_api(&self) -> PyLightAPI {
-        PyLightAPI { inner: LightAPI::new(self.inner.get_prim().clone()) }
+        PyLightAPI {
+            inner: LightAPI::new(self.inner.get_prim().clone()),
+        }
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.PluginLight('{}')", self.inner.get_prim().path().to_string())
+        format!(
+            "UsdLux.PluginLight('{}')",
+            self.inner.get_prim().path().to_string()
+        )
     }
 
     fn __bool__(&self) -> bool {
@@ -659,7 +826,9 @@ impl PyPluginLight {
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "LightFilter", module = "pxr_rs.UsdLux")]
-struct PyLightFilter { inner: LightFilter }
+struct PyLightFilter {
+    inner: LightFilter,
+}
 
 #[pymethods]
 impl PyLightFilter {
@@ -685,7 +854,10 @@ impl PyLightFilter {
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdLux.LightFilter('{}')", self.inner.prim().path().to_string())
+        format!(
+            "UsdLux.LightFilter('{}')",
+            self.inner.prim().path().to_string()
+        )
     }
 
     fn __bool__(&self) -> bool {
@@ -698,7 +870,9 @@ impl PyLightFilter {
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "PluginLightFilter", module = "pxr_rs.UsdLux")]
-struct PyPluginLightFilter { inner: PluginLightFilter }
+struct PyPluginLightFilter {
+    inner: PluginLightFilter,
+}
 
 #[pymethods]
 impl PyPluginLightFilter {
@@ -732,7 +906,9 @@ impl PyPluginLightFilter {
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "MeshLightAPI", module = "pxr_rs.UsdLux")]
-struct PyMeshLightAPI { inner: MeshLightAPI }
+struct PyMeshLightAPI {
+    inner: MeshLightAPI,
+}
 
 #[pymethods]
 impl PyMeshLightAPI {
@@ -766,7 +942,9 @@ impl PyMeshLightAPI {
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "VolumeLightAPI", module = "pxr_rs.UsdLux")]
-struct PyVolumeLightAPI { inner: VolumeLightAPI }
+struct PyVolumeLightAPI {
+    inner: VolumeLightAPI,
+}
 
 #[pymethods]
 impl PyVolumeLightAPI {
@@ -800,7 +978,9 @@ impl PyVolumeLightAPI {
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "LightListAPI", module = "pxr_rs.UsdLux")]
-struct PyLightListAPI { inner: LightListAPI }
+struct PyLightListAPI {
+    inner: LightListAPI,
+}
 
 #[pymethods]
 impl PyLightListAPI {
@@ -853,41 +1033,146 @@ struct PyTokens;
 
 #[pymethods]
 impl PyTokens {
-    #[getter] fn angular(&self) -> &str { "angular" }
-    #[getter] fn automatic(&self) -> &str { "automatic" }
-    #[getter] fn consumeAndContinue(&self) -> &str { "consumeAndContinue" }
-    #[getter] fn consumeAndHalt(&self) -> &str { "consumeAndHalt" }
-    #[getter] fn cubeMapVerticalCross(&self) -> &str { "cubeMapVerticalCross" }
-    #[getter] fn filterLink(&self) -> &str { "filterLink" }
-    #[getter] fn geometry(&self) -> &str { "geometry" }
-    #[getter] fn guideRadius(&self) -> &str { "guideRadius" }
-    #[getter] fn ignore(&self) -> &str { "ignore" }
-    #[getter] fn independent(&self) -> &str { "independent" }
-    #[getter] fn inputsColor(&self) -> &str { "inputs:color" }
-    #[getter] fn inputsColorTemperature(&self) -> &str { "inputs:colorTemperature" }
-    #[getter] fn inputsDiffuse(&self) -> &str { "inputs:diffuse" }
-    #[getter] fn inputsEnableColorTemperature(&self) -> &str { "inputs:enableColorTemperature" }
-    #[getter] fn inputsExposure(&self) -> &str { "inputs:exposure" }
-    #[getter] fn inputsHeight(&self) -> &str { "inputs:height" }
-    #[getter] fn inputsIntensity(&self) -> &str { "inputs:intensity" }
-    #[getter] fn inputsNormalize(&self) -> &str { "inputs:normalize" }
-    #[getter] fn inputsRadius(&self) -> &str { "inputs:radius" }
-    #[getter] fn inputsSpecular(&self) -> &str { "inputs:specular" }
-    #[getter] fn inputsWidth(&self) -> &str { "inputs:width" }
-    #[getter] fn lightFilters(&self) -> &str { "light:filters" }
-    #[getter] fn lightLink(&self) -> &str { "lightLink" }
-    #[getter] fn lightList(&self) -> &str { "lightList" }
-    #[getter] fn lightListCacheBehavior(&self) -> &str { "lightList:cacheBehavior" }
-    #[getter] fn lightShaderId(&self) -> &str { "light:shaderId" }
-    #[getter] fn materialGlowTintsLight(&self) -> &str { "materialGlowTintsLight" }
-    #[getter] fn noMaterialResponse(&self) -> &str { "noMaterialResponse" }
-    #[getter] fn orientToStageUpAxis(&self) -> &str { "orientToStageUpAxis" }
-    #[getter] fn portals(&self) -> &str { "portals" }
-    #[getter] fn shadowLink(&self) -> &str { "shadowLink" }
-    #[getter] fn treatAsLine(&self) -> &str { "treatAsLine" }
-    #[getter] fn treatAsPoint(&self) -> &str { "treatAsPoint" }
-    #[getter] fn inputsTextureFile(&self) -> &str { "inputs:texture:file" }
-    #[getter] fn inputsTextureFormat(&self) -> &str { "inputs:texture:format" }
+    #[getter]
+    fn angular(&self) -> &str {
+        "angular"
+    }
+    #[getter]
+    fn automatic(&self) -> &str {
+        "automatic"
+    }
+    #[getter]
+    fn consumeAndContinue(&self) -> &str {
+        "consumeAndContinue"
+    }
+    #[getter]
+    fn consumeAndHalt(&self) -> &str {
+        "consumeAndHalt"
+    }
+    #[getter]
+    fn cubeMapVerticalCross(&self) -> &str {
+        "cubeMapVerticalCross"
+    }
+    #[getter]
+    fn filterLink(&self) -> &str {
+        "filterLink"
+    }
+    #[getter]
+    fn geometry(&self) -> &str {
+        "geometry"
+    }
+    #[getter]
+    fn guideRadius(&self) -> &str {
+        "guideRadius"
+    }
+    #[getter]
+    fn ignore(&self) -> &str {
+        "ignore"
+    }
+    #[getter]
+    fn independent(&self) -> &str {
+        "independent"
+    }
+    #[getter]
+    fn inputsColor(&self) -> &str {
+        "inputs:color"
+    }
+    #[getter]
+    fn inputsColorTemperature(&self) -> &str {
+        "inputs:colorTemperature"
+    }
+    #[getter]
+    fn inputsDiffuse(&self) -> &str {
+        "inputs:diffuse"
+    }
+    #[getter]
+    fn inputsEnableColorTemperature(&self) -> &str {
+        "inputs:enableColorTemperature"
+    }
+    #[getter]
+    fn inputsExposure(&self) -> &str {
+        "inputs:exposure"
+    }
+    #[getter]
+    fn inputsHeight(&self) -> &str {
+        "inputs:height"
+    }
+    #[getter]
+    fn inputsIntensity(&self) -> &str {
+        "inputs:intensity"
+    }
+    #[getter]
+    fn inputsNormalize(&self) -> &str {
+        "inputs:normalize"
+    }
+    #[getter]
+    fn inputsRadius(&self) -> &str {
+        "inputs:radius"
+    }
+    #[getter]
+    fn inputsSpecular(&self) -> &str {
+        "inputs:specular"
+    }
+    #[getter]
+    fn inputsWidth(&self) -> &str {
+        "inputs:width"
+    }
+    #[getter]
+    fn lightFilters(&self) -> &str {
+        "light:filters"
+    }
+    #[getter]
+    fn lightLink(&self) -> &str {
+        "lightLink"
+    }
+    #[getter]
+    fn lightList(&self) -> &str {
+        "lightList"
+    }
+    #[getter]
+    fn lightListCacheBehavior(&self) -> &str {
+        "lightList:cacheBehavior"
+    }
+    #[getter]
+    fn lightShaderId(&self) -> &str {
+        "light:shaderId"
+    }
+    #[getter]
+    fn materialGlowTintsLight(&self) -> &str {
+        "materialGlowTintsLight"
+    }
+    #[getter]
+    fn noMaterialResponse(&self) -> &str {
+        "noMaterialResponse"
+    }
+    #[getter]
+    fn orientToStageUpAxis(&self) -> &str {
+        "orientToStageUpAxis"
+    }
+    #[getter]
+    fn portals(&self) -> &str {
+        "portals"
+    }
+    #[getter]
+    fn shadowLink(&self) -> &str {
+        "shadowLink"
+    }
+    #[getter]
+    fn treatAsLine(&self) -> &str {
+        "treatAsLine"
+    }
+    #[getter]
+    fn treatAsPoint(&self) -> &str {
+        "treatAsPoint"
+    }
+    #[getter]
+    fn inputsTextureFile(&self) -> &str {
+        "inputs:texture:file"
+    }
+    #[getter]
+    fn inputsTextureFormat(&self) -> &str {
+        "inputs:texture:format"
+    }
 }
 
 // ---------------------------------------------------------------------------

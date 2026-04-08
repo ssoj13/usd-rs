@@ -73,7 +73,10 @@ impl ProjectionSchemaBuilder {
     pub fn build(self) -> HdContainerDataSourceHandle {
         let mut entries = Vec::new();
         if let Some(resource) = self.resource {
-            entries.push((tokens::RESOURCE.clone(), resource as usd_hd::HdDataSourceBaseHandle));
+            entries.push((
+                tokens::RESOURCE.clone(),
+                resource as usd_hd::HdDataSourceBaseHandle,
+            ));
         }
         usd_hd::HdRetainedContainerDataSource::from_entries(&entries) as HdContainerDataSourceHandle
     }

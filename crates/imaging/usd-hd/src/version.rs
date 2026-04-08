@@ -1,4 +1,3 @@
-
 //! Hydra API version constants.
 //!
 //! This module defines version numbers for Hydra's public API to track

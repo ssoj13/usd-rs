@@ -64,8 +64,7 @@ pub fn read_debug_xformable_stats() -> DebugXformableStats {
             .load(Ordering::Relaxed),
         get_xform_op_order_value_total_ns: DEBUG_GET_XFORM_OP_ORDER_VALUE_TOTAL_NS
             .load(Ordering::Relaxed),
-        xform_query_local_xform_calls: DEBUG_XFORM_QUERY_LOCAL_XFORM_CALLS
-            .load(Ordering::Relaxed),
+        xform_query_local_xform_calls: DEBUG_XFORM_QUERY_LOCAL_XFORM_CALLS.load(Ordering::Relaxed),
         xform_query_local_xform_total_ns: DEBUG_XFORM_QUERY_LOCAL_XFORM_TOTAL_NS
             .load(Ordering::Relaxed),
     }
@@ -1521,9 +1520,6 @@ mod tests {
     #[test]
     #[ignore = "diagnostic test requires local flo.usd sample assets"]
     fn diag_xform_hierarchy() {
-        
-        
-
         usd_sdf::init();
 
         let usda_path = "C:/projects/projects.rust.cg/usd-rs/data/flo.usda";

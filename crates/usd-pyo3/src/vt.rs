@@ -37,25 +37,45 @@ fn slice_indices(step: isize, start: isize, stop: isize) -> Vec<usize> {
     let mut result = Vec::new();
     let mut idx = start;
     loop {
-        if step > 0 && idx >= stop { break; }
-        if step < 0 && idx <= stop { break; }
-        if step == 0 { break; }
+        if step > 0 && idx >= stop {
+            break;
+        }
+        if step < 0 && idx <= stop {
+            break;
+        }
+        if step == 0 {
+            break;
+        }
         result.push(idx as usize);
         idx += step;
     }
     result
 }
 
-fn is_ellipsis(obj: &Bound<'_, PyAny>) -> bool { obj.py().Ellipsis().is(&obj) }
+fn is_ellipsis(obj: &Bound<'_, PyAny>) -> bool {
+    obj.py().Ellipsis().is(&obj)
+}
 
 #[allow(dead_code)]
 fn repr_f64(v: f64) -> String {
-    if v.is_infinite() { return if v > 0.0 { "float('inf')".into() } else { "float('-inf')".into() }; }
-    if v.is_nan() { return "float('nan')".into(); }
+    if v.is_infinite() {
+        return if v > 0.0 {
+            "float('inf')".into()
+        } else {
+            "float('-inf')".into()
+        };
+    }
+    if v.is_nan() {
+        return "float('nan')".into();
+    }
     for prec in 1..=17 {
         let s = format!("{v:.prec$}");
         if s.parse::<f64>().ok() == Some(v) {
-            return if s.contains('.') || s.contains('e') { s } else { format!("{s}.0") };
+            return if s.contains('.') || s.contains('e') {
+                s
+            } else {
+                format!("{s}.0")
+            };
         }
     }
     format!("{v}")
@@ -63,30 +83,57 @@ fn repr_f64(v: f64) -> String {
 
 #[allow(dead_code)]
 fn repr_f32(v: f32) -> String {
-    if v.is_infinite() { return if v > 0.0 { "float('inf')".into() } else { "float('-inf')".into() }; }
-    if v.is_nan() { return "float('nan')".into(); }
+    if v.is_infinite() {
+        return if v > 0.0 {
+            "float('inf')".into()
+        } else {
+            "float('-inf')".into()
+        };
+    }
+    if v.is_nan() {
+        return "float('nan')".into();
+    }
     for prec in 1..=9 {
         let s = format!("{v:.prec$}");
         if s.parse::<f32>().ok() == Some(v) {
-            return if s.contains('.') || s.contains('e') { s } else { format!("{s}.0") };
+            return if s.contains('.') || s.contains('e') {
+                s
+            } else {
+                format!("{s}.0")
+            };
         }
     }
     format!("{v}")
 }
 
 fn ellipsis_setitem_scalar<T>(inner: &mut Array<T>, value: &Bound<'_, PyAny>) -> PyResult<()>
-where T: Clone + Send + Sync + for<'a, 'py> FromPyObject<'a, 'py> + 'static {
+where
+    T: Clone + Send + Sync + for<'a, 'py> FromPyObject<'a, 'py> + 'static,
+{
     let len = inner.len();
     if let Ok(scalar) = value.extract::<T>() {
         inner.make_unique();
-        if let Some(data) = inner.as_mut_slice() { for d in data.iter_mut() { *d = scalar.clone(); } }
+        if let Some(data) = inner.as_mut_slice() {
+            for d in data.iter_mut() {
+                *d = scalar.clone();
+            }
+        }
         return Ok(());
     }
     match value.extract::<Vec<T>>() {
         Ok(elems) => {
-            if elems.len() != len { return Err(PyValueError::new_err(format!("cannot set {len} elements from sequence of length {}", elems.len()))); }
+            if elems.len() != len {
+                return Err(PyValueError::new_err(format!(
+                    "cannot set {len} elements from sequence of length {}",
+                    elems.len()
+                )));
+            }
             inner.make_unique();
-            if let Some(data) = inner.as_mut_slice() { for (d, s) in data.iter_mut().zip(elems) { *d = s; } }
+            if let Some(data) = inner.as_mut_slice() {
+                for (d, s) in data.iter_mut().zip(elems) {
+                    *d = s;
+                }
+            }
             Ok(())
         }
         Err(_) => {
@@ -104,7 +151,7 @@ where T: Clone + Send + Sync + for<'a, 'py> FromPyObject<'a, 'py> + 'static {
 // ============================================================================
 
 /// Explicit typed wrapper over `Value` — mirrors C++ `Vt._ValueWrapper`.
-#[pyclass(skip_from_py_object,name = "_ValueWrapper", module = "pxr_rs.Vt")]
+#[pyclass(skip_from_py_object, name = "_ValueWrapper", module = "pxr_rs.Vt")]
 #[derive(Clone)]
 pub struct PyValue {
     inner: Value,
@@ -118,109 +165,228 @@ impl PyValue {
     #[pyo3(signature = (obj = None))]
     fn new(obj: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
         let Some(obj) = obj else {
-            return Ok(Self { inner: Value::empty(), tag: "empty" });
+            return Ok(Self {
+                inner: Value::empty(),
+                tag: "empty",
+            });
         };
         // bool before int — Python bool is a subclass of int
         if let Ok(b) = obj.extract::<bool>() {
-            return Ok(Self { inner: Value::new(b), tag: "bool" });
+            return Ok(Self {
+                inner: Value::new(b),
+                tag: "bool",
+            });
         }
         if let Ok(i) = obj.extract::<i64>() {
             if i >= i64::from(i32::MIN) && i <= i64::from(i32::MAX) {
-                return Ok(Self { inner: Value::new(i as i32), tag: "int" });
+                return Ok(Self {
+                    inner: Value::new(i as i32),
+                    tag: "int",
+                });
             }
-            return Ok(Self { inner: Value::new(i), tag: "int64" });
+            return Ok(Self {
+                inner: Value::new(i),
+                tag: "int64",
+            });
         }
         if let Ok(f) = obj.extract::<f64>() {
-            return Ok(Self { inner: Value::from_f64(f), tag: "double" });
+            return Ok(Self {
+                inner: Value::from_f64(f),
+                tag: "double",
+            });
         }
         if let Ok(s) = obj.extract::<String>() {
-            return Ok(Self { inner: Value::new(s), tag: "string" });
+            return Ok(Self {
+                inner: Value::new(s),
+                tag: "string",
+            });
         }
-        Ok(Self { inner: Value::empty(), tag: "unknown" })
+        Ok(Self {
+            inner: Value::empty(),
+            tag: "unknown",
+        })
     }
 
     #[staticmethod]
     #[pyo3(name = "Bool")]
-    fn mk_bool(v: bool) -> Self { Self { inner: Value::new(v), tag: "bool" } }
+    fn mk_bool(v: bool) -> Self {
+        Self {
+            inner: Value::new(v),
+            tag: "bool",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "UChar")]
-    fn mk_uchar(v: u8) -> Self { Self { inner: Value::new(v), tag: "uchar" } }
+    fn mk_uchar(v: u8) -> Self {
+        Self {
+            inner: Value::new(v),
+            tag: "uchar",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "Short")]
-    fn mk_short(v: i16) -> Self { Self { inner: Value::new(v), tag: "short" } }
+    fn mk_short(v: i16) -> Self {
+        Self {
+            inner: Value::new(v),
+            tag: "short",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "UShort")]
-    fn mk_ushort(v: u16) -> Self { Self { inner: Value::new(v), tag: "ushort" } }
+    fn mk_ushort(v: u16) -> Self {
+        Self {
+            inner: Value::new(v),
+            tag: "ushort",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "Int")]
-    fn mk_int(v: i32) -> Self { Self { inner: Value::new(v), tag: "int" } }
+    fn mk_int(v: i32) -> Self {
+        Self {
+            inner: Value::new(v),
+            tag: "int",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "UInt")]
-    fn mk_uint(v: u32) -> Self { Self { inner: Value::new(v), tag: "uint" } }
+    fn mk_uint(v: u32) -> Self {
+        Self {
+            inner: Value::new(v),
+            tag: "uint",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "Long")]
-    fn mk_long(v: i64) -> Self { Self { inner: Value::new(v), tag: "long" } }
+    fn mk_long(v: i64) -> Self {
+        Self {
+            inner: Value::new(v),
+            tag: "long",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "Int64")]
-    fn mk_int64(v: i64) -> Self { Self { inner: Value::new(v), tag: "int64" } }
+    fn mk_int64(v: i64) -> Self {
+        Self {
+            inner: Value::new(v),
+            tag: "int64",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "ULong")]
-    fn mk_ulong(v: u64) -> Self { Self { inner: Value::new(v), tag: "ulong" } }
+    fn mk_ulong(v: u64) -> Self {
+        Self {
+            inner: Value::new(v),
+            tag: "ulong",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "UInt64")]
-    fn mk_uint64(v: u64) -> Self { Self { inner: Value::new(v), tag: "uint64" } }
+    fn mk_uint64(v: u64) -> Self {
+        Self {
+            inner: Value::new(v),
+            tag: "uint64",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "Float")]
-    fn mk_float(v: f32) -> Self { Self { inner: Value::from_f32(v), tag: "float" } }
+    fn mk_float(v: f32) -> Self {
+        Self {
+            inner: Value::from_f32(v),
+            tag: "float",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "Double")]
-    fn mk_double(v: f64) -> Self { Self { inner: Value::from_f64(v), tag: "double" } }
+    fn mk_double(v: f64) -> Self {
+        Self {
+            inner: Value::from_f64(v),
+            tag: "double",
+        }
+    }
 
     /// Half stored as f32 proxy — Python has no native f16 type.
     #[staticmethod]
     #[pyo3(name = "Half")]
-    fn mk_half(v: f32) -> Self { Self { inner: Value::from_f32(v), tag: "half" } }
+    fn mk_half(v: f32) -> Self {
+        Self {
+            inner: Value::from_f32(v),
+            tag: "half",
+        }
+    }
 
     #[staticmethod]
     #[pyo3(name = "Token")]
     fn mk_token(v: &str) -> Self {
-        Self { inner: Value::new(usd_tf::Token::new(v)), tag: "token" }
+        Self {
+            inner: Value::new(usd_tf::Token::new(v)),
+            tag: "token",
+        }
     }
 
     #[pyo3(name = "IsEmpty")]
-    fn is_empty(&self) -> bool { self.inner.is_empty() }
+    fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
 
-    fn __eq__(&self, other: &Self) -> bool { self.inner == other.inner }
-    fn __ne__(&self, other: &Self) -> bool { self.inner != other.inner }
+    fn __eq__(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+    fn __ne__(&self, other: &Self) -> bool {
+        self.inner != other.inner
+    }
 
-    fn __str__(&self) -> String { format_value(&self.inner) }
+    fn __str__(&self) -> String {
+        format_value(&self.inner)
+    }
 
     fn __repr__(&self) -> String {
-        format!("Vt._ValueWrapper({}: {})", self.tag, format_value(&self.inner))
+        format!(
+            "Vt._ValueWrapper({}: {})",
+            self.tag,
+            format_value(&self.inner)
+        )
     }
 }
 
 fn format_value(v: &Value) -> String {
-    if v.is_empty() { return "<empty>".to_owned(); }
-    if let Some(b) = v.get::<bool>()   { return format!("{b}"); }
-    if let Some(i) = v.get::<i32>()    { return format!("{i}"); }
-    if let Some(i) = v.get::<i64>()    { return format!("{i}"); }
-    if let Some(u) = v.get::<u64>()    { return format!("{u}"); }
-    if let Some(x) = v.get::<f64>()    { return format!("{x}"); }
-    if let Some(x) = v.get::<f32>()    { return format!("{x}"); }
-    if let Some(s) = v.get::<String>() { return s.clone(); }
-    if let Some(t) = v.get::<usd_tf::Token>() { return t.to_string(); }
+    if v.is_empty() {
+        return "<empty>".to_owned();
+    }
+    if let Some(b) = v.get::<bool>() {
+        return format!("{b}");
+    }
+    if let Some(i) = v.get::<i32>() {
+        return format!("{i}");
+    }
+    if let Some(i) = v.get::<i64>() {
+        return format!("{i}");
+    }
+    if let Some(u) = v.get::<u64>() {
+        return format!("{u}");
+    }
+    if let Some(x) = v.get::<f64>() {
+        return format!("{x}");
+    }
+    if let Some(x) = v.get::<f32>() {
+        return format!("{x}");
+    }
+    if let Some(s) = v.get::<String>() {
+        return s.clone();
+    }
+    if let Some(t) = v.get::<usd_tf::Token>() {
+        return t.to_string();
+    }
     "<value>".to_owned()
 }
 
@@ -231,55 +397,73 @@ fn format_value(v: &Value) -> String {
 macro_rules! define_scalar_iter {
     ($name:ident, $elem:ty) => {
         #[pyclass(skip_from_py_object)]
-        pub struct $name { data: Vec<$elem>, pos: usize }
+        pub struct $name {
+            data: Vec<$elem>,
+            pos: usize,
+        }
 
         impl $name {
-            pub fn new_from_data(data: Vec<$elem>) -> Self { Self { data, pos: 0 } }
+            pub fn new_from_data(data: Vec<$elem>) -> Self {
+                Self { data, pos: 0 }
+            }
         }
 
         #[pymethods]
         impl $name {
-            fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> { slf }
+            fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+                slf
+            }
             fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<$elem> {
                 if slf.pos < slf.data.len() {
                     let v = slf.data[slf.pos];
                     slf.pos += 1;
                     Some(v)
-                } else { None }
+                } else {
+                    None
+                }
             }
         }
     };
 }
 
 define_scalar_iter!(VtBoolIter, bool);
-define_scalar_iter!(VtI8Iter,   i8);
-define_scalar_iter!(VtU8Iter,   u8);
-define_scalar_iter!(VtI16Iter,  i16);
-define_scalar_iter!(VtU16Iter,  u16);
-define_scalar_iter!(VtI32Iter,  i32);
-define_scalar_iter!(VtU32Iter,  u32);
-define_scalar_iter!(VtI64Iter,  i64);
-define_scalar_iter!(VtU64Iter,  u64);
-define_scalar_iter!(VtF32Iter,  f32);
-define_scalar_iter!(VtF64Iter,  f64);
+define_scalar_iter!(VtI8Iter, i8);
+define_scalar_iter!(VtU8Iter, u8);
+define_scalar_iter!(VtI16Iter, i16);
+define_scalar_iter!(VtU16Iter, u16);
+define_scalar_iter!(VtI32Iter, i32);
+define_scalar_iter!(VtU32Iter, u32);
+define_scalar_iter!(VtI64Iter, i64);
+define_scalar_iter!(VtU64Iter, u64);
+define_scalar_iter!(VtF32Iter, f32);
+define_scalar_iter!(VtF64Iter, f64);
 
 /// String-based iterator for Token, vec, matrix arrays.
 #[pyclass(skip_from_py_object)]
-pub struct VtStringIter { data: Vec<String>, pos: usize }
+pub struct VtStringIter {
+    data: Vec<String>,
+    pos: usize,
+}
 
 impl VtStringIter {
-    pub fn new_from_data(data: Vec<String>) -> Self { Self { data, pos: 0 } }
+    pub fn new_from_data(data: Vec<String>) -> Self {
+        Self { data, pos: 0 }
+    }
 }
 
 #[pymethods]
 impl VtStringIter {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> { slf }
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
     fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<String> {
         if slf.pos < slf.data.len() {
             let s = slf.data[slf.pos].clone();
             slf.pos += 1;
             Some(s)
-        } else { None }
+        } else {
+            None
+        }
     }
 }
 
@@ -292,12 +476,18 @@ fn build_array<T>(arg: Option<&Bound<'_, PyAny>>, default: fn() -> T) -> PyResul
 where
     T: Clone + Send + Sync + for<'a, 'py> FromPyObject<'a, 'py> + 'static,
 {
-    let Some(obj) = arg else { return Ok(Array::new()); };
+    let Some(obj) = arg else {
+        return Ok(Array::new());
+    };
     if let Ok(n) = obj.extract::<usize>() {
         return Ok(Array::from_elem(default(), n));
     }
-    let list: Vec<T> = obj.extract()
-        .map_err(|e: PyErr| { if e.is_instance_of::<PyOverflowError>(obj.py()) { return e; } PyValueError::new_err("expected int size or sequence") })?;
+    let list: Vec<T> = obj.extract().map_err(|e: PyErr| {
+        if e.is_instance_of::<PyOverflowError>(obj.py()) {
+            return e;
+        }
+        PyValueError::new_err("expected int size or sequence")
+    })?;
     Ok(Array::from(list))
 }
 
@@ -306,11 +496,14 @@ fn build_array_clone<T>(arg: Option<&Bound<'_, PyAny>>) -> PyResult<Array<T>>
 where
     T: Clone + Send + Sync + Default + for<'a, 'py> FromPyObject<'a, 'py> + 'static,
 {
-    let Some(obj) = arg else { return Ok(Array::new()); };
+    let Some(obj) = arg else {
+        return Ok(Array::new());
+    };
     if let Ok(n) = obj.extract::<usize>() {
         return Ok(Array::from_elem(T::default(), n));
     }
-    let list: Vec<T> = obj.extract()
+    let list: Vec<T> = obj
+        .extract()
         .map_err(|_| PyValueError::new_err("expected int size or sequence"))?;
     Ok(Array::from(list))
 }
@@ -324,13 +517,18 @@ where
     T: Clone + Send + Sync + Default + 'static,
     PyElem: for<'a, 'py> FromPyObject<'a, 'py>,
 {
-    let Some(obj) = arg else { return Ok(Array::new()); };
+    let Some(obj) = arg else {
+        return Ok(Array::new());
+    };
     if let Ok(n) = obj.extract::<usize>() {
         return Ok(Array::from_elem(T::default(), n));
     }
-    let list: Vec<PyElem> = obj.extract()
+    let list: Vec<PyElem> = obj
+        .extract()
         .map_err(|_| PyValueError::new_err("expected int size or sequence"))?;
-    Ok(Array::from(list.into_iter().map(from_py).collect::<Vec<_>>()))
+    Ok(Array::from(
+        list.into_iter().map(from_py).collect::<Vec<_>>(),
+    ))
 }
 
 // ============================================================================
@@ -356,7 +554,9 @@ macro_rules! vt_array {
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
-        pub struct $rust_name { pub(crate) inner: Array<$elem> }
+        pub struct $rust_name {
+            pub(crate) inner: Array<$elem>,
+        }
 
         #[pymethods]
         impl $rust_name {
@@ -366,40 +566,66 @@ macro_rules! vt_array {
                 build_array::<$elem>(arg, Default::default).map(|inner| Self { inner })
             }
 
-            fn __len__(&self) -> usize { self.inner.len() }
+            fn __len__(&self) -> usize {
+                self.inner.len()
+            }
 
             fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
-                    Ok(self.inner.as_slice()[idx].into_pyobject(py)?.into_any().unbind())
+                    Ok(self.inner.as_slice()[idx]
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind())
                 } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
-                    let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
-                    let elems: Vec<$elem> = indices.iter().map(|&i| self.inner.as_slice()[i]).collect();
-                    Ok(Self { inner: Array::from(elems) }.into_pyobject(py)?.into_any().unbind())
+                    let indices =
+                        slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
+                    let elems: Vec<$elem> =
+                        indices.iter().map(|&i| self.inner.as_slice()[i]).collect();
+                    Ok(Self {
+                        inner: Array::from(elems),
+                    }
+                    .into_pyobject(py)?
+                    .into_any()
+                    .unbind())
                 } else {
                     Err(PyTypeError::new_err("index must be int or slice"))
                 }
             }
 
-            fn __setitem__(&mut self, key: &Bound<'_, PyAny>, value: &Bound<'_, PyAny>) -> PyResult<()> {
-                if is_ellipsis(key) { return ellipsis_setitem_scalar::<$elem>(&mut self.inner, value); }
+            fn __setitem__(
+                &mut self,
+                key: &Bound<'_, PyAny>,
+                value: &Bound<'_, PyAny>,
+            ) -> PyResult<()> {
+                if is_ellipsis(key) {
+                    return ellipsis_setitem_scalar::<$elem>(&mut self.inner, value);
+                }
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
                     let elem: $elem = value.extract()?;
                     self.inner.make_unique();
-                    self.inner.as_mut_slice()
-                        .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?[idx] = elem;
+                    self.inner
+                        .as_mut_slice()
+                        .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?
+                        [idx] = elem;
                     Ok(())
                 } else if let Ok(slice) = key.cast::<PySlice>() {
-                    let raw = slice.indices(self.inner.len() as _)
+                    let raw = slice
+                        .indices(self.inner.len() as _)
                         .map_err(|_| PyIndexError::new_err("slice step cannot be zero"))?;
-                    let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
+                    let indices =
+                        slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let elems: Vec<$elem> = value.extract()?;
                     self.inner.make_unique();
-                    let data = self.inner.as_mut_slice()
+                    let data = self
+                        .inner
+                        .as_mut_slice()
                         .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?;
-                    for (i, elem) in indices.into_iter().zip(elems) { data[i] = elem; }
+                    for (i, elem) in indices.into_iter().zip(elems) {
+                        data[i] = elem;
+                    }
                     Ok(())
                 } else {
                     Err(PyTypeError::new_err("index must be int or slice"))
@@ -407,58 +633,141 @@ macro_rules! vt_array {
             }
 
             fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<$iter_ty>> {
-                Py::new(slf.py(), $iter_ty::new_from_data(slf.inner.as_slice().to_vec()))
+                Py::new(
+                    slf.py(),
+                    $iter_ty::new_from_data(slf.inner.as_slice().to_vec()),
+                )
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                if let Ok(o) = other.cast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
-                if let Ok(list) = other.extract::<Vec<$elem>>() { return Ok(self.inner.as_slice() == list.as_slice()); }
+                if let Ok(o) = other.cast::<Self>() {
+                    return Ok(self.inner.as_slice() == o.borrow().inner.as_slice());
+                }
+                if let Ok(list) = other.extract::<Vec<$elem>>() {
+                    return Ok(self.inner.as_slice() == list.as_slice());
+                }
                 Ok(false)
             }
-            fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> { self.__eq__(py, other).map(|eq| !eq) }
+            fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+                self.__eq__(py, other).map(|eq| !eq)
+            }
 
             fn __repr__(&self) -> String {
-                let elems: Vec<String> = self.inner.as_slice().iter().map(|x| {
-                    let s = format!("{x}");
-                    match s.as_str() {
-                        "inf" => "float('inf')".to_owned(),
-                        "-inf" => "float('-inf')".to_owned(),
-                        "NaN" => "float('nan')".to_owned(),
-                        _ => s,
-                    }
-                }).collect();
+                let elems: Vec<String> = self
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|x| {
+                        let s = format!("{x}");
+                        match s.as_str() {
+                            "inf" => "float('inf')".to_owned(),
+                            "-inf" => "float('-inf')".to_owned(),
+                            "NaN" => "float('nan')".to_owned(),
+                            _ => s,
+                        }
+                    })
+                    .collect();
                 format!("Vt.{}([{}])", $py_name, elems.join(", "))
             }
             fn __str__(&self) -> String {
-                let elems: Vec<String> = self.inner.as_slice().iter().map(|x| format!("{x}")).collect();
+                let elems: Vec<String> = self
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|x| format!("{x}"))
+                    .collect();
                 format!("[{}]", elems.join(", "))
             }
 
             fn __add__(&self, other: &Self) -> Self {
-                Self { inner: Array::from(self.inner.as_slice().iter().zip(other.inner.as_slice()).map(|(a, b)| *a + *b).collect::<Vec<_>>()) }
+                Self {
+                    inner: Array::from(
+                        self.inner
+                            .as_slice()
+                            .iter()
+                            .zip(other.inner.as_slice())
+                            .map(|(a, b)| *a + *b)
+                            .collect::<Vec<_>>(),
+                    ),
+                }
             }
-            fn __radd__(&self, other: &Self) -> Self { self.__add__(other) }
+            fn __radd__(&self, other: &Self) -> Self {
+                self.__add__(other)
+            }
             fn __sub__(&self, other: &Self) -> Self {
-                Self { inner: Array::from(self.inner.as_slice().iter().zip(other.inner.as_slice()).map(|(a, b)| *a - *b).collect::<Vec<_>>()) }
+                Self {
+                    inner: Array::from(
+                        self.inner
+                            .as_slice()
+                            .iter()
+                            .zip(other.inner.as_slice())
+                            .map(|(a, b)| *a - *b)
+                            .collect::<Vec<_>>(),
+                    ),
+                }
             }
-            fn __rsub__(&self, other: &Self) -> Self { other.__sub__(self) }
+            fn __rsub__(&self, other: &Self) -> Self {
+                other.__sub__(self)
+            }
             fn __neg__(&self) -> Self {
-                Self { inner: Array::from(self.inner.as_slice().iter().map(|a| -(*a)).collect::<Vec<_>>()) }
+                Self {
+                    inner: Array::from(
+                        self.inner
+                            .as_slice()
+                            .iter()
+                            .map(|a| -(*a))
+                            .collect::<Vec<_>>(),
+                    ),
+                }
             }
             fn __mul__(&self, scalar: f64) -> Self {
                 let s = scalar as $elem;
-                Self { inner: Array::from(self.inner.as_slice().iter().map(|a| *a * s).collect::<Vec<_>>()) }
+                Self {
+                    inner: Array::from(
+                        self.inner
+                            .as_slice()
+                            .iter()
+                            .map(|a| *a * s)
+                            .collect::<Vec<_>>(),
+                    ),
+                }
             }
-            fn __rmul__(&self, scalar: f64) -> Self { self.__mul__(scalar) }
+            fn __rmul__(&self, scalar: f64) -> Self {
+                self.__mul__(scalar)
+            }
             fn __truediv__(&self, scalar: f64) -> PyResult<Self> {
-                if scalar == 0.0 { return Err(pyo3::exceptions::PyZeroDivisionError::new_err("division by zero")); }
+                if scalar == 0.0 {
+                    return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
+                        "division by zero",
+                    ));
+                }
                 let s = scalar as $elem;
-                Ok(Self { inner: Array::from(self.inner.as_slice().iter().map(|a| *a / s).collect::<Vec<_>>()) })
+                Ok(Self {
+                    inner: Array::from(
+                        self.inner
+                            .as_slice()
+                            .iter()
+                            .map(|a| *a / s)
+                            .collect::<Vec<_>>(),
+                    ),
+                })
             }
             fn __rtruediv__(&self, scalar: f64) -> Self {
-                if self.inner.is_empty() { return Self { inner: Array::new() }; }
+                if self.inner.is_empty() {
+                    return Self {
+                        inner: Array::new(),
+                    };
+                }
                 let s = scalar as $elem;
-                Self { inner: Array::from(self.inner.as_slice().iter().map(|a| s / *a).collect::<Vec<_>>()) }
+                Self {
+                    inner: Array::from(
+                        self.inner
+                            .as_slice()
+                            .iter()
+                            .map(|a| s / *a)
+                            .collect::<Vec<_>>(),
+                    ),
+                }
             }
         }
     };
@@ -474,7 +783,9 @@ macro_rules! vt_array {
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
-        pub struct $rust_name { pub(crate) inner: Array<$elem> }
+        pub struct $rust_name {
+            pub(crate) inner: Array<$elem>,
+        }
 
         #[pymethods]
         impl $rust_name {
@@ -484,30 +795,50 @@ macro_rules! vt_array {
                 build_array::<$elem>(arg, Default::default).map(|inner| Self { inner })
             }
 
-            fn __len__(&self) -> usize { self.inner.len() }
+            fn __len__(&self) -> usize {
+                self.inner.len()
+            }
 
             fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
-                    Ok(self.inner.as_slice()[idx].into_pyobject(py)?.into_any().unbind())
+                    Ok(self.inner.as_slice()[idx]
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind())
                 } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
-                    let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
-                    let elems: Vec<$elem> = indices.iter().map(|&i| self.inner.as_slice()[i]).collect();
-                    Ok(Self { inner: Array::from(elems) }.into_pyobject(py)?.into_any().unbind())
+                    let indices =
+                        slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
+                    let elems: Vec<$elem> =
+                        indices.iter().map(|&i| self.inner.as_slice()[i]).collect();
+                    Ok(Self {
+                        inner: Array::from(elems),
+                    }
+                    .into_pyobject(py)?
+                    .into_any()
+                    .unbind())
                 } else {
                     Err(PyTypeError::new_err("index must be int or slice"))
                 }
             }
 
-            fn __setitem__(&mut self, key: &Bound<'_, PyAny>, value: &Bound<'_, PyAny>) -> PyResult<()> {
-                if is_ellipsis(key) { return ellipsis_setitem_scalar::<$elem>(&mut self.inner, value); }
+            fn __setitem__(
+                &mut self,
+                key: &Bound<'_, PyAny>,
+                value: &Bound<'_, PyAny>,
+            ) -> PyResult<()> {
+                if is_ellipsis(key) {
+                    return ellipsis_setitem_scalar::<$elem>(&mut self.inner, value);
+                }
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
                     let elem: $elem = value.extract()?;
                     self.inner.make_unique();
-                    self.inner.as_mut_slice()
-                        .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?[idx] = elem;
+                    self.inner
+                        .as_mut_slice()
+                        .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?
+                        [idx] = elem;
                     Ok(())
                 } else {
                     Err(PyTypeError::new_err("index must be int"))
@@ -515,52 +846,113 @@ macro_rules! vt_array {
             }
 
             fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<$iter_ty>> {
-                Py::new(slf.py(), $iter_ty::new_from_data(slf.inner.as_slice().to_vec()))
+                Py::new(
+                    slf.py(),
+                    $iter_ty::new_from_data(slf.inner.as_slice().to_vec()),
+                )
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                if let Ok(o) = other.cast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
-                if let Ok(list) = other.extract::<Vec<$elem>>() { return Ok(self.inner.as_slice() == list.as_slice()); }
+                if let Ok(o) = other.cast::<Self>() {
+                    return Ok(self.inner.as_slice() == o.borrow().inner.as_slice());
+                }
+                if let Ok(list) = other.extract::<Vec<$elem>>() {
+                    return Ok(self.inner.as_slice() == list.as_slice());
+                }
                 Ok(false)
             }
-            fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> { self.__eq__(py, other).map(|eq| !eq) }
+            fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+                self.__eq__(py, other).map(|eq| !eq)
+            }
 
             fn __repr__(&self) -> String {
-                let elems: Vec<String> = self.inner.as_slice().iter().map(|x| {
-                    let s = format!("{x}");
-                    match s.as_str() {
-                        "inf" => "float('inf')".to_owned(),
-                        "-inf" => "float('-inf')".to_owned(),
-                        "NaN" => "float('nan')".to_owned(),
-                        _ => s,
-                    }
-                }).collect();
+                let elems: Vec<String> = self
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|x| {
+                        let s = format!("{x}");
+                        match s.as_str() {
+                            "inf" => "float('inf')".to_owned(),
+                            "-inf" => "float('-inf')".to_owned(),
+                            "NaN" => "float('nan')".to_owned(),
+                            _ => s,
+                        }
+                    })
+                    .collect();
                 format!("Vt.{}([{}])", $py_name, elems.join(", "))
             }
             fn __str__(&self) -> String {
-                let elems: Vec<String> = self.inner.as_slice().iter().map(|x| format!("{x}")).collect();
+                let elems: Vec<String> = self
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|x| format!("{x}"))
+                    .collect();
                 format!("[{}]", elems.join(", "))
             }
 
             fn __add__(&self, other: &Self) -> Self {
-                Self { inner: Array::from(self.inner.as_slice().iter().zip(other.inner.as_slice()).map(|(a, b)| *a + *b).collect::<Vec<_>>()) }
+                Self {
+                    inner: Array::from(
+                        self.inner
+                            .as_slice()
+                            .iter()
+                            .zip(other.inner.as_slice())
+                            .map(|(a, b)| *a + *b)
+                            .collect::<Vec<_>>(),
+                    ),
+                }
             }
-            fn __radd__(&self, other: &Self) -> Self { self.__add__(other) }
+            fn __radd__(&self, other: &Self) -> Self {
+                self.__add__(other)
+            }
             fn __sub__(&self, other: &Self) -> Self {
-                Self { inner: Array::from(self.inner.as_slice().iter().zip(other.inner.as_slice()).map(|(a, b)| *a - *b).collect::<Vec<_>>()) }
+                Self {
+                    inner: Array::from(
+                        self.inner
+                            .as_slice()
+                            .iter()
+                            .zip(other.inner.as_slice())
+                            .map(|(a, b)| *a - *b)
+                            .collect::<Vec<_>>(),
+                    ),
+                }
             }
-            fn __rsub__(&self, other: &Self) -> Self { other.__sub__(self) }
+            fn __rsub__(&self, other: &Self) -> Self {
+                other.__sub__(self)
+            }
             fn __mul__(&self, scalar: f64) -> Self {
                 let s = scalar as $elem;
-                Self { inner: Array::from(self.inner.as_slice().iter().map(|a| *a * s).collect::<Vec<_>>()) }
+                Self {
+                    inner: Array::from(
+                        self.inner
+                            .as_slice()
+                            .iter()
+                            .map(|a| *a * s)
+                            .collect::<Vec<_>>(),
+                    ),
+                }
             }
-            fn __rmul__(&self, scalar: f64) -> Self { self.__mul__(scalar) }
+            fn __rmul__(&self, scalar: f64) -> Self {
+                self.__mul__(scalar)
+            }
             fn __truediv__(&self, scalar: f64) -> PyResult<Self> {
                 if scalar == 0.0 {
-                    return Err(pyo3::exceptions::PyZeroDivisionError::new_err("division by zero"));
+                    return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
+                        "division by zero",
+                    ));
                 }
                 let s = scalar as $elem;
-                Ok(Self { inner: Array::from(self.inner.as_slice().iter().map(|a| *a / s).collect::<Vec<_>>()) })
+                Ok(Self {
+                    inner: Array::from(
+                        self.inner
+                            .as_slice()
+                            .iter()
+                            .map(|a| *a / s)
+                            .collect::<Vec<_>>(),
+                    ),
+                })
             }
         }
     };
@@ -576,7 +968,9 @@ macro_rules! vt_array {
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
-        pub struct $rust_name { pub(crate) inner: Array<$elem> }
+        pub struct $rust_name {
+            pub(crate) inner: Array<$elem>,
+        }
 
         #[pymethods]
         impl $rust_name {
@@ -586,31 +980,54 @@ macro_rules! vt_array {
                 build_array::<$elem>(arg, Default::default).map(|inner| Self { inner })
             }
 
-            fn __len__(&self) -> usize { self.inner.len() }
+            fn __len__(&self) -> usize {
+                self.inner.len()
+            }
 
             fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
-                    Ok(self.inner.as_slice()[idx].into_pyobject(py)?.to_owned().into_any().unbind())
+                    Ok(self.inner.as_slice()[idx]
+                        .into_pyobject(py)?
+                        .to_owned()
+                        .into_any()
+                        .unbind())
                 } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
-                    let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
+                    let indices =
+                        slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let list = PyList::empty(py);
-                    for i in indices { list.append(self.inner.as_slice()[i].into_pyobject(py)?.to_owned().into_any().unbind())?; }
+                    for i in indices {
+                        list.append(
+                            self.inner.as_slice()[i]
+                                .into_pyobject(py)?
+                                .to_owned()
+                                .into_any()
+                                .unbind(),
+                        )?;
+                    }
                     Ok(list.into_any().unbind())
                 } else {
                     Err(PyTypeError::new_err("index must be int or slice"))
                 }
             }
 
-            fn __setitem__(&mut self, key: &Bound<'_, PyAny>, value: &Bound<'_, PyAny>) -> PyResult<()> {
-                if is_ellipsis(key) { return ellipsis_setitem_scalar::<$elem>(&mut self.inner, value); }
+            fn __setitem__(
+                &mut self,
+                key: &Bound<'_, PyAny>,
+                value: &Bound<'_, PyAny>,
+            ) -> PyResult<()> {
+                if is_ellipsis(key) {
+                    return ellipsis_setitem_scalar::<$elem>(&mut self.inner, value);
+                }
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
                     let elem: $elem = value.extract()?;
                     self.inner.make_unique();
-                    self.inner.as_mut_slice()
-                        .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?[idx] = elem;
+                    self.inner
+                        .as_mut_slice()
+                        .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?
+                        [idx] = elem;
                     Ok(())
                 } else {
                     Err(PyTypeError::new_err("index must be int"))
@@ -618,26 +1035,49 @@ macro_rules! vt_array {
             }
 
             fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<$iter_ty>> {
-                Py::new(slf.py(), $iter_ty::new_from_data(slf.inner.as_slice().to_vec()))
+                Py::new(
+                    slf.py(),
+                    $iter_ty::new_from_data(slf.inner.as_slice().to_vec()),
+                )
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                if let Ok(o) = other.cast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
-                if let Ok(list) = other.extract::<Vec<$elem>>() { return Ok(self.inner.as_slice() == list.as_slice()); }
+                if let Ok(o) = other.cast::<Self>() {
+                    return Ok(self.inner.as_slice() == o.borrow().inner.as_slice());
+                }
+                if let Ok(list) = other.extract::<Vec<$elem>>() {
+                    return Ok(self.inner.as_slice() == list.as_slice());
+                }
                 Ok(false)
             }
-            fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> { self.__eq__(py, other).map(|eq| !eq) }
+            fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+                self.__eq__(py, other).map(|eq| !eq)
+            }
 
             fn __repr__(&self) -> String {
-                let elems: Vec<String> = self.inner.as_slice().iter().map(|x| {
-                    // Format bools as Python True/False for eval() compatibility
-                    let s = format!("{x}");
-                    match s.as_str() { "true" => "True".to_owned(), "false" => "False".to_owned(), _ => s }
-                }).collect();
+                let elems: Vec<String> = self
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|x| {
+                        // Format bools as Python True/False for eval() compatibility
+                        let s = format!("{x}");
+                        match s.as_str() {
+                            "true" => "True".to_owned(),
+                            "false" => "False".to_owned(),
+                            _ => s,
+                        }
+                    })
+                    .collect();
                 format!("Vt.{}([{}])", $py_name, elems.join(", "))
             }
             fn __str__(&self) -> String {
-                let elems: Vec<String> = self.inner.as_slice().iter().map(|x| format!("{x}")).collect();
+                let elems: Vec<String> = self
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|x| format!("{x}"))
+                    .collect();
                 format!("[{}]", elems.join(", "))
             }
         }
@@ -653,7 +1093,9 @@ macro_rules! vt_array {
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
-        pub struct $rust_name { pub(crate) inner: Array<$elem> }
+        pub struct $rust_name {
+            pub(crate) inner: Array<$elem>,
+        }
 
         #[pymethods]
         impl $rust_name {
@@ -663,31 +1105,54 @@ macro_rules! vt_array {
                 build_array_clone::<$elem>(arg).map(|inner| Self { inner })
             }
 
-            fn __len__(&self) -> usize { self.inner.len() }
+            fn __len__(&self) -> usize {
+                self.inner.len()
+            }
 
             fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
-                    Ok(self.inner.as_slice()[idx].clone().into_pyobject(py)?.into_any().unbind())
+                    Ok(self.inner.as_slice()[idx]
+                        .clone()
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind())
                 } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
-                    let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
+                    let indices =
+                        slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let list = PyList::empty(py);
-                    for i in indices { list.append(self.inner.as_slice()[i].clone().into_pyobject(py)?.into_any().unbind())?; }
+                    for i in indices {
+                        list.append(
+                            self.inner.as_slice()[i]
+                                .clone()
+                                .into_pyobject(py)?
+                                .into_any()
+                                .unbind(),
+                        )?;
+                    }
                     Ok(list.into_any().unbind())
                 } else {
                     Err(PyTypeError::new_err("index must be int or slice"))
                 }
             }
 
-            fn __setitem__(&mut self, key: &Bound<'_, PyAny>, value: &Bound<'_, PyAny>) -> PyResult<()> {
-                if is_ellipsis(key) { return ellipsis_setitem_scalar::<$elem>(&mut self.inner, value); }
+            fn __setitem__(
+                &mut self,
+                key: &Bound<'_, PyAny>,
+                value: &Bound<'_, PyAny>,
+            ) -> PyResult<()> {
+                if is_ellipsis(key) {
+                    return ellipsis_setitem_scalar::<$elem>(&mut self.inner, value);
+                }
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
                     let elem: $elem = value.extract()?;
                     self.inner.make_unique();
-                    self.inner.as_mut_slice()
-                        .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?[idx] = elem;
+                    self.inner
+                        .as_mut_slice()
+                        .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?
+                        [idx] = elem;
                     Ok(())
                 } else {
                     Err(PyTypeError::new_err("index must be int"))
@@ -695,30 +1160,53 @@ macro_rules! vt_array {
             }
 
             fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VtStringIter>> {
-                let data = slf.inner.as_slice().iter().map(|s| format!("{s}")).collect();
+                let data = slf
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|s| format!("{s}"))
+                    .collect();
                 Py::new(slf.py(), VtStringIter::new_from_data(data))
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                if let Ok(o) = other.cast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
-                if let Ok(list) = other.extract::<Vec<$elem>>() { return Ok(self.inner.as_slice() == list.as_slice()); }
+                if let Ok(o) = other.cast::<Self>() {
+                    return Ok(self.inner.as_slice() == o.borrow().inner.as_slice());
+                }
+                if let Ok(list) = other.extract::<Vec<$elem>>() {
+                    return Ok(self.inner.as_slice() == list.as_slice());
+                }
                 Ok(false)
             }
-            fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> { self.__eq__(py, other).map(|eq| !eq) }
+            fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+                self.__eq__(py, other).map(|eq| !eq)
+            }
 
             fn __repr__(&self) -> String {
-                let elems: Vec<String> = self.inner.as_slice().iter().map(|s| format!("{s:?}")).collect();
+                let elems: Vec<String> = self
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|s| format!("{s:?}"))
+                    .collect();
                 format!("Vt.{}([{}])", $py_name, elems.join(", "))
             }
             fn __str__(&self) -> String {
-                let elems: Vec<String> = self.inner.as_slice().iter().map(|s| format!("{s}")).collect();
+                let elems: Vec<String> = self
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|s| format!("{s}"))
+                    .collect();
                 format!("[{}]", elems.join(", "))
             }
 
             fn __add__(&self, other: &Self) -> Self {
                 let mut data = self.inner.as_slice().to_vec();
                 data.extend_from_slice(other.inner.as_slice());
-                Self { inner: Array::from(data) }
+                Self {
+                    inner: Array::from(data),
+                }
             }
         }
     };
@@ -736,7 +1224,9 @@ macro_rules! vt_array {
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
-        pub struct $rust_name { pub(crate) inner: Array<$elem> }
+        pub struct $rust_name {
+            pub(crate) inner: Array<$elem>,
+        }
 
         #[pymethods]
         impl $rust_name {
@@ -746,7 +1236,9 @@ macro_rules! vt_array {
                 build_array_mapped::<$elem, $py_elem>(arg, $from_py).map(|inner| Self { inner })
             }
 
-            fn __len__(&self) -> usize { self.inner.len() }
+            fn __len__(&self) -> usize {
+                self.inner.len()
+            }
 
             fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
                 if let Ok(i) = key.extract::<isize>() {
@@ -755,7 +1247,8 @@ macro_rules! vt_array {
                     Ok(elem.into_pyobject(py)?.into_any().unbind())
                 } else if let Ok(slice) = key.cast::<PySlice>() {
                     let raw = slice.indices(self.inner.len() as _)?;
-                    let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
+                    let indices =
+                        slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
                     let list = PyList::empty(py);
                     for i in indices {
                         let elem: $py_elem = ($to_py)(self.inner.as_slice()[i].clone());
@@ -768,13 +1261,19 @@ macro_rules! vt_array {
                 }
             }
 
-            fn __setitem__(&mut self, key: &Bound<'_, PyAny>, value: &Bound<'_, PyAny>) -> PyResult<()> {
+            fn __setitem__(
+                &mut self,
+                key: &Bound<'_, PyAny>,
+                value: &Bound<'_, PyAny>,
+            ) -> PyResult<()> {
                 if let Ok(i) = key.extract::<isize>() {
                     let idx = norm_idx(i, self.inner.len())?;
                     let py_val: $py_elem = value.extract()?;
                     self.inner.make_unique();
-                    self.inner.as_mut_slice()
-                        .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?[idx] = ($from_py)(py_val);
+                    self.inner
+                        .as_mut_slice()
+                        .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?
+                        [idx] = ($from_py)(py_val);
                     Ok(())
                 } else {
                     Err(PyTypeError::new_err("index must be int"))
@@ -791,19 +1290,31 @@ macro_rules! vt_array {
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
-                if let Ok(o) = other.cast::<Self>() { return Ok(self.inner.as_slice() == o.borrow().inner.as_slice()); }
+                if let Ok(o) = other.cast::<Self>() {
+                    return Ok(self.inner.as_slice() == o.borrow().inner.as_slice());
+                }
                 Ok(false)
             }
-            fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> { self.__eq__(py, other).map(|eq| !eq) }
+            fn __ne__(&self, py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+                self.__eq__(py, other).map(|eq| !eq)
+            }
 
             fn __repr__(&self) -> String {
-                let elems: Vec<String> = self.inner.as_slice().iter()
-                    .map(|v| format!("{:?}", ($to_py)(v.clone()))).collect();
+                let elems: Vec<String> = self
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|v| format!("{:?}", ($to_py)(v.clone())))
+                    .collect();
                 format!("Vt.{}([{}])", $py_name, elems.join(", "))
             }
             fn __str__(&self) -> String {
-                let elems: Vec<String> = self.inner.as_slice().iter()
-                    .map(|v| format!("{:?}", ($to_py)(v.clone()))).collect();
+                let elems: Vec<String> = self
+                    .inner
+                    .as_slice()
+                    .iter()
+                    .map(|v| format!("{:?}", ($to_py)(v.clone())))
+                    .collect();
                 format!("[{}]", elems.join(", "))
             }
         }
@@ -814,70 +1325,103 @@ macro_rules! vt_array {
 // Scalar array instantiations
 // ============================================================================
 
-vt_array!(no_arith,
-    name = "BoolArray", module = "pxr_rs.Vt",
-    rust = PyBoolArray, elem = bool,
+vt_array!(
+    no_arith,
+    name = "BoolArray",
+    module = "pxr_rs.Vt",
+    rust = PyBoolArray,
+    elem = bool,
     iter_ty = VtBoolIter
 );
 
-vt_array!(numeric_unsigned,
-    name = "UCharArray", module = "pxr_rs.Vt",
-    rust = PyUCharArray, elem = u8,
+vt_array!(
+    numeric_unsigned,
+    name = "UCharArray",
+    module = "pxr_rs.Vt",
+    rust = PyUCharArray,
+    elem = u8,
     iter_ty = VtU8Iter
 );
 
-vt_array!(numeric_signed,
-    name = "ShortArray", module = "pxr_rs.Vt",
-    rust = PyShortArray, elem = i16,
+vt_array!(
+    numeric_signed,
+    name = "ShortArray",
+    module = "pxr_rs.Vt",
+    rust = PyShortArray,
+    elem = i16,
     iter_ty = VtI16Iter
 );
 
-vt_array!(numeric_unsigned,
-    name = "UShortArray", module = "pxr_rs.Vt",
-    rust = PyUShortArray, elem = u16,
+vt_array!(
+    numeric_unsigned,
+    name = "UShortArray",
+    module = "pxr_rs.Vt",
+    rust = PyUShortArray,
+    elem = u16,
     iter_ty = VtU16Iter
 );
 
-vt_array!(numeric_signed,
-    name = "IntArray", module = "pxr_rs.Vt",
-    rust = PyIntArray, elem = i32,
+vt_array!(
+    numeric_signed,
+    name = "IntArray",
+    module = "pxr_rs.Vt",
+    rust = PyIntArray,
+    elem = i32,
     iter_ty = VtI32Iter
 );
 
-vt_array!(numeric_unsigned,
-    name = "UIntArray", module = "pxr_rs.Vt",
-    rust = PyUIntArray, elem = u32,
+vt_array!(
+    numeric_unsigned,
+    name = "UIntArray",
+    module = "pxr_rs.Vt",
+    rust = PyUIntArray,
+    elem = u32,
     iter_ty = VtU32Iter
 );
 
-vt_array!(numeric_signed,
-    name = "Int64Array", module = "pxr_rs.Vt",
-    rust = PyInt64Array, elem = i64,
+vt_array!(
+    numeric_signed,
+    name = "Int64Array",
+    module = "pxr_rs.Vt",
+    rust = PyInt64Array,
+    elem = i64,
     iter_ty = VtI64Iter
 );
 
-vt_array!(numeric_unsigned,
-    name = "UInt64Array", module = "pxr_rs.Vt",
-    rust = PyUInt64Array, elem = u64,
+vt_array!(
+    numeric_unsigned,
+    name = "UInt64Array",
+    module = "pxr_rs.Vt",
+    rust = PyUInt64Array,
+    elem = u64,
     iter_ty = VtU64Iter
 );
 
-vt_array!(numeric_signed,
-    name = "FloatArray", module = "pxr_rs.Vt",
-    rust = PyFloatArray, elem = f32,
+vt_array!(
+    numeric_signed,
+    name = "FloatArray",
+    module = "pxr_rs.Vt",
+    rust = PyFloatArray,
+    elem = f32,
     iter_ty = VtF32Iter
 );
 
-vt_array!(numeric_signed,
-    name = "DoubleArray", module = "pxr_rs.Vt",
-    rust = PyDoubleArray, elem = f64,
+vt_array!(
+    numeric_signed,
+    name = "DoubleArray",
+    module = "pxr_rs.Vt",
+    rust = PyDoubleArray,
+    elem = f64,
     iter_ty = VtF64Iter
 );
 
 // Half stored as f32 — no native Python half type
-vt_array!(numeric_signed,
-    name = "HalfArray", module = "pxr_rs.Vt",
-    rust = PyHalfArray, elem = f32,
+vt_array!(
+    numeric_signed,
+    name = "HalfArray",
+    module = "pxr_rs.Vt",
+    rust = PyHalfArray,
+    elem = f32,
     iter_ty = VtF32Iter
 );
 
@@ -885,15 +1429,20 @@ vt_array!(numeric_signed,
 // String / Token arrays
 // ============================================================================
 
-vt_array!(string_like,
-    name = "StringArray", module = "pxr_rs.Vt",
-    rust = PyStringArray, elem = String
+vt_array!(
+    string_like,
+    name = "StringArray",
+    module = "pxr_rs.Vt",
+    rust = PyStringArray,
+    elem = String
 );
 
 /// `TokenArray` — each token exposed to Python as a `str`.
-#[pyclass(skip_from_py_object,name = "TokenArray", module = "pxr_rs.Vt")]
+#[pyclass(skip_from_py_object, name = "TokenArray", module = "pxr_rs.Vt")]
 #[derive(Clone)]
-pub struct PyTokenArray { pub(crate) inner: Array<usd_tf::Token> }
+pub struct PyTokenArray {
+    pub(crate) inner: Array<usd_tf::Token>,
+}
 
 #[pymethods]
 impl PyTokenArray {
@@ -901,27 +1450,53 @@ impl PyTokenArray {
     #[pyo3(signature = (arg = None))]
     fn new(arg: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
         let Some(obj) = arg else {
-            return Ok(Self { inner: Array::new() });
+            return Ok(Self {
+                inner: Array::new(),
+            });
         };
         if let Ok(n) = obj.extract::<usize>() {
-            return Ok(Self { inner: Array::from_elem(usd_tf::Token::new(""), n) });
+            return Ok(Self {
+                inner: Array::from_elem(usd_tf::Token::new(""), n),
+            });
         }
-        let strings: Vec<String> = obj.extract()
+        let strings: Vec<String> = obj
+            .extract()
             .map_err(|_| PyValueError::new_err("expected int size or list of str"))?;
-        Ok(Self { inner: Array::from(strings.iter().map(|s| usd_tf::Token::new(s)).collect::<Vec<_>>()) })
+        Ok(Self {
+            inner: Array::from(
+                strings
+                    .iter()
+                    .map(|s| usd_tf::Token::new(s))
+                    .collect::<Vec<_>>(),
+            ),
+        })
     }
 
-    fn __len__(&self) -> usize { self.inner.len() }
+    fn __len__(&self) -> usize {
+        self.inner.len()
+    }
 
     fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         if let Ok(i) = key.extract::<isize>() {
             let idx = norm_idx(i, self.inner.len())?;
-            Ok(self.inner.as_slice()[idx].to_string().into_pyobject(py)?.into_any().unbind())
+            Ok(self.inner.as_slice()[idx]
+                .to_string()
+                .into_pyobject(py)?
+                .into_any()
+                .unbind())
         } else if let Ok(slice) = key.cast::<PySlice>() {
             let raw = slice.indices(self.inner.len() as _)?;
             let indices = slice_indices(raw.step as isize, raw.start as isize, raw.stop as isize);
             let list = PyList::empty(py);
-            for i in indices { list.append(self.inner.as_slice()[i].to_string().into_pyobject(py)?.into_any().unbind())?; }
+            for i in indices {
+                list.append(
+                    self.inner.as_slice()[i]
+                        .to_string()
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind(),
+                )?;
+            }
             Ok(list.into_any().unbind())
         } else {
             Err(PyTypeError::new_err("index must be int or slice"))
@@ -933,9 +1508,10 @@ impl PyTokenArray {
             let idx = norm_idx(i, self.inner.len())?;
             let s: String = value.extract()?;
             self.inner.make_unique();
-            self.inner.as_mut_slice()
-                .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?[idx]
-                = usd_tf::Token::new(&s);
+            self.inner
+                .as_mut_slice()
+                .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?[idx] =
+                usd_tf::Token::new(&s);
             Ok(())
         } else {
             Err(PyTypeError::new_err("index must be int"))
@@ -947,15 +1523,29 @@ impl PyTokenArray {
         Py::new(slf.py(), VtStringIter::new_from_data(data))
     }
 
-    fn __eq__(&self, other: &Self) -> bool { self.inner.as_slice() == other.inner.as_slice() }
-    fn __ne__(&self, other: &Self) -> bool { self.inner.as_slice() != other.inner.as_slice() }
+    fn __eq__(&self, other: &Self) -> bool {
+        self.inner.as_slice() == other.inner.as_slice()
+    }
+    fn __ne__(&self, other: &Self) -> bool {
+        self.inner.as_slice() != other.inner.as_slice()
+    }
 
     fn __repr__(&self) -> String {
-        let elems: Vec<String> = self.inner.as_slice().iter().map(|t| format!("{t:?}")).collect();
+        let elems: Vec<String> = self
+            .inner
+            .as_slice()
+            .iter()
+            .map(|t| format!("{t:?}"))
+            .collect();
         format!("Vt.TokenArray([{}])", elems.join(", "))
     }
     fn __str__(&self) -> String {
-        let elems: Vec<String> = self.inner.as_slice().iter().map(|t| t.to_string()).collect();
+        let elems: Vec<String> = self
+            .inner
+            .as_slice()
+            .iter()
+            .map(|t| t.to_string())
+            .collect();
         format!("[{}]", elems.join(", "))
     }
 }
@@ -967,76 +1557,103 @@ impl PyTokenArray {
 // Keeps Vt self-contained — avoids circular import with Gf module.
 // ============================================================================
 
-vt_array!(vec_like,
-    name = "Vec2fArray", module = "pxr_rs.Vt",
+vt_array!(
+    vec_like,
+    name = "Vec2fArray",
+    module = "pxr_rs.Vt",
     rust = PyVec2fArray,
-    elem = usd_gf::Vec2f, py_elem = (f32, f32),
+    elem = usd_gf::Vec2f,
+    py_elem = (f32, f32),
     from_py = |(x, y): (f32, f32)| usd_gf::Vec2f::new(x, y),
-    to_py   = |v: usd_gf::Vec2f| (v[0], v[1])
+    to_py = |v: usd_gf::Vec2f| (v[0], v[1])
 );
 
-vt_array!(vec_like,
-    name = "Vec3fArray", module = "pxr_rs.Vt",
+vt_array!(
+    vec_like,
+    name = "Vec3fArray",
+    module = "pxr_rs.Vt",
     rust = PyVec3fArray,
-    elem = usd_gf::Vec3f, py_elem = (f32, f32, f32),
+    elem = usd_gf::Vec3f,
+    py_elem = (f32, f32, f32),
     from_py = |(x, y, z): (f32, f32, f32)| usd_gf::Vec3f::new(x, y, z),
-    to_py   = |v: usd_gf::Vec3f| (v[0], v[1], v[2])
+    to_py = |v: usd_gf::Vec3f| (v[0], v[1], v[2])
 );
 
-vt_array!(vec_like,
-    name = "Vec4fArray", module = "pxr_rs.Vt",
+vt_array!(
+    vec_like,
+    name = "Vec4fArray",
+    module = "pxr_rs.Vt",
     rust = PyVec4fArray,
-    elem = usd_gf::Vec4f, py_elem = (f32, f32, f32, f32),
+    elem = usd_gf::Vec4f,
+    py_elem = (f32, f32, f32, f32),
     from_py = |(x, y, z, w): (f32, f32, f32, f32)| usd_gf::Vec4f::new(x, y, z, w),
-    to_py   = |v: usd_gf::Vec4f| (v[0], v[1], v[2], v[3])
+    to_py = |v: usd_gf::Vec4f| (v[0], v[1], v[2], v[3])
 );
 
-vt_array!(vec_like,
-    name = "Vec2dArray", module = "pxr_rs.Vt",
+vt_array!(
+    vec_like,
+    name = "Vec2dArray",
+    module = "pxr_rs.Vt",
     rust = PyVec2dArray,
-    elem = usd_gf::Vec2d, py_elem = (f64, f64),
+    elem = usd_gf::Vec2d,
+    py_elem = (f64, f64),
     from_py = |(x, y): (f64, f64)| usd_gf::Vec2d::new(x, y),
-    to_py   = |v: usd_gf::Vec2d| (v[0], v[1])
+    to_py = |v: usd_gf::Vec2d| (v[0], v[1])
 );
 
-vt_array!(vec_like,
-    name = "Vec3dArray", module = "pxr_rs.Vt",
+vt_array!(
+    vec_like,
+    name = "Vec3dArray",
+    module = "pxr_rs.Vt",
     rust = PyVec3dArray,
-    elem = usd_gf::Vec3d, py_elem = (f64, f64, f64),
+    elem = usd_gf::Vec3d,
+    py_elem = (f64, f64, f64),
     from_py = |(x, y, z): (f64, f64, f64)| usd_gf::Vec3d::new(x, y, z),
-    to_py   = |v: usd_gf::Vec3d| (v[0], v[1], v[2])
+    to_py = |v: usd_gf::Vec3d| (v[0], v[1], v[2])
 );
 
-vt_array!(vec_like,
-    name = "Vec4dArray", module = "pxr_rs.Vt",
+vt_array!(
+    vec_like,
+    name = "Vec4dArray",
+    module = "pxr_rs.Vt",
     rust = PyVec4dArray,
-    elem = usd_gf::Vec4d, py_elem = (f64, f64, f64, f64),
+    elem = usd_gf::Vec4d,
+    py_elem = (f64, f64, f64, f64),
     from_py = |(x, y, z, w): (f64, f64, f64, f64)| usd_gf::Vec4d::new(x, y, z, w),
-    to_py   = |v: usd_gf::Vec4d| (v[0], v[1], v[2], v[3])
+    to_py = |v: usd_gf::Vec4d| (v[0], v[1], v[2], v[3])
 );
 
-vt_array!(vec_like,
-    name = "Vec2iArray", module = "pxr_rs.Vt",
+vt_array!(
+    vec_like,
+    name = "Vec2iArray",
+    module = "pxr_rs.Vt",
     rust = PyVec2iArray,
-    elem = usd_gf::Vec2i, py_elem = (i32, i32),
+    elem = usd_gf::Vec2i,
+    py_elem = (i32, i32),
     from_py = |(x, y): (i32, i32)| usd_gf::Vec2i::new(x, y),
-    to_py   = |v: usd_gf::Vec2i| (v[0], v[1])
+    to_py = |v: usd_gf::Vec2i| (v[0], v[1])
 );
 
-vt_array!(vec_like,
-    name = "Vec3iArray", module = "pxr_rs.Vt",
+vt_array!(
+    vec_like,
+    name = "Vec3iArray",
+    module = "pxr_rs.Vt",
     rust = PyVec3iArray,
-    elem = usd_gf::Vec3i, py_elem = (i32, i32, i32),
+    elem = usd_gf::Vec3i,
+    py_elem = (i32, i32, i32),
     from_py = |(x, y, z): (i32, i32, i32)| usd_gf::Vec3i::new(x, y, z),
-    to_py   = |v: usd_gf::Vec3i| (v[0], v[1], v[2])
+    to_py = |v: usd_gf::Vec3i| (v[0], v[1], v[2])
 );
 
-vt_array!(vec_like,
-    name = "Vec4iArray", module = "pxr_rs.Vt",
+vt_array!(
+    vec_like,
+    name = "Vec4iArray",
+    module = "pxr_rs.Vt",
     rust = PyVec4iArray,
-    elem = usd_gf::Vec4i, py_elem = (i32, i32, i32, i32),
+    elem = usd_gf::Vec4i,
+    py_elem = (i32, i32, i32, i32),
     from_py = |(x, y, z, w): (i32, i32, i32, i32)| usd_gf::Vec4i::new(x, y, z, w),
-    to_py   = |v: usd_gf::Vec4i| (v[0], v[1], v[2], v[3])
+    to_py = |v: usd_gf::Vec4i| (v[0], v[1], v[2], v[3])
 );
 
 // ============================================================================
@@ -1050,11 +1667,13 @@ fn mat4d_to_flat(m: &usd_gf::Matrix4d) -> Vec<f64> {
 }
 
 fn flat_to_mat4d(flat: &[f64]) -> Option<usd_gf::Matrix4d> {
-    if flat.len() != 16 { return None; }
+    if flat.len() != 16 {
+        return None;
+    }
     Some(usd_gf::Matrix4d::from_array([
-        [flat[0],  flat[1],  flat[2],  flat[3]],
-        [flat[4],  flat[5],  flat[6],  flat[7]],
-        [flat[8],  flat[9],  flat[10], flat[11]],
+        [flat[0], flat[1], flat[2], flat[3]],
+        [flat[4], flat[5], flat[6], flat[7]],
+        [flat[8], flat[9], flat[10], flat[11]],
         [flat[12], flat[13], flat[14], flat[15]],
     ]))
 }
@@ -1065,18 +1684,22 @@ fn mat4f_to_flat(m: &usd_gf::Matrix4f) -> Vec<f32> {
 }
 
 fn flat_to_mat4f(flat: &[f32]) -> Option<usd_gf::Matrix4f> {
-    if flat.len() != 16 { return None; }
+    if flat.len() != 16 {
+        return None;
+    }
     Some(usd_gf::Matrix4f::from_array([
-        [flat[0],  flat[1],  flat[2],  flat[3]],
-        [flat[4],  flat[5],  flat[6],  flat[7]],
-        [flat[8],  flat[9],  flat[10], flat[11]],
+        [flat[0], flat[1], flat[2], flat[3]],
+        [flat[4], flat[5], flat[6], flat[7]],
+        [flat[8], flat[9], flat[10], flat[11]],
         [flat[12], flat[13], flat[14], flat[15]],
     ]))
 }
 
-#[pyclass(skip_from_py_object,name = "Matrix4dArray", module = "pxr_rs.Vt")]
+#[pyclass(skip_from_py_object, name = "Matrix4dArray", module = "pxr_rs.Vt")]
 #[derive(Clone)]
-pub struct PyMatrix4dArray { pub(crate) inner: Array<usd_gf::Matrix4d> }
+pub struct PyMatrix4dArray {
+    pub(crate) inner: Array<usd_gf::Matrix4d>,
+}
 
 #[pymethods]
 impl PyMatrix4dArray {
@@ -1085,10 +1708,14 @@ impl PyMatrix4dArray {
     #[pyo3(signature = (arg = None))]
     fn new(arg: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
         let Some(obj) = arg else {
-            return Ok(Self { inner: Array::new() });
+            return Ok(Self {
+                inner: Array::new(),
+            });
         };
         if let Ok(n) = obj.extract::<usize>() {
-            return Ok(Self { inner: Array::from_elem(usd_gf::Matrix4d::identity(), n) });
+            return Ok(Self {
+                inner: Array::from_elem(usd_gf::Matrix4d::identity(), n),
+            });
         }
         // Try sequence of Gf.Matrix4d objects (list or tuple)
         if let Ok(iter) = obj.try_iter() {
@@ -1096,26 +1723,45 @@ impl PyMatrix4dArray {
             let mut all_mat = true;
             for item_res in iter {
                 let item = item_res?;
-                if let Ok(m) = item.cast::<PyMatrix4d>() { mats.push(m.borrow().0); }
-                else { all_mat = false; break; }
+                if let Ok(m) = item.cast::<PyMatrix4d>() {
+                    mats.push(m.borrow().0);
+                } else {
+                    all_mat = false;
+                    break;
+                }
             }
-            if all_mat { return Ok(Self { inner: Array::from(mats) }); }
+            if all_mat {
+                return Ok(Self {
+                    inner: Array::from(mats),
+                });
+            }
         }
-        let items: Vec<Vec<f64>> = obj.extract()
+        let items: Vec<Vec<f64>> = obj
+            .extract()
             .map_err(|_| PyValueError::new_err("expected int or list of 16-float lists"))?;
-        let mats: Vec<usd_gf::Matrix4d> = items.iter()
-            .map(|flat| flat_to_mat4d(flat)
-                .ok_or_else(|| PyValueError::new_err("Matrix4d requires exactly 16 floats")))
+        let mats: Vec<usd_gf::Matrix4d> = items
+            .iter()
+            .map(|flat| {
+                flat_to_mat4d(flat)
+                    .ok_or_else(|| PyValueError::new_err("Matrix4d requires exactly 16 floats"))
+            })
             .collect::<PyResult<_>>()?;
-        Ok(Self { inner: Array::from(mats) })
+        Ok(Self {
+            inner: Array::from(mats),
+        })
     }
 
-    fn __len__(&self) -> usize { self.inner.len() }
+    fn __len__(&self) -> usize {
+        self.inner.len()
+    }
 
     fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         if let Ok(i) = key.extract::<isize>() {
             let idx = norm_idx(i, self.inner.len())?;
-            Ok(mat4d_to_flat(&self.inner.as_slice()[idx]).into_pyobject(py)?.into_any().unbind())
+            Ok(mat4d_to_flat(&self.inner.as_slice()[idx])
+                .into_pyobject(py)?
+                .into_any()
+                .unbind())
         } else {
             Err(PyTypeError::new_err("index must be int"))
         }
@@ -1128,7 +1774,8 @@ impl PyMatrix4dArray {
             let m = flat_to_mat4d(&flat)
                 .ok_or_else(|| PyValueError::new_err("Matrix4d requires 16 floats"))?;
             self.inner.make_unique();
-            self.inner.as_mut_slice()
+            self.inner
+                .as_mut_slice()
                 .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?[idx] = m;
             Ok(())
         } else {
@@ -1137,41 +1784,112 @@ impl PyMatrix4dArray {
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VtStringIter>> {
-        let data = slf.inner.as_slice().iter().map(|m| format!("{:?}", mat4d_to_flat(m))).collect();
+        let data = slf
+            .inner
+            .as_slice()
+            .iter()
+            .map(|m| format!("{:?}", mat4d_to_flat(m)))
+            .collect();
         Py::new(slf.py(), VtStringIter::new_from_data(data))
     }
 
-    fn __eq__(&self, other: &Self) -> bool { self.inner.as_slice() == other.inner.as_slice() }
-    fn __ne__(&self, other: &Self) -> bool { self.inner.as_slice() != other.inner.as_slice() }
-    fn __repr__(&self) -> String { format!("Vt.Matrix4dArray([{} items])", self.inner.len()) }
-    fn __str__(&self) -> String { format!("[{} Matrix4d]", self.inner.len()) }
+    fn __eq__(&self, other: &Self) -> bool {
+        self.inner.as_slice() == other.inner.as_slice()
+    }
+    fn __ne__(&self, other: &Self) -> bool {
+        self.inner.as_slice() != other.inner.as_slice()
+    }
+    fn __repr__(&self) -> String {
+        format!("Vt.Matrix4dArray([{} items])", self.inner.len())
+    }
+    fn __str__(&self) -> String {
+        format!("[{} Matrix4d]", self.inner.len())
+    }
 
     fn __mul__(&self, scalar: f64) -> Self {
-        Self { inner: Array::from(self.inner.as_slice().iter().map(|m| {
-            let a = m.to_array();
-            usd_gf::Matrix4d::from_array([
-                [a[0][0]*scalar, a[0][1]*scalar, a[0][2]*scalar, a[0][3]*scalar],
-                [a[1][0]*scalar, a[1][1]*scalar, a[1][2]*scalar, a[1][3]*scalar],
-                [a[2][0]*scalar, a[2][1]*scalar, a[2][2]*scalar, a[2][3]*scalar],
-                [a[3][0]*scalar, a[3][1]*scalar, a[3][2]*scalar, a[3][3]*scalar],
-            ])
-        }).collect::<Vec<_>>()) }
+        Self {
+            inner: Array::from(
+                self.inner
+                    .as_slice()
+                    .iter()
+                    .map(|m| {
+                        let a = m.to_array();
+                        usd_gf::Matrix4d::from_array([
+                            [
+                                a[0][0] * scalar,
+                                a[0][1] * scalar,
+                                a[0][2] * scalar,
+                                a[0][3] * scalar,
+                            ],
+                            [
+                                a[1][0] * scalar,
+                                a[1][1] * scalar,
+                                a[1][2] * scalar,
+                                a[1][3] * scalar,
+                            ],
+                            [
+                                a[2][0] * scalar,
+                                a[2][1] * scalar,
+                                a[2][2] * scalar,
+                                a[2][3] * scalar,
+                            ],
+                            [
+                                a[3][0] * scalar,
+                                a[3][1] * scalar,
+                                a[3][2] * scalar,
+                                a[3][3] * scalar,
+                            ],
+                        ])
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+        }
     }
-    fn __rmul__(&self, scalar: f64) -> Self { self.__mul__(scalar) }
+    fn __rmul__(&self, scalar: f64) -> Self {
+        self.__mul__(scalar)
+    }
     fn __add__(&self, other: &Self) -> Self {
-        Self { inner: Array::from(self.inner.as_slice().iter().zip(other.inner.as_slice()).map(|(a, b)| *a + *b).collect::<Vec<_>>()) }
+        Self {
+            inner: Array::from(
+                self.inner
+                    .as_slice()
+                    .iter()
+                    .zip(other.inner.as_slice())
+                    .map(|(a, b)| *a + *b)
+                    .collect::<Vec<_>>(),
+            ),
+        }
     }
     fn __sub__(&self, other: &Self) -> Self {
-        Self { inner: Array::from(self.inner.as_slice().iter().zip(other.inner.as_slice()).map(|(a, b)| *a - *b).collect::<Vec<_>>()) }
+        Self {
+            inner: Array::from(
+                self.inner
+                    .as_slice()
+                    .iter()
+                    .zip(other.inner.as_slice())
+                    .map(|(a, b)| *a - *b)
+                    .collect::<Vec<_>>(),
+            ),
+        }
     }
     fn __neg__(&self) -> Self {
-        Self { inner: Array::from(self.inner.as_slice().iter().map(|m| -(*m)).collect::<Vec<_>>()) }
+        Self {
+            inner: Array::from(
+                self.inner
+                    .as_slice()
+                    .iter()
+                    .map(|m| -(*m))
+                    .collect::<Vec<_>>(),
+            ),
+        }
     }
 }
 
-#[pyclass(skip_from_py_object,name = "Matrix4fArray", module = "pxr_rs.Vt")]
+#[pyclass(skip_from_py_object, name = "Matrix4fArray", module = "pxr_rs.Vt")]
 #[derive(Clone)]
-pub struct PyMatrix4fArray { inner: Array<usd_gf::Matrix4f> }
+pub struct PyMatrix4fArray {
+    inner: Array<usd_gf::Matrix4f>,
+}
 
 #[pymethods]
 impl PyMatrix4fArray {
@@ -1179,26 +1897,41 @@ impl PyMatrix4fArray {
     #[pyo3(signature = (arg = None))]
     fn new(arg: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
         let Some(obj) = arg else {
-            return Ok(Self { inner: Array::new() });
+            return Ok(Self {
+                inner: Array::new(),
+            });
         };
         if let Ok(n) = obj.extract::<usize>() {
-            return Ok(Self { inner: Array::from_elem(usd_gf::Matrix4f::identity(), n) });
+            return Ok(Self {
+                inner: Array::from_elem(usd_gf::Matrix4f::identity(), n),
+            });
         }
-        let items: Vec<Vec<f32>> = obj.extract()
+        let items: Vec<Vec<f32>> = obj
+            .extract()
             .map_err(|_| PyValueError::new_err("expected int or list of 16-float lists"))?;
-        let mats: Vec<usd_gf::Matrix4f> = items.iter()
-            .map(|flat| flat_to_mat4f(flat)
-                .ok_or_else(|| PyValueError::new_err("Matrix4f requires exactly 16 floats")))
+        let mats: Vec<usd_gf::Matrix4f> = items
+            .iter()
+            .map(|flat| {
+                flat_to_mat4f(flat)
+                    .ok_or_else(|| PyValueError::new_err("Matrix4f requires exactly 16 floats"))
+            })
             .collect::<PyResult<_>>()?;
-        Ok(Self { inner: Array::from(mats) })
+        Ok(Self {
+            inner: Array::from(mats),
+        })
     }
 
-    fn __len__(&self) -> usize { self.inner.len() }
+    fn __len__(&self) -> usize {
+        self.inner.len()
+    }
 
     fn __getitem__(&self, py: Python<'_>, key: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         if let Ok(i) = key.extract::<isize>() {
             let idx = norm_idx(i, self.inner.len())?;
-            Ok(mat4f_to_flat(&self.inner.as_slice()[idx]).into_pyobject(py)?.into_any().unbind())
+            Ok(mat4f_to_flat(&self.inner.as_slice()[idx])
+                .into_pyobject(py)?
+                .into_any()
+                .unbind())
         } else {
             Err(PyTypeError::new_err("index must be int"))
         }
@@ -1211,7 +1944,8 @@ impl PyMatrix4fArray {
             let m = flat_to_mat4f(&flat)
                 .ok_or_else(|| PyValueError::new_err("Matrix4f requires 16 floats"))?;
             self.inner.make_unique();
-            self.inner.as_mut_slice()
+            self.inner
+                .as_mut_slice()
                 .ok_or_else(|| PyValueError::new_err("array is not uniquely owned"))?[idx] = m;
             Ok(())
         } else {
@@ -1220,14 +1954,27 @@ impl PyMatrix4fArray {
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VtStringIter>> {
-        let data = slf.inner.as_slice().iter().map(|m| format!("{:?}", mat4f_to_flat(m))).collect();
+        let data = slf
+            .inner
+            .as_slice()
+            .iter()
+            .map(|m| format!("{:?}", mat4f_to_flat(m)))
+            .collect();
         Py::new(slf.py(), VtStringIter::new_from_data(data))
     }
 
-    fn __eq__(&self, other: &Self) -> bool { self.inner.as_slice() == other.inner.as_slice() }
-    fn __ne__(&self, other: &Self) -> bool { self.inner.as_slice() != other.inner.as_slice() }
-    fn __repr__(&self) -> String { format!("Vt.Matrix4fArray([{} items])", self.inner.len()) }
-    fn __str__(&self) -> String { format!("[{} Matrix4f]", self.inner.len()) }
+    fn __eq__(&self, other: &Self) -> bool {
+        self.inner.as_slice() == other.inner.as_slice()
+    }
+    fn __ne__(&self, other: &Self) -> bool {
+        self.inner.as_slice() != other.inner.as_slice()
+    }
+    fn __repr__(&self) -> String {
+        format!("Vt.Matrix4fArray([{} items])", self.inner.len())
+    }
+    fn __str__(&self) -> String {
+        format!("[{} Matrix4f]", self.inner.len())
+    }
 }
 
 // ============================================================================
@@ -1277,9 +2024,7 @@ pub fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
         return Ok(Value::new(s));
     }
     if let Ok(d) = obj.cast::<PyDict>() {
-        return Ok(Value::from_dictionary(
-            py_dict_to_dict(d)?.to_hash_map(),
-        ));
+        return Ok(Value::from_dictionary(py_dict_to_dict(d)?.to_hash_map()));
     }
     // Already materialized Vt arrays / wrappers
     if let Ok(a) = obj.extract::<PyRef<PyVec3fArray>>() {
@@ -1383,10 +2128,7 @@ fn seq_to_vec4f_vec_value(obj: &Bound<'_, PyAny>) -> PyResult<Option<Value>> {
         }
         if let Ok((x, y, z, w)) = item.extract::<(i32, i32, i32, i32)>() {
             return Ok(Some(usd_gf::Vec4f::new(
-                x as f32,
-                y as f32,
-                z as f32,
-                w as f32,
+                x as f32, y as f32, z as f32, w as f32,
             )));
         }
         if let Ok(v) = item.extract::<Vec<f64>>() {
@@ -1471,7 +2213,8 @@ fn int_slice_to_value(nums: &[i64]) -> Value {
 fn py_dict_to_dict(d: &Bound<'_, PyDict>) -> PyResult<Dictionary> {
     let mut dict = Dictionary::new();
     for (k, v) in d.iter() {
-        let key: String = k.extract()
+        let key: String = k
+            .extract()
             .map_err(|_| PyTypeError::new_err("VtDictionary keys must be strings"))?;
         dict.insert_value(key, py_to_value(&v)?);
     }
@@ -1479,51 +2222,88 @@ fn py_dict_to_dict(d: &Bound<'_, PyDict>) -> PyResult<Dictionary> {
 }
 
 fn value_to_py(py: Python<'_>, v: &Value) -> PyResult<Py<PyAny>> {
-    if v.is_empty() { return Ok(py.None()); }
-    if let Some(b) = v.get::<bool>()   { return Ok((*b).into_pyobject(py)?.to_owned().into_any().unbind()); }
-    if let Some(i) = v.get::<i32>()    { return Ok((*i).into_pyobject(py)?.into_any().unbind()); }
-    if let Some(i) = v.get::<i64>()    { return Ok((*i).into_pyobject(py)?.into_any().unbind()); }
-    if let Some(u) = v.get::<u64>()    { return Ok((*u).into_pyobject(py)?.into_any().unbind()); }
-    if let Some(x) = v.get::<f64>()    { return Ok((*x).into_pyobject(py)?.into_any().unbind()); }
-    if let Some(x) = v.get::<f32>()    { return Ok((*x as f64).into_pyobject(py)?.into_any().unbind()); }
-    if let Some(s) = v.get::<String>() { return Ok(s.as_str().into_pyobject(py)?.into_any().unbind()); }
-    if let Some(t) = v.get::<usd_tf::Token>() { return Ok(t.to_string().into_pyobject(py)?.into_any().unbind()); }
-    if let Some(d) = v.get::<usd_vt::Dictionary>() { return dict_to_py(py, d); }
+    if v.is_empty() {
+        return Ok(py.None());
+    }
+    if let Some(b) = v.get::<bool>() {
+        return Ok((*b).into_pyobject(py)?.to_owned().into_any().unbind());
+    }
+    if let Some(i) = v.get::<i32>() {
+        return Ok((*i).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Some(i) = v.get::<i64>() {
+        return Ok((*i).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Some(u) = v.get::<u64>() {
+        return Ok((*u).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Some(x) = v.get::<f64>() {
+        return Ok((*x).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Some(x) = v.get::<f32>() {
+        return Ok((*x as f64).into_pyobject(py)?.into_any().unbind());
+    }
+    if let Some(s) = v.get::<String>() {
+        return Ok(s.as_str().into_pyobject(py)?.into_any().unbind());
+    }
+    if let Some(t) = v.get::<usd_tf::Token>() {
+        return Ok(t.to_string().into_pyobject(py)?.into_any().unbind());
+    }
+    if let Some(d) = v.get::<usd_vt::Dictionary>() {
+        return dict_to_py(py, d);
+    }
     if let Some(list) = v.get::<Vec<Value>>() {
         let py_list = PyList::empty(py);
-        for item in list { py_list.append(value_to_py(py, item)?)?; }
+        for item in list {
+            py_list.append(value_to_py(py, item)?)?;
+        }
         return Ok(py_list.into_any().unbind());
     }
     Ok(py.None())
 }
 
 /// Python-facing `VtDictionary` — wraps `Dictionary` and round-trips as Python dict.
-#[pyclass(skip_from_py_object,name = "Dictionary", module = "pxr_rs.Vt")]
+#[pyclass(skip_from_py_object, name = "Dictionary", module = "pxr_rs.Vt")]
 #[derive(Clone, Default)]
-pub struct PyDictionary { inner: Dictionary }
+pub struct PyDictionary {
+    inner: Dictionary,
+}
 
 #[pymethods]
 impl PyDictionary {
     #[new]
     #[pyo3(signature = (d = None))]
     fn new(d: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        Ok(Self { inner: match d { Some(pd) => py_dict_to_dict(pd)?, None => Dictionary::new() } })
+        Ok(Self {
+            inner: match d {
+                Some(pd) => py_dict_to_dict(pd)?,
+                None => Dictionary::new(),
+            },
+        })
     }
 
     #[pyo3(name = "AsDict")]
-    fn as_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> { dict_to_py(py, &self.inner) }
+    fn as_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        dict_to_py(py, &self.inner)
+    }
 
-    fn __len__(&self) -> usize { self.inner.len() }
+    fn __len__(&self) -> usize {
+        self.inner.len()
+    }
 
     fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
-        Ok(format!("Vt.Dictionary({})", dict_to_py(py, &self.inner)?.bind(py)))
+        Ok(format!(
+            "Vt.Dictionary({})",
+            dict_to_py(py, &self.inner)?.bind(py)
+        ))
     }
     fn __str__(&self, py: Python<'_>) -> PyResult<String> {
         Ok(format!("{}", dict_to_py(py, &self.inner)?.bind(py)))
     }
 
     fn __getitem__(&self, py: Python<'_>, key: &str) -> PyResult<Py<PyAny>> {
-        self.inner.get(key)
+        self.inner
+            .get(key)
             .ok_or_else(|| pyo3::exceptions::PyKeyError::new_err(key.to_owned()))
             .and_then(|v| value_to_py(py, v))
     }
@@ -1533,11 +2313,19 @@ impl PyDictionary {
         Ok(())
     }
 
-    fn __contains__(&self, key: &str) -> bool { self.inner.contains_key(key) }
-    fn __eq__(&self, other: &Self) -> bool { self.inner == other.inner }
-    fn __ne__(&self, other: &Self) -> bool { self.inner != other.inner }
+    fn __contains__(&self, key: &str) -> bool {
+        self.inner.contains_key(key)
+    }
+    fn __eq__(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+    fn __ne__(&self, other: &Self) -> bool {
+        self.inner != other.inner
+    }
 
-    fn keys(&self) -> Vec<String> { self.inner.keys().map(|k| k.clone()).collect() }
+    fn keys(&self) -> Vec<String> {
+        self.inner.keys().map(|k| k.clone()).collect()
+    }
 }
 
 // ============================================================================
@@ -1629,37 +2417,62 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-
 // ============================================================================
 // VtArrayEdit + Builder + Test helpers
 // ============================================================================
 
-#[pyclass(skip_from_py_object,name = "IntArrayEdit", module = "pxr_rs.Vt")]
+#[pyclass(skip_from_py_object, name = "IntArrayEdit", module = "pxr_rs.Vt")]
 #[derive(Clone)]
-pub struct PyIntArrayEdit { inner: ArrayEdit<i32> }
+pub struct PyIntArrayEdit {
+    inner: ArrayEdit<i32>,
+}
 
 #[pymethods]
 impl PyIntArrayEdit {
     #[new]
-    fn new() -> Self { Self { inner: ArrayEdit::new() } }
+    fn new() -> Self {
+        Self {
+            inner: ArrayEdit::new(),
+        }
+    }
 
     #[pyo3(name = "ComposeOver")]
     fn compose_over(&self, py: Python<'_>, weaker: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         if let Ok(w) = weaker.cast::<PyIntArrayEdit>() {
-            return Ok(PyIntArrayEdit { inner: self.inner.compose_over(&w.borrow().inner) }.into_pyobject(py)?.into_any().unbind());
+            return Ok(PyIntArrayEdit {
+                inner: self.inner.compose_over(&w.borrow().inner),
+            }
+            .into_pyobject(py)?
+            .into_any()
+            .unbind());
         }
         if let Ok(arr) = weaker.cast::<PyIntArray>() {
-            return Ok(PyIntArray { inner: self.inner.apply_to(arr.borrow().inner.clone()) }.into_pyobject(py)?.into_any().unbind());
+            return Ok(PyIntArray {
+                inner: self.inner.apply_to(arr.borrow().inner.clone()),
+            }
+            .into_pyobject(py)?
+            .into_any()
+            .unbind());
         }
         if let Ok(list) = weaker.extract::<Vec<i32>>() {
-            let mut arr = Array::from(list); self.inner.apply(&mut arr);
-            return Ok(PyIntArray { inner: arr }.into_pyobject(py)?.into_any().unbind());
+            let mut arr = Array::from(list);
+            self.inner.apply(&mut arr);
+            return Ok(PyIntArray { inner: arr }
+                .into_pyobject(py)?
+                .into_any()
+                .unbind());
         }
-        Err(PyTypeError::new_err("expected IntArrayEdit, IntArray, or list"))
+        Err(PyTypeError::new_err(
+            "expected IntArrayEdit, IntArray, or list",
+        ))
     }
 
-    fn __eq__(&self, other: &Self) -> bool { self.inner == other.inner }
-    fn __ne__(&self, other: &Self) -> bool { self.inner != other.inner }
+    fn __eq__(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+    fn __ne__(&self, other: &Self) -> bool {
+        self.inner != other.inner
+    }
     fn __hash__(&self) -> u64 {
         use std::hash::{Hash, Hasher};
         let mut h = std::collections::hash_map::DefaultHasher::new();
@@ -1667,94 +2480,200 @@ impl PyIntArrayEdit {
         self.inner.literals().hash(&mut h);
         h.finish()
     }
-    fn __repr__(&self) -> String { format!("{:?}", self.inner) }
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.inner)
+    }
 }
 
-#[pyclass(skip_from_py_object,name = "StringArrayEdit", module = "pxr_rs.Vt")]
+#[pyclass(skip_from_py_object, name = "StringArrayEdit", module = "pxr_rs.Vt")]
 #[derive(Clone)]
-pub struct PyStringArrayEdit { inner: ArrayEdit<String> }
+pub struct PyStringArrayEdit {
+    inner: ArrayEdit<String>,
+}
 #[pymethods]
 impl PyStringArrayEdit {
     #[new]
-    fn new() -> Self { Self { inner: ArrayEdit::new() } }
-    fn __eq__(&self, other: &Self) -> bool { self.inner == other.inner }
-    fn __repr__(&self) -> String { format!("{:?}", self.inner) }
+    fn new() -> Self {
+        Self {
+            inner: ArrayEdit::new(),
+        }
+    }
+    fn __eq__(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.inner)
+    }
 }
 
-#[pyclass(skip_from_py_object,name = "FloatArrayEdit", module = "pxr_rs.Vt")]
+#[pyclass(skip_from_py_object, name = "FloatArrayEdit", module = "pxr_rs.Vt")]
 #[derive(Clone)]
-pub struct PyFloatArrayEdit { inner: ArrayEdit<f32> }
+pub struct PyFloatArrayEdit {
+    inner: ArrayEdit<f32>,
+}
 #[pymethods]
 impl PyFloatArrayEdit {
     #[new]
-    fn new() -> Self { Self { inner: ArrayEdit::new() } }
-    fn __repr__(&self) -> String { format!("{:?}", self.inner) }
+    fn new() -> Self {
+        Self {
+            inner: ArrayEdit::new(),
+        }
+    }
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.inner)
+    }
 }
 
-#[pyclass(skip_from_py_object,name = "IntArrayEditBuilder", module = "pxr_rs.Vt")]
-pub struct PyIntArrayEditBuilder { inner: ArrayEditBuilder<i32> }
+#[pyclass(
+    skip_from_py_object,
+    name = "IntArrayEditBuilder",
+    module = "pxr_rs.Vt"
+)]
+pub struct PyIntArrayEditBuilder {
+    inner: ArrayEditBuilder<i32>,
+}
 #[pymethods]
 impl PyIntArrayEditBuilder {
     #[new]
-    fn new() -> Self { Self { inner: ArrayEditBuilder::new() } }
+    fn new() -> Self {
+        Self {
+            inner: ArrayEditBuilder::new(),
+        }
+    }
     #[pyo3(name = "Prepend")]
-    fn prepend(mut slf: PyRefMut<'_, Self>, elem: i32) -> PyRefMut<'_, Self> { slf.inner.prepend(elem); slf }
+    fn prepend(mut slf: PyRefMut<'_, Self>, elem: i32) -> PyRefMut<'_, Self> {
+        slf.inner.prepend(elem);
+        slf
+    }
     #[pyo3(name = "Append")]
-    fn append(mut slf: PyRefMut<'_, Self>, elem: i32) -> PyRefMut<'_, Self> { slf.inner.append(elem); slf }
+    fn append(mut slf: PyRefMut<'_, Self>, elem: i32) -> PyRefMut<'_, Self> {
+        slf.inner.append(elem);
+        slf
+    }
     #[pyo3(name = "WriteRef")]
-    fn write_ref(mut slf: PyRefMut<'_, Self>, src: i64, dst: i64) -> PyRefMut<'_, Self> { slf.inner.write_ref(src, dst); slf }
+    fn write_ref(mut slf: PyRefMut<'_, Self>, src: i64, dst: i64) -> PyRefMut<'_, Self> {
+        slf.inner.write_ref(src, dst);
+        slf
+    }
     #[pyo3(name = "EraseRef")]
-    fn erase_ref(mut slf: PyRefMut<'_, Self>, index: i64) -> PyRefMut<'_, Self> { slf.inner.erase(index); slf }
+    fn erase_ref(mut slf: PyRefMut<'_, Self>, index: i64) -> PyRefMut<'_, Self> {
+        slf.inner.erase(index);
+        slf
+    }
     #[pyo3(name = "MinSize")]
     #[pyo3(signature = (size, fill = None))]
     fn min_size(mut slf: PyRefMut<'_, Self>, size: usize, fill: Option<i32>) -> PyRefMut<'_, Self> {
-        if let Some(f) = fill { slf.inner.min_size_fill(size, f); } else { slf.inner.min_size(size); } slf
+        if let Some(f) = fill {
+            slf.inner.min_size_fill(size, f);
+        } else {
+            slf.inner.min_size(size);
+        }
+        slf
     }
     #[pyo3(name = "MaxSize")]
-    fn max_size(mut slf: PyRefMut<'_, Self>, size: usize) -> PyRefMut<'_, Self> { slf.inner.max_size(size); slf }
+    fn max_size(mut slf: PyRefMut<'_, Self>, size: usize) -> PyRefMut<'_, Self> {
+        slf.inner.max_size(size);
+        slf
+    }
     #[pyo3(name = "SetSize")]
     #[pyo3(signature = (size, fill = None))]
     fn set_size(mut slf: PyRefMut<'_, Self>, size: usize, fill: Option<i32>) -> PyRefMut<'_, Self> {
-        if let Some(f) = fill { slf.inner.set_size_fill(size, f); } else { slf.inner.set_size(size); } slf
+        if let Some(f) = fill {
+            slf.inner.set_size_fill(size, f);
+        } else {
+            slf.inner.set_size(size);
+        }
+        slf
     }
     #[pyo3(name = "FinalizeAndReset")]
-    fn finalize_and_reset(&mut self) -> PyIntArrayEdit { PyIntArrayEdit { inner: self.inner.build() } }
+    fn finalize_and_reset(&mut self) -> PyIntArrayEdit {
+        PyIntArrayEdit {
+            inner: self.inner.build(),
+        }
+    }
 }
 
 fn value_type_name_from_tag(v: &Value, tag: &str) -> String {
     match tag {
-        "bool" => "bool", "uchar" => "unsigned char", "short" => "short",
-        "ushort" => "unsigned short", "int" => "int", "uint" => "unsigned int",
-        "long" => "long", "ulong" => "unsigned long", "int64" => "int64",
-        "uint64" => "uint64", "float" => "float", "double" => "double",
-        "half" => "pxr_half::half", "string" => "string", "token" => "TfToken",
-        _ => { if v.is_empty() { return "empty".into(); }
-               if v.get::<bool>().is_some() { return "bool".into(); }
-               if v.get::<i32>().is_some() { return "int".into(); }
-               if v.get::<String>().is_some() { return "string".into(); }
-               return "TfPyObjWrapper".into(); }
-    }.to_owned()
+        "bool" => "bool",
+        "uchar" => "unsigned char",
+        "short" => "short",
+        "ushort" => "unsigned short",
+        "int" => "int",
+        "uint" => "unsigned int",
+        "long" => "long",
+        "ulong" => "unsigned long",
+        "int64" => "int64",
+        "uint64" => "uint64",
+        "float" => "float",
+        "double" => "double",
+        "half" => "pxr_half::half",
+        "string" => "string",
+        "token" => "TfToken",
+        _ => {
+            if v.is_empty() {
+                return "empty".into();
+            }
+            if v.get::<bool>().is_some() {
+                return "bool".into();
+            }
+            if v.get::<i32>().is_some() {
+                return "int".into();
+            }
+            if v.get::<String>().is_some() {
+                return "string".into();
+            }
+            return "TfPyObjWrapper".into();
+        }
+    }
+    .to_owned()
 }
 
 #[pyfunction]
 fn _test_ValueTypeName(obj: &Bound<'_, PyAny>) -> PyResult<String> {
-    if let Ok(w) = obj.cast::<PyValue>() { let w = w.borrow(); return Ok(value_type_name_from_tag(&w.inner, w.tag)); }
-    if obj.cast::<PyIntArrayEdit>().is_ok() { return Ok("VtArrayEdit<int>".into()); }
-    if obj.cast::<PyStringArrayEdit>().is_ok() { return Ok("VtArrayEdit<string>".into()); }
-    if obj.cast::<PyFloatArrayEdit>().is_ok() { return Ok("VtArrayEdit<float>".into()); }
-    if obj.cast::<PyBool>().is_ok() { return Ok("bool".into()); }
-    if let Ok(i) = obj.extract::<i64>() { return Ok(if i >= i64::from(i32::MIN) && i <= i64::from(i32::MAX) { "int" } else { "long" }.into()); }
-    if obj.cast::<PyFloat>().is_ok() { return Ok("double".into()); }
-    if obj.cast::<PyString>().is_ok() { return Ok("string".into()); }
+    if let Ok(w) = obj.cast::<PyValue>() {
+        let w = w.borrow();
+        return Ok(value_type_name_from_tag(&w.inner, w.tag));
+    }
+    if obj.cast::<PyIntArrayEdit>().is_ok() {
+        return Ok("VtArrayEdit<int>".into());
+    }
+    if obj.cast::<PyStringArrayEdit>().is_ok() {
+        return Ok("VtArrayEdit<string>".into());
+    }
+    if obj.cast::<PyFloatArrayEdit>().is_ok() {
+        return Ok("VtArrayEdit<float>".into());
+    }
+    if obj.cast::<PyBool>().is_ok() {
+        return Ok("bool".into());
+    }
+    if let Ok(i) = obj.extract::<i64>() {
+        return Ok(if i >= i64::from(i32::MIN) && i <= i64::from(i32::MAX) {
+            "int"
+        } else {
+            "long"
+        }
+        .into());
+    }
+    if obj.cast::<PyFloat>().is_ok() {
+        return Ok("double".into());
+    }
+    if obj.cast::<PyString>().is_ok() {
+        return Ok("string".into());
+    }
     Ok("TfPyObjWrapper".into())
 }
 
 #[pyfunction]
 fn _test_Ident(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
-    if let Ok(d) = obj.cast::<PyDict>() { return dict_to_py(py, &py_dict_to_dict(d)?); }
+    if let Ok(d) = obj.cast::<PyDict>() {
+        return dict_to_py(py, &py_dict_to_dict(d)?);
+    }
     if let Ok(list) = obj.cast::<PyList>() {
         let r = PyList::empty(py);
-        for item in list.iter() { r.append(_test_Ident(py, &item)?)?; }
+        for item in list.iter() {
+            r.append(_test_Ident(py, &item)?)?;
+        }
         return Ok(r.into_any().unbind());
     }
     value_to_py(py, &py_to_value(obj)?)
@@ -1762,27 +2681,43 @@ fn _test_Ident(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
 
 #[pyfunction]
 fn _test_Str(_py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<String> {
-    if let Ok(w) = obj.cast::<PyValue>() { return Ok(format_value(&w.borrow().inner)); }
+    if let Ok(w) = obj.cast::<PyValue>() {
+        return Ok(format_value(&w.borrow().inner));
+    }
     Ok(format!("{}", obj.str()?))
 }
 
 #[pyfunction]
 fn _ReturnDictionary(py: Python<'_>, d: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
-    let dict_obj = d.cast::<PyDict>().map_err(|_| PyTypeError::new_err("expected dict"))?;
+    let dict_obj = d
+        .cast::<PyDict>()
+        .map_err(|_| PyTypeError::new_err("expected dict"))?;
     for (k, v) in dict_obj.iter() {
-        let _: String = k.extract().map_err(|_| PyTypeError::new_err("keys must be strings"))?;
-        if is_ellipsis(&v) { return Err(PyTypeError::new_err("cannot convert Ellipsis")); }
+        let _: String = k
+            .extract()
+            .map_err(|_| PyTypeError::new_err("keys must be strings"))?;
+        if is_ellipsis(&v) {
+            return Err(PyTypeError::new_err("cannot convert Ellipsis"));
+        }
     }
     dict_to_py(py, &py_dict_to_dict(dict_obj)?)
 }
 
 #[pyfunction]
 fn _DictionaryArrayIdent(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
-    let list = obj.cast::<PyList>().map_err(|_| PyTypeError::new_err("expected list"))?;
+    let list = obj
+        .cast::<PyList>()
+        .map_err(|_| PyTypeError::new_err("expected list"))?;
     let result = PyList::empty(py);
     for item in list.iter() {
-        let d = item.cast::<PyDict>().map_err(|_| PyTypeError::new_err("expected list of dicts"))?;
-        for (k, _) in d.iter() { let _: String = k.extract().map_err(|_| PyTypeError::new_err("keys must be strings"))?; }
+        let d = item
+            .cast::<PyDict>()
+            .map_err(|_| PyTypeError::new_err("expected list of dicts"))?;
+        for (k, _) in d.iter() {
+            let _: String = k
+                .extract()
+                .map_err(|_| PyTypeError::new_err("keys must be strings"))?;
+        }
         result.append(dict_to_py(py, &py_dict_to_dict(d)?)?)?;
     }
     Ok(result.into_any().unbind())
@@ -1790,6 +2725,8 @@ fn _DictionaryArrayIdent(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<Py<
 
 #[pyfunction]
 fn _test_ValueRefFromPython(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
-    if let Ok(w) = obj.cast::<PyValue>() { return value_to_py(py, &w.borrow().inner); }
+    if let Ok(w) = obj.cast::<PyValue>() {
+        return value_to_py(py, &w.borrow().inner);
+    }
     value_to_py(py, &py_to_value(obj)?)
 }

@@ -4,26 +4,31 @@
 // Core PatchBuilder that assembles regular and irregular patches from topology.
 // Uses enum dispatch instead of C++ virtual methods.
 
-use crate::sdc::types::{SchemeType, SchemeTypeTraits};
-use crate::sdc::crease::Rule;
-use crate::vtr::level::{Level, VTag, ETag, VSpan};
-use super::types::{Index, LocalIndex, INDEX_INVALID};
 use super::patch_descriptor::PatchType;
 use super::patch_param::PatchParam;
 use super::ptex_indices::PtexIndices;
 use super::sparse_matrix::SparseMatrix;
 use super::topology_refiner::TopologyRefiner;
+use super::types::{INDEX_INVALID, Index, LocalIndex};
+use crate::sdc::crease::Rule;
+use crate::sdc::types::{SchemeType, SchemeTypeTraits};
+use crate::vtr::level::{ETag, Level, VSpan, VTag};
 
 // ---------------------------------------------------------------------------
 // Fast modulus helpers
 // ---------------------------------------------------------------------------
 
-#[inline] fn fast_mod4(x: i32) -> i32 { x & 0x3 }
-#[inline] fn fast_mod3(x: i32) -> i32 {
+#[inline]
+fn fast_mod4(x: i32) -> i32 {
+    x & 0x3
+}
+#[inline]
+fn fast_mod3(x: i32) -> i32 {
     const TABLE: [i32; 6] = [0, 1, 2, 0, 1, 2];
     TABLE[x as usize]
 }
-#[inline] fn fast_mod_n(x: i32, n: i32) -> i32 {
+#[inline]
+fn fast_mod_n(x: i32, n: i32) -> i32 {
     if x < n { x } else { x - n }
 }
 
@@ -31,9 +36,18 @@ use super::topology_refiner::TopologyRefiner;
 // Triangular boundary mask encoding/decoding
 // ---------------------------------------------------------------------------
 
-#[inline] fn unpack_tri_boundary_lower(mask: i32) -> i32 { mask & 0x7 }
-#[inline] fn unpack_tri_boundary_upper(mask: i32) -> i32 { (mask >> 3) & 0x3 }
-#[inline] fn pack_tri_boundary(upper: i32, lower: i32) -> i32 { (upper << 3) | lower }
+#[inline]
+fn unpack_tri_boundary_lower(mask: i32) -> i32 {
+    mask & 0x7
+}
+#[inline]
+fn unpack_tri_boundary_upper(mask: i32) -> i32 {
+    (mask >> 3) & 0x3
+}
+#[inline]
+fn pack_tri_boundary(upper: i32, lower: i32) -> i32 {
+    (upper << 3) | lower
+}
 
 fn encode_tri_boundary_mask(e_bits: i32, v_bits: i32) -> i32 {
     let mut upper = 0;
@@ -84,8 +98,12 @@ fn is_edge_singular(level: &Level, e: Index, mask: ETag) -> bool {
 // ---------------------------------------------------------------------------
 
 fn identify_manifold_corner_span(
-    level: &Level, f: Index, f_corner: i32, mask: ETag,
-    span: &mut VSpan, _fvc: i32,
+    level: &Level,
+    f: Index,
+    f_corner: i32,
+    mask: ETag,
+    span: &mut VSpan,
+    _fvc: i32,
 ) {
     let f_verts = level.get_face_vertices(f);
     let f_edges = level.get_face_edges(f);
@@ -105,7 +123,9 @@ fn identify_manifold_corner_span(
         span.num_faces += 1;
         span.corner_in_span += 1;
         i_leading = fast_mod_n(i_leading + n_edges - 1, n_edges);
-        if i_leading == i_trailing_start { break; }
+        if i_leading == i_trailing_start {
+            break;
+        }
     }
 
     let mut i_trailing = i_trailing_start;
@@ -113,23 +133,27 @@ fn identify_manifold_corner_span(
         while !is_edge_singular(level, v_edges[i_trailing], mask) {
             span.num_faces += 1;
             i_trailing = fast_mod_n(i_trailing + 1, n_edges);
-            if i_trailing == i_leading_start { break; }
+            if i_trailing == i_leading_start {
+                break;
+            }
         }
     }
     span.start_face = i_leading as LocalIndex;
 }
 
-fn count_manifold_corner_span(
-    level: &Level, f: Index, f_corner: i32, mask: ETag, fvc: i32,
-) -> i32 {
+fn count_manifold_corner_span(level: &Level, f: Index, f_corner: i32, mask: ETag, fvc: i32) -> i32 {
     let mut span = VSpan::default();
     identify_manifold_corner_span(level, f, f_corner, mask, &mut span, fvc);
     span.num_faces as i32
 }
 
 fn identify_non_manifold_corner_span(
-    level: &Level, f_index: Index, f_corner: i32, mask: ETag,
-    span: &mut VSpan, _fvc: i32,
+    level: &Level,
+    f_index: Index,
+    f_corner: i32,
+    mask: ETag,
+    span: &mut VSpan,
+    _fvc: i32,
 ) {
     let f_edges = level.get_face_edges(f_index);
     let nfe = f_edges.size();
@@ -153,7 +177,11 @@ fn identify_non_manifold_corner_span(
 
         let e_faces = level.get_edge_faces(e_leading);
         debug_assert!(e_faces.size() == 2);
-        f_leading = if e_faces[0] == f_leading { e_faces[1] } else { e_faces[0] };
+        f_leading = if e_faces[0] == f_leading {
+            e_faces[1]
+        } else {
+            e_faces[0]
+        };
         let next_f_edges = level.get_face_edges(f_leading);
 
         start_face = f_leading;
@@ -175,11 +203,16 @@ fn identify_non_manifold_corner_span(
 
             let e_faces = level.get_edge_faces(e_trailing);
             debug_assert!(e_faces.size() == 2);
-            f_trailing = if e_faces[0] == f_trailing { e_faces[1] } else { e_faces[0] };
+            f_trailing = if e_faces[0] == f_trailing {
+                e_faces[1]
+            } else {
+                e_faces[0]
+            };
             let next_f_edges = level.get_face_edges(f_trailing);
 
-            e_trailing = next_f_edges[((next_f_edges.find_index(e_trailing)
-                + next_f_edges.size() - 1) % next_f_edges.size()) as i32];
+            e_trailing = next_f_edges[((next_f_edges.find_index(e_trailing) + next_f_edges.size()
+                - 1)
+                % next_f_edges.size()) as i32];
             if e_trailing == e_leading_start {
                 span.periodic = !is_edge_singular(level, e_trailing, mask);
                 break;
@@ -202,7 +235,11 @@ fn identify_non_manifold_corner_span(
 }
 
 fn count_non_manifold_corner_span(
-    level: &Level, f: Index, f_corner: i32, mask: ETag, fvc: i32,
+    level: &Level,
+    f: Index,
+    f_corner: i32,
+    mask: ETag,
+    fvc: i32,
 ) -> i32 {
     let mut span = VSpan::default();
     identify_non_manifold_corner_span(level, f, f_corner, mask, &mut span, fvc);
@@ -244,7 +281,11 @@ fn gather_tri_regular_ring(level: &Level, v: Index, ring: &mut [i32], fvc: i32) 
 }
 
 fn gather_regular_partial_ring(
-    level: &Level, v: Index, span: &VSpan, ring: &mut [i32], fvc: i32,
+    level: &Level,
+    v: Index,
+    span: &VSpan,
+    ring: &mut [i32],
+    fvc: i32,
 ) -> i32 {
     let is_manifold = !level.is_vertex_non_manifold(v);
     let v_faces = level.get_vertex_faces(v);
@@ -263,18 +304,23 @@ fn gather_regular_partial_ring(
         let is_quad = fp.len() == 4;
 
         if is_quad {
-            ring[idx] = fp[fast_mod4(v_in_this + 1) as usize]; idx += 1;
-            ring[idx] = fp[fast_mod4(v_in_this + 2) as usize]; idx += 1;
+            ring[idx] = fp[fast_mod4(v_in_this + 1) as usize];
+            idx += 1;
+            ring[idx] = fp[fast_mod4(v_in_this + 2) as usize];
+            idx += 1;
         } else {
-            ring[idx] = fp[fast_mod3(v_in_this + 1) as usize]; idx += 1;
+            ring[idx] = fp[fast_mod3(v_in_this + 1) as usize];
+            idx += 1;
         }
 
         if i == n_faces - 1 {
             if !span.periodic {
                 if is_quad {
-                    ring[idx] = fp[fast_mod4(v_in_this + 3) as usize]; idx += 1;
+                    ring[idx] = fp[fast_mod4(v_in_this + 3) as usize];
+                    idx += 1;
                 } else {
-                    ring[idx] = fp[fast_mod3(v_in_this + 2) as usize]; idx += 1;
+                    ring[idx] = fp[fast_mod3(v_in_this + 2) as usize];
+                    idx += 1;
                 }
             }
         } else if is_manifold {
@@ -286,7 +332,11 @@ fn gather_regular_partial_ring(
             let next_in_this = fast_mod_n(v_in_this + n_fp - 1, n_fp);
             let next_edge = level.get_face_edges(this_face)[next_in_this];
             let e_faces = level.get_edge_faces(next_edge);
-            next_face = if e_faces[0] == this_face { e_faces[1] } else { e_faces[0] };
+            next_face = if e_faces[0] == this_face {
+                e_faces[1]
+            } else {
+                e_faces[0]
+            };
             v_in_next = level.get_face_edges(next_face).find_index(next_edge);
         }
     }
@@ -294,9 +344,12 @@ fn gather_regular_partial_ring(
 }
 
 fn get_next_face_in_vert_faces(
-    level: &Level, this_idx: i32,
-    v_faces: &[Index], v_in_faces: &[LocalIndex],
-    manifold: bool, v_in_next: &mut i32,
+    level: &Level,
+    this_idx: i32,
+    v_faces: &[Index],
+    v_in_faces: &[LocalIndex],
+    manifold: bool,
+    v_in_next: &mut i32,
 ) -> Index {
     if manifold {
         let next_idx = fast_mod_n(this_idx + 1, v_faces.len() as i32);
@@ -310,19 +363,30 @@ fn get_next_face_in_vert_faces(
         let next_edge = f_edges[fast_mod_n(vin + n - 1, n)];
         let e_faces = level.get_edge_faces(next_edge);
         debug_assert!(e_faces.size() == 2);
-        let nf = if e_faces[0] == this_face { e_faces[1] } else { e_faces[0] };
+        let nf = if e_faces[0] == this_face {
+            e_faces[1]
+        } else {
+            e_faces[0]
+        };
         *v_in_next = level.get_face_edges(nf).find_index(next_edge);
         nf
     }
 }
 
 fn get_prev_face_in_vert_faces(
-    level: &Level, this_idx: i32,
-    v_faces: &[Index], v_in_faces: &[LocalIndex],
-    manifold: bool, v_in_prev: &mut i32,
+    level: &Level,
+    this_idx: i32,
+    v_faces: &[Index],
+    v_in_faces: &[LocalIndex],
+    manifold: bool,
+    v_in_prev: &mut i32,
 ) -> Index {
     if manifold {
-        let prev_idx = if this_idx > 0 { this_idx - 1 } else { v_faces.len() as i32 - 1 };
+        let prev_idx = if this_idx > 0 {
+            this_idx - 1
+        } else {
+            v_faces.len() as i32 - 1
+        };
         *v_in_prev = v_in_faces[prev_idx as usize] as i32;
         v_faces[prev_idx as usize]
     } else {
@@ -332,7 +396,11 @@ fn get_prev_face_in_vert_faces(
         let prev_edge = f_edges[vin];
         let e_faces = level.get_edge_faces(prev_edge);
         debug_assert!(e_faces.size() == 2);
-        let pf = if e_faces[0] == this_face { e_faces[1] } else { e_faces[0] };
+        let pf = if e_faces[0] == this_face {
+            e_faces[1]
+        } else {
+            e_faces[0]
+        };
         let edge_in_prev = level.get_face_edges(pf).find_index(prev_edge);
         *v_in_prev = fast_mod_n(edge_in_prev + 1, f_edges.size());
         pf
@@ -346,39 +414,45 @@ fn get_prev_face_in_vert_faces(
 /// Topology of a single corner in the irregular patch neighborhood.
 #[derive(Clone, Copy, Default)]
 pub struct Corner {
-    pub num_faces:       LocalIndex,
-    pub patch_face:      LocalIndex,
-    pub boundary:        bool,
-    pub sharp:           bool,
-    pub dart:            bool,
+    pub num_faces: LocalIndex,
+    pub patch_face: LocalIndex,
+    pub boundary: bool,
+    pub sharp: bool,
+    pub dart: bool,
     pub shares_with_prev: bool,
     pub shares_with_next: bool,
-    pub val2_interior:   bool,
-    pub val2_adjacent:   bool,
+    pub val2_interior: bool,
+    pub val2_adjacent: bool,
 }
 
 /// Full topological specification of an irregular patch neighborhood.
 #[derive(Clone, Default)]
 pub struct SourcePatch {
-    pub corners:     [Corner; 4],
+    pub corners: [Corner; 4],
     pub num_corners: i32,
     pub num_source_points: i32,
     pub max_valence: i32,
     pub max_ring_size: i32,
-    pub ring_sizes:        [i32; 4],
-    pub local_ring_sizes:  [i32; 4],
+    pub ring_sizes: [i32; 4],
+    pub local_ring_sizes: [i32; 4],
     pub local_ring_offsets: [i32; 4],
 }
 
 impl SourcePatch {
     /// Create a new default SourcePatch.
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     /// Number of source points after finalization.
-    pub fn get_num_source_points(&self) -> i32 { self.num_source_points }
+    pub fn get_num_source_points(&self) -> i32 {
+        self.num_source_points
+    }
 
     /// Ring size for the given corner index.
-    pub fn get_corner_ring_size(&self, corner: usize) -> i32 { self.ring_sizes[corner] }
+    pub fn get_corner_ring_size(&self, corner: usize) -> i32 {
+        self.ring_sizes[corner]
+    }
 
     /// Finalize after all corners have been set. Computes ring sizes and
     /// total source point count.
@@ -394,12 +468,9 @@ impl SourcePatch {
             let c_prev = fast_mod_n(c_idx as i32 + 2 + is_quad_i, self.num_corners) as usize;
             let c_next = fast_mod_n(c_idx as i32 + 1, self.num_corners) as usize;
 
-            let prev_val2 = self.corners[c_prev].num_faces == 2
-                && !self.corners[c_prev].boundary;
-            let this_val2 = self.corners[c_idx].num_faces == 2
-                && !self.corners[c_idx].boundary;
-            let next_val2 = self.corners[c_next].num_faces == 2
-                && !self.corners[c_next].boundary;
+            let prev_val2 = self.corners[c_prev].num_faces == 2 && !self.corners[c_prev].boundary;
+            let this_val2 = self.corners[c_idx].num_faces == 2 && !self.corners[c_idx].boundary;
+            let next_val2 = self.corners[c_next].num_faces == 2 && !self.corners[c_next].boundary;
 
             self.corners[c_idx].val2_interior = this_val2;
             self.corners[c_idx].val2_adjacent = prev_val2 || next_val2;
@@ -467,42 +538,51 @@ impl SourcePatch {
         let mut rs = 0usize;
 
         // Adjacent corner points
-        ring_points[rs] = c_next as i32; rs += 1;
+        ring_points[rs] = c_next as i32;
+        rs += 1;
         if is_quad {
-            ring_points[rs] = c_opp as i32; rs += 1;
+            ring_points[rs] = c_opp as i32;
+            rs += 1;
         }
-        ring_points[rs] = c_prev as i32; rs += 1;
+        ring_points[rs] = c_prev as i32;
+        rs += 1;
 
         // Shared points preceding local ring
         if self.corners[c_prev].val2_interior && !self.corners[c].boundary {
-            ring_points[rs] = if is_quad { c_opp as i32 } else { c_next as i32 }; rs += 1;
+            ring_points[rs] = if is_quad { c_opp as i32 } else { c_next as i32 };
+            rs += 1;
         }
         if self.corners[c].shares_with_prev {
-            ring_points[rs] = self.local_ring_offsets[c_prev]
-                + self.local_ring_sizes[c_prev] - 1;
+            ring_points[rs] = self.local_ring_offsets[c_prev] + self.local_ring_sizes[c_prev] - 1;
             rs += 1;
         }
 
         // Local ring points
         for i in 0..self.local_ring_sizes[c] {
-            ring_points[rs] = self.local_ring_offsets[c] + i; rs += 1;
+            ring_points[rs] = self.local_ring_offsets[c] + i;
+            rs += 1;
         }
 
         // Shared points following local ring
         if is_quad {
             if self.corners[c].shares_with_next {
-                ring_points[rs] = self.local_ring_offsets[c_next]; rs += 1;
+                ring_points[rs] = self.local_ring_offsets[c_next];
+                rs += 1;
             }
             if self.corners[c_next].val2_interior && !self.corners[c].boundary {
-                ring_points[rs] = c_opp as i32; rs += 1;
+                ring_points[rs] = c_opp as i32;
+                rs += 1;
             }
         } else if self.corners[c].shares_with_next {
             if self.corners[c_next].val2_interior && !self.corners[c].boundary {
-                ring_points[rs] = c_prev as i32; rs += 1;
+                ring_points[rs] = c_prev as i32;
+                rs += 1;
             } else if self.local_ring_sizes[c_next] == 0 {
-                ring_points[rs] = self.local_ring_offsets[c_prev]; rs += 1;
+                ring_points[rs] = self.local_ring_offsets[c_prev];
+                rs += 1;
             } else {
-                ring_points[rs] = self.local_ring_offsets[c_next]; rs += 1;
+                ring_points[rs] = self.local_ring_offsets[c_next];
+                rs += 1;
             }
         }
 
@@ -527,16 +607,16 @@ impl SourcePatch {
 #[repr(i32)]
 pub enum BasisType {
     Unspecified = 0,
-    Regular     = 1,
-    Gregory     = 2,
-    Linear      = 3,
-    Bezier      = 4,
+    Regular = 1,
+    Gregory = 2,
+    Linear = 3,
+    Bezier = 4,
 }
 
 /// Options for PatchBuilder construction.
 #[derive(Debug, Clone, Copy)]
 pub struct PatchBuilderOptions {
-    pub reg_basis:   BasisType,
+    pub reg_basis: BasisType,
     pub irreg_basis: BasisType,
     pub fill_missing_boundary_points: bool,
     pub approx_inf_sharp_with_smooth: bool,
@@ -546,7 +626,7 @@ pub struct PatchBuilderOptions {
 impl Default for PatchBuilderOptions {
     fn default() -> Self {
         Self {
-            reg_basis:   BasisType::Unspecified,
+            reg_basis: BasisType::Unspecified,
             irreg_basis: BasisType::Unspecified,
             fill_missing_boundary_points: false,
             approx_inf_sharp_with_smooth: false,
@@ -635,14 +715,30 @@ impl<'a> PatchBuilder<'a> {
 
     // -- Accessors --
 
-    pub fn get_regular_face_size(&self) -> i32 { self.scheme_reg_face_size }
-    pub fn get_reg_basis(&self) -> BasisType { self.options.reg_basis }
-    pub fn get_irreg_basis(&self) -> BasisType { self.options.irreg_basis }
-    pub fn get_regular_patch_type(&self) -> PatchType { self.reg_patch_type }
-    pub fn get_irregular_patch_type(&self) -> PatchType { self.irreg_patch_type }
-    pub fn get_irreg_patch_type(&self) -> PatchType { self.irreg_patch_type }
-    pub fn get_native_patch_type(&self) -> PatchType { self.native_patch_type }
-    pub fn get_linear_patch_type(&self) -> PatchType { self.linear_patch_type }
+    pub fn get_regular_face_size(&self) -> i32 {
+        self.scheme_reg_face_size
+    }
+    pub fn get_reg_basis(&self) -> BasisType {
+        self.options.reg_basis
+    }
+    pub fn get_irreg_basis(&self) -> BasisType {
+        self.options.irreg_basis
+    }
+    pub fn get_regular_patch_type(&self) -> PatchType {
+        self.reg_patch_type
+    }
+    pub fn get_irregular_patch_type(&self) -> PatchType {
+        self.irreg_patch_type
+    }
+    pub fn get_irreg_patch_type(&self) -> PatchType {
+        self.irreg_patch_type
+    }
+    pub fn get_native_patch_type(&self) -> PatchType {
+        self.native_patch_type
+    }
+    pub fn get_linear_patch_type(&self) -> PatchType {
+        self.linear_patch_type
+    }
 
     // -- Face-level queries --
 
@@ -650,7 +746,9 @@ impl<'a> PatchBuilder<'a> {
     pub fn is_face_a_patch(&self, level_idx: i32, face: Index) -> bool {
         let level = self.refiner.get_level_internal(level_idx);
 
-        if self.refiner.has_holes() && level.is_face_hole(face) { return false; }
+        if self.refiner.has_holes() && level.is_face_hole(face) {
+            return false;
+        }
 
         if level_idx == 0 {
             if self.scheme_is_linear {
@@ -681,7 +779,9 @@ impl<'a> PatchBuilder<'a> {
 
     /// True if the patch is regular (no irregular features).
     pub fn is_patch_regular(&self, level_idx: i32, face: Index, fvc: i32) -> bool {
-        if self.scheme_is_linear { return true; }
+        if self.scheme_is_linear {
+            return true;
+        }
 
         let level = self.refiner.get_level_internal(level_idx);
 
@@ -701,7 +801,9 @@ impl<'a> PatchBuilder<'a> {
         irreg_tag.set_inf_irregular(test_inf);
         let irreg_mask = irreg_tag.get_bits();
 
-        if (comp.get_bits() & irreg_mask) == 0 { return true; }
+        if (comp.get_bits() & irreg_mask) == 0 {
+            return true;
+        }
 
         let may_have_irreg = self.refiner.has_irreg_faces_flag();
         let needs_extra = (comp.xordinary() && may_have_irreg) as i32;
@@ -710,11 +812,16 @@ impl<'a> PatchBuilder<'a> {
         if isolated {
             let needs_inspect = comp.non_manifold()
                 || (self.options.approx_smooth_corner_with_sharp
-                    && comp.xordinary() && comp.boundary())
+                    && comp.xordinary()
+                    && comp.boundary())
                 || (test_inf && comp.inf_irregular() && comp.inf_sharp_edges());
 
             if !needs_inspect {
-                return if test_inf { !comp.inf_irregular() } else { !comp.xordinary() };
+                return if test_inf {
+                    !comp.inf_irregular()
+                } else {
+                    !comp.xordinary()
+                };
             }
         }
 
@@ -722,13 +829,22 @@ impl<'a> PatchBuilder<'a> {
 
         for i in 0..self.scheme_reg_face_size {
             let vt = v_tags[i as usize];
-            if (vt.get_bits() & irreg_mask) == 0 { continue; }
+            if (vt.get_bits() & irreg_mask) == 0 {
+                continue;
+            }
 
             if vt.non_manifold() {
                 let n = count_non_manifold_corner_span(
-                    level, face, i, get_singular_edge_mask(test_inf), fvc);
+                    level,
+                    face,
+                    i,
+                    get_singular_edge_mask(test_inf),
+                    fvc,
+                );
                 if vt.inf_sharp() {
-                    if n != 1 { return false; }
+                    if n != 1 {
+                        return false;
+                    }
                 } else if n != n_reg_bnd {
                     return false;
                 }
@@ -736,27 +852,40 @@ impl<'a> PatchBuilder<'a> {
             }
 
             if vt.xordinary() {
-                if !vt.inf_sharp_edges() { return false; }
-                if self.options.approx_smooth_corner_with_sharp
-                    && vt.boundary() && !vt.inf_sharp()
+                if !vt.inf_sharp_edges() {
+                    return false;
+                }
+                if self.options.approx_smooth_corner_with_sharp && vt.boundary() && !vt.inf_sharp()
                 {
                     let mut e_tags = [ETag::default(); 4];
                     level.get_face_etags(face, &mut e_tags, fvc);
-                    let i_prev = if i > 0 { i - 1 } else { self.scheme_reg_face_size - 1 };
+                    let i_prev = if i > 0 {
+                        i - 1
+                    } else {
+                        self.scheme_reg_face_size - 1
+                    };
                     if e_tags[i as usize].boundary() && e_tags[i_prev as usize].boundary() {
                         continue;
                     }
                 }
-                if !test_inf { return false; }
+                if !test_inf {
+                    return false;
+                }
             }
 
             if vt.inf_irregular() {
-                if !vt.inf_sharp_edges() { return false; }
-                if vt.inf_sharp_crease() && vt.boundary() { return false; }
-                let n = count_manifold_corner_span(
-                    level, face, i, get_singular_edge_mask(true), fvc);
+                if !vt.inf_sharp_edges() {
+                    return false;
+                }
+                if vt.inf_sharp_crease() && vt.boundary() {
+                    return false;
+                }
+                let n =
+                    count_manifold_corner_span(level, face, i, get_singular_edge_mask(true), fvc);
                 if vt.inf_sharp_crease() {
-                    if n != n_reg_bnd { return false; }
+                    if n != n_reg_bnd {
+                        return false;
+                    }
                 } else if n != 1 {
                     return false;
                 }
@@ -766,17 +895,19 @@ impl<'a> PatchBuilder<'a> {
     }
 
     /// Compute boundary mask for a regular patch.
-    pub fn get_regular_patch_boundary_mask(
-        &self, level_idx: i32, face: Index, fvc: i32,
-    ) -> i32 {
-        if self.scheme_is_linear { return 0; }
+    pub fn get_regular_patch_boundary_mask(&self, level_idx: i32, face: Index, fvc: i32) -> i32 {
+        if self.scheme_is_linear {
+            return 0;
+        }
 
         let level = self.refiner.get_level_internal(level_idx);
         let mut v_tags = [VTag::default(); 4];
         level.get_face_vtags(face, &mut v_tags, fvc);
         let f_tag = VTag::bitwise_or(&v_tags[..self.scheme_reg_face_size as usize]);
 
-        if !f_tag.inf_sharp_edges() { return 0; }
+        if !f_tag.inf_sharp_edges() {
+            return 0;
+        }
 
         let mut e_tags = [ETag::default(); 4];
         level.get_face_etags(face, &mut e_tags, fvc);
@@ -823,8 +954,11 @@ impl<'a> PatchBuilder<'a> {
 
     /// Identify corner spans for an irregular patch.
     pub fn get_irregular_patch_corner_spans(
-        &self, level_idx: i32, face: Index,
-        corner_spans: &mut [VSpan; 4], fvc: i32,
+        &self,
+        level_idx: i32,
+        face: Index,
+        corner_spans: &mut [VSpan; 4],
+        fvc: i32,
     ) {
         let level = self.refiner.get_level_internal(level_idx);
 
@@ -838,17 +972,28 @@ impl<'a> PatchBuilder<'a> {
             let vt = v_tags[i];
             let is_nm = vt.non_manifold();
 
-            let test_edges = test_inf
-                && vt.inf_sharp_edges()
-                && (vt.rule() != Rule::Dart.bits() as u16);
+            let test_edges =
+                test_inf && vt.inf_sharp_edges() && (vt.rule() != Rule::Dart.bits() as u16);
 
             if test_edges || is_nm {
                 if is_nm {
                     identify_non_manifold_corner_span(
-                        level, face, i as i32, sing_mask, &mut corner_spans[i], fvc);
+                        level,
+                        face,
+                        i as i32,
+                        sing_mask,
+                        &mut corner_spans[i],
+                        fvc,
+                    );
                 } else {
                     identify_manifold_corner_span(
-                        level, face, i as i32, sing_mask, &mut corner_spans[i], fvc);
+                        level,
+                        face,
+                        i as i32,
+                        sing_mask,
+                        &mut corner_spans[i],
+                        fvc,
+                    );
                 }
             } else {
                 corner_spans[i].clear();
@@ -870,7 +1015,10 @@ impl<'a> PatchBuilder<'a> {
             // Legacy: reinterpret smooth corner as sharp
             if !corner_spans[i].sharp
                 && self.options.approx_smooth_corner_with_sharp
-                && vt.xordinary() && vt.boundary() && !vt.inf_sharp() && !vt.non_manifold()
+                && vt.xordinary()
+                && vt.boundary()
+                && !vt.inf_sharp()
+                && !vt.non_manifold()
             {
                 let n = if corner_spans[i].is_assigned() {
                     corner_spans[i].num_faces as i32
@@ -885,15 +1033,21 @@ impl<'a> PatchBuilder<'a> {
 
     /// Check if face-varying topology matches at face.
     pub fn does_fvar_patch_match(&self, level_idx: i32, face: Index, fvc: i32) -> bool {
-        self.refiner.get_level_internal(level_idx).does_face_fvar_topology_match(face, fvc)
+        self.refiner
+            .get_level_internal(level_idx)
+            .does_face_fvar_topology_match(face, fvc)
     }
 
     // -- Regular patch point retrieval --
 
     /// Get control point indices for a regular patch.
     pub fn get_regular_patch_points(
-        &self, level_idx: i32, face: Index,
-        reg_boundary_mask: i32, points: &mut [Index], fvc: i32,
+        &self,
+        level_idx: i32,
+        face: Index,
+        reg_boundary_mask: i32,
+        points: &mut [Index],
+        fvc: i32,
     ) -> i32 {
         if self.scheme_is_linear {
             return self.get_regular_face_points(level_idx, face, points, fvc);
@@ -906,7 +1060,11 @@ impl<'a> PatchBuilder<'a> {
     }
 
     fn get_regular_face_points(
-        &self, level_idx: i32, face: Index, points: &mut [Index], fvc: i32,
+        &self,
+        level_idx: i32,
+        face: Index,
+        points: &mut [Index],
+        fvc: i32,
     ) -> i32 {
         let fp = get_face_points(self.refiner.get_level_internal(level_idx), face, fvc);
         for (i, &v) in fp.iter().enumerate() {
@@ -916,17 +1074,19 @@ impl<'a> PatchBuilder<'a> {
     }
 
     fn get_quad_regular_patch_points(
-        &self, level_idx: i32, face: Index,
-        mut bnd_mask: i32, points: &mut [Index], fvc: i32,
+        &self,
+        level_idx: i32,
+        face: Index,
+        mut bnd_mask: i32,
+        points: &mut [Index],
+        fvc: i32,
     ) -> i32 {
         if bnd_mask < 0 {
             bnd_mask = self.get_regular_patch_boundary_mask(level_idx, face, fvc);
         }
         let interior = bnd_mask == 0;
 
-        const PP: [[usize; 4]; 4] = [
-            [5, 4, 0, 1], [6, 2, 3, 7], [10, 11, 15, 14], [9, 13, 12, 8],
-        ];
+        const PP: [[usize; 4]; 4] = [[5, 4, 0, 1], [6, 2, 3, 7], [10, 11, 15, 14], [9, 13, 12, 8]];
 
         let level = self.refiner.get_level_internal(level_idx);
         let f_verts = level.get_face_vertices(face);
@@ -952,8 +1112,8 @@ impl<'a> PatchBuilder<'a> {
             };
             let f_in_v = v_faces_arr.iter().position(|&x| x == face).unwrap_or(0) as i32;
 
-            let interior_corner = interior
-                || ((bnd_mask & (1 << i)) | (bnd_mask & (1 << fast_mod4(i + 3)))) == 0;
+            let interior_corner =
+                interior || ((bnd_mask & (1 << i)) | (bnd_mask & (1 << fast_mod4(i + 3)))) == 0;
 
             if interior_corner {
                 let opp_idx = fast_mod4(f_in_v + 2);
@@ -971,7 +1131,13 @@ impl<'a> PatchBuilder<'a> {
                 let manifold = !level.get_vertex_tag(v).non_manifold();
                 let mut v_in_next = 0i32;
                 let f_next = get_next_face_in_vert_faces(
-                    level, f_in_v, &v_faces_arr, &v_in_arr, manifold, &mut v_in_next);
+                    level,
+                    f_in_v,
+                    &v_faces_arr,
+                    &v_in_arr,
+                    manifold,
+                    &mut v_in_next,
+                );
                 let np = get_face_points(level, f_next, fvc);
                 points[ci[1]] = np[fast_mod4(v_in_next + 3) as usize];
                 points[ci[2]] = bnd_pt;
@@ -980,7 +1146,13 @@ impl<'a> PatchBuilder<'a> {
                 let manifold = !level.get_vertex_tag(v).non_manifold();
                 let mut v_in_prev = 0i32;
                 let f_prev = get_prev_face_in_vert_faces(
-                    level, f_in_v, &v_faces_arr, &v_in_arr, manifold, &mut v_in_prev);
+                    level,
+                    f_in_v,
+                    &v_faces_arr,
+                    &v_in_arr,
+                    manifold,
+                    &mut v_in_prev,
+                );
                 let pp = get_face_points(level, f_prev, fvc);
                 points[ci[1]] = bnd_pt;
                 points[ci[2]] = bnd_pt;
@@ -992,17 +1164,19 @@ impl<'a> PatchBuilder<'a> {
     }
 
     fn get_tri_regular_patch_points(
-        &self, level_idx: i32, face: Index,
-        mut bnd_mask: i32, points: &mut [Index], fvc: i32,
+        &self,
+        level_idx: i32,
+        face: Index,
+        mut bnd_mask: i32,
+        points: &mut [Index],
+        fvc: i32,
     ) -> i32 {
         if bnd_mask < 0 {
             bnd_mask = self.get_regular_patch_boundary_mask(level_idx, face, fvc);
         }
         let interior = bnd_mask == 0;
 
-        const PP: [[usize; 4]; 3] = [
-            [4, 7, 3, 0], [5, 1, 2, 6], [8, 9, 11, 10],
-        ];
+        const PP: [[usize; 4]; 3] = [[4, 7, 3, 0], [5, 1, 2, 6], [8, 9, 11, 10]];
 
         let (mut e_mask, mut v_mask) = (0, 0);
         if !interior {
@@ -1076,7 +1250,13 @@ impl<'a> PatchBuilder<'a> {
                 let manifold = !level.get_vertex_tag(v).non_manifold();
                 let mut vin2 = 0i32;
                 let f2 = get_next_face_in_vert_faces(
-                    level, f_in_v, &v_faces_arr, &v_in_arr, manifold, &mut vin2);
+                    level,
+                    f_in_v,
+                    &v_faces_arr,
+                    &v_in_arr,
+                    manifold,
+                    &mut vin2,
+                );
                 let p2 = get_face_points(level, f2, fvc);
                 points[ci[1]] = p2[fast_mod3(vin2 + 2) as usize];
                 points[ci[2]] = bnd_pt;
@@ -1091,8 +1271,11 @@ impl<'a> PatchBuilder<'a> {
 
     /// Assemble the SourcePatch from the topology around `face`.
     pub fn assemble_irregular_source_patch(
-        &self, level_idx: i32, face: Index,
-        corner_spans: &[VSpan; 4], source: &mut SourcePatch,
+        &self,
+        level_idx: i32,
+        face: Index,
+        corner_spans: &[VSpan; 4],
+        source: &mut SourcePatch,
     ) -> i32 {
         let level = self.refiner.get_level_internal(level_idx);
         let f_verts = level.get_face_vertices(face);
@@ -1120,9 +1303,13 @@ impl<'a> PatchBuilder<'a> {
 
     /// Gather source point indices for an irregular patch.
     pub fn gather_irregular_source_points(
-        &self, level_idx: i32, face: Index,
-        corner_spans: &[VSpan; 4], source: &mut SourcePatch,
-        patch_verts: &mut [Index], fvc: i32,
+        &self,
+        level_idx: i32,
+        face: Index,
+        corner_spans: &[VSpan; 4],
+        source: &mut SourcePatch,
+        patch_verts: &mut [Index],
+        fvc: i32,
     ) -> i32 {
         let level = self.refiner.get_level_internal(level_idx);
         let f_verts = level.get_face_vertices(face);
@@ -1154,19 +1341,32 @@ impl<'a> PatchBuilder<'a> {
 
     /// Get irregular patch source points (combined assemble + gather).
     pub fn get_irregular_patch_source_points(
-        &self, level_idx: i32, face: Index,
-        corner_spans: &[VSpan; 4], source_points: &mut [Index], fvc: i32,
+        &self,
+        level_idx: i32,
+        face: Index,
+        corner_spans: &[VSpan; 4],
+        source_points: &mut [Index],
+        fvc: i32,
     ) -> i32 {
         let mut sp = SourcePatch::default();
         self.assemble_irregular_source_patch(level_idx, face, corner_spans, &mut sp);
         self.gather_irregular_source_points(
-            level_idx, face, corner_spans, &mut sp, source_points, fvc)
+            level_idx,
+            face,
+            corner_spans,
+            &mut sp,
+            source_points,
+            fvc,
+        )
     }
 
     /// Get the conversion matrix for an irregular patch.
     pub fn get_irregular_patch_conversion_matrix(
-        &self, level_idx: i32, face: Index,
-        corner_spans: &[VSpan; 4], matrix: &mut SparseMatrix<f32>,
+        &self,
+        level_idx: i32,
+        face: Index,
+        corner_spans: &[VSpan; 4],
+        matrix: &mut SparseMatrix<f32>,
     ) -> i32 {
         let mut sp = SourcePatch::default();
         self.assemble_irregular_source_patch(level_idx, face, corner_spans, &mut sp);
@@ -1175,7 +1375,9 @@ impl<'a> PatchBuilder<'a> {
 
     /// Scheme-specific patch conversion (dispatches by scheme type).
     pub fn convert_to_patch_type(
-        &self, source: &SourcePatch, patch_type: PatchType,
+        &self,
+        source: &SourcePatch,
+        patch_type: PatchType,
         matrix: &mut SparseMatrix<f32>,
     ) -> i32 {
         match self.scheme_type {
@@ -1187,30 +1389,40 @@ impl<'a> PatchBuilder<'a> {
             SchemeType::Catmark => {
                 super::catmark_patch_builder::convert_catmark(source, patch_type, matrix)
             }
-            SchemeType::Loop => {
-                super::loop_patch_builder::convert_loop(source, patch_type, matrix)
-            }
+            SchemeType::Loop => super::loop_patch_builder::convert_loop(source, patch_type, matrix),
         }
     }
 
     // -- Single crease --
 
     pub fn is_regular_single_crease_patch(
-        &self, level_idx: i32, face: Index, info: &mut SingleCreaseInfo,
+        &self,
+        level_idx: i32,
+        face: Index,
+        info: &mut SingleCreaseInfo,
     ) -> bool {
-        if self.scheme_reg_face_size != 4 { return false; }
+        if self.scheme_reg_face_size != 4 {
+            return false;
+        }
         let level = self.refiner.get_level_internal(level_idx);
         level.is_single_crease_patch_full(
-            face, &mut info.crease_sharpness, &mut info.crease_edge_in_face)
+            face,
+            &mut info.crease_sharpness,
+            &mut info.crease_edge_in_face,
+        )
     }
 
     // -- PatchParam computation --
 
     /// Compute PatchParam for a given face in the hierarchy.
     pub fn compute_patch_param(
-        &self, level_idx: i32, face: Index,
-        ptex: &PtexIndices, is_regular: bool,
-        boundary_mask: i32, compute_transition: bool,
+        &self,
+        level_idx: i32,
+        face: Index,
+        ptex: &PtexIndices,
+        is_regular: bool,
+        boundary_mask: i32,
+        compute_transition: bool,
     ) -> PatchParam {
         let depth = level_idx;
         let mut child_idx_in_parent = 0i32;
@@ -1238,17 +1450,33 @@ impl<'a> PatchBuilder<'a> {
                 if rotated {
                     match child_idx_in_parent {
                         0 => {}
-                        1 => { u -= ofs; }
-                        2 => { v -= ofs; }
-                        3 => { u += ofs; v += ofs; rotated = false; }
+                        1 => {
+                            u -= ofs;
+                        }
+                        2 => {
+                            v -= ofs;
+                        }
+                        3 => {
+                            u += ofs;
+                            v += ofs;
+                            rotated = false;
+                        }
                         _ => {}
                     }
                 } else {
                     match child_idx_in_parent {
                         0 => {}
-                        1 => { u += ofs; }
-                        2 => { v += ofs; }
-                        3 => { u -= ofs; v -= ofs; rotated = true; }
+                        1 => {
+                            u += ofs;
+                        }
+                        2 => {
+                            v += ofs;
+                        }
+                        3 => {
+                            u -= ofs;
+                            v -= ofs;
+                            rotated = true;
+                        }
                         _ => {}
                     }
                 }
@@ -1257,9 +1485,16 @@ impl<'a> PatchBuilder<'a> {
                 child_idx_in_parent = ref_.get_child_face_in_parent_face(child_face);
                 match child_idx_in_parent {
                     0 => {}
-                    1 => { u += ofs; }
-                    2 => { u += ofs; v += ofs; }
-                    3 => { v += ofs; }
+                    1 => {
+                        u += ofs;
+                    }
+                    2 => {
+                        u += ofs;
+                        v += ofs;
+                    }
+                    3 => {
+                        v += ofs;
+                    }
                     _ => {}
                 }
                 ofs <<= 1;
@@ -1297,7 +1532,8 @@ impl<'a> PatchBuilder<'a> {
         let mut param = PatchParam::default();
         param.set(
             ptex_index,
-            u as i16, v as i16,
+            u as i16,
+            v as i16,
             depth as u16,
             irreg_base,
             boundary_mask as u16,
@@ -1314,28 +1550,28 @@ impl<'a> PatchBuilder<'a> {
 
 fn bilinear_patch_type(basis: BasisType) -> PatchType {
     match basis {
-        BasisType::Regular     => PatchType::Quads,
-        BasisType::Gregory     => PatchType::GregoryBasis,
-        BasisType::Linear      => PatchType::Quads,
-        _                      => PatchType::NonPatch,
+        BasisType::Regular => PatchType::Quads,
+        BasisType::Gregory => PatchType::GregoryBasis,
+        BasisType::Linear => PatchType::Quads,
+        _ => PatchType::NonPatch,
     }
 }
 
 fn catmark_patch_type(basis: BasisType) -> PatchType {
     match basis {
-        BasisType::Regular     => PatchType::Regular,
-        BasisType::Gregory     => PatchType::GregoryBasis,
-        BasisType::Linear      => PatchType::Quads,
-        _                      => PatchType::NonPatch,
+        BasisType::Regular => PatchType::Regular,
+        BasisType::Gregory => PatchType::GregoryBasis,
+        BasisType::Linear => PatchType::Quads,
+        _ => PatchType::NonPatch,
     }
 }
 
 fn loop_patch_type(basis: BasisType) -> PatchType {
     match basis {
-        BasisType::Regular     => PatchType::Loop,
-        BasisType::Gregory     => PatchType::GregoryTriangle,
-        BasisType::Linear      => PatchType::Triangles,
-        _                      => PatchType::NonPatch,
+        BasisType::Regular => PatchType::Loop,
+        BasisType::Gregory => PatchType::GregoryTriangle,
+        BasisType::Linear => PatchType::Triangles,
+        _ => PatchType::NonPatch,
     }
 }
 
@@ -1399,10 +1635,16 @@ mod tests {
     #[test]
     fn basis_type_mapping() {
         assert_eq!(catmark_patch_type(BasisType::Regular), PatchType::Regular);
-        assert_eq!(catmark_patch_type(BasisType::Gregory), PatchType::GregoryBasis);
+        assert_eq!(
+            catmark_patch_type(BasisType::Gregory),
+            PatchType::GregoryBasis
+        );
         assert_eq!(catmark_patch_type(BasisType::Linear), PatchType::Quads);
         assert_eq!(loop_patch_type(BasisType::Regular), PatchType::Loop);
-        assert_eq!(loop_patch_type(BasisType::Gregory), PatchType::GregoryTriangle);
+        assert_eq!(
+            loop_patch_type(BasisType::Gregory),
+            PatchType::GregoryTriangle
+        );
         assert_eq!(bilinear_patch_type(BasisType::Regular), PatchType::Quads);
     }
 

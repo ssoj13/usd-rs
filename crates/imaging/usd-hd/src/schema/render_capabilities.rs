@@ -1,4 +1,3 @@
-
 //! HdRenderCapabilitiesSchema - Render capabilities schema.
 //!
 //! Corresponds to pxr/imaging/hd/renderCapabilitiesSchema.h.

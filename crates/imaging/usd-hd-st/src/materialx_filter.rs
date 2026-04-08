@@ -1,4 +1,3 @@
-
 //! MaterialX material filter — bridges HD-ST materials to mtlx-rs WGSL codegen.
 //!
 //! Port of C++ HdSt_ApplyMaterialXFilter (hdSt/materialXFilter.cpp).

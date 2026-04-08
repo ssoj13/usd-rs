@@ -1,4 +1,3 @@
-
 //! BasisCurvesShaderKey - shader variant selection for curve rendering.
 //!
 //! Port of C++ `HdSt_BasisCurvesShaderKey`. Encodes curve type, basis,

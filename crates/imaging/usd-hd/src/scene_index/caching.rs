@@ -1,4 +1,3 @@
-
 //! Caching scene index - caches prim data and child paths.
 //!
 //! G22: Two-tier cache (primary BTreeMap + recent concurrent HashMap).

@@ -11,7 +11,11 @@ fn caldera_path(relative: &str) -> Option<PathBuf> {
     if let Some(root) = std::env::var_os("USD_RS_CALDERA_ROOT") {
         roots.push(PathBuf::from(root));
     }
-    roots.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("_ref").join("caldera"));
+    roots.push(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("_ref")
+            .join("caldera"),
+    );
 
     roots
         .into_iter()
@@ -38,9 +42,9 @@ fn require_caldera_path(relative: &str) -> Option<PathBuf> {
 #[test]
 fn test_caldera_prefab_layer_fields() {
     usd_sdf::init();
-    let Some(path) =
-        require_caldera_path("map_source/prefabs/misc_models/ee_pillar_concrete_pipe_support_base.usd")
-    else {
+    let Some(path) = require_caldera_path(
+        "map_source/prefabs/misc_models/ee_pillar_concrete_pipe_support_base.usd",
+    ) else {
         return;
     };
     let layer = Layer::find_or_open(path.to_string_lossy().as_ref()).expect("open layer");
@@ -83,13 +87,13 @@ fn test_caldera_prefab_layer_fields() {
 #[test]
 fn test_caldera_prim_composition() {
     usd_sdf::init();
-    let Some(path) =
-        require_caldera_path("map_source/prefabs/misc_models/ee_pillar_concrete_pipe_support_base.usd")
-    else {
+    let Some(path) = require_caldera_path(
+        "map_source/prefabs/misc_models/ee_pillar_concrete_pipe_support_base.usd",
+    ) else {
         return;
     };
-    let stage = Stage::open(path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll)
-        .expect("open stage");
+    let stage =
+        Stage::open(path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll).expect("open stage");
 
     for prim in stage.traverse() {
         let p = prim.get_path();
@@ -137,11 +141,8 @@ fn test_caldera_geo_references() {
     eprintln!("sublayers: {:?}", layer.get_sublayer_paths());
 
     // Check the stage traverse to see what got composed
-    let stage = Stage::open(
-        path.to_string_lossy().as_ref(),
-        InitialLoadSet::LoadAll,
-    )
-    .expect("open stage");
+    let stage =
+        Stage::open(path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll).expect("open stage");
 
     let mut reference_count = 0;
     for prim in stage.traverse() {
@@ -195,24 +196,25 @@ fn test_caldera_geo_district_fields() {
     if let Some(proxy_path) = caldera_path("assets/xmodel/generated_proxies/map_phosphate_mine.usd")
     {
         if proxy_path.exists() {
-        eprintln!("\nProxy asset exists, opening as stage...");
-            if let Ok(proxy_stage) =
-                Stage::open(proxy_path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll)
-            {
-            let mut count = 0;
-            for prim in proxy_stage.traverse() {
-                count += 1;
-                if count <= 15 {
-                    eprintln!(
-                        "  proxy prim: {} ({})",
-                        prim.get_path(),
-                        prim.get_type_name()
-                    );
+            eprintln!("\nProxy asset exists, opening as stage...");
+            if let Ok(proxy_stage) = Stage::open(
+                proxy_path.to_string_lossy().as_ref(),
+                InitialLoadSet::LoadAll,
+            ) {
+                let mut count = 0;
+                for prim in proxy_stage.traverse() {
+                    count += 1;
+                    if count <= 15 {
+                        eprintln!(
+                            "  proxy prim: {} ({})",
+                            prim.get_path(),
+                            prim.get_type_name()
+                        );
+                    }
                 }
+                eprintln!("  proxy total: {} prims", count);
             }
-            eprintln!("  proxy total: {} prims", count);
         }
-    }
     }
 }
 
@@ -247,11 +249,8 @@ fn test_caldera_variant_content() {
     }
 
     // Now open as stage and check if variant selection is active
-    let stage = Stage::open(
-        path.to_string_lossy().as_ref(),
-        InitialLoadSet::LoadAll,
-    )
-    .expect("open stage");
+    let stage =
+        Stage::open(path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll).expect("open stage");
 
     if let Some(prim) =
         stage.get_prim_at_path(&Path::from("/world/mp_wz_island_geo/map_phosphate_mine"))
@@ -283,8 +282,8 @@ fn test_caldera_root_stage() {
     let Some(path) = require_caldera_path("caldera.usda") else {
         return;
     };
-    let stage = Stage::open(path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll)
-        .expect("open stage");
+    let stage =
+        Stage::open(path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll).expect("open stage");
 
     // Check a district prim — prim path goes through sublayer chain:
     // caldera.usda → mp_wz_island.usd → mp_wz_island_paths → mp_wz_island_geo
@@ -373,7 +372,8 @@ fn test_caldera_root_stage() {
     let Some(sub_path) = require_caldera_path("map_source/mp_wz_island.usd") else {
         return;
     };
-    let sub_layer = Layer::find_or_open(sub_path.to_string_lossy().as_ref()).expect("open sublayer");
+    let sub_layer =
+        Layer::find_or_open(sub_path.to_string_lossy().as_ref()).expect("open sublayer");
     eprintln!(
         "\nmp_wz_island.usd sublayers: {:?}",
         sub_layer.get_sublayer_paths()
@@ -505,14 +505,8 @@ fn test_caldera_root_stage() {
     let Some(geo_path) = require_caldera_path("map_source/mp_wz_island_geo.usd") else {
         return;
     };
-    eprintln!(
-        "mp_wz_island_paths.usd exists: {}",
-        paths_path.exists()
-    );
-    eprintln!(
-        "mp_wz_island_geo.usd exists: {}",
-        geo_path.exists()
-    );
+    eprintln!("mp_wz_island_paths.usd exists: {}", paths_path.exists());
+    eprintln!("mp_wz_island_geo.usd exists: {}", geo_path.exists());
 
     // Check mp_wz_island_paths.usd structure (does it have /world/mp_wz_island_paths?)
     if let Ok(paths_layer) = Layer::find_or_open(paths_path.to_string_lossy().as_ref()) {
@@ -554,9 +548,10 @@ fn test_caldera_root_stage() {
     }
 
     // Open mp_wz_island_paths.usd as stage to see if it works standalone
-    if let Ok(paths_stage) =
-        Stage::open(paths_path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll)
-    {
+    if let Ok(paths_stage) = Stage::open(
+        paths_path.to_string_lossy().as_ref(),
+        InitialLoadSet::LoadAll,
+    ) {
         let mut pc = 0;
         for prim in paths_stage.traverse() {
             pc += 1;
@@ -575,9 +570,8 @@ fn test_caldera_root_stage() {
 
     // Open mp_wz_island_geo.usd as stage
     if geo_path.exists() {
-        let geo_stage =
-            Stage::open(geo_path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll)
-                .expect("open geo");
+        let geo_stage = Stage::open(geo_path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll)
+            .expect("open geo");
         let mut geo_count = 0;
         let mut geo_mesh = 0;
         for prim in geo_stage.traverse() {

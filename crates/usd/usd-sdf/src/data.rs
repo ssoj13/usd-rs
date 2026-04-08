@@ -482,14 +482,12 @@ impl AbstractData for Data {
     fn get_previous_time_sample_for_path(&self, path: &Path, time: f64) -> Option<f64> {
         use ordered_float::OrderedFloat;
         // O(log n) via BTreeMap::range instead of enumerating all samples
-        self.time_samples
-            .get(path)
-            .and_then(|samples| {
-                samples
-                    .range(..OrderedFloat(time))
-                    .next_back()
-                    .map(|(k, _)| k.into_inner())
-            })
+        self.time_samples.get(path).and_then(|samples| {
+            samples
+                .range(..OrderedFloat(time))
+                .next_back()
+                .map(|(k, _)| k.into_inner())
+        })
     }
 
     fn query_time_sample(&self, path: &Path, time: f64) -> Option<Value> {

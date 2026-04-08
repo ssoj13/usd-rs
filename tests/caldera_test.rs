@@ -15,7 +15,11 @@ fn caldera_path(relative: &str) -> Option<PathBuf> {
     if let Some(root) = std::env::var_os("USD_RS_CALDERA_ROOT") {
         roots.push(PathBuf::from(root));
     }
-    roots.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("_ref").join("caldera"));
+    roots.push(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("_ref")
+            .join("caldera"),
+    );
 
     roots
         .into_iter()
@@ -42,9 +46,9 @@ fn require_caldera_path(relative: &str) -> Option<PathBuf> {
 #[test]
 fn test_caldera_single_prefab() {
     ensure_init();
-    let Some(path) =
-        require_caldera_path("map_source/prefabs/misc_models/ee_pillar_concrete_pipe_support_base.usd")
-    else {
+    let Some(path) = require_caldera_path(
+        "map_source/prefabs/misc_models/ee_pillar_concrete_pipe_support_base.usd",
+    ) else {
         return;
     };
     let stage = Stage::open(path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll)
@@ -129,13 +133,13 @@ fn test_caldera_geo_hierarchy() {
 fn test_caldera_prefab_mesh_attrs() {
     ensure_init();
     // Open a single prefab directly — fast, no full scene needed
-    let Some(path) =
-        require_caldera_path("map_source/prefabs/misc_models/ee_pillar_concrete_pipe_support_base.usd")
-    else {
+    let Some(path) = require_caldera_path(
+        "map_source/prefabs/misc_models/ee_pillar_concrete_pipe_support_base.usd",
+    ) else {
         return;
     };
-    let stage = Stage::open(path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll)
-        .expect("open prefab");
+    let stage =
+        Stage::open(path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll).expect("open prefab");
 
     let mut mesh_count = 0;
     let mut ok_count = 0;
@@ -383,8 +387,11 @@ fn test_caldera_variant_diagnostics() {
     }
 
     // 3. Open caldera as stage and check PrimIndex for map_phosphate_mine
-    let stage = Stage::open(caldera_path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll)
-        .expect("open caldera stage");
+    let stage = Stage::open(
+        caldera_path.to_string_lossy().as_ref(),
+        InitialLoadSet::LoadAll,
+    )
+    .expect("open caldera stage");
 
     if let Some(prim) = stage.get_prim_at_path(&caldera_mine) {
         eprintln!("\n[STAGE] map_phosphate_mine:");
@@ -590,8 +597,8 @@ fn test_caldera_stage_prim_index_debug() {
     let Some(caldera_path) = require_caldera_path("caldera.usda") else {
         return;
     };
-    let _caldera_layer = Layer::find_or_open(caldera_path.to_string_lossy().as_ref())
-        .expect("open caldera layer");
+    let _caldera_layer =
+        Layer::find_or_open(caldera_path.to_string_lossy().as_ref()).expect("open caldera layer");
     let layer_id = usd_pcp::LayerStackIdentifier::new(caldera_path.to_string_lossy().as_ref());
     let cache = usd_pcp::Cache::new(layer_id, true);
 

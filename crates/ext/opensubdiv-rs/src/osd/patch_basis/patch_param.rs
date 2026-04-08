@@ -7,14 +7,14 @@
 /// TRIANGLES=4, LOOP=5, REGULAR=6, GREGORY=7, GREGORY_BOUNDARY=8,
 /// GREGORY_BASIS=9, GREGORY_TRIANGLE=10.
 pub mod patch_type {
-    pub const QUADS:              i32 = 3;
-    pub const TRIANGLES:          i32 = 4;
-    pub const LOOP:               i32 = 5;
-    pub const REGULAR:            i32 = 6;
-    pub const GREGORY:            i32 = 7;
-    pub const GREGORY_BOUNDARY:   i32 = 8;
-    pub const GREGORY_BASIS:      i32 = 9;
-    pub const GREGORY_TRIANGLE:   i32 = 10;
+    pub const QUADS: i32 = 3;
+    pub const TRIANGLES: i32 = 4;
+    pub const LOOP: i32 = 5;
+    pub const REGULAR: i32 = 6;
+    pub const GREGORY: i32 = 7;
+    pub const GREGORY_BOUNDARY: i32 = 8;
+    pub const GREGORY_BASIS: i32 = 9;
+    pub const GREGORY_TRIANGLE: i32 = 10;
 }
 
 /// Packed patch param used by basis evaluation — mirrors OsdPatchParam.
@@ -27,7 +27,11 @@ pub struct OsdPatchParam {
 
 impl OsdPatchParam {
     pub fn new(field0: i32, field1: i32, sharpness: f32) -> Self {
-        Self { field0, field1, sharpness }
+        Self {
+            field0,
+            field1,
+            sharpness,
+        }
     }
 
     pub fn get_face_id(&self) -> i32 {

@@ -1,4 +1,3 @@
-
 //! HdFlattenedVisibilityDataSourceProvider - Flattens visibility inheritance.
 //!
 //! Port of pxr/imaging/hd/flattenedVisibilityDataSourceProvider.cpp.

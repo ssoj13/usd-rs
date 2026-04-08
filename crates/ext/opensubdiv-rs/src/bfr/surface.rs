@@ -5,9 +5,9 @@
 //! This is a generic struct parameterized over a floating-point type (`f32` or
 //! `f64`), mirroring the C++ template `Surface<REAL>`.
 
+use super::irregular_patch_type::IrregularPatchSharedPtr;
 use super::parameterization::Parameterization;
 use super::surface_data::SurfaceData;
-use super::irregular_patch_type::IrregularPatchSharedPtr;
 
 pub type Index = i32;
 
@@ -21,7 +21,7 @@ pub type Index = i32;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PointDescriptor {
     /// Number of scalar components per point (e.g. 3 for XYZ).
-    pub size:   i32,
+    pub size: i32,
     /// Distance in scalars between consecutive points (>= size).
     pub stride: i32,
 }
@@ -36,7 +36,9 @@ impl PointDescriptor {
 }
 
 impl Default for PointDescriptor {
-    fn default() -> Self { PointDescriptor { size: 0, stride: 0 } }
+    fn default() -> Self {
+        PointDescriptor { size: 0, stride: 0 }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -59,24 +61,42 @@ impl<REAL: SurfaceReal> Default for Surface<REAL> {
     fn default() -> Self {
         let mut data = SurfaceData::default();
         // Mark double precision when REAL = f64.
-        if REAL::IS_DOUBLE { data.set_double(true); }
-        Surface { data, _phantom: std::marker::PhantomData }
+        if REAL::IS_DOUBLE {
+            data.set_double(true);
+        }
+        Surface {
+            data,
+            _phantom: std::marker::PhantomData,
+        }
     }
 }
 
 impl<REAL: SurfaceReal> Surface<REAL> {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     // -----------------------------------------------------------------------
     //  Simple queries
     // -----------------------------------------------------------------------
 
-    #[inline] pub fn is_valid(&self)    -> bool { self.data.is_valid() }
-    #[inline] pub fn is_regular(&self)  -> bool { self.data.is_regular() }
-    #[inline] pub fn is_linear(&self)   -> bool { self.data.is_linear() }
+    #[inline]
+    pub fn is_valid(&self) -> bool {
+        self.data.is_valid()
+    }
+    #[inline]
+    pub fn is_regular(&self) -> bool {
+        self.data.is_regular()
+    }
+    #[inline]
+    pub fn is_linear(&self) -> bool {
+        self.data.is_linear()
+    }
 
     /// Clear a previously initialised surface (marks it invalid).
-    pub fn clear(&mut self) { self.data.reinitialize(); }
+    pub fn clear(&mut self) {
+        self.data.reinitialize();
+    }
 
     /// Return the parameterization of this surface's face.
     pub fn get_parameterization(&self) -> Parameterization {
@@ -132,12 +152,17 @@ impl<REAL: SurfaceReal> Surface<REAL> {
     /// Mirrors `Surface::PreparePatchPoints`.
     pub fn prepare_patch_points(
         &self,
-        mesh_points:      &[REAL],
-        mesh_desc:        PointDescriptor,
-        patch_points:     &mut [REAL],
-        patch_desc:       PointDescriptor,
-    ) where REAL: std::ops::Add<Output=REAL> + std::ops::Mul<Output=REAL>
-                  + std::ops::Div<Output=REAL> + Default + Copy + From<f32>
+        mesh_points: &[REAL],
+        mesh_desc: PointDescriptor,
+        patch_points: &mut [REAL],
+        patch_desc: PointDescriptor,
+    ) where
+        REAL: std::ops::Add<Output = REAL>
+            + std::ops::Mul<Output = REAL>
+            + std::ops::Div<Output = REAL>
+            + Default
+            + Copy
+            + From<f32>,
     {
         self.gather_control_points(mesh_points, mesh_desc, patch_points, patch_desc);
         self.compute_patch_points(patch_points, patch_desc);
@@ -147,20 +172,20 @@ impl<REAL: SurfaceReal> Surface<REAL> {
     /// `control_points`, using CV indices stored in this surface.
     pub fn gather_control_points(
         &self,
-        mesh_points:     &[REAL],
-        mesh_desc:       PointDescriptor,
-        control_points:  &mut [REAL],
-        control_desc:    PointDescriptor,
+        mesh_points: &[REAL],
+        mesh_desc: PointDescriptor,
+        control_points: &mut [REAL],
+        control_desc: PointDescriptor,
     ) {
-        let n    = self.get_num_control_points() as usize;
-        let cvs  = self.data.get_cv_indices();
-        let msz  = mesh_desc.size    as usize;
-        let mstr = mesh_desc.stride  as usize;
+        let n = self.get_num_control_points() as usize;
+        let cvs = self.data.get_cv_indices();
+        let msz = mesh_desc.size as usize;
+        let mstr = mesh_desc.stride as usize;
         let cstr = control_desc.stride as usize;
 
         for (i, &cv) in cvs[..n].iter().enumerate() {
-            let src  = &mesh_points[cv as usize * mstr..cv as usize * mstr + msz];
-            let dst  = &mut control_points[i * cstr..i * cstr + msz];
+            let src = &mesh_points[cv as usize * mstr..cv as usize * mstr + msz];
+            let dst = &mut control_points[i * cstr..i * cstr + msz];
             dst.copy_from_slice(src);
         }
     }
@@ -169,8 +194,13 @@ impl<REAL: SurfaceReal> Surface<REAL> {
     ///
     /// Does nothing for regular surfaces (no additional points needed).
     pub fn compute_patch_points(&self, points: &mut [REAL], desc: PointDescriptor)
-    where REAL: std::ops::Add<Output=REAL> + std::ops::Mul<Output=REAL>
-                + std::ops::Div<Output=REAL> + Default + Copy + From<f32>
+    where
+        REAL: std::ops::Add<Output = REAL>
+            + std::ops::Mul<Output = REAL>
+            + std::ops::Div<Output = REAL>
+            + Default
+            + Copy
+            + From<f32>,
     {
         if !self.is_regular() {
             if self.is_linear() {
@@ -185,13 +215,14 @@ impl<REAL: SurfaceReal> Surface<REAL> {
     pub fn bound_control_points(
         &self,
         control_points: &[REAL],
-        desc:           PointDescriptor,
-        bound_min:      &mut [REAL],
-        bound_max:      &mut [REAL],
-    ) where REAL: PartialOrd + Copy
+        desc: PointDescriptor,
+        bound_min: &mut [REAL],
+        bound_max: &mut [REAL],
+    ) where
+        REAL: PartialOrd + Copy,
     {
-        let n    = self.get_num_control_points() as usize;
-        let sz   = desc.size   as usize;
+        let n = self.get_num_control_points() as usize;
+        let sz = desc.size as usize;
         let str_ = desc.stride as usize;
 
         bound_min[..sz].copy_from_slice(&control_points[..sz]);
@@ -200,8 +231,12 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         for i in 1..n {
             let p = &control_points[i * str_..i * str_ + sz];
             for j in 0..sz {
-                if p[j] < bound_min[j] { bound_min[j] = p[j]; }
-                if p[j] > bound_max[j] { bound_max[j] = p[j]; }
+                if p[j] < bound_min[j] {
+                    bound_min[j] = p[j];
+                }
+                if p[j] > bound_max[j] {
+                    bound_max[j] = p[j];
+                }
             }
         }
     }
@@ -219,14 +254,32 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         patch_points: &[REAL],
         desc: PointDescriptor,
         p: &mut [REAL],
-    ) where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default
+    ) where
+        REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default,
     {
         let num_derivs = 1;
         if self.is_regular() {
             let w = eval_basis_regular_f32(self, uv, num_derivs);
-            apply_weighted_sum(p, desc, patch_points, &w[0], self.get_num_control_points() as usize, None);
+            apply_weighted_sum(
+                p,
+                desc,
+                patch_points,
+                &w[0],
+                self.get_num_control_points() as usize,
+                None,
+            );
         } else if self.is_linear() {
-            self.eval_multi_linear_derivs_impl(uv, patch_points, desc, Some(p), None, None, None, None, None);
+            self.eval_multi_linear_derivs_impl(
+                uv,
+                patch_points,
+                desc,
+                Some(p),
+                None,
+                None,
+                None,
+                None,
+                None,
+            );
         } else {
             let (w, indices) = eval_basis_irregular_f32(self, uv, num_derivs);
             apply_weighted_sum(p, desc, patch_points, &w[0], indices.len(), Some(&indices));
@@ -244,21 +297,32 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         p: &mut [REAL],
         du: &mut [REAL],
         dv: &mut [REAL],
-    ) where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default
+    ) where
+        REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default,
     {
         let num_derivs = 3;
         if self.is_regular() {
             let w = eval_basis_regular_f32(self, uv, num_derivs);
             let nc = self.get_num_control_points() as usize;
-            apply_weighted_sum(p,  desc, patch_points, &w[0], nc, None);
+            apply_weighted_sum(p, desc, patch_points, &w[0], nc, None);
             apply_weighted_sum(du, desc, patch_points, &w[1], nc, None);
             apply_weighted_sum(dv, desc, patch_points, &w[2], nc, None);
         } else if self.is_linear() {
-            self.eval_multi_linear_derivs_impl(uv, patch_points, desc, Some(p), Some(du), Some(dv), None, None, None);
+            self.eval_multi_linear_derivs_impl(
+                uv,
+                patch_points,
+                desc,
+                Some(p),
+                Some(du),
+                Some(dv),
+                None,
+                None,
+                None,
+            );
         } else {
             let (w, indices) = eval_basis_irregular_f32(self, uv, num_derivs);
             let n = indices.len();
-            apply_weighted_sum(p,  desc, patch_points, &w[0], n, Some(&indices));
+            apply_weighted_sum(p, desc, patch_points, &w[0], n, Some(&indices));
             apply_weighted_sum(du, desc, patch_points, &w[1], n, Some(&indices));
             apply_weighted_sum(dv, desc, patch_points, &w[2], n, Some(&indices));
         }
@@ -278,26 +342,37 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         duu: &mut [REAL],
         duv: &mut [REAL],
         dvv: &mut [REAL],
-    ) where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default
+    ) where
+        REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default,
     {
         let num_derivs = 6;
         if self.is_regular() {
             let w = eval_basis_regular_f32(self, uv, num_derivs);
             let nc = self.get_num_control_points() as usize;
-            apply_weighted_sum(p,   desc, patch_points, &w[0], nc, None);
-            apply_weighted_sum(du,  desc, patch_points, &w[1], nc, None);
-            apply_weighted_sum(dv,  desc, patch_points, &w[2], nc, None);
+            apply_weighted_sum(p, desc, patch_points, &w[0], nc, None);
+            apply_weighted_sum(du, desc, patch_points, &w[1], nc, None);
+            apply_weighted_sum(dv, desc, patch_points, &w[2], nc, None);
             apply_weighted_sum(duu, desc, patch_points, &w[3], nc, None);
             apply_weighted_sum(duv, desc, patch_points, &w[4], nc, None);
             apply_weighted_sum(dvv, desc, patch_points, &w[5], nc, None);
         } else if self.is_linear() {
-            self.eval_multi_linear_derivs_impl(uv, patch_points, desc, Some(p), Some(du), Some(dv), Some(duu), Some(duv), Some(dvv));
+            self.eval_multi_linear_derivs_impl(
+                uv,
+                patch_points,
+                desc,
+                Some(p),
+                Some(du),
+                Some(dv),
+                Some(duu),
+                Some(duv),
+                Some(dvv),
+            );
         } else {
             let (w, indices) = eval_basis_irregular_f32(self, uv, num_derivs);
             let n = indices.len();
-            apply_weighted_sum(p,   desc, patch_points, &w[0], n, Some(&indices));
-            apply_weighted_sum(du,  desc, patch_points, &w[1], n, Some(&indices));
-            apply_weighted_sum(dv,  desc, patch_points, &w[2], n, Some(&indices));
+            apply_weighted_sum(p, desc, patch_points, &w[0], n, Some(&indices));
+            apply_weighted_sum(du, desc, patch_points, &w[1], n, Some(&indices));
+            apply_weighted_sum(dv, desc, patch_points, &w[2], n, Some(&indices));
             apply_weighted_sum(duu, desc, patch_points, &w[3], n, Some(&indices));
             apply_weighted_sum(duv, desc, patch_points, &w[4], n, Some(&indices));
             apply_weighted_sum(dvv, desc, patch_points, &w[5], n, Some(&indices));
@@ -312,12 +387,9 @@ impl<REAL: SurfaceReal> Surface<REAL> {
     ///
     /// Returns `num_control_points`. `sp` must have length >= num_control_points.
     /// Mirrors `Surface::EvaluateStencil(uv, sP)`.
-    pub fn evaluate_stencil(
-        &self,
-        uv: [REAL; 2],
-        sp: &mut [REAL],
-    ) -> i32
-    where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default
+    pub fn evaluate_stencil(&self, uv: [REAL; 2], sp: &mut [REAL]) -> i32
+    where
+        REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default,
     {
         self.evaluate_stencils_dispatch(uv, sp, None, None, None, None, None)
     }
@@ -332,7 +404,8 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         sdu: &mut [REAL],
         sdv: &mut [REAL],
     ) -> i32
-    where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default
+    where
+        REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default,
     {
         self.evaluate_stencils_dispatch(uv, sp, Some(sdu), Some(sdv), None, None, None)
     }
@@ -350,9 +423,18 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         sduv: &mut [REAL],
         sdvv: &mut [REAL],
     ) -> i32
-    where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default
+    where
+        REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default,
     {
-        self.evaluate_stencils_dispatch(uv, sp, Some(sdu), Some(sdv), Some(sduu), Some(sduv), Some(sdvv))
+        self.evaluate_stencils_dispatch(
+            uv,
+            sp,
+            Some(sdu),
+            Some(sdv),
+            Some(sduu),
+            Some(sduv),
+            Some(sdvv),
+        )
     }
 
     // -----------------------------------------------------------------------
@@ -363,21 +445,26 @@ impl<REAL: SurfaceReal> Surface<REAL> {
     /// from a local array, writing the result into `result`.
     pub fn apply_stencil(
         &self,
-        stencil:        &[REAL],
+        stencil: &[REAL],
         control_points: &[REAL],
-        desc:           PointDescriptor,
-        result:         &mut [REAL],
-    ) where REAL: std::ops::Mul<Output=REAL> + std::ops::Add<Output=REAL> + Default + Copy
+        desc: PointDescriptor,
+        result: &mut [REAL],
+    ) where
+        REAL: std::ops::Mul<Output = REAL> + std::ops::Add<Output = REAL> + Default + Copy,
     {
-        let nc   = self.get_num_control_points() as usize;
-        let sz   = desc.size   as usize;
+        let nc = self.get_num_control_points() as usize;
+        let sz = desc.size as usize;
         let str_ = desc.stride as usize;
 
-        for j in 0..sz { result[j] = REAL::default(); }
+        for j in 0..sz {
+            result[j] = REAL::default();
+        }
         for i in 0..nc {
             let w = stencil[i];
             let p = &control_points[i * str_..i * str_ + sz];
-            for j in 0..sz { result[j] = result[j] + w * p[j]; }
+            for j in 0..sz {
+                result[j] = result[j] + w * p[j];
+            }
         }
     }
 
@@ -387,23 +474,28 @@ impl<REAL: SurfaceReal> Surface<REAL> {
     /// Mirrors `Surface::ApplyStencilFromMesh`.
     pub fn apply_stencil_from_mesh(
         &self,
-        stencil:     &[REAL],
+        stencil: &[REAL],
         mesh_points: &[REAL],
-        desc:        PointDescriptor,
-        result:      &mut [REAL],
-    ) where REAL: std::ops::Mul<Output=REAL> + std::ops::Add<Output=REAL> + Default + Copy
+        desc: PointDescriptor,
+        result: &mut [REAL],
+    ) where
+        REAL: std::ops::Mul<Output = REAL> + std::ops::Add<Output = REAL> + Default + Copy,
     {
-        let nc   = self.get_num_control_points() as usize;
-        let sz   = desc.size   as usize;
+        let nc = self.get_num_control_points() as usize;
+        let sz = desc.size as usize;
         let str_ = desc.stride as usize;
-        let cvs  = self.data.get_cv_indices();
+        let cvs = self.data.get_cv_indices();
 
-        for j in 0..sz { result[j] = REAL::default(); }
+        for j in 0..sz {
+            result[j] = REAL::default();
+        }
         for i in 0..nc {
-            let w  = stencil[i];
+            let w = stencil[i];
             let pi = cvs[i] as usize;
-            let p  = &mesh_points[pi * str_..pi * str_ + sz];
-            for j in 0..sz { result[j] = result[j] + w * p[j]; }
+            let p = &mesh_points[pi * str_..pi * str_ + sz];
+            for j in 0..sz {
+                result[j] = result[j] + w * p[j];
+            }
         }
     }
 
@@ -413,15 +505,16 @@ impl<REAL: SurfaceReal> Surface<REAL> {
     pub fn bound_control_points_from_mesh(
         &self,
         mesh_points: &[REAL],
-        desc:        PointDescriptor,
-        bound_min:   &mut [REAL],
-        bound_max:   &mut [REAL],
-    ) where REAL: PartialOrd + Copy
+        desc: PointDescriptor,
+        bound_min: &mut [REAL],
+        bound_max: &mut [REAL],
+    ) where
+        REAL: PartialOrd + Copy,
     {
-        let nc   = self.get_num_control_points() as usize;
-        let sz   = desc.size   as usize;
+        let nc = self.get_num_control_points() as usize;
+        let sz = desc.size as usize;
         let str_ = desc.stride as usize;
-        let cvs  = self.data.get_cv_indices();
+        let cvs = self.data.get_cv_indices();
 
         let p0 = cvs[0] as usize;
         bound_min[..sz].copy_from_slice(&mesh_points[p0 * str_..p0 * str_ + sz]);
@@ -431,8 +524,12 @@ impl<REAL: SurfaceReal> Surface<REAL> {
             let pi = cvs[i] as usize;
             let p = &mesh_points[pi * str_..pi * str_ + sz];
             for j in 0..sz {
-                if p[j] < bound_min[j] { bound_min[j] = p[j]; }
-                if p[j] > bound_max[j] { bound_max[j] = p[j]; }
+                if p[j] < bound_min[j] {
+                    bound_min[j] = p[j];
+                }
+                if p[j] > bound_max[j] {
+                    bound_max[j] = p[j];
+                }
             }
         }
     }
@@ -447,20 +544,27 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         uv: [REAL; 2],
         patch_points: &[REAL],
         desc: PointDescriptor,
-        p:   Option<&mut [REAL]>,
-        du:  Option<&mut [REAL]>,
-        dv:  Option<&mut [REAL]>,
+        p: Option<&mut [REAL]>,
+        du: Option<&mut [REAL]>,
+        dv: Option<&mut [REAL]>,
         duu: Option<&mut [REAL]>,
         duv: Option<&mut [REAL]>,
         dvv: Option<&mut [REAL]>,
-    ) where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default
+    ) where
+        REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default,
     {
         let sz = desc.size as usize;
         let str_ = desc.stride as usize;
         let n = self.get_num_control_points() as usize;
         let num_derivs = if du.is_some() && dv.is_some() {
-            if duu.is_some() && duv.is_some() && dvv.is_some() { 6 } else { 3 }
-        } else { 1 };
+            if duu.is_some() && duv.is_some() && dvv.is_some() {
+                6
+            } else {
+                3
+            }
+        } else {
+            1
+        };
 
         // Evaluate linear quad basis on sub-face.
         let w = eval_basis_multi_linear_f32(self, uv, num_derivs);
@@ -476,20 +580,36 @@ impl<REAL: SurfaceReal> Surface<REAL> {
 
         // Helper: weighted sum of 4 points into output.
         let combine = |out: &mut [REAL], weights: &[f32; 4]| {
-            for j in 0..sz { out[j] = REAL::default(); }
+            for j in 0..sz {
+                out[j] = REAL::default();
+            }
             for (wi, &pi) in qi.iter().enumerate() {
                 let wt = real_from_f32::<REAL>(weights[wi]);
                 let src = &patch_points[pi * str_..pi * str_ + sz];
-                for j in 0..sz { out[j] = out[j] + wt * src[j]; }
+                for j in 0..sz {
+                    out[j] = out[j] + wt * src[j];
+                }
             }
         };
 
-        if let Some(out) = p   { combine(out, &w.wp); }
-        if let Some(out) = du  { combine(out, &w.wdu); }
-        if let Some(out) = dv  { combine(out, &w.wdv); }
-        if let Some(out) = duu { combine(out, &w.wduu); }
-        if let Some(out) = duv { combine(out, &w.wduv); }
-        if let Some(out) = dvv { combine(out, &w.wdvv); }
+        if let Some(out) = p {
+            combine(out, &w.wp);
+        }
+        if let Some(out) = du {
+            combine(out, &w.wdu);
+        }
+        if let Some(out) = dv {
+            combine(out, &w.wdv);
+        }
+        if let Some(out) = duu {
+            combine(out, &w.wduu);
+        }
+        if let Some(out) = duv {
+            combine(out, &w.wduv);
+        }
+        if let Some(out) = dvv {
+            combine(out, &w.wdvv);
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -500,13 +620,14 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         &self,
         uv: [REAL; 2],
         sp: &mut [REAL],
-        sdu:  Option<&mut [REAL]>,
-        sdv:  Option<&mut [REAL]>,
+        sdu: Option<&mut [REAL]>,
+        sdv: Option<&mut [REAL]>,
         sduu: Option<&mut [REAL]>,
         sduv: Option<&mut [REAL]>,
         sdvv: Option<&mut [REAL]>,
     ) -> i32
-    where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default
+    where
+        REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default,
     {
         if self.is_regular() {
             self.eval_regular_stencils_impl(uv, sp, sdu, sdv, sduu, sduv, sdvv)
@@ -522,25 +643,53 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         &self,
         uv: [REAL; 2],
         sp: &mut [REAL],
-        sdu:  Option<&mut [REAL]>,
-        sdv:  Option<&mut [REAL]>,
+        sdu: Option<&mut [REAL]>,
+        sdv: Option<&mut [REAL]>,
         sduu: Option<&mut [REAL]>,
         sduv: Option<&mut [REAL]>,
         sdvv: Option<&mut [REAL]>,
     ) -> i32
-    where REAL: num_traits::Float + From<f32> + Default
+    where
+        REAL: num_traits::Float + From<f32> + Default,
     {
         let nc = self.get_num_control_points() as usize;
-        let num_derivs = deriv_count(sdu.is_some(), sdv.is_some(),
-                                     sduu.is_some(), sduv.is_some(), sdvv.is_some());
+        let num_derivs = deriv_count(
+            sdu.is_some(),
+            sdv.is_some(),
+            sduu.is_some(),
+            sduv.is_some(),
+            sdvv.is_some(),
+        );
 
         let w = eval_basis_regular_f32(self, uv, num_derivs);
-        for i in 0..nc { sp[i] = real_from_f32(w[0][i]); }
-        if let Some(s) = sdu  { for i in 0..nc { s[i] = real_from_f32(w[1][i]); } }
-        if let Some(s) = sdv  { for i in 0..nc { s[i] = real_from_f32(w[2][i]); } }
-        if let Some(s) = sduu { for i in 0..nc { s[i] = real_from_f32(w[3][i]); } }
-        if let Some(s) = sduv { for i in 0..nc { s[i] = real_from_f32(w[4][i]); } }
-        if let Some(s) = sdvv { for i in 0..nc { s[i] = real_from_f32(w[5][i]); } }
+        for i in 0..nc {
+            sp[i] = real_from_f32(w[0][i]);
+        }
+        if let Some(s) = sdu {
+            for i in 0..nc {
+                s[i] = real_from_f32(w[1][i]);
+            }
+        }
+        if let Some(s) = sdv {
+            for i in 0..nc {
+                s[i] = real_from_f32(w[2][i]);
+            }
+        }
+        if let Some(s) = sduu {
+            for i in 0..nc {
+                s[i] = real_from_f32(w[3][i]);
+            }
+        }
+        if let Some(s) = sduv {
+            for i in 0..nc {
+                s[i] = real_from_f32(w[4][i]);
+            }
+        }
+        if let Some(s) = sdvv {
+            for i in 0..nc {
+                s[i] = real_from_f32(w[5][i]);
+            }
+        }
         nc as i32
     }
 
@@ -549,18 +698,21 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         &self,
         uv: [REAL; 2],
         sp: &mut [REAL],
-        sdu:  Option<&mut [REAL]>,
-        sdv:  Option<&mut [REAL]>,
+        sdu: Option<&mut [REAL]>,
+        sdv: Option<&mut [REAL]>,
         sduu: Option<&mut [REAL]>,
         sduv: Option<&mut [REAL]>,
         sdvv: Option<&mut [REAL]>,
     ) -> i32
-    where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default
+    where
+        REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default,
     {
         let param = self.get_parameterization();
         let (sub_face, sub_uv) = if param.has_sub_faces() {
-            param.convert_coord_to_normalized_sub_face::<f64>(
-                [uv[0].to_f64().unwrap(), uv[1].to_f64().unwrap()])
+            param.convert_coord_to_normalized_sub_face::<f64>([
+                uv[0].to_f64().unwrap(),
+                uv[1].to_f64().unwrap(),
+            ])
         } else {
             (0, [uv[0].to_f64().unwrap(), uv[1].to_f64().unwrap()])
         };
@@ -583,7 +735,9 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         let mut sdvv_tmp = if d2 { vec![0.0f32; nc] } else { vec![] };
 
         irreg.eval_sub_patch_stencils_f32(
-            sub_patch, u, v,
+            sub_patch,
+            u,
+            v,
             &mut sp_tmp,
             if d1 { Some(&mut sdu_tmp) } else { None },
             if d1 { Some(&mut sdv_tmp) } else { None },
@@ -592,12 +746,34 @@ impl<REAL: SurfaceReal> Surface<REAL> {
             if d2 { Some(&mut sdvv_tmp) } else { None },
         );
 
-        for i in 0..nc { sp[i] = real_from_f32(sp_tmp[i]); }
-        if let Some(s) = sdu  { for i in 0..nc { s[i] = real_from_f32(sdu_tmp[i]); } }
-        if let Some(s) = sdv  { for i in 0..nc { s[i] = real_from_f32(sdv_tmp[i]); } }
-        if let Some(s) = sduu { for i in 0..nc { s[i] = real_from_f32(sduu_tmp[i]); } }
-        if let Some(s) = sduv { for i in 0..nc { s[i] = real_from_f32(sduv_tmp[i]); } }
-        if let Some(s) = sdvv { for i in 0..nc { s[i] = real_from_f32(sdvv_tmp[i]); } }
+        for i in 0..nc {
+            sp[i] = real_from_f32(sp_tmp[i]);
+        }
+        if let Some(s) = sdu {
+            for i in 0..nc {
+                s[i] = real_from_f32(sdu_tmp[i]);
+            }
+        }
+        if let Some(s) = sdv {
+            for i in 0..nc {
+                s[i] = real_from_f32(sdv_tmp[i]);
+            }
+        }
+        if let Some(s) = sduu {
+            for i in 0..nc {
+                s[i] = real_from_f32(sduu_tmp[i]);
+            }
+        }
+        if let Some(s) = sduv {
+            for i in 0..nc {
+                s[i] = real_from_f32(sduv_tmp[i]);
+            }
+        }
+        if let Some(s) = sdvv {
+            for i in 0..nc {
+                s[i] = real_from_f32(sdvv_tmp[i]);
+            }
+        }
 
         irreg.get_num_control_points()
     }
@@ -608,17 +784,23 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         &self,
         uv: [REAL; 2],
         sp: &mut [REAL],
-        mut sdu:  Option<&mut [REAL]>,
-        mut sdv:  Option<&mut [REAL]>,
+        mut sdu: Option<&mut [REAL]>,
+        mut sdv: Option<&mut [REAL]>,
         mut sduu: Option<&mut [REAL]>,
         mut sduv: Option<&mut [REAL]>,
         mut sdvv: Option<&mut [REAL]>,
     ) -> i32
-    where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default
+    where
+        REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default,
     {
         let nc = self.get_num_control_points() as usize;
-        let num_derivs = deriv_count(sdu.is_some(), sdv.is_some(),
-                                     sduu.is_some(), sduv.is_some(), sdvv.is_some());
+        let num_derivs = deriv_count(
+            sdu.is_some(),
+            sdv.is_some(),
+            sduu.is_some(),
+            sduv.is_some(),
+            sdvv.is_some(),
+        );
 
         let mut w = eval_basis_multi_linear_f32(self, uv, num_derivs);
         let i_origin = w.sub_face as usize;
@@ -637,18 +819,33 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         let i_prev = (i_origin + nc - 1) % nc;
 
         for i in 0..nc {
-            let wi = if i == i_origin { 0 }
-                     else if i == i_next { 1 }
-                     else if i == i_prev { 3 }
-                     else { 2 };
+            let wi = if i == i_origin {
+                0
+            } else if i == i_next {
+                1
+            } else if i == i_prev {
+                3
+            } else {
+                2
+            };
 
             sp[i] = real_from_f32(w.wp[wi]);
-            if let Some(ref mut s) = sdu  { s[i] = real_from_f32(w.wdu[wi]); }
-            if let Some(ref mut s) = sdv  { s[i] = real_from_f32(w.wdv[wi]); }
+            if let Some(ref mut s) = sdu {
+                s[i] = real_from_f32(w.wdu[wi]);
+            }
+            if let Some(ref mut s) = sdv {
+                s[i] = real_from_f32(w.wdv[wi]);
+            }
             if num_derivs > 3 {
-                if let Some(ref mut s) = sduu { s[i] = real_from_f32(0.0); }
-                if let Some(ref mut s) = sduv { s[i] = real_from_f32(w.wduv[wi]); }
-                if let Some(ref mut s) = sdvv { s[i] = real_from_f32(0.0); }
+                if let Some(ref mut s) = sduu {
+                    s[i] = real_from_f32(0.0);
+                }
+                if let Some(ref mut s) = sduv {
+                    s[i] = real_from_f32(w.wduv[wi]);
+                }
+                if let Some(ref mut s) = sdvv {
+                    s[i] = real_from_f32(0.0);
+                }
             }
         }
         nc as i32
@@ -660,27 +857,35 @@ impl<REAL: SurfaceReal> Surface<REAL> {
 
     /// Access the IrregularPatchType (panics if surface is regular/linear).
     fn get_irreg_patch(&self) -> IrregularPatchSharedPtr {
-        self.data.get_irreg_patch_ptr()
+        self.data
+            .get_irreg_patch_ptr()
             .expect("Surface: no irregular patch present")
     }
 
     fn compute_linear_patch_points(&self, points: &mut [REAL], desc: PointDescriptor)
-    where REAL: std::ops::Add<Output=REAL> + std::ops::Mul<Output=REAL>
-                + std::ops::Div<Output=REAL> + Default + Copy + From<f32>
+    where
+        REAL: std::ops::Add<Output = REAL>
+            + std::ops::Mul<Output = REAL>
+            + std::ops::Div<Output = REAL>
+            + Default
+            + Copy
+            + From<f32>,
     {
         // For an N-sided face the additional points are:
         //   [N]   = face midpoint  (avg of N control pts)
         //   [N+1..N+N] = edge midpoints  (avg of consecutive pairs)
         //
         // Mirrors C++ SplitFace<REAL>::Apply.
-        let n    = self.get_num_control_points() as usize;
-        let sz   = desc.size   as usize;
+        let n = self.get_num_control_points() as usize;
+        let sz = desc.size as usize;
         let str_ = desc.stride as usize;
         let rn: REAL = <REAL as From<f32>>::from(n as f32);
 
         // Face midpoint (index N): accumulate control points then divide.
         let face_off = n * str_;
-        for j in 0..sz { points[face_off + j] = REAL::default(); }
+        for j in 0..sz {
+            points[face_off + j] = REAL::default();
+        }
         for i in 0..n {
             // Use direct index arithmetic to avoid borrow-conflict with face_off slice.
             for j in 0..sz {
@@ -708,17 +913,23 @@ impl<REAL: SurfaceReal> Surface<REAL> {
     }
 
     fn compute_irregular_patch_points(&self, points: &mut [REAL], desc: PointDescriptor)
-    where REAL: std::ops::Mul<Output=REAL> + std::ops::Add<Output=REAL> + Default + Copy
-                + From<f32>
+    where
+        REAL: std::ops::Mul<Output = REAL>
+            + std::ops::Add<Output = REAL>
+            + Default
+            + Copy
+            + From<f32>,
     {
         // Mirrors C++ CombineConsecutive<REAL>::Apply applied to the stencil matrix.
         let irreg = self.get_irreg_patch();
-        let nc    = self.get_num_control_points() as usize;
-        let np    = irreg.get_num_points_total() as usize;
-        if np == nc { return; }
+        let nc = self.get_num_control_points() as usize;
+        let np = irreg.get_num_points_total() as usize;
+        if np == nc {
+            return;
+        }
 
-        let sz    = desc.size   as usize;
-        let str_  = desc.stride as usize;
+        let sz = desc.size as usize;
+        let str_ = desc.stride as usize;
         let extra = np - nc;
 
         // The stencil matrix is borrowed directly — no allocation needed.
@@ -727,7 +938,9 @@ impl<REAL: SurfaceReal> Surface<REAL> {
         for r in 0..extra {
             let row = &matrix[r * nc..(r + 1) * nc];
             let dst_off = (nc + r) * str_;
-            for j in 0..sz { points[dst_off + j] = REAL::default(); }
+            for j in 0..sz {
+                points[dst_off + j] = REAL::default();
+            }
             for (i, &w_f32) in row.iter().enumerate() {
                 let w: REAL = <REAL as From<f32>>::from(w_f32);
                 // Read control point components via index arithmetic to avoid
@@ -746,8 +959,12 @@ impl<REAL: SurfaceReal> Surface<REAL> {
 
     /// Immutable access for inspection / testing (also used in test code).
     #[allow(dead_code)]
-    pub(crate) fn get_surface_data(&self)     -> &SurfaceData     { &self.data }
-    pub(crate) fn get_surface_data_mut(&mut self) -> &mut SurfaceData { &mut self.data }
+    pub(crate) fn get_surface_data(&self) -> &SurfaceData {
+        &self.data
+    }
+    pub(crate) fn get_surface_data_mut(&mut self) -> &mut SurfaceData {
+        &mut self.data
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -775,8 +992,8 @@ fn eval_basis_regular_f32<REAL: SurfaceReal + num_traits::Float>(
     uv: [REAL; 2],
     num_derivs: usize,
 ) -> [[f32; 20]; 6] {
-    use crate::osd::patch_basis::OsdPatchParam;
     use crate::far::patch_basis::evaluate_patch_basis_normalized;
+    use crate::osd::patch_basis::OsdPatchParam;
 
     // Encode reg_patch_mask into PatchParam field1.
     let mask = surf.data.get_reg_patch_mask();
@@ -793,7 +1010,10 @@ fn eval_basis_regular_f32<REAL: SurfaceReal + num_traits::Float>(
     let mut w5 = [0.0f32; 20];
 
     evaluate_patch_basis_normalized(
-        patch_type_id, &pp, s, t,
+        patch_type_id,
+        &pp,
+        s,
+        t,
         &mut w0,
         if num_derivs > 1 { Some(&mut w1) } else { None },
         if num_derivs > 1 { Some(&mut w2) } else { None },
@@ -813,8 +1033,10 @@ fn eval_basis_irregular_f32<REAL: SurfaceReal + num_traits::Float>(
 ) -> ([[f32; 20]; 6], Vec<i32>) {
     let param = surf.get_parameterization();
     let (sub_face, sub_uv) = if param.has_sub_faces() {
-        param.convert_coord_to_normalized_sub_face::<f64>(
-            [uv[0].to_f64().unwrap(), uv[1].to_f64().unwrap()])
+        param.convert_coord_to_normalized_sub_face::<f64>([
+            uv[0].to_f64().unwrap(),
+            uv[1].to_f64().unwrap(),
+        ])
     } else {
         (0, [uv[0].to_f64().unwrap(), uv[1].to_f64().unwrap()])
     };
@@ -832,7 +1054,8 @@ fn eval_basis_irregular_f32<REAL: SurfaceReal + num_traits::Float>(
 
     irreg.eval_sub_patch_basis_f32(
         sub_patch,
-        sub_uv[0] as f32, sub_uv[1] as f32,
+        sub_uv[0] as f32,
+        sub_uv[1] as f32,
         Some(&mut w0),
         if num_derivs > 1 { Some(&mut w1) } else { None },
         if num_derivs > 1 { Some(&mut w2) } else { None },
@@ -847,9 +1070,9 @@ fn eval_basis_irregular_f32<REAL: SurfaceReal + num_traits::Float>(
 
 /// Multi-linear basis weights: (w_P, w_Du, w_Dv, w_Duu, w_Duv, w_Dvv, sub_face).
 struct MultiLinearBasis {
-    wp:   [f32; 4],
-    wdu:  [f32; 4],
-    wdv:  [f32; 4],
+    wp: [f32; 4],
+    wdu: [f32; 4],
+    wdv: [f32; 4],
     wduu: [f32; 4],
     wduv: [f32; 4],
     wdvv: [f32; 4],
@@ -862,8 +1085,8 @@ fn eval_basis_multi_linear_f32<REAL: SurfaceReal + num_traits::Float>(
     uv: [REAL; 2],
     num_derivs: usize,
 ) -> MultiLinearBasis {
-    use crate::osd::patch_basis::OsdPatchParam;
     use crate::far::patch_basis::evaluate_patch_basis_normalized;
+    use crate::osd::patch_basis::OsdPatchParam;
     use crate::osd::patch_basis::patch_param::patch_type;
 
     let param = surf.get_parameterization();
@@ -882,7 +1105,10 @@ fn eval_basis_multi_linear_f32<REAL: SurfaceReal + num_traits::Float>(
     let mut w5 = [0.0f32; 20];
 
     evaluate_patch_basis_normalized(
-        patch_type::QUADS, &pp, s, t,
+        patch_type::QUADS,
+        &pp,
+        s,
+        t,
         &mut w0,
         if num_derivs > 1 { Some(&mut w1) } else { None },
         if num_derivs > 1 { Some(&mut w2) } else { None },
@@ -892,8 +1118,12 @@ fn eval_basis_multi_linear_f32<REAL: SurfaceReal + num_traits::Float>(
     );
 
     let mut r = MultiLinearBasis {
-        wp: [0.0; 4], wdu: [0.0; 4], wdv: [0.0; 4],
-        wduu: [0.0; 4], wduv: [0.0; 4], wdvv: [0.0; 4],
+        wp: [0.0; 4],
+        wdu: [0.0; 4],
+        wdv: [0.0; 4],
+        wduu: [0.0; 4],
+        wduv: [0.0; 4],
+        wdvv: [0.0; 4],
         sub_face,
     };
 
@@ -906,11 +1136,17 @@ fn eval_basis_multi_linear_f32<REAL: SurfaceReal + num_traits::Float>(
 
     // Scale derivatives: 1st *= 2, mixed 2nd *= 4.
     if num_derivs > 1 {
-        for v in r.wdu.iter_mut() { *v *= 2.0; }
-        for v in r.wdv.iter_mut() { *v *= 2.0; }
+        for v in r.wdu.iter_mut() {
+            *v *= 2.0;
+        }
+        for v in r.wdv.iter_mut() {
+            *v *= 2.0;
+        }
     }
     if num_derivs > 3 {
-        for v in r.wduv.iter_mut() { *v *= 4.0; }
+        for v in r.wduv.iter_mut() {
+            *v *= 4.0;
+        }
     }
 
     r
@@ -924,14 +1160,21 @@ fn apply_weighted_sum<REAL>(
     weights: &[f32],
     num_pts: usize,
     indices: Option<&[i32]>,
-) where REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default + Copy
+) where
+    REAL: num_traits::Float + From<f32> + std::ops::AddAssign + Default + Copy,
 {
     let sz = desc.size as usize;
     let stride = desc.stride as usize;
 
-    for j in 0..sz { out[j] = REAL::default(); }
+    for j in 0..sz {
+        out[j] = REAL::default();
+    }
     for wi in 0..num_pts {
-        let pi = if let Some(idx) = indices { idx[wi] as usize } else { wi };
+        let pi = if let Some(idx) = indices {
+            idx[wi] as usize
+        } else {
+            wi
+        };
         let wt: REAL = real_from_f32(weights[wi]);
         let src = &patch_points[pi * stride..pi * stride + sz];
         for j in 0..sz {
@@ -944,9 +1187,9 @@ fn apply_weighted_sum<REAL>(
 /// Mirrors C++ `transformLinearQuadWeightsToStencil`.
 fn transform_linear_quad_to_stencil(w: &mut [f32; 4], n: usize) {
     let w_origin = w[0];
-    let w_next   = w[1] * 0.5;
+    let w_next = w[1] * 0.5;
     let w_center = w[2] / n as f32;
-    let w_prev   = w[3] * 0.5;
+    let w_prev = w[3] * 0.5;
 
     w[0] = w_center + w_next + w_prev + w_origin;
     w[1] = w_center + w_next;
@@ -1022,10 +1265,10 @@ mod tests {
     #[test]
     fn gather_control_points_copies_correctly() {
         let mesh: Vec<f32> = vec![
-            1.0, 0.0, 0.0,   // vertex 0
-            0.0, 1.0, 0.0,   // vertex 1
-            0.0, 0.0, 1.0,   // vertex 2
-            0.0, 0.0, 0.0,   // vertex 3
+            1.0, 0.0, 0.0, // vertex 0
+            0.0, 1.0, 0.0, // vertex 1
+            0.0, 0.0, 1.0, // vertex 2
+            0.0, 0.0, 0.0, // vertex 3
         ];
         let desc = PointDescriptor::new(3);
 

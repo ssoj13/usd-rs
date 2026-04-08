@@ -11,11 +11,10 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyTuple};
 
-use usd_ar::resolver::{get_resolver, set_preferred_resolver, DefaultResolver};
+use usd_ar::resolver::{DefaultResolver, get_resolver, set_preferred_resolver};
 use usd_ar::{
-    Asset, AssetInfo, DefaultResolverContext, ResolvedPath,
-    ResolverContext, ResolverContextBinder as RustBinder, ResolverScopedCache as RustScopedCache,
-    Timestamp,
+    Asset, AssetInfo, DefaultResolverContext, ResolvedPath, ResolverContext,
+    ResolverContextBinder as RustBinder, ResolverScopedCache as RustScopedCache, Timestamp,
 };
 
 // ============================================================================
@@ -141,10 +140,7 @@ impl PyDefaultResolverContext {
         if paths.is_empty() {
             "Ar.DefaultResolverContext()".to_string()
         } else {
-            format!(
-                "Ar.DefaultResolverContext({})",
-                format!("{:?}", paths)
-            )
+            format!("Ar.DefaultResolverContext({})", format!("{:?}", paths))
         }
     }
 
@@ -221,12 +217,16 @@ impl PyResolverContext {
     #[pyo3(signature = (arg = None))]
     fn new(arg: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
         let Some(arg) = arg else {
-            return Ok(Self { context_objs: vec![] });
+            return Ok(Self {
+                context_objs: vec![],
+            });
         };
 
         // None -> empty context
         if arg.is_none() {
-            return Ok(Self { context_objs: vec![] });
+            return Ok(Self {
+                context_objs: vec![],
+            });
         }
 
         // Single DefaultResolverContext
@@ -294,9 +294,7 @@ impl PyResolverContext {
 
 impl PyResolverContext {
     /// Parse a sequence of items into context objects.
-    fn from_sequence<'py>(
-        iter: impl Iterator<Item = Bound<'py, PyAny>>,
-    ) -> PyResult<Self> {
+    fn from_sequence<'py>(iter: impl Iterator<Item = Bound<'py, PyAny>>) -> PyResult<Self> {
         let mut objs = Vec::new();
         for item in iter {
             if let Ok(ctx) = item.extract::<PyDefaultResolverContext>() {
@@ -404,14 +402,27 @@ impl PyAssetInfo {
             Some(v) => {
                 // Try to convert common Value types back to Python
                 if let Some(i) = v.get::<i64>() {
-                    i.into_pyobject(py).expect("into_pyobject").into_any().unbind()
+                    i.into_pyobject(py)
+                        .expect("into_pyobject")
+                        .into_any()
+                        .unbind()
                 } else if let Some(s) = v.get::<String>() {
-                    s.into_pyobject(py).expect("into_pyobject").into_any().unbind()
+                    s.into_pyobject(py)
+                        .expect("into_pyobject")
+                        .into_any()
+                        .unbind()
                 } else if let Some(f) = v.get::<f64>() {
-                    f.into_pyobject(py).expect("into_pyobject").into_any().unbind()
+                    f.into_pyobject(py)
+                        .expect("into_pyobject")
+                        .into_any()
+                        .unbind()
                 } else if let Some(b) = v.get::<bool>() {
                     let val: bool = *b;
-                    val.into_pyobject(py).expect("into_pyobject").to_owned().into_any().unbind()
+                    val.into_pyobject(py)
+                        .expect("into_pyobject")
+                        .to_owned()
+                        .into_any()
+                        .unbind()
                 } else {
                     py.None()
                 }
@@ -726,11 +737,7 @@ impl PyResolver {
     /// Create an identifier for the given asset path.
     #[pyo3(name = "CreateIdentifier")]
     #[pyo3(signature = (asset_path, anchor_path = None))]
-    fn create_identifier(
-        &self,
-        asset_path: &str,
-        anchor_path: Option<&PyResolvedPath>,
-    ) -> String {
+    fn create_identifier(&self, asset_path: &str, anchor_path: Option<&PyResolvedPath>) -> String {
         let lock = get_resolver();
         let resolver = lock.read().expect("resolver rwlock poisoned");
         resolver.create_identifier(asset_path, anchor_path.map(|p| p.inner()))
@@ -795,7 +802,10 @@ impl PyResolver {
 
     /// Create a context from multiple (uri_scheme, context_str) pairs.
     #[pyo3(name = "CreateContextFromStrings")]
-    fn create_context_from_strings(&self, context_strings: Vec<(String, String)>) -> PyResolverContext {
+    fn create_context_from_strings(
+        &self,
+        context_strings: Vec<(String, String)>,
+    ) -> PyResolverContext {
         let lock = get_resolver();
         let resolver = lock.read().expect("resolver rwlock poisoned");
         let ctx = resolver.create_context_from_strings(&context_strings);
@@ -927,10 +937,7 @@ impl PyResolverContextBinder {
     }
 
     fn __repr__(&self) -> String {
-        format!(
-            "Ar.ResolverContextBinder(active={})",
-            self.binder.is_some()
-        )
+        format!("Ar.ResolverContextBinder(active={})", self.binder.is_some())
     }
 }
 
@@ -974,10 +981,7 @@ impl PyResolverScopedCache {
     }
 
     fn __repr__(&self) -> String {
-        format!(
-            "Ar.ResolverScopedCache(active={})",
-            self.cache.is_some()
-        )
+        format!("Ar.ResolverScopedCache(active={})", self.cache.is_some())
     }
 }
 
@@ -1084,7 +1088,10 @@ fn is_package_relative_path_py(path: &str) -> bool {
 #[pyfunction]
 #[pyo3(name = "JoinPackageRelativePath")]
 #[pyo3(signature = (paths_or_first, second = None))]
-fn join_package_relative_path_py(paths_or_first: &Bound<'_, PyAny>, second: Option<&str>) -> PyResult<String> {
+fn join_package_relative_path_py(
+    paths_or_first: &Bound<'_, PyAny>,
+    second: Option<&str>,
+) -> PyResult<String> {
     if let Some(s2) = second {
         // Two-arg form: JoinPackageRelativePath(pkg, packaged)
         let s1: String = paths_or_first.extract()?;
@@ -1135,9 +1142,7 @@ fn test_implicit_conversion(arg: &Bound<'_, PyAny>) -> PyResult<PyResolverContex
 fn rust_context_to_py(ctx: &ResolverContext) -> PyResolverContext {
     let mut objs = Vec::new();
     if let Some(drc) = ctx.get::<DefaultResolverContext>() {
-        objs.push(PyDefaultResolverContext {
-            inner: drc.clone(),
-        });
+        objs.push(PyDefaultResolverContext { inner: drc.clone() });
     }
     PyResolverContext { context_objs: objs }
 }

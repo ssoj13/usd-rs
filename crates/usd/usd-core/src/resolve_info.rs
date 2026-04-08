@@ -37,7 +37,10 @@ impl fmt::Debug for ResolveInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ResolveInfo")
             .field("source", &self.source)
-            .field("layer_stack", &self.layer_stack.as_ref().map(|_| "Some(LayerStack)"))
+            .field(
+                "layer_stack",
+                &self.layer_stack.as_ref().map(|_| "Some(LayerStack)"),
+            )
             .field("layer", &self.layer)
             .field("node", &self.node)
             .field("layer_to_stage_offset", &self.layer_to_stage_offset)

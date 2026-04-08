@@ -4,8 +4,8 @@
 //!
 //! Provides imaging support for coordinate system prims used in shading.
 
-use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::data_source_prim::DataSourcePrim;
+use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::prim_adapter::PrimAdapter;
 use super::types::PropertyInvalidationType;
 use std::sync::Arc;
@@ -79,10 +79,9 @@ impl HdContainerDataSource for DataSourceCoordSys {
 
     fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if *name == *tokens::NAME {
-            return Some(
-                HdRetainedTypedSampledDataSource::new(Token::new(self.prim.path().get_name()))
-                    as HdDataSourceBaseHandle,
-            );
+            return Some(HdRetainedTypedSampledDataSource::new(Token::new(
+                self.prim.path().get_name(),
+            )) as HdDataSourceBaseHandle);
         }
         None
     }

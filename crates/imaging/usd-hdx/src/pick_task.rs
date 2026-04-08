@@ -1,4 +1,3 @@
-
 //! Pick task - GPU-based object picking.
 //!
 //! Renders object IDs to determine which object is under the cursor.
@@ -12,10 +11,10 @@
 use std::sync::Arc;
 
 use usd_gf::{Matrix4d, Vec2f, Vec2i, Vec3d, Vec3f, Vec4d, Vec4i};
+use usd_hd::HdVec4_2_10_10_10_Rev;
 use usd_hd::enums::{HdCompareFunction, HdCullStyle};
 use usd_hd::prim::HdSceneDelegate;
 use usd_hd::render::{HdRenderIndexTrait, HdTask, HdTaskContext, TfTokenVector};
-use usd_hd::HdVec4_2_10_10_10_Rev;
 use usd_hgi::{
     HgiBufferHandle, HgiDriverHandle, HgiFormat,
     blit_cmds::{HgiBufferGpuToCpuOp, HgiTextureGpuToCpuOp, RawCpuBufferMut},
@@ -324,7 +323,10 @@ impl std::fmt::Debug for HdxPickTaskContextParams {
             .field("resolve_mode", &self.resolve_mode)
             .field("do_unpickables_occlude", &self.do_unpickables_occlude)
             .field("alpha_threshold", &self.alpha_threshold)
-            .field("has_depth_mask_callback", &self.depth_mask_callback.is_some())
+            .field(
+                "has_depth_mask_callback",
+                &self.depth_mask_callback.is_some(),
+            )
             .finish()
     }
 }
@@ -503,7 +505,10 @@ impl HdxPickTask {
             .and_then(|driver| driver.driver.get::<HgiDriverHandle>().cloned())
     }
 
-    pub(crate) fn get_aov_texture(ctx: &HdTaskContext, aov_name: &Token) -> Option<HgiTextureHandle> {
+    pub(crate) fn get_aov_texture(
+        ctx: &HdTaskContext,
+        aov_name: &Token,
+    ) -> Option<HgiTextureHandle> {
         let direct = Token::new(&format!("aov_{}", aov_name.as_str()));
         ctx.get(&direct)
             .and_then(|value| value.get::<HgiTextureHandle>().cloned())
@@ -597,9 +602,7 @@ impl HdxPickTask {
             .cloned()
     }
 
-    pub fn build_pick_buffer_init_data(
-        context_params: &HdxPickTaskContextParams,
-    ) -> Vec<i32> {
+    pub fn build_pick_buffer_init_data(context_params: &HdxPickTaskContextParams) -> Vec<i32> {
         if context_params.resolve_mode != pick_tokens::resolve_deep() {
             return vec![0];
         }
@@ -607,9 +610,8 @@ impl HdxPickTask {
         let num_sub_buffers = (context_params.max_num_deep_entries.max(0) as usize)
             / Self::PICK_BUFFER_SUBBUFFER_CAPACITY;
         let entry_storage_offset = Self::PICK_BUFFER_HEADER_SIZE + num_sub_buffers;
-        let entry_storage_size = num_sub_buffers
-            * Self::PICK_BUFFER_SUBBUFFER_CAPACITY
-            * Self::PICK_BUFFER_ENTRY_SIZE;
+        let entry_storage_size =
+            num_sub_buffers * Self::PICK_BUFFER_SUBBUFFER_CAPACITY * Self::PICK_BUFFER_ENTRY_SIZE;
 
         let mut pick_buffer_init = Vec::with_capacity(entry_storage_offset + entry_storage_size);
         pick_buffer_init.push(num_sub_buffers as i32);
@@ -625,10 +627,7 @@ impl HdxPickTask {
         pick_buffer_init
     }
 
-    pub(crate) fn read_buffer_i32(
-        hgi: &mut dyn Hgi,
-        buffer: &HgiBufferHandle,
-    ) -> Option<Vec<i32>> {
+    pub(crate) fn read_buffer_i32(hgi: &mut dyn Hgi, buffer: &HgiBufferHandle) -> Option<Vec<i32>> {
         let byte_size = buffer.get()?.descriptor().byte_size;
         if byte_size == 0 || byte_size % std::mem::size_of::<i32>() != 0 {
             return None;
@@ -774,11 +773,8 @@ impl HdxPickTask {
             }
             let num_entries = data[size_offset] as usize;
 
-            let sub_buffer_offset =
-                entry_storage_offset
-                    + sub_buffer
-                        * Self::PICK_BUFFER_SUBBUFFER_CAPACITY
-                        * Self::PICK_BUFFER_ENTRY_SIZE;
+            let sub_buffer_offset = entry_storage_offset
+                + sub_buffer * Self::PICK_BUFFER_SUBBUFFER_CAPACITY * Self::PICK_BUFFER_ENTRY_SIZE;
 
             for j in 0..num_entries {
                 let entry_offset = sub_buffer_offset + j * Self::PICK_BUFFER_ENTRY_SIZE;
@@ -924,9 +920,8 @@ impl HdxPickTask {
 
         let mut pickable_state = self.pickable_render_pass_state.clone();
         if resolve_deep {
-            pickable_state.set_aov_bindings(Self::deep_request_aov_bindings(
-                &self.pickable_aov_bindings,
-            ));
+            pickable_state
+                .set_aov_bindings(Self::deep_request_aov_bindings(&self.pickable_aov_bindings));
         }
         Self::push_request(
             ctx,
@@ -942,9 +937,8 @@ impl HdxPickTask {
         if self.pass_flags.use_overlay {
             let mut overlay_state = self.overlay_render_pass_state.clone();
             if resolve_deep {
-                overlay_state.set_aov_bindings(Self::deep_request_aov_bindings(
-                    &self.overlay_aov_bindings,
-                ));
+                overlay_state
+                    .set_aov_bindings(Self::deep_request_aov_bindings(&self.overlay_aov_bindings));
             }
             Self::push_request(
                 ctx,
@@ -1206,16 +1200,16 @@ impl HdTask for HdxPickTask {
                 ctx.insert(Token::new("pickTaskExecuted"), Value::from(0i32));
                 return;
             };
-            let prim_ids = Self::read_aov_i32(ctx, &hgi_driver, &Token::new("primId"))
-                .unwrap_or_default();
-            let instance_ids = Self::read_aov_i32(ctx, &hgi_driver, &Token::new("instanceId"))
-                .unwrap_or_default();
-            let element_ids = Self::read_aov_i32(ctx, &hgi_driver, &Token::new("elementId"))
-                .unwrap_or_default();
-            let edge_ids = Self::read_aov_i32(ctx, &hgi_driver, &Token::new("edgeId"))
-                .unwrap_or_default();
-            let point_ids = Self::read_aov_i32(ctx, &hgi_driver, &Token::new("pointId"))
-                .unwrap_or_default();
+            let prim_ids =
+                Self::read_aov_i32(ctx, &hgi_driver, &Token::new("primId")).unwrap_or_default();
+            let instance_ids =
+                Self::read_aov_i32(ctx, &hgi_driver, &Token::new("instanceId")).unwrap_or_default();
+            let element_ids =
+                Self::read_aov_i32(ctx, &hgi_driver, &Token::new("elementId")).unwrap_or_default();
+            let edge_ids =
+                Self::read_aov_i32(ctx, &hgi_driver, &Token::new("edgeId")).unwrap_or_default();
+            let point_ids =
+                Self::read_aov_i32(ctx, &hgi_driver, &Token::new("pointId")).unwrap_or_default();
             let neyes =
                 Self::read_aov_i32(ctx, &hgi_driver, &Token::new("Neye")).unwrap_or_default();
             let depths =

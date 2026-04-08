@@ -1,4 +1,3 @@
-
 //! Shadow task - Shadow map generation.
 //!
 //! Generates shadow maps for all shadow-casting lights in the scene.

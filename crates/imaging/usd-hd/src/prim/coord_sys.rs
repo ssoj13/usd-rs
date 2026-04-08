@@ -1,4 +1,3 @@
-
 //! HdCoordSys - Coordinate system state primitive.
 //!
 //! Represents a named coordinate system in Hydra. Coordinate systems may be

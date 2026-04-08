@@ -1,4 +1,3 @@
-
 //! Free camera prim data source - Camera data from matrices or GfCamera.
 //!
 //! A data source conforming to HdCameraSchema and HdXformSchema,

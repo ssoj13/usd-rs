@@ -6,13 +6,14 @@
 //! Stores per-value, per-edge, and per-vertex tags that classify FVar topology
 //! relative to the vertex topology of the parent Level.
 
+use super::array::{Array, ConstArray};
+use super::level::{ETag as LevelETag, Level, VTag};
+use super::types::{
+    ConstIndexArray, ConstLocalIndexArray, Index, IndexArray, LocalIndex, LocalIndexArray,
+};
+use crate::sdc::Options;
 use crate::sdc::crease::Rule;
 use crate::sdc::options::{FVarLinearInterpolation, VtxBoundaryInterpolation};
-use crate::sdc::Options;
-use super::types::{Index, LocalIndex, ConstIndexArray, IndexArray,
-                   ConstLocalIndexArray, LocalIndexArray};
-use super::array::{ConstArray, Array};
-use super::level::{Level, VTag, ETag as LevelETag};
 
 // ---------------------------------------------------------------------------
 // ETag — per-edge tag for FVar discontinuity
@@ -52,14 +53,14 @@ impl ETag {
 /// Mirrors C++ `FVarLevel::ValueTag`.
 #[derive(Clone, Copy, Default)]
 pub struct ValueTag {
-    pub mismatch:       bool,
-    pub xordinary:      bool,
-    pub non_manifold:   bool,
-    pub crease:         bool,
-    pub semi_sharp:     bool,
-    pub dep_sharp:      bool,
+    pub mismatch: bool,
+    pub xordinary: bool,
+    pub non_manifold: bool,
+    pub crease: bool,
+    pub semi_sharp: bool,
+    pub dep_sharp: bool,
     pub inf_sharp_edges: bool,
-    pub inf_irregular:  bool,
+    pub inf_irregular: bool,
 }
 
 impl ValueTag {
@@ -67,15 +68,42 @@ impl ValueTag {
         *self = ValueTag::default();
     }
 
-    #[inline] pub fn is_mismatch(&self) -> bool { self.mismatch }
-    #[inline] pub fn is_crease(&self) -> bool { self.crease }
-    #[inline] pub fn is_corner(&self) -> bool { !self.crease }
-    #[inline] pub fn is_semi_sharp(&self) -> bool { self.semi_sharp }
-    #[inline] pub fn is_inf_sharp(&self) -> bool { !self.semi_sharp && !self.crease }
-    #[inline] pub fn is_dep_sharp(&self) -> bool { self.dep_sharp }
-    #[inline] pub fn has_crease_ends(&self) -> bool { self.crease || self.semi_sharp }
-    #[inline] pub fn has_inf_sharp_edges(&self) -> bool { self.inf_sharp_edges }
-    #[inline] pub fn has_inf_irregularity(&self) -> bool { self.inf_irregular }
+    #[inline]
+    pub fn is_mismatch(&self) -> bool {
+        self.mismatch
+    }
+    #[inline]
+    pub fn is_crease(&self) -> bool {
+        self.crease
+    }
+    #[inline]
+    pub fn is_corner(&self) -> bool {
+        !self.crease
+    }
+    #[inline]
+    pub fn is_semi_sharp(&self) -> bool {
+        self.semi_sharp
+    }
+    #[inline]
+    pub fn is_inf_sharp(&self) -> bool {
+        !self.semi_sharp && !self.crease
+    }
+    #[inline]
+    pub fn is_dep_sharp(&self) -> bool {
+        self.dep_sharp
+    }
+    #[inline]
+    pub fn has_crease_ends(&self) -> bool {
+        self.crease || self.semi_sharp
+    }
+    #[inline]
+    pub fn has_inf_sharp_edges(&self) -> bool {
+        self.inf_sharp_edges
+    }
+    #[inline]
+    pub fn has_inf_irregularity(&self) -> bool {
+        self.inf_irregular
+    }
 
     /// Pack into a single byte (for bitwise OR composite).
     pub fn get_bits(&self) -> u8 {
@@ -92,14 +120,14 @@ impl ValueTag {
     /// Unpack from a single byte.
     pub fn from_bits(bits: u8) -> Self {
         Self {
-            mismatch:       bits & 0x01 != 0,
-            xordinary:      bits & 0x02 != 0,
-            non_manifold:   bits & 0x04 != 0,
-            crease:         bits & 0x08 != 0,
-            semi_sharp:     bits & 0x10 != 0,
-            dep_sharp:      bits & 0x20 != 0,
+            mismatch: bits & 0x01 != 0,
+            xordinary: bits & 0x02 != 0,
+            non_manifold: bits & 0x04 != 0,
+            crease: bits & 0x08 != 0,
+            semi_sharp: bits & 0x10 != 0,
+            dep_sharp: bits & 0x20 != 0,
             inf_sharp_edges: bits & 0x40 != 0,
-            inf_irregular:  bits & 0x80 != 0,
+            inf_irregular: bits & 0x80 != 0,
         }
     }
 
@@ -147,7 +175,7 @@ pub type ValueTagArray<'a> = Array<'a, ValueTag>;
 #[derive(Clone, Copy, Default)]
 pub struct CreaseEndPair {
     pub start_face: LocalIndex,
-    pub end_face:   LocalIndex,
+    pub end_face: LocalIndex,
 }
 
 pub type ConstCreaseEndPairArray<'a> = ConstArray<'a, CreaseEndPair>;
@@ -166,9 +194,9 @@ pub type SiblingArray<'a> = LocalIndexArray<'a>;
 /// around a vertex. Used only during base-level topology analysis.
 #[derive(Clone, Copy, Default)]
 pub(crate) struct ValueSpan {
-    pub size:                LocalIndex,
-    pub start:               LocalIndex,
-    pub discts_edge_count:   LocalIndex,
+    pub size: LocalIndex,
+    pub start: LocalIndex,
+    pub discts_edge_count: LocalIndex,
     pub semi_sharp_edge_count: LocalIndex,
     pub inf_sharp_edge_count: LocalIndex,
 }
@@ -202,13 +230,13 @@ pub struct FVarLevel {
     pub(crate) edge_tags: Vec<ETag>,
 
     // Per-vertex: sibling structure
-    pub(crate) vert_sibling_counts:  Vec<Sibling>,
+    pub(crate) vert_sibling_counts: Vec<Sibling>,
     pub(crate) vert_sibling_offsets: Vec<i32>,
-    pub(crate) vert_face_siblings:   Vec<Sibling>,
+    pub(crate) vert_face_siblings: Vec<Sibling>,
 
     // Per-value (indexed by vertex-value offset)
-    pub(crate) vert_value_indices:     Vec<Index>,
-    pub(crate) vert_value_tags:        Vec<ValueTag>,
+    pub(crate) vert_value_indices: Vec<Index>,
+    pub(crate) vert_value_tags: Vec<ValueTag>,
     pub(crate) vert_value_crease_ends: Vec<CreaseEndPair>,
 }
 
@@ -272,13 +300,34 @@ impl FVarLevel {
 
     // -- Channel-wide queries --
 
-    #[inline] pub fn get_num_values(&self) -> i32 { self.value_count }
-    #[inline] pub fn get_num_face_values_total(&self) -> i32 { self.face_vert_values.len() as i32 }
-    #[inline] pub fn is_linear(&self) -> bool { self.is_linear }
-    #[inline] pub fn has_linear_boundaries(&self) -> bool { self.has_linear_boundaries }
-    #[inline] pub fn has_smooth_boundaries(&self) -> bool { !self.has_linear_boundaries }
-    #[inline] pub fn has_crease_ends(&self) -> bool { self.has_smooth_boundaries() }
-    #[inline] pub fn get_options(&self) -> Options { self.options }
+    #[inline]
+    pub fn get_num_values(&self) -> i32 {
+        self.value_count
+    }
+    #[inline]
+    pub fn get_num_face_values_total(&self) -> i32 {
+        self.face_vert_values.len() as i32
+    }
+    #[inline]
+    pub fn is_linear(&self) -> bool {
+        self.is_linear
+    }
+    #[inline]
+    pub fn has_linear_boundaries(&self) -> bool {
+        self.has_linear_boundaries
+    }
+    #[inline]
+    pub fn has_smooth_boundaries(&self) -> bool {
+        !self.has_linear_boundaries
+    }
+    #[inline]
+    pub fn has_crease_ends(&self) -> bool {
+        self.has_smooth_boundaries()
+    }
+    #[inline]
+    pub fn get_options(&self) -> Options {
+        self.options
+    }
 
     // -- Per-face access --
 
@@ -445,19 +494,27 @@ impl FVarLevel {
     /// For a given edge and incident-face index, return the FVar values at
     /// each end vertex within that face.
     pub fn get_edge_face_values(
-        &self, e_index: Index, f_inc_to_edge: i32, values_per_vert: &mut [Index; 2],
+        &self,
+        e_index: Index,
+        f_inc_to_edge: i32,
+        values_per_vert: &mut [Index; 2],
     ) {
         let lev = self.level();
         let e_verts = lev.get_edge_vertices(e_index);
 
         if (self.get_num_vertex_values(e_verts[0]) + self.get_num_vertex_values(e_verts[1])) > 2 {
             let e_face = lev.get_edge_faces(e_index)[f_inc_to_edge as usize];
-            let e_in_face = lev.get_edge_face_local_indices(e_index)[f_inc_to_edge as usize] as usize;
+            let e_in_face =
+                lev.get_edge_face_local_indices(e_index)[f_inc_to_edge as usize] as usize;
 
             let f_values = self.get_face_values(e_face);
 
             values_per_vert[0] = f_values[e_in_face];
-            let next = if (e_in_face + 1) < f_values.size() as usize { e_in_face + 1 } else { 0 };
+            let next = if (e_in_face + 1) < f_values.size() as usize {
+                e_in_face + 1
+            } else {
+                0
+            };
             values_per_vert[1] = f_values[next];
 
             // Ensure value pair matches vertex pair
@@ -505,12 +562,20 @@ impl FVarLevel {
                 if v_is_boundary && (i == (v_edges.size() as usize - 1)) {
                     let f_values = self.get_face_values(v_faces[i as i32 - 1]);
                     let vif = v_in_face[i as i32 - 1] as usize;
-                    let prev_in_face = if vif > 0 { vif - 1 } else { f_values.size() as usize - 1 };
+                    let prev_in_face = if vif > 0 {
+                        vif - 1
+                    } else {
+                        f_values.size() as usize - 1
+                    };
                     values_per_edge[i] = f_values[prev_in_face];
                 } else {
                     let f_values = self.get_face_values(v_faces[i as i32]);
                     let vif = v_in_face[i as i32] as usize;
-                    let next_in_face = if vif == (f_values.size() as usize - 1) { 0 } else { vif + 1 };
+                    let next_in_face = if vif == (f_values.size() as usize - 1) {
+                        0
+                    } else {
+                        vif + 1
+                    };
                     values_per_edge[i] = f_values[next_in_face];
                 }
             } else {
@@ -523,7 +588,11 @@ impl FVarLevel {
                 if v_other == f_verts[e_in_face0] {
                     values_per_edge[i] = f_values[e_in_face0];
                 } else {
-                    let value_in_face = if e_in_face0 == (f_values.size() as usize - 1) { 0 } else { e_in_face0 + 1 };
+                    let value_in_face = if e_in_face0 == (f_values.size() as usize - 1) {
+                        0
+                    } else {
+                        e_in_face0 + 1
+                    };
                     values_per_edge[i] = f_values[value_in_face];
                 }
             }
@@ -532,7 +601,10 @@ impl FVarLevel {
 
     /// Get the crease end values for a vertex-value sibling.
     pub fn get_vertex_crease_end_values(
-        &self, v_index: Index, v_sibling: Sibling, end_values: &mut [Index; 2],
+        &self,
+        v_index: Index,
+        v_sibling: Sibling,
+        end_values: &mut [Index; 2],
     ) {
         let lev = self.level();
         let v_value_crease_ends = self.get_vertex_value_crease_ends(v_index);
@@ -549,8 +621,16 @@ impl FVarLevel {
         let end_in_face0 = v_in_face[vert_face0 as i32] as usize;
         let end_in_face1 = v_in_face[vert_face1 as i32] as usize;
 
-        let end_in_face0 = if end_in_face0 == (face0_values.size() as usize - 1) { 0 } else { end_in_face0 + 1 };
-        let end_in_face1 = if end_in_face1 > 0 { end_in_face1 - 1 } else { face1_values.size() as usize - 1 };
+        let end_in_face0 = if end_in_face0 == (face0_values.size() as usize - 1) {
+            0
+        } else {
+            end_in_face0 + 1
+        };
+        let end_in_face1 = if end_in_face1 > 0 {
+            end_in_face1 - 1
+        } else {
+            face1_values.size() as usize - 1
+        };
 
         end_values[0] = face0_values[end_in_face0];
         end_values[1] = face1_values[end_in_face1];
@@ -591,7 +671,8 @@ impl FVarLevel {
         self.vert_value_tags.resize(n, tag_match);
 
         if self.has_crease_ends() {
-            self.vert_value_crease_ends.resize(n, CreaseEndPair::default());
+            self.vert_value_crease_ends
+                .resize(n, CreaseEndPair::default());
         }
     }
 
@@ -615,11 +696,9 @@ impl FVarLevel {
         let fvar_options = self.options.get_fvar_linear_interpolation();
 
         self.is_linear = fvar_options == FVarLinearInterpolation::All;
-        self.has_linear_boundaries =
-            fvar_options == FVarLinearInterpolation::All
+        self.has_linear_boundaries = fvar_options == FVarLinearInterpolation::All
             || fvar_options == FVarLinearInterpolation::Boundaries;
-        self.has_dependent_sharpness =
-            fvar_options == FVarLinearInterpolation::CornersPlus1
+        self.has_dependent_sharpness = fvar_options == FVarLinearInterpolation::CornersPlus1
             || fvar_options == FVarLinearInterpolation::CornersPlus2;
 
         let geom_corners_are_smooth = geom_options != VtxBoundaryInterpolation::EdgeAndCorner;
@@ -650,9 +729,8 @@ impl FVarLevel {
             // Collect FVar value at this vertex in each incident face
             let v_values = &mut index_buffer[..nf];
             for i in 0..nf {
-                v_values[i] = self.face_vert_values[
-                    lev.get_offset_of_face_vertices(v_faces[i]) as usize + v_in_face[i] as usize
-                ];
+                v_values[i] = self.face_vert_values
+                    [lev.get_offset_of_face_vertices(v_faces[i]) as usize + v_in_face[i] as usize];
             }
 
             let v_edges = lev.get_vertex_edges(v_index);
@@ -685,7 +763,9 @@ impl FVarLevel {
                 for i in 0..v_edges.size() as usize {
                     let e_index = v_edges[i as i32];
                     let e_faces = lev.get_edge_faces(e_index);
-                    if e_faces.size() < 2 { continue; }
+                    if e_faces.size() < 2 {
+                        continue;
+                    }
 
                     let e_in_face = lev.get_edge_face_local_indices(e_index);
                     let e_verts = lev.get_edge_vertices(e_index);
@@ -694,15 +774,28 @@ impl FVarLevel {
                     let mut mark_edge_discts = false;
                     let mut value_index_in_face0: Index = 0;
                     for j in 0..e_faces.size() as usize {
-                        if mark_edge_discts { break; }
+                        if mark_edge_discts {
+                            break;
+                        }
                         let f_index = e_faces[j as i32];
                         let f_verts = lev.get_face_vertices(f_index);
                         let f_values = self.get_face_values(f_index);
 
                         let edge_in_face = e_in_face[j as i32] as usize;
-                        let edge_reversed = if e_verts[0usize] != f_verts[edge_in_face as i32] { 1 } else { 0 };
-                        let mut vert_in_face = edge_in_face + (if vert_in_edge as usize != edge_reversed { 1 } else { 0 });
-                        if vert_in_face == f_verts.size() as usize { vert_in_face = 0; }
+                        let edge_reversed = if e_verts[0usize] != f_verts[edge_in_face as i32] {
+                            1
+                        } else {
+                            0
+                        };
+                        let mut vert_in_face = edge_in_face
+                            + (if vert_in_edge as usize != edge_reversed {
+                                1
+                            } else {
+                                0
+                            });
+                        if vert_in_face == f_verts.size() as usize {
+                            vert_in_face = 0;
+                        }
 
                         if j == 0 {
                             value_index_in_face0 = f_values[vert_in_face];
@@ -801,9 +894,9 @@ impl FVarLevel {
             let vv_count = self.vert_sibling_counts[v_index as usize] as usize;
 
             if nf > 0 {
-                self.vert_value_indices[vv_offset] = self.face_vert_values[
-                    lev.get_offset_of_face_vertices(v_faces[0i32]) as usize + v_in_face[0i32] as usize
-                ];
+                self.vert_value_indices[vv_offset] =
+                    self.face_vert_values[lev.get_offset_of_face_vertices(v_faces[0i32]) as usize
+                        + v_in_face[0i32] as usize];
             } else {
                 self.vert_value_indices[vv_offset] = 0;
             }
@@ -825,10 +918,9 @@ impl FVarLevel {
                 let mut next_sibling = 1usize;
                 for i in 1..nf {
                     if siblings[i] as usize == next_sibling {
-                        self.vert_value_indices[vv_offset + next_sibling] = self.face_vert_values[
-                            lev.get_offset_of_face_vertices(v_faces[i as i32]) as usize
-                                + v_in_face[i as i32] as usize
-                        ];
+                        self.vert_value_indices[vv_offset + next_sibling] = self.face_vert_values
+                            [lev.get_offset_of_face_vertices(v_faces[i as i32]) as usize
+                                + v_in_face[i as i32] as usize];
                         next_sibling += 1;
                     }
                 }
@@ -837,14 +929,17 @@ impl FVarLevel {
             // Tag values
             let v_tag = lev.get_vertex_tag(v_index);
 
-            let all_corners_are_sharp_base =
-                self.has_linear_boundaries || v_tag.inf_sharp() || v_tag.non_manifold()
+            let all_corners_are_sharp_base = self.has_linear_boundaries
+                || v_tag.inf_sharp()
+                || v_tag.non_manifold()
                 || (self.has_dependent_sharpness && (vv_count > 2))
                 || (sharpen_darts && (vv_count == 1) && !v_tag.boundary());
 
             // Gather value spans
             let value_spans = &mut span_buffer[..vv_count];
-            for s in value_spans.iter_mut() { *s = ValueSpan::default(); }
+            for s in value_spans.iter_mut() {
+                *s = ValueSpan::default();
+            }
             self.gather_value_spans(v_index, value_spans);
 
             // Determine if all corners should be sharp (dependency analysis)
@@ -852,16 +947,18 @@ impl FVarLevel {
             let mut has_dependent_values_to_sharpen = false;
 
             if !all_corners_are_sharp && self.has_dependent_sharpness && vv_count == 2 {
-                all_corners_are_sharp =
-                    value_spans[0].inf_sharp_edge_count > 0 || value_spans[1].inf_sharp_edge_count > 0
-                    || value_spans[0].discts_edge_count > 0 || value_spans[1].discts_edge_count > 0;
+                all_corners_are_sharp = value_spans[0].inf_sharp_edge_count > 0
+                    || value_spans[1].inf_sharp_edge_count > 0
+                    || value_spans[0].discts_edge_count > 0
+                    || value_spans[1].discts_edge_count > 0;
 
                 if sharpen_both_if_one_corner {
-                    all_corners_are_sharp |= (value_spans[0].size == 1) || (value_spans[1].size == 1);
+                    all_corners_are_sharp |=
+                        (value_spans[0].size == 1) || (value_spans[1].size == 1);
                 }
 
-                has_dependent_values_to_sharpen =
-                    (value_spans[0].semi_sharp_edge_count > 0) != (value_spans[1].semi_sharp_edge_count > 0);
+                has_dependent_values_to_sharpen = (value_spans[0].semi_sharp_edge_count > 0)
+                    != (value_spans[1].semi_sharp_edge_count > 0);
             }
 
             // Tag each value
@@ -911,7 +1008,8 @@ impl FVarLevel {
                         crease_end.start_face = v_span.start;
                         if i == 0 && v_span.start != 0 {
                             crease_end.end_face =
-                                (v_span.start as i32 + v_span.size as i32 - 1 - v_faces.size()) as LocalIndex;
+                                (v_span.start as i32 + v_span.size as i32 - 1 - v_faces.size())
+                                    as LocalIndex;
                         } else {
                             crease_end.end_face =
                                 (v_span.start as i32 + v_span.size as i32 - 1) as LocalIndex;
@@ -1051,8 +1149,8 @@ impl FVarLevel {
                 for j in 0..v_faces.size() as usize {
                     if siblings[j] != 0 {
                         let fv_offset = lev.get_offset_of_face_vertices(v_faces[j as i32]) as usize;
-                        self.face_vert_values[fv_offset + v_in_face[j as i32] as usize]
-                            += siblings[j] as i32;
+                        self.face_vert_values[fv_offset + v_in_face[j as i32] as usize] +=
+                            siblings[j] as i32;
                     }
                 }
             }
@@ -1061,7 +1159,8 @@ impl FVarLevel {
 
     /// Build face-vertex siblings from vertex-face siblings (for validation).
     pub fn build_face_vertex_siblings_from_vertex_face_siblings(
-        &self, fv_siblings: &mut Vec<Sibling>,
+        &self,
+        fv_siblings: &mut Vec<Sibling>,
     ) {
         let lev = self.level();
         let total = lev.get_num_face_vertices_total() as usize;
@@ -1076,10 +1175,8 @@ impl FVarLevel {
 
                 for j in 0..v_faces.size() as usize {
                     if v_siblings[j as i32] > 0 {
-                        fv_siblings[
-                            lev.get_offset_of_face_vertices(v_faces[j as i32]) as usize
-                            + v_in_face[j as i32] as usize
-                        ] = v_siblings[j as i32];
+                        fv_siblings[lev.get_offset_of_face_vertices(v_faces[j as i32]) as usize
+                            + v_in_face[j as i32] as usize] = v_siblings[j as i32];
                     }
                 }
             }
@@ -1162,7 +1259,8 @@ impl FVarLevel {
     /// Legacy resize for backward compatibility with Level::create_fvar_channel.
     pub fn resize(&mut self, num_values: i32, num_faces: i32, num_face_values_total: i32) {
         self.value_count = num_values;
-        self.face_vert_values.resize(num_face_values_total as usize, super::types::INDEX_INVALID);
+        self.face_vert_values
+            .resize(num_face_values_total as usize, super::types::INDEX_INVALID);
         // Legacy: vert_sibling_counts etc. are populated by complete_topology_from_face_values
         let _ = num_faces; // no longer needed (delegated to Level)
     }
@@ -1270,10 +1368,10 @@ mod tests {
         level.face_vert_indices = vec![0, 1, 2, 0, 2, 3, 1]; // 7 entries
         // vert-face c/o
         level.vert_face_counts_offsets = vec![
-            2, 0,  // v0: 2 faces
-            2, 2,  // v1: 2 faces
-            2, 4,  // v2: 2 faces
-            1, 6,  // v3: 1 face
+            2, 0, // v0: 2 faces
+            2, 2, // v1: 2 faces
+            2, 4, // v2: 2 faces
+            1, 6, // v3: 1 face
         ];
         level.vert_face_indices = vec![0, 1, 0, 1, 0, 1, 1]; // 7 entries
         level.vert_face_local_indices = vec![0, 0, 1, 3, 2, 1, 2]; // 7 entries

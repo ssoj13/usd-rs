@@ -1,4 +1,3 @@
-
 //! Colorize selection task - Apply highlight colors to selected objects.
 //!
 //! Emits a deferred post-process request for selection highlighting.
@@ -47,10 +46,20 @@ impl Hash for HdxColorizeSelectionTaskRequest {
         self.is_active.hash(state);
         self.enable_locate_highlight.hash(state);
         self.enable_outline.hash(state);
-        for c in [self.selection_color.x, self.selection_color.y, self.selection_color.z, self.selection_color.w] {
+        for c in [
+            self.selection_color.x,
+            self.selection_color.y,
+            self.selection_color.z,
+            self.selection_color.w,
+        ] {
             c.to_bits().hash(state);
         }
-        for c in [self.locate_color.x, self.locate_color.y, self.locate_color.z, self.locate_color.w] {
+        for c in [
+            self.locate_color.x,
+            self.locate_color.y,
+            self.locate_color.z,
+            self.locate_color.w,
+        ] {
             c.to_bits().hash(state);
         }
         self.outline_radius.hash(state);
@@ -254,7 +263,10 @@ impl HdTask for HdxColorizeSelectionTask {
         {
             order.push(Token::new("colorizeSelection"));
         } else {
-            ctx.insert(order_token, Value::new(vec![Token::new("colorizeSelection")]));
+            ctx.insert(
+                order_token,
+                Value::new(vec![Token::new("colorizeSelection")]),
+            );
         }
     }
 

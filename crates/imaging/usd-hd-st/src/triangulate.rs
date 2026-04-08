@@ -1,4 +1,3 @@
-
 //! Triangle index builder and face-varying triangulation computations.
 //!
 //! Converts arbitrary polygon meshes to triangles using fan triangulation.
@@ -56,10 +55,7 @@ pub fn build_triangle_indices(topology: &HdStMeshTopology) -> TriangleIndexResul
 }
 
 /// Compute total number of triangles from face vertex counts (excluding holes).
-pub fn compute_triangle_count(
-    face_vertex_counts: &[i32],
-    hole_indices: &[i32],
-) -> usize {
+pub fn compute_triangle_count(face_vertex_counts: &[i32], hole_indices: &[i32]) -> usize {
     let mut count = 0usize;
     for (fi, &nv) in face_vertex_counts.iter().enumerate() {
         if hole_indices.contains(&(fi as i32)) {
@@ -84,10 +80,7 @@ pub fn compute_triangle_count(
 ///
 /// Input: `fvar_data` with one element per face-vertex (sum of face_vertex_counts).
 /// Output: reindexed data with one element per triangle vertex.
-pub fn triangulate_face_varying<T: Clone>(
-    topology: &HdStMeshTopology,
-    fvar_data: &[T],
-) -> Vec<T> {
+pub fn triangulate_face_varying<T: Clone>(topology: &HdStMeshTopology, fvar_data: &[T]) -> Vec<T> {
     let mut result = Vec::new();
     let mut offset = 0usize;
 
@@ -172,10 +165,7 @@ mod tests {
     #[test]
     fn test_build_triangle_indices_mixed() {
         // Quad + triangle
-        let topo = HdStMeshTopology::from_faces(
-            vec![4, 3],
-            vec![0, 1, 2, 3, 4, 5, 6],
-        );
+        let topo = HdStMeshTopology::from_faces(vec![4, 3], vec![0, 1, 2, 3, 4, 5, 6]);
         let result = build_triangle_indices(&topo);
 
         assert_eq!(result.num_triangles, 3); // 2 from quad + 1 from triangle
@@ -194,9 +184,7 @@ mod tests {
         let topo = HdStMeshTopology::from_faces(vec![4], vec![0, 1, 2, 3]);
 
         // UV data: one per face-vertex
-        let uvs: Vec<[f32; 2]> = vec![
-            [0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0],
-        ];
+        let uvs: Vec<[f32; 2]> = vec![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
 
         let tri_uvs = triangulate_face_varying(&topo, &uvs);
         assert_eq!(tri_uvs.len(), 6); // 2 triangles * 3 verts
@@ -221,10 +209,7 @@ mod tests {
 
     #[test]
     fn test_triangulate_with_holes() {
-        let mut topo = HdStMeshTopology::from_faces(
-            vec![3, 3],
-            vec![0, 1, 2, 3, 4, 5],
-        );
+        let mut topo = HdStMeshTopology::from_faces(vec![3, 3], vec![0, 1, 2, 3, 4, 5]);
         topo.hole_indices = vec![0]; // First face is a hole
 
         let data: Vec<f32> = vec![10.0, 20.0, 30.0, 40.0, 50.0, 60.0];

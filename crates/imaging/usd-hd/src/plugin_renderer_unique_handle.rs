@@ -1,4 +1,3 @@
-
 //! RAII handle for HdRenderer created by plugin.
 //!
 //! Corresponds to pxr/imaging/hd/pluginRendererUniqueHandle.h.

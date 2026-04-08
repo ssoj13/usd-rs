@@ -1,4 +1,3 @@
-
 //! HdStDrawTarget - Render-to-texture sprim.
 //!
 //! Represents an offscreen render target for render-to-texture passes.

@@ -1,4 +1,3 @@
-
 //! HdSt_ImplicitSurfaceSceneIndexPlugin - converts implicit shapes to meshes.
 //!
 //! Storm does not natively support implicit geometry (spheres, cubes, cones,
@@ -7,8 +6,8 @@
 //!
 //! Port of C++ `HdSt_ImplicitSurfaceSceneIndexPlugin`.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::scene_index::{
     AddedPrimEntry, DirtiedPrimEntry, FilteringObserverTarget, HdSceneIndexBase,
@@ -53,7 +52,8 @@ impl HdStImplicitSurfaceSceneIndex {
 impl HdSceneIndexBase for HdStImplicitSurfaceSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let lock = input.read();
+            {
+                let lock = input.read();
                 let prim = lock.get_prim(prim_path);
                 // In full impl, if prim.prim_type is implicit, rewrite to mesh
                 // with tessellated geometry data source.
@@ -65,7 +65,8 @@ impl HdSceneIndexBase for HdStImplicitSurfaceSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let lock = input.read();
+            {
+                let lock = input.read();
                 return lock.get_child_prim_paths(prim_path);
             }
         }

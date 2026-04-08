@@ -3757,25 +3757,22 @@ mod tests {
 
     #[test]
     fn test_read_real_usdc_file() {
-        // Try to read a real USDC file from the reference repo
-        let test_file = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/testenv/usdc/a.usdc"
-        );
+        // Try to read a real USDC file from OPENUSD_SRC_ROOT (pxr/usd/sdf/testenv/usdc/...)
+        let test_file = openusd_test_path::pxr_usd_module_testenv("sdf", "usdc/a.usdc");
 
-        if !std::path::Path::new(test_file).exists() {
-            // Skip if reference repo not available
+        if !test_file.exists() {
             return;
         }
 
-        let data = std::fs::read(test_file).expect("Failed to read test file");
+        let test_file = test_file.to_string_lossy();
+        let data = std::fs::read(test_file.as_ref()).expect("Failed to read test file");
         assert!(!data.is_empty());
 
         // Verify it's a valid USDC file
         assert!(CrateFile::can_read(&data));
 
         // Try to open it
-        let crate_file = CrateFile::open(&data, test_file);
+        let crate_file = CrateFile::open(&data, test_file.as_ref());
         assert!(crate_file.is_ok(), "Failed to open: {:?}", crate_file.err());
 
         let cf = crate_file.unwrap();
@@ -3794,19 +3791,17 @@ mod tests {
     #[test]
     fn test_read_teapot_usdc() {
         // Read teapot mesh USDC file (version 0.8.0 with compressed paths)
-        let test_file = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/testenv/usdc/teapot.usdc"
-        );
+        let path = openusd_test_path::pxr_usd_module_testenv("sdf", "usdc/teapot.usdc");
 
-        if !std::path::Path::new(test_file).exists() {
+        if !path.exists() {
             return;
         }
 
-        let data = std::fs::read(test_file).expect("Failed to read test file");
+        let test_file = path.to_string_lossy();
+        let data = std::fs::read(test_file.as_ref()).expect("Failed to read test file");
         assert!(CrateFile::can_read(&data));
 
-        let crate_file = CrateFile::open(&data, test_file);
+        let crate_file = CrateFile::open(&data, test_file.as_ref());
         assert!(
             crate_file.is_ok(),
             "Failed to open teapot: {:?}",

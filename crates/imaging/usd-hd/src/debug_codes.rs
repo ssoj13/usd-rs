@@ -1,4 +1,3 @@
-
 //! Debug codes for Hydra TF_DEBUG logging.
 //!
 //! In the original C++ USD implementation, these are used with the TF_DEBUG

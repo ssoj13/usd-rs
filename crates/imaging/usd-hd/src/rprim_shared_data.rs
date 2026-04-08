@@ -1,4 +1,3 @@
-
 //! HdRprimSharedData - Data shared across HdReprs, owned by HdRprim.
 //!
 //! Corresponds to pxr/imaging/hd/rprimSharedData.h.

@@ -1,4 +1,3 @@
-
 //! HDSI API version.
 //!
 //! Port of pxr/imaging/hdsi/version.h

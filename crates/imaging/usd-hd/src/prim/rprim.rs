@@ -1,4 +1,3 @@
-
 //! Rprim - Renderable primitive base trait.
 //!
 //! Rprims represent renderable geometry in Hydra. This includes:

@@ -37,18 +37,14 @@ pub trait SurfaceFactoryMeshAdapter {
     /// Gather vertex indices of the face's vertices.
     ///
     /// Returns the number of indices written.
-    fn get_face_vertex_indices(
-        &self,
-        face_index:     Index,
-        vertex_indices: &mut [Index],
-    ) -> i32;
+    fn get_face_vertex_indices(&self, face_index: Index, vertex_indices: &mut [Index]) -> i32;
 
     /// Gather face-varying value indices of the face's vertices for the
     /// given `fvar_id`.
     fn get_face_fvar_value_indices(
         &self,
-        face_index:       Index,
-        fvar_id:          FVarId,
+        face_index: Index,
+        fvar_id: FVarId,
         fvar_value_indices: &mut [Index],
     ) -> i32;
 
@@ -62,9 +58,9 @@ pub trait SurfaceFactoryMeshAdapter {
     /// incident faces (i.e. the "face-in-ring" value for that corner).
     fn populate_face_vertex_descriptor(
         &self,
-        face_index:  Index,
+        face_index: Index,
         face_vertex: i32,
-        descriptor:  &mut VertexDescriptor,
+        descriptor: &mut VertexDescriptor,
     ) -> i32;
 
     /// Gather vertex indices of all incident faces around a corner vertex.
@@ -73,8 +69,8 @@ pub trait SurfaceFactoryMeshAdapter {
     /// and oriented relative to the corner vertex.
     fn get_face_vertex_incident_face_vertex_indices(
         &self,
-        face_index:     Index,
-        face_vertex:    i32,
+        face_index: Index,
+        face_vertex: i32,
         vertex_indices: &mut [Index],
     ) -> i32;
 
@@ -82,9 +78,9 @@ pub trait SurfaceFactoryMeshAdapter {
     /// vertex for the given `fvar_id`.
     fn get_face_vertex_incident_face_fvar_value_indices(
         &self,
-        face_index:         Index,
-        face_vertex:        i32,
-        fvar_id:            FVarId,
+        face_index: Index,
+        face_vertex: i32,
+        fvar_id: FVarId,
         fvar_value_indices: &mut [Index],
     ) -> i32;
 
@@ -101,7 +97,7 @@ pub trait SurfaceFactoryMeshAdapter {
     /// Default implementation returns `false`.
     fn get_face_neighborhood_vertex_indices_if_regular(
         &self,
-        _face_index:     Index,
+        _face_index: Index,
         _vertex_indices: Option<&mut [Index]>,
     ) -> bool {
         false
@@ -110,8 +106,8 @@ pub trait SurfaceFactoryMeshAdapter {
     /// Same as above, for face-varying indices.
     fn get_face_neighborhood_fvar_value_indices_if_regular(
         &self,
-        _face_index:         Index,
-        _fvar_id:            FVarId,
+        _face_index: Index,
+        _fvar_id: FVarId,
         _fvar_value_indices: Option<&mut [Index]>,
     ) -> bool {
         false

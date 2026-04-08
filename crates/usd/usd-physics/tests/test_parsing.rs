@@ -6,9 +6,8 @@ use usd_geom::{XformOpPrecision, xformable::Xformable};
 use usd_gf::Vec3f;
 use usd_physics::{
     ArticulationRootAPI, Axis, CollisionAPI, CollisionGroup, DistanceJoint, DriveAPI,
-    FilteredPairsAPI, FixedJoint, Joint, LimitAPI, MaterialAPI, MeshCollisionAPI,
-    PrismaticJoint, RevoluteJoint, RigidBodyAPI, Scene, SphericalJoint,
-    collect_physics_from_range,
+    FilteredPairsAPI, FixedJoint, Joint, LimitAPI, MaterialAPI, MeshCollisionAPI, PrismaticJoint,
+    RevoluteJoint, RigidBodyAPI, Scene, SphericalJoint, collect_physics_from_range,
 };
 use usd_sdf::Path;
 use usd_shade::{Material, MaterialBindingAPI, tokens::tokens as shade_tokens};

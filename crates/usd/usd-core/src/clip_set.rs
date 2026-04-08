@@ -1422,9 +1422,7 @@ pub(crate) fn clip_source_layer_matches_resolver_layer(
         .source_layer
         .as_ref()
         .and_then(|h| h.upgrade())
-        .map(|l| {
-            std::sync::Arc::ptr_eq(&l, layer) || l.identifier() == layer.identifier()
-        })
+        .map(|l| std::sync::Arc::ptr_eq(&l, layer) || l.identifier() == layer.identifier())
         .unwrap_or(false)
 }
 
@@ -1434,7 +1432,10 @@ pub(crate) fn clips_apply_to_layer_stack_site(
     layer_stack: &Arc<LayerStack>,
     prim_path_in_layer_stack: &Path,
 ) -> bool {
-    clip_set.source_layer_stack.as_ref().is_some_and(|ls| ls == layer_stack)
+    clip_set
+        .source_layer_stack
+        .as_ref()
+        .is_some_and(|ls| ls == layer_stack)
         && prim_path_in_layer_stack.has_prefix(&clip_set.source_prim_path)
 }
 
@@ -1444,10 +1445,9 @@ pub(crate) fn clips_contain_value_for_attribute(clip_set: &ClipSet, attr_spec_pa
     let variability_token = Token::new("variability");
     if let Some(ref manifest_clip) = clip_set.manifest_clip {
         if manifest_clip.has_field(attr_spec_path, &variability_token) {
-            if let Some(v) = manifest_clip.get_field_typed::<usd_sdf::Variability>(
-                attr_spec_path,
-                &variability_token,
-            ) {
+            if let Some(v) = manifest_clip
+                .get_field_typed::<usd_sdf::Variability>(attr_spec_path, &variability_token)
+            {
                 return v == usd_sdf::Variability::Varying;
             }
         }

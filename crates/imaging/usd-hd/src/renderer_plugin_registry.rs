@@ -1,4 +1,3 @@
-
 //! Renderer plugin registry - singleton for discovering and creating renderers.
 //!
 //! Corresponds to pxr/imaging/hd/rendererPluginRegistry.h.

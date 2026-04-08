@@ -8,9 +8,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
-use usd_pcp::{
-    ArcType, Cache, LayerStack, LayerStackIdentifier, MapFunction, PrimIndex, Site,
-};
+use usd_pcp::{ArcType, Cache, LayerStack, LayerStackIdentifier, MapFunction, PrimIndex, Site};
 use usd_sdf::Path;
 
 // ============================================================================
@@ -20,7 +18,7 @@ use usd_sdf::Path;
 /// Describes the type of arc connecting two nodes in the prim index.
 ///
 /// Mirrors `pxr.Pcp.ArcType` / `PcpArcType` from C++ OpenUSD.
-#[pyclass(skip_from_py_object,name = "ArcType", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "ArcType", module = "pxr_rs.Pcp")]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct PyArcType {
     inner: ArcType,
@@ -31,43 +29,57 @@ impl PyArcType {
     #[classattr]
     #[pyo3(name = "ArcTypeRoot")]
     fn arc_root() -> Self {
-        Self { inner: ArcType::Root }
+        Self {
+            inner: ArcType::Root,
+        }
     }
 
     #[classattr]
     #[pyo3(name = "ArcTypeInherit")]
     fn arc_inherit() -> Self {
-        Self { inner: ArcType::Inherit }
+        Self {
+            inner: ArcType::Inherit,
+        }
     }
 
     #[classattr]
     #[pyo3(name = "ArcTypeVariant")]
     fn arc_variant() -> Self {
-        Self { inner: ArcType::Variant }
+        Self {
+            inner: ArcType::Variant,
+        }
     }
 
     #[classattr]
     #[pyo3(name = "ArcTypeRelocate")]
     fn arc_relocate() -> Self {
-        Self { inner: ArcType::Relocate }
+        Self {
+            inner: ArcType::Relocate,
+        }
     }
 
     #[classattr]
     #[pyo3(name = "ArcTypeReference")]
     fn arc_reference() -> Self {
-        Self { inner: ArcType::Reference }
+        Self {
+            inner: ArcType::Reference,
+        }
     }
 
     #[classattr]
     #[pyo3(name = "ArcTypePayload")]
     fn arc_payload() -> Self {
-        Self { inner: ArcType::Payload }
+        Self {
+            inner: ArcType::Payload,
+        }
     }
 
     #[classattr]
     #[pyo3(name = "ArcTypeSpecialize")]
     fn arc_specialize() -> Self {
-        Self { inner: ArcType::Specialize }
+        Self {
+            inner: ArcType::Specialize,
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -114,7 +126,11 @@ impl PyArcType {
 /// Identifies a layer stack by its root layer, session layer, and context.
 ///
 /// Mirrors `pxr.Pcp.LayerStackIdentifier` / `PcpLayerStackIdentifier`.
-#[pyclass(skip_from_py_object,name = "LayerStackIdentifier", module = "pxr_rs.Pcp")]
+#[pyclass(
+    skip_from_py_object,
+    name = "LayerStackIdentifier",
+    module = "pxr_rs.Pcp"
+)]
 #[derive(Clone)]
 pub struct PyLayerStackIdentifier {
     inner: LayerStackIdentifier,
@@ -149,7 +165,10 @@ impl PyLayerStackIdentifier {
     #[getter]
     #[pyo3(name = "sessionLayer")]
     fn session_layer(&self) -> Option<&str> {
-        self.inner.session_layer.as_ref().map(|p| p.get_authored_path())
+        self.inner
+            .session_layer
+            .as_ref()
+            .map(|p| p.get_authored_path())
     }
 
     /// True if this identifier has a non-empty root layer.
@@ -159,7 +178,10 @@ impl PyLayerStackIdentifier {
     }
 
     fn __repr__(&self) -> String {
-        format!("Pcp.LayerStackIdentifier('{}')", self.inner.root_layer.get_authored_path())
+        format!(
+            "Pcp.LayerStackIdentifier('{}')",
+            self.inner.root_layer.get_authored_path()
+        )
     }
 
     fn __str__(&self) -> String {
@@ -216,7 +238,7 @@ impl PyLayerStackIdentifier {
 /// A site specifies a path in a layer stack of scene description.
 ///
 /// Mirrors `pxr.Pcp.Site` / `PcpSite`.
-#[pyclass(skip_from_py_object,name = "Site", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "Site", module = "pxr_rs.Pcp")]
 #[derive(Clone)]
 pub struct PySite {
     inner: Site,
@@ -253,9 +275,14 @@ impl PySite {
     }
 
     fn __repr__(&self) -> String {
-        format!("Pcp.Site('{}', '{}')",
-            self.inner.layer_stack_identifier.root_layer.get_authored_path(),
-            self.inner.path.as_str())
+        format!(
+            "Pcp.Site('{}', '{}')",
+            self.inner
+                .layer_stack_identifier
+                .root_layer
+                .get_authored_path(),
+            self.inner.path.as_str()
+        )
     }
 
     fn __str__(&self) -> String {
@@ -282,7 +309,7 @@ impl PySite {
 /// Maps values from one namespace (and time domain) to another.
 ///
 /// Mirrors `pxr.Pcp.MapFunction` / `PcpMapFunction`.
-#[pyclass(skip_from_py_object,name = "MapFunction", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "MapFunction", module = "pxr_rs.Pcp")]
 #[derive(Clone)]
 pub struct PyMapFunction {
     inner: MapFunction,
@@ -294,14 +321,18 @@ impl PyMapFunction {
     #[classmethod]
     #[pyo3(name = "Identity")]
     fn identity(_cls: &Bound<'_, pyo3::types::PyType>) -> Self {
-        Self { inner: MapFunction::identity().clone() }
+        Self {
+            inner: MapFunction::identity().clone(),
+        }
     }
 
     /// Return the null (empty) map function.
     #[classmethod]
     #[pyo3(name = "Null")]
     fn null(_cls: &Bound<'_, pyo3::types::PyType>) -> Self {
-        Self { inner: MapFunction::null() }
+        Self {
+            inner: MapFunction::null(),
+        }
     }
 
     /// Map a source path to a target path, returning None if unmappable.
@@ -309,7 +340,10 @@ impl PyMapFunction {
     fn map_source_to_target(&self, path: &str) -> PyResult<Option<String>> {
         let sdf_path = Path::from_string(path)
             .ok_or_else(|| PyValueError::new_err(format!("Invalid path: '{}'", path)))?;
-        Ok(self.inner.map_source_to_target(&sdf_path).map(|p| p.as_str().to_string()))
+        Ok(self
+            .inner
+            .map_source_to_target(&sdf_path)
+            .map(|p| p.as_str().to_string()))
     }
 
     /// Map a target path to a source path, returning None if unmappable.
@@ -317,7 +351,10 @@ impl PyMapFunction {
     fn map_target_to_source(&self, path: &str) -> PyResult<Option<String>> {
         let sdf_path = Path::from_string(path)
             .ok_or_else(|| PyValueError::new_err(format!("Invalid path: '{}'", path)))?;
-        Ok(self.inner.map_target_to_source(&sdf_path).map(|p| p.as_str().to_string()))
+        Ok(self
+            .inner
+            .map_target_to_source(&sdf_path)
+            .map(|p| p.as_str().to_string()))
     }
 
     /// Compose this map function with an inner map function.
@@ -325,7 +362,9 @@ impl PyMapFunction {
     /// Result applies `inner` first, then `self`.
     #[pyo3(name = "Compose")]
     fn compose(&self, inner: &Self) -> Self {
-        Self { inner: self.inner.compose(&inner.inner) }
+        Self {
+            inner: self.inner.compose(&inner.inner),
+        }
     }
 
     /// True if this is an identity map function.
@@ -390,7 +429,7 @@ impl PyMapFunction {
 /// A composed stack of layers contributing opinions.
 ///
 /// Mirrors `pxr.Pcp.LayerStack` / `PcpLayerStack`.
-#[pyclass(skip_from_py_object,name = "LayerStack", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "LayerStack", module = "pxr_rs.Pcp")]
 #[derive(Clone)]
 pub struct PyLayerStack {
     inner: std::sync::Arc<LayerStack>,
@@ -409,7 +448,11 @@ impl PyLayerStack {
     #[getter]
     #[pyo3(name = "layers")]
     fn layers(&self) -> Vec<String> {
-        self.inner.get_layers().iter().map(|l| l.identifier().to_string()).collect()
+        self.inner
+            .get_layers()
+            .iter()
+            .map(|l| l.identifier().to_string())
+            .collect()
     }
 
     /// Muted layer identifiers.
@@ -429,8 +472,10 @@ impl PyLayerStack {
     }
 
     fn __repr__(&self) -> String {
-        format!("Pcp.LayerStack('{}')",
-            self.inner.identifier().root_layer.get_authored_path())
+        format!(
+            "Pcp.LayerStack('{}')",
+            self.inner.identifier().root_layer.get_authored_path()
+        )
     }
 
     fn __str__(&self) -> String {
@@ -451,7 +496,7 @@ impl PyLayerStack {
 /// A reference to a node in the prim index graph.
 ///
 /// Mirrors `pxr.Pcp.NodeRef` / `PcpNodeRef`.
-#[pyclass(skip_from_py_object,name = "NodeRef", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "NodeRef", module = "pxr_rs.Pcp")]
 #[derive(Clone)]
 pub struct PyNodeRef {
     inner: usd_pcp::NodeRef,
@@ -469,7 +514,9 @@ impl PyNodeRef {
     #[getter]
     #[pyo3(name = "arcType")]
     fn arc_type(&self) -> PyArcType {
-        PyArcType { inner: self.inner.arc_type() }
+        PyArcType {
+            inner: self.inner.arc_type(),
+        }
     }
 
     /// The path at this node's site.
@@ -514,13 +561,19 @@ impl PyNodeRef {
     /// The parent node, or an invalid NodeRef if this is root.
     #[getter]
     fn parent(&self) -> Self {
-        Self { inner: self.inner.parent_node() }
+        Self {
+            inner: self.inner.parent_node(),
+        }
     }
 
     /// Direct child nodes of this node.
     #[getter]
     fn children(&self) -> Vec<Self> {
-        self.inner.children().into_iter().map(|n| Self { inner: n }).collect()
+        self.inner
+            .children()
+            .into_iter()
+            .map(|n| Self { inner: n })
+            .collect()
     }
 
     /// Unique identifier for stable node identity within a session.
@@ -530,9 +583,11 @@ impl PyNodeRef {
 
     fn __repr__(&self) -> String {
         if self.inner.is_valid() {
-            format!("Pcp.NodeRef('{}', arcType={})",
+            format!(
+                "Pcp.NodeRef('{}', arcType={})",
                 self.inner.path().as_str(),
-                self.inner.arc_type().display_name())
+                self.inner.arc_type().display_name()
+            )
         } else {
             "Pcp.NodeRef(invalid)".to_string()
         }
@@ -558,7 +613,7 @@ impl PyNodeRef {
 /// An index of all sites of scene description contributing opinions to a prim.
 ///
 /// Mirrors `pxr.Pcp.PrimIndex` / `PcpPrimIndex`.
-#[pyclass(skip_from_py_object,name = "PrimIndex", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "PrimIndex", module = "pxr_rs.Pcp")]
 #[derive(Clone)]
 pub struct PyPrimIndex {
     pub(crate) inner: PrimIndex,
@@ -582,7 +637,9 @@ impl PyPrimIndex {
     #[getter]
     #[pyo3(name = "rootNode")]
     fn root_node(&self) -> PyNodeRef {
-        PyNodeRef { inner: self.inner.root_node() }
+        PyNodeRef {
+            inner: self.inner.root_node(),
+        }
     }
 
     /// The path this index was computed for.
@@ -611,7 +668,8 @@ impl PyPrimIndex {
     #[pyo3(name = "DumpToString")]
     #[pyo3(signature = (include_inherit_origin = true, include_maps = true))]
     fn dump_to_string(&self, include_inherit_origin: bool, include_maps: bool) -> String {
-        self.inner.dump_to_string(include_inherit_origin, include_maps)
+        self.inner
+            .dump_to_string(include_inherit_origin, include_maps)
     }
 
     /// The prim stack as list of (node_index, layer_index) tuples.
@@ -621,7 +679,8 @@ impl PyPrimIndex {
     #[getter]
     #[pyo3(name = "primStack")]
     fn prim_stack(&self) -> Vec<(usize, usize)> {
-        self.inner.prim_stack()
+        self.inner
+            .prim_stack()
             .iter()
             .map(|s| (s.node_index, s.layer_index))
             .collect()
@@ -631,13 +690,19 @@ impl PyPrimIndex {
     #[getter]
     #[pyo3(name = "nodes")]
     fn nodes(&self) -> Vec<PyNodeRef> {
-        self.inner.nodes().into_iter().map(|n| PyNodeRef { inner: n }).collect()
+        self.inner
+            .nodes()
+            .into_iter()
+            .map(|n| PyNodeRef { inner: n })
+            .collect()
     }
 
     fn __repr__(&self) -> String {
-        format!("Pcp.PrimIndex('{}', valid={})",
+        format!(
+            "Pcp.PrimIndex('{}', valid={})",
             self.inner.path().as_str(),
-            self.inner.is_valid())
+            self.inner.is_valid()
+        )
     }
 
     fn __bool__(&self) -> bool {
@@ -652,7 +717,7 @@ impl PyPrimIndex {
 /// Context for making requests of the Pcp composition algorithm.
 ///
 /// Mirrors `pxr.Pcp.Cache` / `PcpCache`.
-#[pyclass(skip_from_py_object,name = "Cache", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "Cache", module = "pxr_rs.Pcp")]
 pub struct PyCache {
     inner: std::sync::Arc<Cache>,
 }
@@ -696,7 +761,10 @@ impl PyCache {
     fn find_prim_index(&self, path: &str) -> PyResult<Option<PyPrimIndex>> {
         let sdf_path = Path::from_string(path)
             .ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: '{}'", path)))?;
-        Ok(self.inner.find_prim_index(&sdf_path).map(|idx| PyPrimIndex { inner: idx }))
+        Ok(self
+            .inner
+            .find_prim_index(&sdf_path)
+            .map(|idx| PyPrimIndex { inner: idx }))
     }
 
     /// Return all layer identifiers used by this cache.
@@ -712,16 +780,23 @@ impl PyCache {
     #[pyo3(name = "RequestPayloads")]
     #[pyo3(signature = (include, exclude))]
     fn request_payloads(&self, include: Vec<String>, exclude: Vec<String>) -> PyResult<()> {
-        let include_paths: Vec<Path> = include.iter()
-            .map(|p| Path::from_string(p)
-                .ok_or_else(|| PyValueError::new_err(format!("Invalid include path: '{}'", p))))
+        let include_paths: Vec<Path> = include
+            .iter()
+            .map(|p| {
+                Path::from_string(p)
+                    .ok_or_else(|| PyValueError::new_err(format!("Invalid include path: '{}'", p)))
+            })
             .collect::<PyResult<Vec<_>>>()?;
-        let exclude_paths: Vec<Path> = exclude.iter()
-            .map(|p| Path::from_string(p)
-                .ok_or_else(|| PyValueError::new_err(format!("Invalid exclude path: '{}'", p))))
+        let exclude_paths: Vec<Path> = exclude
+            .iter()
+            .map(|p| {
+                Path::from_string(p)
+                    .ok_or_else(|| PyValueError::new_err(format!("Invalid exclude path: '{}'", p)))
+            })
             .collect::<PyResult<Vec<_>>>()?;
         // None = apply changes immediately (no external CacheChanges tracking).
-        self.inner.request_payloads(&include_paths, &exclude_paths, None);
+        self.inner
+            .request_payloads(&include_paths, &exclude_paths, None);
         Ok(())
     }
 
@@ -733,7 +808,8 @@ impl PyCache {
     #[pyo3(signature = (mute, unmute))]
     fn request_layer_muting(&self, mute: Vec<String>, unmute: Vec<String>) {
         // None for all optional args: apply changes immediately, discard newly muted/unmuted lists.
-        self.inner.request_layer_muting(&mute, &unmute, None, None, None);
+        self.inner
+            .request_layer_muting(&mute, &unmute, None, None, None);
     }
 
     /// Return true if the payload for the given path is included.
@@ -752,8 +828,13 @@ impl PyCache {
     }
 
     fn __repr__(&self) -> String {
-        format!("Pcp.Cache('{}')",
-            self.inner.layer_stack_identifier().root_layer.get_authored_path())
+        format!(
+            "Pcp.Cache('{}')",
+            self.inner
+                .layer_stack_identifier()
+                .root_layer
+                .get_authored_path()
+        )
     }
 }
 
@@ -764,7 +845,7 @@ impl PyCache {
 /// Base class for all PCP errors.
 ///
 /// Mirrors `pxr.Pcp.Error` / `PcpError`.
-#[pyclass(skip_from_py_object,name = "Error", module = "pxr_rs.Pcp", subclass)]
+#[pyclass(skip_from_py_object, name = "Error", module = "pxr_rs.Pcp", subclass)]
 pub struct PyPcpError {
     pub message: String,
     pub error_type: String,
@@ -810,7 +891,7 @@ impl PyPcpError {
 /// Records the dependency of a prim index on a site.
 ///
 /// Mirrors `pxr.Pcp.Dependency` / `PcpDependency`.
-#[pyclass(skip_from_py_object,name = "Dependency", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "Dependency", module = "pxr_rs.Pcp")]
 #[derive(Clone)]
 pub struct PyDependency {
     index_path: String,
@@ -825,7 +906,9 @@ impl PyDependency {
         Self {
             index_path: index_path.to_string(),
             site_path: site_path.to_string(),
-            map_func: PyMapFunction { inner: MapFunction::null() },
+            map_func: PyMapFunction {
+                inner: MapFunction::null(),
+            },
         }
     }
 
@@ -851,8 +934,10 @@ impl PyDependency {
     }
 
     fn __repr__(&self) -> String {
-        format!("Pcp.Dependency(indexPath='{}', sitePath='{}')",
-            self.index_path, self.site_path)
+        format!(
+            "Pcp.Dependency(indexPath='{}', sitePath='{}')",
+            self.index_path, self.site_path
+        )
     }
 }
 
@@ -881,25 +966,84 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDependency>()?;
 
     // Module-level ArcType constants (matches pxr.Pcp.ArcTypeRoot, etc.)
-    m.add("ArcTypeRoot", PyArcType { inner: ArcType::Root })?;
-    m.add("ArcTypeInherit", PyArcType { inner: ArcType::Inherit })?;
-    m.add("ArcTypeVariant", PyArcType { inner: ArcType::Variant })?;
-    m.add("ArcTypeRelocate", PyArcType { inner: ArcType::Relocate })?;
-    m.add("ArcTypeReference", PyArcType { inner: ArcType::Reference })?;
-    m.add("ArcTypePayload", PyArcType { inner: ArcType::Payload })?;
-    m.add("ArcTypeSpecialize", PyArcType { inner: ArcType::Specialize })?;
+    m.add(
+        "ArcTypeRoot",
+        PyArcType {
+            inner: ArcType::Root,
+        },
+    )?;
+    m.add(
+        "ArcTypeInherit",
+        PyArcType {
+            inner: ArcType::Inherit,
+        },
+    )?;
+    m.add(
+        "ArcTypeVariant",
+        PyArcType {
+            inner: ArcType::Variant,
+        },
+    )?;
+    m.add(
+        "ArcTypeRelocate",
+        PyArcType {
+            inner: ArcType::Relocate,
+        },
+    )?;
+    m.add(
+        "ArcTypeReference",
+        PyArcType {
+            inner: ArcType::Reference,
+        },
+    )?;
+    m.add(
+        "ArcTypePayload",
+        PyArcType {
+            inner: ArcType::Payload,
+        },
+    )?;
+    m.add(
+        "ArcTypeSpecialize",
+        PyArcType {
+            inner: ArcType::Specialize,
+        },
+    )?;
 
     // Module-level DependencyType constants (matches pxr.Pcp.DependencyType*, bitmask ints)
     m.add("DependencyTypeNone", usd_pcp::DependencyType::NONE.bits())?;
     m.add("DependencyTypeRoot", usd_pcp::DependencyType::ROOT.bits())?;
-    m.add("DependencyTypePurelyDirect", usd_pcp::DependencyType::PURELY_DIRECT.bits())?;
-    m.add("DependencyTypePartlyDirect", usd_pcp::DependencyType::PARTLY_DIRECT.bits())?;
-    m.add("DependencyTypeDirect", usd_pcp::DependencyType::DIRECT.bits())?;
-    m.add("DependencyTypeAncestral", usd_pcp::DependencyType::ANCESTRAL.bits())?;
-    m.add("DependencyTypeVirtual", usd_pcp::DependencyType::VIRTUAL.bits())?;
-    m.add("DependencyTypeNonVirtual", usd_pcp::DependencyType::NON_VIRTUAL.bits())?;
-    m.add("DependencyTypeAnyNonVirtual", usd_pcp::DependencyType::ANY_NON_VIRTUAL.bits())?;
-    m.add("DependencyTypeAnyIncludingVirtual", usd_pcp::DependencyType::ANY_INCLUDING_VIRTUAL.bits())?;
+    m.add(
+        "DependencyTypePurelyDirect",
+        usd_pcp::DependencyType::PURELY_DIRECT.bits(),
+    )?;
+    m.add(
+        "DependencyTypePartlyDirect",
+        usd_pcp::DependencyType::PARTLY_DIRECT.bits(),
+    )?;
+    m.add(
+        "DependencyTypeDirect",
+        usd_pcp::DependencyType::DIRECT.bits(),
+    )?;
+    m.add(
+        "DependencyTypeAncestral",
+        usd_pcp::DependencyType::ANCESTRAL.bits(),
+    )?;
+    m.add(
+        "DependencyTypeVirtual",
+        usd_pcp::DependencyType::VIRTUAL.bits(),
+    )?;
+    m.add(
+        "DependencyTypeNonVirtual",
+        usd_pcp::DependencyType::NON_VIRTUAL.bits(),
+    )?;
+    m.add(
+        "DependencyTypeAnyNonVirtual",
+        usd_pcp::DependencyType::ANY_NON_VIRTUAL.bits(),
+    )?;
+    m.add(
+        "DependencyTypeAnyIncludingVirtual",
+        usd_pcp::DependencyType::ANY_INCLUDING_VIRTUAL.bits(),
+    )?;
 
     Ok(())
 }

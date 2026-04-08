@@ -39,25 +39,25 @@ use usd_hgi_wgpu::HgiWgpu;
 use usd_tf::Token;
 use usd_vt::Value;
 
-use crate::scene_indices::{
-    UsdImagingCreateSceneIndicesInfo, UsdImagingSceneIndices, create_scene_indices,
-};
 use crate::data_source_prim::{
     read_debug_data_source_prim_xform_stats, reset_debug_data_source_prim_xform_stats,
 };
+use crate::scene_indices::{
+    UsdImagingCreateSceneIndicesInfo, UsdImagingSceneIndices, create_scene_indices,
+};
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_core::attribute_query::{
     read_debug_attribute_query_stats, reset_debug_attribute_query_stats,
 };
 use usd_core::{Prim, TimeCode};
 use usd_geom::xformable::{read_debug_xformable_stats, reset_debug_xformable_stats};
 
-use usd_hd::enums::{HdBlendFactor, HdBlendOp, HdCompareFunction, HdCullStyle};
 use usd_hd::change_tracker::HdRprimDirtyBits;
-use usd_hd::render::{HdEngine, HdRenderIndex, HdRenderPass, HdRprimCollection};
+use usd_hd::enums::{HdBlendFactor, HdBlendOp, HdCompareFunction, HdCullStyle};
 use usd_hd::render::render_delegate::HdRenderDelegate;
+use usd_hd::render::{HdEngine, HdRenderIndex, HdRenderPass, HdRprimCollection};
 use usd_hd_st::draw_item::{HdStDrawItem, HdStDrawItemSharedPtr};
 use usd_hd_st::light::HdStLight;
 use usd_hd_st::lighting;
@@ -67,15 +67,15 @@ use usd_hd_st::render_pass_state::{
     DepthFunc, HdStAovBinding, HdStPolygonRasterMode, HdStRenderPassState,
 };
 use usd_hd_st::shadow;
-use usd_hdx::{
-    AovVisMode, HdxAovInputTaskRequest, HdxBoundingBoxTaskParams, HdxColorCorrectionTaskParams,
-    HdxColorCorrectionTaskRequest, HdxColorizeSelectionTaskRequest, HdxPresentTaskRequest,
-    HdxRenderTaskParams, HdxRenderTaskRequest, HdxShadowTaskParams,
-    HdxTaskController, HdxVisualizeAovTaskRequest, SelectionTrackerExt, color_correction_tokens,
-};
 use usd_hdx::render_setup_task::{
     CameraUtilConformWindowPolicy as HdxCameraUtilConformWindowPolicy,
     CameraUtilFraming as HdxCameraUtilFraming,
+};
+use usd_hdx::{
+    AovVisMode, HdxAovInputTaskRequest, HdxBoundingBoxTaskParams, HdxColorCorrectionTaskParams,
+    HdxColorCorrectionTaskRequest, HdxColorizeSelectionTaskRequest, HdxPresentTaskRequest,
+    HdxRenderTaskParams, HdxRenderTaskRequest, HdxShadowTaskParams, HdxTaskController,
+    HdxVisualizeAovTaskRequest, SelectionTrackerExt, color_correction_tokens,
 };
 use usd_sdf::Path;
 use vfx_ocio::{GpuLanguage, GpuProcessor, GpuTextureType, Processor};
@@ -681,7 +681,10 @@ impl OcioGpuPass {
             settings.display.clone()
         };
         let view = if settings.view.is_empty() {
-            config.default_view(&display).map(str::to_owned).unwrap_or_default()
+            config
+                .default_view(&display)
+                .map(str::to_owned)
+                .unwrap_or_default()
         } else {
             settings.view.clone()
         };
@@ -1550,10 +1553,8 @@ impl Engine {
         let mut render_pass_state = HdStRenderPassState::new();
         // Engine color RT is Float16Vec4; set fallback so the render pass
         // descriptor matches even when no explicit AOV bindings are set.
-        render_pass_state.set_fallback_attachment_formats(
-            HgiFormat::Float16Vec4,
-            HgiFormat::Float32,
-        );
+        render_pass_state
+            .set_fallback_attachment_formats(HgiFormat::Float16Vec4, HgiFormat::Float32);
         let gpu_enabled = params.gpu_enabled;
 
         Self {
@@ -2124,7 +2125,8 @@ impl Engine {
 
     fn sync_task_controller_state(&mut self, params: &RenderParams) {
         if self.task_controller.is_none() {
-            let mut controller = HdxTaskController::new(self.task_controller_id(), self.gpu_enabled);
+            let mut controller =
+                HdxTaskController::new(self.task_controller_id(), self.gpu_enabled);
             controller.set_is_storm_backend(true);
             controller.set_enable_presentation(self.enable_presentation);
 
@@ -2134,7 +2136,10 @@ impl Engine {
                     for (path, task) in controller.get_all_tasks() {
                         index_guard.insert_task(None, &path, task);
                     }
-                    log::info!("[engine] registered {} HDX tasks in render index", index_guard.get_task_count());
+                    log::info!(
+                        "[engine] registered {} HDX tasks in render index",
+                        index_guard.get_task_count()
+                    );
                 }
             }
 
@@ -2144,8 +2149,7 @@ impl Engine {
         let render_buffer_size = self.render_buffer_size.clone();
         let current_aov = self.current_aov.clone();
         let framing = Self::to_hdx_framing(&self.framing);
-        let override_window_policy =
-            self.override_window_policy.map(Self::to_hdx_window_policy);
+        let override_window_policy = self.override_window_policy.map(Self::to_hdx_window_policy);
         let camera_path = self.camera_path.clone();
         let view_matrix = self.view_matrix.clone();
         let projection_matrix = self.projection_matrix.clone();
@@ -2198,15 +2202,14 @@ impl Engine {
         } else {
             params.color_correction_mode.as_str()
         };
-        color_params.color_correction_mode = if effective_color_mode
-            == color_correction_tokens::opencolorio().as_str()
-        {
-            color_correction_tokens::opencolorio()
-        } else if effective_color_mode == color_correction_tokens::srgb().as_str() {
-            color_correction_tokens::srgb()
-        } else {
-            color_correction_tokens::disabled()
-        };
+        color_params.color_correction_mode =
+            if effective_color_mode == color_correction_tokens::opencolorio().as_str() {
+                color_correction_tokens::opencolorio()
+            } else if effective_color_mode == color_correction_tokens::srgb().as_str() {
+                color_correction_tokens::srgb()
+            } else {
+                color_correction_tokens::disabled()
+            };
         color_params.display_ocio = if params.ocio_display.is_empty() {
             self.ocio_settings.display.clone()
         } else {
@@ -2284,7 +2287,12 @@ impl Engine {
             self.hd_engine
                 .remove_task_context_data(&Token::new(&format!("aov_{}", aov_name)));
         }
-        for aov_name in self.wgpu_aux_aov_textures.keys().cloned().collect::<Vec<_>>() {
+        for aov_name in self
+            .wgpu_aux_aov_textures
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>()
+        {
             self.hd_engine
                 .remove_task_context_data(&Token::new(&format!("aov_{}", aov_name)));
         }
@@ -2297,7 +2305,10 @@ impl Engine {
             .projection_matrix
             .inverse()
             .unwrap_or_else(Matrix4d::identity);
-        let view_to_world = self.view_matrix.inverse().unwrap_or_else(Matrix4d::identity);
+        let view_to_world = self
+            .view_matrix
+            .inverse()
+            .unwrap_or_else(Matrix4d::identity);
         self.hd_engine
             .set_task_context_data(Token::new("invProjMatrix"), Value::from_no_hash(inv_proj));
         self.hd_engine.set_task_context_data(
@@ -2318,8 +2329,10 @@ impl Engine {
         }
 
         if self.dome_light_enabled {
-            self.hd_engine
-                .set_task_context_data(Token::new("domeLightTransformInv"), Value::from_no_hash(self.get_dome_light_inv_transform()));
+            self.hd_engine.set_task_context_data(
+                Token::new("domeLightTransformInv"),
+                Value::from_no_hash(self.get_dome_light_inv_transform()),
+            );
             self.hd_engine
                 .set_task_context_data(Token::new("skydomeTexture"), Value::from(true));
         } else {
@@ -2328,7 +2341,6 @@ impl Engine {
             self.hd_engine
                 .remove_task_context_data(&Token::new("skydomeTexture"));
         }
-
     }
 
     fn aux_aov_format(aov_name: &str) -> HgiFormat {
@@ -2378,7 +2390,10 @@ impl Engine {
         }
     }
 
-    fn aov_clear_value(binding: &usd_hdx::render_setup_task::HdRenderPassAovBinding, format: HgiFormat) -> Vec4f {
+    fn aov_clear_value(
+        binding: &usd_hdx::render_setup_task::HdRenderPassAovBinding,
+        format: HgiFormat,
+    ) -> Vec4f {
         match format {
             HgiFormat::Float32 => Vec4f::new(
                 binding.clear_value.get::<f32>().copied().unwrap_or(1.0),
@@ -2412,7 +2427,10 @@ impl Engine {
             "color" => (self.wgpu_color_texture.clone()?, HgiFormat::Float16Vec4),
             "depth" => (self.wgpu_depth_texture.clone()?, HgiFormat::Float32),
             "primId" => (self.wgpu_prim_id_texture.clone()?, HgiFormat::UNorm8Vec4),
-            "instanceId" => (self.wgpu_instance_id_texture.clone()?, HgiFormat::UNorm8Vec4),
+            "instanceId" => (
+                self.wgpu_instance_id_texture.clone()?,
+                HgiFormat::UNorm8Vec4,
+            ),
             "elementId" => (self.wgpu_element_id_texture.clone()?, HgiFormat::UNorm8Vec4),
             _ => self.ensure_aux_aov_texture(binding.aov_name.as_str())?,
         };
@@ -2428,10 +2446,8 @@ impl Engine {
     fn publish_engine_aov_aliases(&mut self, active_aov_name: &Token, include_depth: bool) {
         if active_aov_name.as_str() == "color" {
             if let Some(color_texture) = self.wgpu_color_texture.clone() {
-                self.hd_engine.set_task_context_data(
-                    Token::new("aov_color"),
-                    Value::new(color_texture),
-                );
+                self.hd_engine
+                    .set_task_context_data(Token::new("aov_color"), Value::new(color_texture));
             }
         } else {
             self.hd_engine
@@ -2443,27 +2459,24 @@ impl Engine {
                     Token::new("aov_depth"),
                     Value::new(depth_texture.clone()),
                 );
-                self.hd_engine.set_task_context_data(
-                    Token::new("depth"),
-                    Value::new(depth_texture.clone()),
-                );
+                self.hd_engine
+                    .set_task_context_data(Token::new("depth"), Value::new(depth_texture.clone()));
                 self.hd_engine.set_task_context_data(
                     Token::new("depthIntermediate"),
                     Value::new(depth_texture),
                 );
             }
         } else {
-            self.hd_engine.remove_task_context_data(&Token::new("depth"));
+            self.hd_engine
+                .remove_task_context_data(&Token::new("depth"));
             self.hd_engine
                 .remove_task_context_data(&Token::new("aov_depth"));
             self.hd_engine
                 .remove_task_context_data(&Token::new("depthIntermediate"));
         }
         if let Some(prim_id_texture) = self.wgpu_prim_id_texture.clone() {
-            self.hd_engine.set_task_context_data(
-                Token::new("aov_primId"),
-                Value::new(prim_id_texture),
-            );
+            self.hd_engine
+                .set_task_context_data(Token::new("aov_primId"), Value::new(prim_id_texture));
         } else {
             self.hd_engine
                 .remove_task_context_data(&Token::new("aov_primId"));
@@ -2478,18 +2491,18 @@ impl Engine {
                 .remove_task_context_data(&Token::new("aov_instanceId"));
         }
         if let Some(element_id_texture) = self.wgpu_element_id_texture.clone() {
-            self.hd_engine.set_task_context_data(
-                Token::new("aov_elementId"),
-                Value::new(element_id_texture),
-            );
+            self.hd_engine
+                .set_task_context_data(Token::new("aov_elementId"), Value::new(element_id_texture));
         } else {
             self.hd_engine
                 .remove_task_context_data(&Token::new("aov_elementId"));
         }
         for name in ["edgeId", "pointId", "Neye"] {
             if let Some(texture) = self.engine_aov_texture(name) {
-                self.hd_engine
-                    .set_task_context_data(Token::new(&format!("aov_{}", name)), Value::new(texture));
+                self.hd_engine.set_task_context_data(
+                    Token::new(&format!("aov_{}", name)),
+                    Value::new(texture),
+                );
             } else {
                 self.hd_engine
                     .remove_task_context_data(&Token::new(&format!("aov_{}", name)));
@@ -2498,7 +2511,14 @@ impl Engine {
 
         if !matches!(
             active_aov_name.as_str(),
-            "color" | "depth" | "primId" | "instanceId" | "elementId" | "edgeId" | "pointId" | "Neye"
+            "color"
+                | "depth"
+                | "primId"
+                | "instanceId"
+                | "elementId"
+                | "edgeId"
+                | "pointId"
+                | "Neye"
         ) {
             if let Some(active_texture) = self.engine_aov_texture(active_aov_name.as_str()) {
                 self.hd_engine.set_task_context_data(
@@ -2506,23 +2526,26 @@ impl Engine {
                     Value::new(active_texture),
                 );
             } else {
-                self.hd_engine.remove_task_context_data(&Token::new(&format!(
-                    "aov_{}",
-                    active_aov_name.as_str()
-                )));
+                self.hd_engine
+                    .remove_task_context_data(&Token::new(&format!(
+                        "aov_{}",
+                        active_aov_name.as_str()
+                    )));
             }
         }
     }
 
     fn publish_active_aov_source_to_task_context(&mut self, active_aov_name: &Token) {
         let Some(active_texture) = self.engine_aov_texture(active_aov_name.as_str()) else {
-            self.hd_engine.remove_task_context_data(&Token::new("color"));
+            self.hd_engine
+                .remove_task_context_data(&Token::new("color"));
             self.hd_engine
                 .remove_task_context_data(&Token::new("colorIntermediate"));
-            self.hd_engine.remove_task_context_data(&Token::new(&format!(
-                "aov_{}",
-                active_aov_name.as_str()
-            )));
+            self.hd_engine
+                .remove_task_context_data(&Token::new(&format!(
+                    "aov_{}",
+                    active_aov_name.as_str()
+                )));
             return;
         };
         self.hd_engine
@@ -2531,10 +2554,8 @@ impl Engine {
             .wgpu_post_color_texture
             .clone()
             .unwrap_or_else(|| active_texture.clone());
-        self.hd_engine.set_task_context_data(
-            Token::new("colorIntermediate"),
-            Value::new(intermediate),
-        );
+        self.hd_engine
+            .set_task_context_data(Token::new("colorIntermediate"), Value::new(intermediate));
         self.hd_engine.set_task_context_data(
             Token::new(&format!("aov_{}", active_aov_name.as_str())),
             Value::new(active_texture),
@@ -2552,15 +2573,11 @@ impl Engine {
             .wgpu_post_color_texture
             .clone()
             .unwrap_or_else(|| display_texture.clone());
-        self.hd_engine.set_task_context_data(
-            Token::new("colorIntermediate"),
-            Value::new(intermediate),
-        );
+        self.hd_engine
+            .set_task_context_data(Token::new("colorIntermediate"), Value::new(intermediate));
         if active_aov_name.as_str() == "color" {
-            self.hd_engine.set_task_context_data(
-                Token::new("aov_color"),
-                Value::new(display_texture),
-            );
+            self.hd_engine
+                .set_task_context_data(Token::new("aov_color"), Value::new(display_texture));
         }
     }
 
@@ -2585,38 +2602,37 @@ impl Engine {
             return;
         }
 
-        let bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("engine_srgb_post_layout"),
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("engine_srgb_post_layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
                     },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::StorageTexture {
-                            access: wgpu::StorageTextureAccess::WriteOnly,
-                            format: wgpu::TextureFormat::Rgba16Float,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                        },
-                        count: None,
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::StorageTexture {
+                        access: wgpu::StorageTextureAccess::WriteOnly,
+                        format: wgpu::TextureFormat::Rgba16Float,
+                        view_dimension: wgpu::TextureViewDimension::D2,
                     },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            });
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("engine_srgb_post_shader"),
             source: wgpu::ShaderSource::Wgsl(ENGINE_SRGB_POST_SHADER.into()),
@@ -2716,10 +2732,7 @@ impl Engine {
         true
     }
 
-    fn apply_ocio_color_correction(
-        &mut self,
-        request: &HdxColorCorrectionTaskRequest,
-    ) -> bool {
+    fn apply_ocio_color_correction(&mut self, request: &HdxColorCorrectionTaskRequest) -> bool {
         let Some(hgi_arc) = self.wgpu_hgi.clone() else {
             return false;
         };
@@ -2755,9 +2768,9 @@ impl Engine {
         {
             return false;
         }
-        let applied = self
-            .ocio_post_pass
-            .execute(device, queue, input_view, output_view, width, height);
+        let applied =
+            self.ocio_post_pass
+                .execute(device, queue, input_view, output_view, width, height);
         drop(hgi);
         if applied {
             self.swap_post_fx_color_targets(&request.aov_name);
@@ -2912,16 +2925,18 @@ impl Engine {
             label: Some("engine_visualize_aov_depth_shader"),
             source: wgpu::ShaderSource::Wgsl(ENGINE_VISUALIZE_AOV_DEPTH_POST_SHADER.into()),
         });
-        let color_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("engine_visualize_aov_color_pipeline_layout"),
-            bind_group_layouts: &[&color_layout],
-            push_constant_ranges: &[],
-        });
-        let depth_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("engine_visualize_aov_depth_pipeline_layout"),
-            bind_group_layouts: &[&depth_layout],
-            push_constant_ranges: &[],
-        });
+        let color_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("engine_visualize_aov_color_pipeline_layout"),
+                bind_group_layouts: &[&color_layout],
+                push_constant_ranges: &[],
+            });
+        let depth_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("engine_visualize_aov_depth_pipeline_layout"),
+                bind_group_layouts: &[&depth_layout],
+                push_constant_ranges: &[],
+            });
         let color_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some("engine_visualize_aov_color_pipeline"),
             layout: Some(&color_pipeline_layout),
@@ -3279,7 +3294,8 @@ impl Engine {
         let Some(prim_id_view) = usd_hgi_wgpu::resolve_texture_view(&prim_id_texture) else {
             return false;
         };
-        let Some(instance_id_view) = usd_hgi_wgpu::resolve_texture_view(&instance_id_texture) else {
+        let Some(instance_id_view) = usd_hgi_wgpu::resolve_texture_view(&instance_id_texture)
+        else {
             return false;
         };
         let Some(element_id_view) = usd_hgi_wgpu::resolve_texture_view(&element_id_texture) else {
@@ -3431,14 +3447,16 @@ impl Engine {
                     }
                 }
                 "colorCorrection" => {
-                    if let Some(request) = color_correction_task_requests.get(color_correction_index)
+                    if let Some(request) =
+                        color_correction_task_requests.get(color_correction_index)
                     {
                         let applied = if request.aov_name == "color"
                             && request.color_correction_mode == color_correction_tokens::srgb()
                         {
                             self.apply_srgb_color_correction(&request.aov_name)
                         } else if request.aov_name == "color"
-                            && request.color_correction_mode == color_correction_tokens::opencolorio()
+                            && request.color_correction_mode
+                                == color_correction_tokens::opencolorio()
                         {
                             self.apply_ocio_color_correction(request)
                         } else {
@@ -3500,8 +3518,12 @@ impl Engine {
         // Only override viewport if HDX state has meaningful dimensions.
         // Default (0,0,1,1) from uninitialized task state would clobber engine viewport.
         if viewport.z > 1.0 && viewport.w > 1.0 {
-            self.render_pass_state
-                .set_viewport(viewport.x as f32, viewport.y as f32, viewport.z as f32, viewport.w as f32);
+            self.render_pass_state.set_viewport(
+                viewport.x as f32,
+                viewport.y as f32,
+                viewport.z as f32,
+                viewport.w as f32,
+            );
         }
 
         if let Some(view_matrix) = state.get_view_matrix() {
@@ -3517,14 +3539,8 @@ impl Engine {
             .set_depth_write_enabled(state.get_depth_mask_enabled());
         self.render_pass_state
             .set_blend_enabled(state.get_blend_enabled());
-        let (
-            color_op,
-            color_src,
-            color_dst,
-            alpha_op,
-            alpha_src,
-            alpha_dst,
-        ) = state.get_blend_state();
+        let (color_op, color_src, color_dst, alpha_op, alpha_src, alpha_dst) =
+            state.get_blend_state();
         self.render_pass_state.set_blend(
             Self::from_hdx_blend_op(color_op),
             Self::from_hdx_blend_factor(color_src),
@@ -3582,8 +3598,11 @@ impl Engine {
         // Selection highlight follows the HdxSelectionTask -> HdxColorizeSelectionTask
         // post-FX path. Keeping the legacy in-pass highlight here causes a
         // double-application once deferred colorizeSelection is replayed.
-        self.render_pass_state
-            .set_selection_highlight(false, self.selection_color, std::iter::empty());
+        self.render_pass_state.set_selection_highlight(
+            false,
+            self.selection_color,
+            std::iter::empty(),
+        );
 
         // Pass default material ambient/specular from UI to draw batches
         self.render_pass_state
@@ -3649,7 +3668,9 @@ impl Engine {
                 requested_paths.sort();
                 requested_paths
             };
-            if render_pass.get_rprim_collection().get_root_paths() != requested_root_paths.as_slice() {
+            if render_pass.get_rprim_collection().get_root_paths()
+                != requested_root_paths.as_slice()
+            {
                 let mut collection = render_pass.get_rprim_collection().clone();
                 collection.set_root_paths(requested_root_paths);
                 render_pass.set_rprim_collection(collection);
@@ -3807,11 +3828,18 @@ impl Engine {
                         }
                         self.sync_render_index_state();
                         refreshed_hydra_state = true;
-                        log::debug!("[PERF]   sync_render_index_state: {:?}", bookkeep_t0.elapsed());
+                        log::debug!(
+                            "[PERF]   sync_render_index_state: {:?}",
+                            bookkeep_t0.elapsed()
+                        );
                     } else if !dirty_xform_paths.is_empty() {
                         self.update_dirty_transforms(&dirty_xform_paths);
                         refreshed_hydra_transforms_only = true;
-                        log::debug!("[PERF]   update_dirty_transforms: {:?} (dirty={})", bookkeep_t0.elapsed(), dirty_xform_paths.len());
+                        log::debug!(
+                            "[PERF]   update_dirty_transforms: {:?} (dirty={})",
+                            bookkeep_t0.elapsed(),
+                            dirty_xform_paths.len()
+                        );
                     }
                     self.viewer_bookkeeping_pending = false;
                 }
@@ -3854,9 +3882,16 @@ impl Engine {
                     }
                     self.last_storm_item_paths = storm_paths;
                     self.draw_items_dirty = false;
-                    log::debug!("[PERF]   draw_items_refresh: {:?} (cast+set)", cast_t0.elapsed());
+                    log::debug!(
+                        "[PERF]   draw_items_refresh: {:?} (cast+set)",
+                        cast_t0.elapsed()
+                    );
                 }
-                log::debug!("[PERF]   draw_items_check: needed={} total={:?}", draw_items_refresh_needed, di_check_t0.elapsed());
+                log::debug!(
+                    "[PERF]   draw_items_check: needed={} total={:?}",
+                    draw_items_refresh_needed,
+                    di_check_t0.elapsed()
+                );
             } else {
                 log::warn!("[engine] render_batch: no render_pass");
             }
@@ -3869,7 +3904,9 @@ impl Engine {
             self.collect_dome_light_ibl();
             self.ibl_dirty = false;
         } else if refreshed_hydra_transforms_only {
-            log::trace!("[engine] render_batch: refreshed transform caches without structural relight");
+            log::trace!(
+                "[engine] render_batch: refreshed transform caches without structural relight"
+            );
         } else if self.ibl_dirty {
             // HDRI path or dome_light_enabled changed from UI — reload IBL only.
             self.collect_dome_light_ibl();
@@ -3927,7 +3964,8 @@ impl Engine {
             .get_task_context_data(&Token::new("renderTaskRequested"))
             .and_then(|value| value.get::<bool>().copied())
             .unwrap_or(false);
-        let render_requested = legacy_render_requested || !render_task_requests.is_empty() || self.render_needs_update;
+        let render_requested =
+            legacy_render_requested || !render_task_requests.is_empty() || self.render_needs_update;
         self.render_needs_update = false;
 
         // -- wgpu path: render via HGI --
@@ -3988,10 +4026,7 @@ impl Engine {
                                 .render_pass
                                 .as_ref()
                                 .map(|render_pass| render_pass.get_rprim_collection().clone());
-                            let st_reg = self
-                                .render_delegate
-                                .read()
-                                .get_st_resource_registry();
+                            let st_reg = self.render_delegate.read().get_st_resource_registry();
                             let mut hgi = hgi_arc.write();
 
                             if render_task_requests.is_empty() {
@@ -4007,11 +4042,15 @@ impl Engine {
                                         Some(&self.rprim_ids_by_path),
                                         WgpuSubmitWait::NoWait,
                                     );
-                                    log::debug!("[PERF]   execute_with_hgi: {:?}", exec_t0.elapsed());
+                                    log::debug!(
+                                        "[PERF]   execute_with_hgi: {:?}",
+                                        exec_t0.elapsed()
+                                    );
                                     rendered_any_backend = true;
                                 }
                             } else {
-                                for (request_index, request) in render_task_requests.iter().enumerate()
+                                for (request_index, request) in
+                                    render_task_requests.iter().enumerate()
                                 {
                                     self.apply_hdx_render_task_request_state(request);
                                     if skydome_rendered || request_index > 0 {
@@ -4060,8 +4099,6 @@ impl Engine {
                                     render_pass.set_rprim_collection(collection);
                                 }
                             }
-
-
                         }
                     }
 
@@ -4075,7 +4112,6 @@ impl Engine {
                     self.render_pass_state = base_render_pass_state;
                 }
             }
-
         }
 
         self.replay_deferred_post_tasks(
@@ -4725,9 +4761,7 @@ impl Engine {
             usd_hd::scene_index::HdNoticeBatchingSceneIndex::flush_unlocked(
                 &scene_indices.notice_batching_typed,
             );
-            scene_indices
-                .stage_scene_index
-                .set_time(time, false);
+            scene_indices.stage_scene_index.set_time(time, false);
 
             // C++ _PostSetTime: flush notices generated by SetTime
             usd_hd::scene_index::HdNoticeBatchingSceneIndex::flush_unlocked(
@@ -5257,18 +5291,18 @@ impl Engine {
 
     /// Writes the current framebuffer to an image file.
     pub fn write_to_file(&self, filename: &str) -> bool {
-        crate::app_utils::frame_recorder::write_frame_from_engine(self, std::path::Path::new(filename))
-            .is_ok()
+        crate::app_utils::frame_recorder::write_frame_from_engine(
+            self,
+            std::path::Path::new(filename),
+        )
+        .is_ok()
     }
 
     /// Read rendered pixels as RGBA u8 vec. Backend-agnostic.
     pub fn read_render_pixels(&self) -> Option<Vec<u8>> {
         if let (Some(hgi_arc), Some(color_tex)) = (&self.wgpu_hgi, &self.wgpu_color_texture) {
             log::trace!("[engine] readback via wgpu blit");
-            return self.readback_wgpu_texture(
-                &mut *hgi_arc.write(),
-                color_tex,
-            );
+            return self.readback_wgpu_texture(&mut *hgi_arc.write(), color_tex);
         }
 
         log::trace!("[engine] read_render_pixels: no backend available");
@@ -5282,10 +5316,7 @@ impl Engine {
     pub fn read_render_pixels_linear_rgba32f(&self) -> Option<Vec<f32>> {
         if let (Some(hgi_arc), Some(color_tex)) = (&self.wgpu_hgi, &self.wgpu_color_texture) {
             log::trace!("[engine] linear readback via wgpu blit");
-            return self.readback_wgpu_texture_linear_rgba32f(
-                &mut *hgi_arc.write(),
-                color_tex,
-            );
+            return self.readback_wgpu_texture_linear_rgba32f(&mut *hgi_arc.write(), color_tex);
         }
 
         self.read_render_pixels()
@@ -5346,10 +5377,7 @@ impl Engine {
 
     /// C++ UsdImagingGLEngine::GetRendererSetting
     pub fn get_renderer_setting(&self, id: &Token) -> usd_vt::Value {
-        self.renderer_settings
-            .get(id)
-            .cloned()
-            .unwrap_or_default()
+        self.renderer_settings.get(id).cloned().unwrap_or_default()
     }
 
     /// C++ UsdImagingGLEngine::SetRendererSetting
@@ -5625,18 +5653,15 @@ impl Engine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
     use std::sync::Arc;
     use usd_core::{Stage, common::InitialLoadSet};
     use usd_sdf::Layer;
 
-    fn open_reference_stage(relative_path: &str) -> Arc<Stage> {
-        let fixture_path: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(relative_path);
-        Stage::open(
-            fixture_path.to_str().expect("fixture path utf8"),
-            InitialLoadSet::LoadAll,
-        )
-        .expect("open reference stage")
+    fn open_reference_stage(relative_under_usd_imaging_testenv: &str) -> Arc<Stage> {
+        let fixture_path =
+            openusd_test_path::pxr_usd_imaging_testenv(relative_under_usd_imaging_testenv);
+        let p = fixture_path.to_string_lossy().replace('\\', "/");
+        Stage::open(p.as_str(), InitialLoadSet::LoadAll).expect("open reference stage")
     }
 
     fn scene_index_xform_chain(
@@ -5764,7 +5789,10 @@ mod tests {
     fn test_pick_params_default() {
         let params = PickParams::default();
         assert_eq!(params.resolve_mode, Token::new("resolveNearestToCenter"));
-        assert_eq!(params.pick_target, usd_hdx::pick_tokens::pick_prims_and_instances());
+        assert_eq!(
+            params.pick_target,
+            usd_hdx::pick_tokens::pick_prims_and_instances()
+        );
     }
 
     #[test]
@@ -6065,8 +6093,14 @@ def Xform "Root" {
             })
             .expect("mesh prim at t=1");
         assert_eq!(first_transform, direct_first_transform);
-        assert_eq!(engine.model_transforms.get(&mesh_path).copied(), Some(first_transform));
-        assert_eq!(engine.scene_bbox(), Some(([10.0, 0.0, 5.0], [11.0, 2.0, 5.0])));
+        assert_eq!(
+            engine.model_transforms.get(&mesh_path).copied(),
+            Some(first_transform)
+        );
+        assert_eq!(
+            engine.scene_bbox(),
+            Some(([10.0, 0.0, 5.0], [11.0, 2.0, 5.0]))
+        );
 
         let first_draw_item = engine
             .render_pass
@@ -6108,7 +6142,10 @@ def Xform "Root" {
             engine.model_transforms.get(&mesh_path).copied(),
             Some(second_transform)
         );
-        assert_eq!(engine.scene_bbox(), Some(([20.0, 0.0, 7.0], [21.0, 2.0, 7.0])));
+        assert_eq!(
+            engine.scene_bbox(),
+            Some(([20.0, 0.0, 7.0], [21.0, 2.0, 7.0]))
+        );
 
         let second_draw_item = engine
             .render_pass
@@ -6232,9 +6269,7 @@ def Xform "Root" {
     fn test_render_batch_renders_skeleton_guide_from_reference_fixture() {
         usd_core::schema_registry::register_builtin_schemas();
 
-        let stage = open_reference_stage(
-            "testenv/testUsdImagingGLSkeleton/skeleton.usda",
-        );
+        let stage = open_reference_stage("testUsdImagingGLSkeleton/skeleton.usda");
         let root = stage.get_pseudo_root();
         let skeleton_path = Path::from_string("/SkelChar/Skeleton").expect("skeleton path");
 
@@ -6306,16 +6341,17 @@ def Xform "Root" {
                 .is_empty(),
             "skeleton fixture should produce draw items once mesh topology and points are synced",
         );
-        assert!(engine.scene_bbox().is_some(), "skeleton fixture should produce a scene bbox");
+        assert!(
+            engine.scene_bbox().is_some(),
+            "skeleton fixture should produce a scene bbox"
+        );
     }
 
     #[test]
     fn test_render_batch_animates_skinned_mesh_from_reference_fixture() {
         usd_core::schema_registry::register_builtin_schemas();
 
-        let stage = open_reference_stage(
-            "testenv/testUsdImagingGLUsdSkel/arm.usda",
-        );
+        let stage = open_reference_stage("testUsdImagingGLUsdSkel/arm.usda");
         let root = stage.get_pseudo_root();
         let mesh_path = Path::from_string("/Model/Arm").expect("mesh path");
 
@@ -6346,7 +6382,10 @@ def Xform "Root" {
             &mut point_times,
             &mut point_values,
         );
-        let rprim_type = render_index.get_rprim_type_id(&mesh_path).cloned().unwrap_or_default();
+        let rprim_type = render_index
+            .get_rprim_type_id(&mesh_path)
+            .cloned()
+            .unwrap_or_default();
         drop(adapter);
         drop(render_index);
 
@@ -6375,7 +6414,10 @@ def Xform "Root" {
             &prim_source,
         );
 
-        assert!(resolved.is_some(), "skinned mesh must resolve through the final scene index");
+        assert!(
+            resolved.is_some(),
+            "skinned mesh must resolve through the final scene index"
+        );
         assert!(
             engine.rprim_ids_by_path.contains_key(&mesh_path),
             "skinned mesh must be registered as a renderable rprim",
@@ -6393,7 +6435,10 @@ def Xform "Root" {
             sampled_points > 0 && !point_values.is_empty(),
             "skinned mesh points primvar must reach the scene-index adapter",
         );
-        assert!(first_draw_items > 0, "skinned mesh fixture should produce draw items");
+        assert!(
+            first_draw_items > 0,
+            "skinned mesh fixture should produce draw items"
+        );
 
         params.frame = TimeCode::new(10.0);
         engine.prepare_batch(&root, &params);
@@ -6493,8 +6538,7 @@ def Xform "Root" {
         assert_eq!(
             first_transform, direct_first_transform,
             "Hydra adapter must expose the same world-space matrix as stage evaluation at t=1\nfinal_chain_t1={:#?}\nstage_local_chain_t1={:#?}",
-            final_chain_t1,
-            stage_local_chain_t1
+            final_chain_t1, stage_local_chain_t1
         );
         let first_draw_items = engine
             .render_pass
@@ -6502,7 +6546,10 @@ def Xform "Root" {
             .expect("render pass at flo t=1")
             .get_draw_items()
             .len();
-        assert!(first_draw_items > 0, "flo fixture should produce draw items at t=1");
+        assert!(
+            first_draw_items > 0,
+            "flo fixture should produce draw items at t=1"
+        );
 
         params.frame = TimeCode::new(50.0);
         engine.prepare_batch(&root, &params);
@@ -6565,8 +6612,7 @@ def Xform "Root" {
         assert_eq!(
             second_transform, direct_second_transform,
             "Hydra adapter must expose the same world-space matrix as stage evaluation at t=50\nfinal_chain_t50={:#?}\nstage_local_chain_t50={:#?}",
-            final_chain_t50,
-            stage_local_chain_t50
+            final_chain_t50, stage_local_chain_t50
         );
         assert_ne!(
             first_transform, second_transform,
@@ -6682,7 +6728,9 @@ def Xform "Root" {
             "flo.usdz fixture should produce draw items on the first sampled frame"
         );
         assert!(
-            sampled.iter().all(|(_, _, _, draw_items)| *draw_items == first_draw_items),
+            sampled
+                .iter()
+                .all(|(_, _, _, draw_items)| *draw_items == first_draw_items),
             "time changes should update the existing flo.usdz draw set, not drop it"
         );
         assert!(

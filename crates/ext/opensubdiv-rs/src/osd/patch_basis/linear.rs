@@ -8,10 +8,11 @@
 /// `wDs` / `wDt`  — first derivative weights (written when both are Some)
 /// `wDss` / `wDst` / `wDtt` — second derivative weights (written when all are Some)
 pub fn eval_basis_linear(
-    s: f32, t: f32,
-    wp:   Option<&mut [f32; 4]>,
-    wds:  Option<&mut [f32; 4]>,
-    wdt:  Option<&mut [f32; 4]>,
+    s: f32,
+    t: f32,
+    wp: Option<&mut [f32; 4]>,
+    wds: Option<&mut [f32; 4]>,
+    wdt: Option<&mut [f32; 4]>,
     wdss: Option<&mut [f32; 4]>,
     wdst: Option<&mut [f32; 4]>,
     wdtt: Option<&mut [f32; 4]>,
@@ -21,29 +22,29 @@ pub fn eval_basis_linear(
 
     if let Some(w) = wp {
         w[0] = sc * tc;
-        w[1] =  s * tc;
-        w[2] =  s * t;
+        w[1] = s * tc;
+        w[2] = s * t;
         w[3] = sc * t;
     }
     if let (Some(ds), Some(dt)) = (wds, wdt) {
         ds[0] = -tc;
-        ds[1] =  tc;
-        ds[2] =   t;
-        ds[3] =  -t;
+        ds[1] = tc;
+        ds[2] = t;
+        ds[3] = -t;
 
         dt[0] = -sc;
-        dt[1] =  -s;
-        dt[2] =   s;
-        dt[3] =  sc;
+        dt[1] = -s;
+        dt[2] = s;
+        dt[3] = sc;
 
         if let (Some(dss), Some(dst), Some(dtt)) = (wdss, wdst, wdtt) {
             for i in 0..4 {
                 dss[i] = 0.0;
                 dtt[i] = 0.0;
             }
-            dst[0] =  1.0;
+            dst[0] = 1.0;
             dst[1] = -1.0;
-            dst[2] =  1.0;
+            dst[2] = 1.0;
             dst[3] = -1.0;
         }
     }
@@ -52,10 +53,11 @@ pub fn eval_basis_linear(
 
 /// Evaluate linear triangle basis.  Returns 3.
 pub fn eval_basis_linear_tri(
-    s: f32, t: f32,
-    wp:   Option<&mut [f32; 3]>,
-    wds:  Option<&mut [f32; 3]>,
-    wdt:  Option<&mut [f32; 3]>,
+    s: f32,
+    t: f32,
+    wp: Option<&mut [f32; 3]>,
+    wds: Option<&mut [f32; 3]>,
+    wdt: Option<&mut [f32; 3]>,
     wdss: Option<&mut [f32; 3]>,
     wdst: Option<&mut [f32; 3]>,
     wdtt: Option<&mut [f32; 3]>,
@@ -67,17 +69,23 @@ pub fn eval_basis_linear_tri(
     }
     if let (Some(ds), Some(dt)) = (wds, wdt) {
         ds[0] = -1.0;
-        ds[1] =  1.0;
-        ds[2] =  0.0;
+        ds[1] = 1.0;
+        ds[2] = 0.0;
 
         dt[0] = -1.0;
-        dt[1] =  0.0;
-        dt[2] =  1.0;
+        dt[1] = 0.0;
+        dt[2] = 1.0;
 
         if let (Some(dss), Some(dst), Some(dtt)) = (wdss, wdst, wdtt) {
-            dss[0] = 0.0; dss[1] = 0.0; dss[2] = 0.0;
-            dst[0] = 0.0; dst[1] = 0.0; dst[2] = 0.0;
-            dtt[0] = 0.0; dtt[1] = 0.0; dtt[2] = 0.0;
+            dss[0] = 0.0;
+            dss[1] = 0.0;
+            dss[2] = 0.0;
+            dst[0] = 0.0;
+            dst[1] = 0.0;
+            dst[2] = 0.0;
+            dtt[0] = 0.0;
+            dtt[1] = 0.0;
+            dtt[2] = 0.0;
         }
     }
     3

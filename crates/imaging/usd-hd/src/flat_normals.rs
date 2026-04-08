@@ -1,4 +1,3 @@
-
 //! Flat normals computation for meshes.
 //!
 //! Computes per-face normals using triangle fan from vertex 0.

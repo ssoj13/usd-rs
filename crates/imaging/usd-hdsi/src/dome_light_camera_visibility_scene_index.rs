@@ -1,13 +1,12 @@
-
 //! Dome light camera visibility scene index.
 //!
 //! Port of pxr/imaging/hdsi/domeLightCameraVisibilitySceneIndex.
 //!
 //! Overrides the cameraVisibility at light:cameraVisibility for dome light prims.
 
+use parking_lot::RwLock;
 use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::{
     HdDataSourceBaseHandle, HdDataSourceLocator, HdDataSourceLocatorSet,
     HdOverlayContainerDataSource, HdRetainedContainerDataSource,
@@ -107,7 +106,9 @@ impl HdsiDomeLightCameraVisibilitySceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

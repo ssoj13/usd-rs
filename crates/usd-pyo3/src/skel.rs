@@ -13,20 +13,10 @@ use std::sync::Arc;
 use usd_core::Stage;
 use usd_sdf::{Path, TimeCode};
 use usd_skel::{
-    anim_mapper::AnimMapper,
-    anim_query::AnimQuery,
-    animation::SkelAnimation,
-    binding::Binding,
-    binding_api::BindingAPI,
-    blend_shape::BlendShape,
-    blend_shape_query::BlendShapeQuery,
-    cache::Cache,
-    inbetween_shape::InbetweenShape,
-    root::SkelRoot,
-    skeleton::Skeleton,
-    skeleton_query::SkeletonQuery,
-    skinning_query::SkinningQuery,
-    topology::Topology,
+    anim_mapper::AnimMapper, anim_query::AnimQuery, animation::SkelAnimation, binding::Binding,
+    binding_api::BindingAPI, blend_shape::BlendShape, blend_shape_query::BlendShapeQuery,
+    cache::Cache, inbetween_shape::InbetweenShape, root::SkelRoot, skeleton::Skeleton,
+    skeleton_query::SkeletonQuery, skinning_query::SkinningQuery, topology::Topology,
 };
 use usd_tf::Token;
 
@@ -62,14 +52,18 @@ impl PySkelRoot {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: SkelRoot::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: SkelRoot::get(&*stage.inner, &p),
+        })
     }
 
     /// Root.Define(stage, path) -> Root
     #[staticmethod]
     fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: SkelRoot::define(&*stage.inner, &p) })
+        Ok(Self {
+            inner: SkelRoot::define(&*stage.inner, &p),
+        })
     }
 
     /// Root.Find(prim) -> Root — find the SkelRoot at or above the given prim
@@ -80,7 +74,9 @@ impl PySkelRoot {
             .inner
             .get_prim_at_path(&p)
             .ok_or_else(|| PyValueError::new_err(format!("No prim at path: {path}")))?;
-        Ok(Self { inner: SkelRoot::find(&prim) })
+        Ok(Self {
+            inner: SkelRoot::find(&prim),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -114,13 +110,17 @@ impl PySkeleton {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: Skeleton::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: Skeleton::get(&*stage.inner, &p),
+        })
     }
 
     #[staticmethod]
     fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: Skeleton::define(&*stage.inner, &p) })
+        Ok(Self {
+            inner: Skeleton::define(&*stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -134,23 +134,38 @@ impl PySkeleton {
     /// GetJointsAttr() -> attribute path string or None
     fn get_joints_attr(&self) -> Option<String> {
         let a = self.inner.get_joints_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     /// GetBindTransformsAttr() -> attribute path string or None
     fn get_bind_transforms_attr(&self) -> Option<String> {
         let a = self.inner.get_bind_transforms_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     /// GetRestTransformsAttr() -> attribute path string or None
     fn get_rest_transforms_attr(&self) -> Option<String> {
         let a = self.inner.get_rest_transforms_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdSkel.Skeleton('{}')", self.inner.prim().path().to_string())
+        format!(
+            "UsdSkel.Skeleton('{}')",
+            self.inner.prim().path().to_string()
+        )
     }
 
     fn __bool__(&self) -> bool {
@@ -172,13 +187,17 @@ impl PySkelAnimation {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: SkelAnimation::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: SkelAnimation::get(&*stage.inner, &p),
+        })
     }
 
     #[staticmethod]
     fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: SkelAnimation::define(&*stage.inner, &p) })
+        Ok(Self {
+            inner: SkelAnimation::define(&*stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -191,31 +210,54 @@ impl PySkelAnimation {
 
     fn get_joints_attr(&self) -> Option<String> {
         let a = self.inner.get_joints_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     fn get_translations_attr(&self) -> Option<String> {
         let a = self.inner.get_translations_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     fn get_rotations_attr(&self) -> Option<String> {
         let a = self.inner.get_rotations_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     fn get_scales_attr(&self) -> Option<String> {
         let a = self.inner.get_scales_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     fn get_blend_shape_weights_attr(&self) -> Option<String> {
         let a = self.inner.get_blend_shape_weights_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdSkel.Animation('{}')", self.inner.prim().path().to_string())
+        format!(
+            "UsdSkel.Animation('{}')",
+            self.inner.prim().path().to_string()
+        )
     }
 
     fn __bool__(&self) -> bool {
@@ -242,14 +284,18 @@ impl PyBindingAPI {
             .inner
             .get_prim_at_path(&p)
             .ok_or_else(|| PyValueError::new_err(format!("No prim at path: {path}")))?;
-        Ok(Self { inner: BindingAPI::apply(&prim) })
+        Ok(Self {
+            inner: BindingAPI::apply(&prim),
+        })
     }
 
     /// BindingAPI.Get(stage, path) -> BindingAPI
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: BindingAPI::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: BindingAPI::get(&*stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -258,7 +304,10 @@ impl PyBindingAPI {
 
     /// GetSkeleton() -> Skeleton or None
     fn get_skeleton(&self) -> Option<PySkeleton> {
-        self.inner.get_skeleton().filter(|s| s.is_valid()).map(|s| PySkeleton { inner: s })
+        self.inner
+            .get_skeleton()
+            .filter(|s| s.is_valid())
+            .map(|s| PySkeleton { inner: s })
     }
 
     /// GetAnimationSource() -> Animation path string or None
@@ -311,13 +360,17 @@ impl PyBlendShape {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: BlendShape::get(&*stage.inner, &p) })
+        Ok(Self {
+            inner: BlendShape::get(&*stage.inner, &p),
+        })
     }
 
     #[staticmethod]
     fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: BlendShape::define(&*stage.inner, &p) })
+        Ok(Self {
+            inner: BlendShape::define(&*stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -330,21 +383,36 @@ impl PyBlendShape {
 
     fn get_offsets_attr(&self) -> Option<String> {
         let a = self.inner.get_offsets_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     fn get_normal_offsets_attr(&self) -> Option<String> {
         let a = self.inner.get_normal_offsets_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     fn get_point_indices_attr(&self) -> Option<String> {
         let a = self.inner.get_point_indices_attr();
-        if a.is_valid() { Some(a.path().to_string()) } else { None }
+        if a.is_valid() {
+            Some(a.path().to_string())
+        } else {
+            None
+        }
     }
 
     fn __repr__(&self) -> String {
-        format!("UsdSkel.BlendShape('{}')", self.inner.prim().path().to_string())
+        format!(
+            "UsdSkel.BlendShape('{}')",
+            self.inner.prim().path().to_string()
+        )
     }
 
     fn __bool__(&self) -> bool {
@@ -365,7 +433,9 @@ struct PyCache {
 impl PyCache {
     #[new]
     fn new() -> Self {
-        Self { inner: Cache::new() }
+        Self {
+            inner: Cache::new(),
+        }
     }
 
     /// Populate(root) -> bool
@@ -375,12 +445,16 @@ impl PyCache {
 
     /// GetSkelQuery(skeleton) -> SkeletonQuery (may be invalid)
     fn get_skel_query(&self, skeleton: &PySkeleton) -> PySkeletonQuery {
-        PySkeletonQuery { inner: self.inner.get_skel_query(&skeleton.inner) }
+        PySkeletonQuery {
+            inner: self.inner.get_skel_query(&skeleton.inner),
+        }
     }
 
     /// GetAnimQuery(animation) -> AnimQuery (may be invalid)
     fn get_anim_query(&self, animation: &PySkelAnimation) -> PyAnimQuery {
-        PyAnimQuery { inner: self.inner.get_anim_query(&animation.inner) }
+        PyAnimQuery {
+            inner: self.inner.get_anim_query(&animation.inner),
+        }
     }
 
     fn clear(&self) {
@@ -417,21 +491,22 @@ impl PySkeletonQuery {
 
     /// GetSkeleton() -> Skeleton or None
     fn get_skeleton(&self) -> Option<PySkeleton> {
-        self.inner.get_skeleton().map(|s| PySkeleton { inner: s.clone() })
+        self.inner
+            .get_skeleton()
+            .map(|s| PySkeleton { inner: s.clone() })
     }
 
     /// ComputeJointLocalTransforms(time=DEFAULT) -> list of flat 4x4 matrix rows (as list[list[float]])
     ///
     /// Returns a flat list of 16-element lists (column-major, matching GfMatrix4d).
     #[pyo3(signature = (time = 0.0, unset_rest_pose = false))]
-    fn compute_joint_local_transforms(
-        &self,
-        time: f64,
-        unset_rest_pose: bool,
-    ) -> Vec<Vec<f64>> {
+    fn compute_joint_local_transforms(&self, time: f64, unset_rest_pose: bool) -> Vec<Vec<f64>> {
         let tc = TimeCode::new(time);
         let mut xforms = Vec::new();
-        if self.inner.compute_joint_local_transforms(&mut xforms, &tc, unset_rest_pose) {
+        if self
+            .inner
+            .compute_joint_local_transforms(&mut xforms, &tc, unset_rest_pose)
+        {
             xforms.iter().map(|m| m.as_slice().to_vec()).collect()
         } else {
             Vec::new()
@@ -513,7 +588,9 @@ impl PyTopology {
     #[new]
     fn new(joint_paths: Vec<String>) -> Self {
         let tokens: Vec<Token> = joint_paths.iter().map(|s| Token::new(s)).collect();
-        Self { inner: Topology::from_tokens(&tokens) }
+        Self {
+            inner: Topology::from_tokens(&tokens),
+        }
     }
 
     /// GetNumJoints() -> int
@@ -558,7 +635,9 @@ struct PyAnimMapper {
 impl PyAnimMapper {
     #[new]
     fn new() -> Self {
-        Self { inner: AnimMapper::new() }
+        Self {
+            inner: AnimMapper::new(),
+        }
     }
 
     fn is_null(&self) -> bool {
@@ -717,28 +796,94 @@ struct PyTokens;
 
 #[pymethods]
 impl PyTokens {
-    #[getter] fn bindTransforms(&self) -> &str { "bindTransforms" }
-    #[getter] fn blendShapes(&self) -> &str { "blendShapes" }
-    #[getter] fn blendShapeWeights(&self) -> &str { "blendShapeWeights" }
-    #[getter] fn classicLinear(&self) -> &str { "classicLinear" }
-    #[getter] fn dualQuaternion(&self) -> &str { "dualQuaternion" }
-    #[getter] fn interpolateBoundary(&self) -> &str { "interpolateBoundary" }
-    #[getter] fn joints(&self) -> &str { "joints" }
-    #[getter] fn normalOffsets(&self) -> &str { "normalOffsets" }
-    #[getter] fn offsets(&self) -> &str { "offsets" }
-    #[getter] fn pointIndices(&self) -> &str { "pointIndices" }
-    #[getter] fn primvarsSkelGeomBindTransform(&self) -> &str { "primvars:skel:geomBindTransform" }
-    #[getter] fn primvarsSkelJointIndices(&self) -> &str { "primvars:skel:jointIndices" }
-    #[getter] fn primvarsSkelJointWeights(&self) -> &str { "primvars:skel:jointWeights" }
-    #[getter] fn restTransforms(&self) -> &str { "restTransforms" }
-    #[getter] fn rotations(&self) -> &str { "rotations" }
-    #[getter] fn scales(&self) -> &str { "scales" }
-    #[getter] fn skelAnimationSource(&self) -> &str { "skel:animationSource" }
-    #[getter] fn skelBindingAPI(&self) -> &str { "SkelBindingAPI" }
-    #[getter] fn skelJoints(&self) -> &str { "skel:joints" }
-    #[getter] fn skelSkeleton(&self) -> &str { "skel:skeleton" }
-    #[getter] fn translations(&self) -> &str { "translations" }
-    #[getter] fn weight(&self) -> &str { "weight" }
+    #[getter]
+    fn bindTransforms(&self) -> &str {
+        "bindTransforms"
+    }
+    #[getter]
+    fn blendShapes(&self) -> &str {
+        "blendShapes"
+    }
+    #[getter]
+    fn blendShapeWeights(&self) -> &str {
+        "blendShapeWeights"
+    }
+    #[getter]
+    fn classicLinear(&self) -> &str {
+        "classicLinear"
+    }
+    #[getter]
+    fn dualQuaternion(&self) -> &str {
+        "dualQuaternion"
+    }
+    #[getter]
+    fn interpolateBoundary(&self) -> &str {
+        "interpolateBoundary"
+    }
+    #[getter]
+    fn joints(&self) -> &str {
+        "joints"
+    }
+    #[getter]
+    fn normalOffsets(&self) -> &str {
+        "normalOffsets"
+    }
+    #[getter]
+    fn offsets(&self) -> &str {
+        "offsets"
+    }
+    #[getter]
+    fn pointIndices(&self) -> &str {
+        "pointIndices"
+    }
+    #[getter]
+    fn primvarsSkelGeomBindTransform(&self) -> &str {
+        "primvars:skel:geomBindTransform"
+    }
+    #[getter]
+    fn primvarsSkelJointIndices(&self) -> &str {
+        "primvars:skel:jointIndices"
+    }
+    #[getter]
+    fn primvarsSkelJointWeights(&self) -> &str {
+        "primvars:skel:jointWeights"
+    }
+    #[getter]
+    fn restTransforms(&self) -> &str {
+        "restTransforms"
+    }
+    #[getter]
+    fn rotations(&self) -> &str {
+        "rotations"
+    }
+    #[getter]
+    fn scales(&self) -> &str {
+        "scales"
+    }
+    #[getter]
+    fn skelAnimationSource(&self) -> &str {
+        "skel:animationSource"
+    }
+    #[getter]
+    fn skelBindingAPI(&self) -> &str {
+        "SkelBindingAPI"
+    }
+    #[getter]
+    fn skelJoints(&self) -> &str {
+        "skel:joints"
+    }
+    #[getter]
+    fn skelSkeleton(&self) -> &str {
+        "skel:skeleton"
+    }
+    #[getter]
+    fn translations(&self) -> &str {
+        "translations"
+    }
+    #[getter]
+    fn weight(&self) -> &str {
+        "weight"
+    }
 }
 
 // ---------------------------------------------------------------------------

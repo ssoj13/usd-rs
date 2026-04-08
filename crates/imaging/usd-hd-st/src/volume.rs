@@ -1,4 +1,3 @@
-
 //! HdStVolume - Storm volume prim implementation.
 //!
 //! Implements volume rendering for the Storm backend using raymarching.

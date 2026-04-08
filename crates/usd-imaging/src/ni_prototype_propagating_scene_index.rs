@@ -17,8 +17,8 @@ use crate::ni_instance_aggregation_scene_index::UsdImagingNiInstanceAggregationS
 use crate::ni_prototype_pruning_scene_index::UsdImagingNiPrototypePruningSceneIndex;
 use crate::ni_prototype_scene_index::UsdImagingNiPrototypeSceneIndex;
 use crate::rerooting_scene_index::HdRerootingSceneIndex;
-use std::collections::BTreeMap;
 use parking_lot::RwLock;
+use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, Weak};
 use usd_hd::HdDataSourceBaseHandle;
 use usd_hd::scene_index::flattening::HdFlatteningSceneIndex;
@@ -171,7 +171,10 @@ impl SceneIndexCache {
             .get_mut(&prototype_key)
             .expect("prototype entry must exist")
             .1
-            .insert(overlay_hash, (prototype_si.clone(), instance_agg_si.clone()));
+            .insert(
+                overlay_hash,
+                (prototype_si.clone(), instance_agg_si.clone()),
+            );
 
         (prototype_si, instance_agg_si)
     }
@@ -179,8 +182,7 @@ impl SceneIndexCache {
     fn compute_isolating_scene_index(&self, prototype_name: &str) -> HdSceneIndexHandle {
         if prototype_name.is_empty() {
             let pruning_input = self.input_scene_index.clone();
-            let pruning =
-                UsdImagingNiPrototypePruningSceneIndex::new(pruning_input.clone(), None);
+            let pruning = UsdImagingNiPrototypePruningSceneIndex::new(pruning_input.clone(), None);
             wire_filter_to_input(&pruning, &pruning_input);
             scene_index_to_handle(pruning)
         } else {
@@ -203,8 +205,11 @@ impl SceneIndexCache {
         overlay_ds: Option<HdContainerDataSourceHandle>,
     ) -> HdSceneIndexHandle {
         let prototype_input = isolating.clone();
-        let prototype_scene_index =
-            UsdImagingNiPrototypeSceneIndex::new(prototype_input.clone(), for_prototype, overlay_ds);
+        let prototype_scene_index = UsdImagingNiPrototypeSceneIndex::new(
+            prototype_input.clone(),
+            for_prototype,
+            overlay_ds,
+        );
         wire_filter_to_input(&prototype_scene_index, &prototype_input);
         let mut chain = scene_index_to_handle(prototype_scene_index);
 
@@ -340,9 +345,7 @@ impl UsdImagingNiPrototypePropagatingSceneIndex {
         );
         let observer_handle = Arc::new(observer);
         instance_agg_si.read().add_observer(observer_handle);
-        let merging_observer = Arc::new(MergingSceneIndexObserver::new(
-            Arc::downgrade(&self_arc),
-        ));
+        let merging_observer = Arc::new(MergingSceneIndexObserver::new(Arc::downgrade(&self_arc)));
         merging.read().add_observer(merging_observer);
 
         let mut ops = MergingSceneIndexOperations::new(merging);
@@ -367,11 +370,7 @@ impl UsdImagingNiPrototypePropagatingSceneIndex {
         prim.data_source
     }
 
-    fn populate(
-        &self,
-        instance_agg: &HdSceneIndexHandle,
-        ops: &mut MergingSceneIndexOperations,
-    ) {
+    fn populate(&self, instance_agg: &HdSceneIndexHandle, ops: &mut MergingSceneIndexOperations) {
         let root = SdfPath::absolute_root();
         let prim_paths = Self::collect_prim_paths(instance_agg, &root);
         for path in prim_paths {

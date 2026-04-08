@@ -1,4 +1,3 @@
-
 //! Base scene index for material network filtering.
 //!
 //! Port of pxr/imaging/hd/materialFilteringSceneIndexBase.{h,cpp}

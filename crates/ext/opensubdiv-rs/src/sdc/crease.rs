@@ -11,10 +11,10 @@ use super::options::{CreasingMethod, Options, VtxBoundaryInterpolation};
 #[repr(u8)]
 pub enum Rule {
     Unknown = 0,
-    Smooth  = 1 << 0,   // 1
-    Dart    = 1 << 1,   // 2
-    Crease  = 1 << 2,   // 4
-    Corner  = 1 << 3,   // 8
+    Smooth = 1 << 0, // 1
+    Dart = 1 << 1,   // 2
+    Crease = 1 << 2, // 4
+    Corner = 1 << 3, // 8
 }
 
 impl Rule {
@@ -32,7 +32,9 @@ impl Rule {
 
     /// Return the raw bit value.
     #[inline]
-    pub fn bits(self) -> u8 { self as u8 }
+    pub fn bits(self) -> u8 {
+        self as u8
+    }
 }
 
 /// Light-weight struct holding crease-related operations.
@@ -58,16 +60,30 @@ pub const SHARPNESS_INFINITE: f32 = 10.0;
 // We provide BOTH free functions (for internal use) and associated functions on `Crease`
 // (for public API parity).  See `impl Crease` below for the associated versions.
 
-#[inline] pub fn is_smooth(s: f32)     -> bool { s <= SHARPNESS_SMOOTH }
-#[inline] pub fn is_sharp(s: f32)      -> bool { s >  SHARPNESS_SMOOTH }
-#[inline] pub fn is_infinite(s: f32)   -> bool { s >= SHARPNESS_INFINITE }
-#[inline] pub fn is_semi_sharp(s: f32) -> bool { s > SHARPNESS_SMOOTH && s < SHARPNESS_INFINITE }
+#[inline]
+pub fn is_smooth(s: f32) -> bool {
+    s <= SHARPNESS_SMOOTH
+}
+#[inline]
+pub fn is_sharp(s: f32) -> bool {
+    s > SHARPNESS_SMOOTH
+}
+#[inline]
+pub fn is_infinite(s: f32) -> bool {
+    s >= SHARPNESS_INFINITE
+}
+#[inline]
+pub fn is_semi_sharp(s: f32) -> bool {
+    s > SHARPNESS_SMOOTH && s < SHARPNESS_INFINITE
+}
 
 impl Crease {
     /// Construct with default options.
     #[inline]
     pub fn new() -> Self {
-        Self { options: Options::default() }
+        Self {
+            options: Options::default(),
+        }
     }
 
     /// Construct with explicit options.
@@ -88,16 +104,26 @@ impl Crease {
     // free functions (which remain for backward-compat and internal use).
 
     /// `true` when `sharpness <= SHARPNESS_SMOOTH` (0.0). Mirrors C++ `Crease::IsSmooth`.
-    #[inline] pub fn is_smooth(sharpness: f32) -> bool { sharpness <= SHARPNESS_SMOOTH }
+    #[inline]
+    pub fn is_smooth(sharpness: f32) -> bool {
+        sharpness <= SHARPNESS_SMOOTH
+    }
 
     /// `true` when `sharpness > SHARPNESS_SMOOTH` (0.0). Mirrors C++ `Crease::IsSharp`.
-    #[inline] pub fn is_sharp(sharpness: f32) -> bool { sharpness > SHARPNESS_SMOOTH }
+    #[inline]
+    pub fn is_sharp(sharpness: f32) -> bool {
+        sharpness > SHARPNESS_SMOOTH
+    }
 
     /// `true` when `sharpness >= SHARPNESS_INFINITE` (10.0). Mirrors C++ `Crease::IsInfinite`.
-    #[inline] pub fn is_infinite(sharpness: f32) -> bool { sharpness >= SHARPNESS_INFINITE }
+    #[inline]
+    pub fn is_infinite(sharpness: f32) -> bool {
+        sharpness >= SHARPNESS_INFINITE
+    }
 
     /// `true` when strictly between smooth and infinite. Mirrors C++ `Crease::IsSemiSharp`.
-    #[inline] pub fn is_semi_sharp(sharpness: f32) -> bool {
+    #[inline]
+    pub fn is_semi_sharp(sharpness: f32) -> bool {
         sharpness > SHARPNESS_SMOOTH && sharpness < SHARPNESS_INFINITE
     }
 
@@ -115,8 +141,7 @@ impl Crease {
     /// Sharpen a boundary vertex according to `VTX_BOUNDARY_EDGE_AND_CORNER`.
     #[inline]
     pub fn sharpen_boundary_vertex(&self, vertex_sharpness: f32) -> f32 {
-        if self.options.get_vtx_boundary_interpolation()
-            == VtxBoundaryInterpolation::EdgeAndCorner
+        if self.options.get_vtx_boundary_interpolation() == VtxBoundaryInterpolation::EdgeAndCorner
         {
             SHARPNESS_INFINITE
         } else {
@@ -159,16 +184,20 @@ impl Crease {
             return self.decrement_sharpness(edge_sharpness);
         }
 
-        if is_smooth(edge_sharpness)   { return SHARPNESS_SMOOTH; }
-        if is_infinite(edge_sharpness) { return SHARPNESS_INFINITE; }
+        if is_smooth(edge_sharpness) {
+            return SHARPNESS_SMOOTH;
+        }
+        if is_infinite(edge_sharpness) {
+            return SHARPNESS_INFINITE;
+        }
 
         // Chaikin: weighted average of semi-sharp neighbours
-        let mut sharp_sum   = 0.0f32;
+        let mut sharp_sum = 0.0f32;
         let mut sharp_count = 0i32;
         for &s in inc_edge_sharpness {
             if is_semi_sharp(s) {
                 sharp_count += 1;
-                sharp_sum   += s;
+                sharp_sum += s;
             }
         }
 
@@ -179,16 +208,16 @@ impl Crease {
         }
 
         edge_sharpness -= 1.0;
-        if is_sharp(edge_sharpness) { edge_sharpness } else { SHARPNESS_SMOOTH }
+        if is_sharp(edge_sharpness) {
+            edge_sharpness
+        } else {
+            SHARPNESS_SMOOTH
+        }
     }
 
     /// Subdivide all incident edge sharpnesses around a vertex in one pass,
     /// which is more efficient for Chaikin because the sum is computed once.
-    pub fn subdivide_edge_sharpnesses_around_vertex(
-        &self,
-        parent: &[f32],
-        child:  &mut [f32],
-    ) {
+    pub fn subdivide_edge_sharpnesses_around_vertex(&self, parent: &[f32], child: &mut [f32]) {
         let edge_count = parent.len();
         debug_assert_eq!(child.len(), edge_count);
 
@@ -203,12 +232,12 @@ impl Crease {
         // Chaikin: sum semi-sharp values once, then process each edge
         debug_assert_eq!(self.options.get_creasing_method(), CreasingMethod::Chaikin);
 
-        let mut sharp_sum   = 0.0f32;
+        let mut sharp_sum = 0.0f32;
         let mut sharp_count = 0i32;
         for &s in parent {
             if is_semi_sharp(s) {
                 sharp_count += 1;
-                sharp_sum   += s;
+                sharp_sum += s;
             }
         }
 
@@ -295,19 +324,19 @@ impl Crease {
     pub fn compute_fractional_weight_at_vertex(
         &self,
         parent_vertex_sharpness: f32,
-        child_vertex_sharpness:  f32,
-        parent_sharpness:        &[f32],
-        child_sharpness:         Option<&[f32]>,
+        child_vertex_sharpness: f32,
+        parent_sharpness: &[f32],
+        child_sharpness: Option<&[f32]>,
     ) -> f32 {
         let edge_count = parent_sharpness.len();
 
         let mut transition_count = 0i32;
-        let mut transition_sum   = 0.0f32;
+        let mut transition_sum = 0.0f32;
 
         // If the vertex itself transitions from sharp to smooth, include it
         if is_sharp(parent_vertex_sharpness) && is_smooth(child_vertex_sharpness) {
             transition_count = 1;
-            transition_sum   = parent_vertex_sharpness;
+            transition_sum = parent_vertex_sharpness;
         }
 
         if self.is_uniform() || child_sharpness.is_none() {
@@ -315,7 +344,7 @@ impl Crease {
             for i in 0..edge_count {
                 let ps = parent_sharpness[i];
                 if is_sharp(ps) && ps <= 1.0 {
-                    transition_sum   += ps;
+                    transition_sum += ps;
                     transition_count += 1;
                 }
             }
@@ -324,7 +353,7 @@ impl Crease {
             for i in 0..edge_count {
                 let ps = parent_sharpness[i];
                 if is_sharp(ps) && is_smooth(cs[i]) {
-                    transition_sum   += ps;
+                    transition_sum += ps;
                     transition_count += 1;
                 }
             }
@@ -341,10 +370,7 @@ impl Crease {
     ///
     /// Exactly two sharp edges are expected (caller must ensure a crease exists).
     /// Mirrors C++ `GetSharpEdgePairOfCrease`.
-    pub fn get_sharp_edge_pair_of_crease(
-        &self,
-        incident_edge_sharpness: &[f32],
-    ) -> [usize; 2] {
+    pub fn get_sharp_edge_pair_of_crease(&self, incident_edge_sharpness: &[f32]) -> [usize; 2] {
         let count = incident_edge_sharpness.len();
 
         // Scan forward from index 0 for the first sharp edge
@@ -372,15 +398,23 @@ impl Crease {
     /// ≤ 1      → smooth
     #[inline]
     fn decrement_sharpness(&self, s: f32) -> f32 {
-        if is_smooth(s)   { return SHARPNESS_SMOOTH; }   // most common path
-        if is_infinite(s) { return SHARPNESS_INFINITE; }
-        if s > 1.0        { return s - 1.0; }
+        if is_smooth(s) {
+            return SHARPNESS_SMOOTH;
+        } // most common path
+        if is_infinite(s) {
+            return SHARPNESS_INFINITE;
+        }
+        if s > 1.0 {
+            return s - 1.0;
+        }
         SHARPNESS_SMOOTH
     }
 }
 
 impl Default for Crease {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -388,7 +422,9 @@ mod tests {
     use super::*;
     use approx::assert_abs_diff_eq;
 
-    fn crease() -> Crease { Crease::new() }
+    fn crease() -> Crease {
+        Crease::new()
+    }
 
     fn crease_chaikin() -> Crease {
         let mut o = Options::default();
@@ -400,13 +436,13 @@ mod tests {
 
     #[test]
     fn sharpness_predicates() {
-        assert!( is_smooth(0.0));
+        assert!(is_smooth(0.0));
         assert!(!is_smooth(0.001));
-        assert!( is_sharp(1.5));
+        assert!(is_sharp(1.5));
         assert!(!is_sharp(0.0));
-        assert!( is_infinite(10.0));
+        assert!(is_infinite(10.0));
         assert!(!is_infinite(9.99));
-        assert!( is_semi_sharp(5.0));
+        assert!(is_semi_sharp(5.0));
         assert!(!is_semi_sharp(0.0));
         assert!(!is_semi_sharp(10.0));
     }
@@ -416,11 +452,11 @@ mod tests {
     #[test]
     fn subdivide_uniform_decrement() {
         let c = crease();
-        assert_abs_diff_eq!(c.subdivide_uniform_sharpness(0.0),  0.0);
+        assert_abs_diff_eq!(c.subdivide_uniform_sharpness(0.0), 0.0);
         assert_abs_diff_eq!(c.subdivide_uniform_sharpness(10.0), 10.0);
-        assert_abs_diff_eq!(c.subdivide_uniform_sharpness(2.5),  1.5);
-        assert_abs_diff_eq!(c.subdivide_uniform_sharpness(0.5),  0.0);  // clamp
-        assert_abs_diff_eq!(c.subdivide_uniform_sharpness(1.0),  0.0);  // clamp at exactly 1
+        assert_abs_diff_eq!(c.subdivide_uniform_sharpness(2.5), 1.5);
+        assert_abs_diff_eq!(c.subdivide_uniform_sharpness(0.5), 0.0); // clamp
+        assert_abs_diff_eq!(c.subdivide_uniform_sharpness(1.0), 0.0); // clamp at exactly 1
         assert_abs_diff_eq!(c.subdivide_uniform_sharpness(1.001), 0.001, epsilon = 1e-5);
     }
 
@@ -439,7 +475,9 @@ mod tests {
         let parent = [0.0f32, 0.0, 0.0, 0.0];
         let mut child = [f32::NAN; 4];
         c.subdivide_edge_sharpnesses_around_vertex(&parent, &mut child);
-        for &v in &child { assert_abs_diff_eq!(v, 0.0); }
+        for &v in &child {
+            assert_abs_diff_eq!(v, 0.0);
+        }
     }
 
     #[test]
@@ -506,10 +544,22 @@ mod tests {
     #[test]
     fn rule_from_count() {
         let c = crease();
-        assert_eq!(c.determine_vertex_vertex_rule_from_count(0.0, 0), Rule::Smooth);
-        assert_eq!(c.determine_vertex_vertex_rule_from_count(0.0, 1), Rule::Dart);
-        assert_eq!(c.determine_vertex_vertex_rule_from_count(0.0, 2), Rule::Crease);
-        assert_eq!(c.determine_vertex_vertex_rule_from_count(0.0, 3), Rule::Corner);
+        assert_eq!(
+            c.determine_vertex_vertex_rule_from_count(0.0, 0),
+            Rule::Smooth
+        );
+        assert_eq!(
+            c.determine_vertex_vertex_rule_from_count(0.0, 1),
+            Rule::Dart
+        );
+        assert_eq!(
+            c.determine_vertex_vertex_rule_from_count(0.0, 2),
+            Rule::Crease
+        );
+        assert_eq!(
+            c.determine_vertex_vertex_rule_from_count(0.0, 3),
+            Rule::Corner
+        );
     }
 
     // ── Boundary sharpening ───────────────────────────────────────────────────
@@ -517,8 +567,8 @@ mod tests {
     #[test]
     fn boundary_edge_always_infinite() {
         let c = crease();
-        assert_abs_diff_eq!(c.sharpen_boundary_edge(0.0),  SHARPNESS_INFINITE);
-        assert_abs_diff_eq!(c.sharpen_boundary_edge(5.0),  SHARPNESS_INFINITE);
+        assert_abs_diff_eq!(c.sharpen_boundary_edge(0.0), SHARPNESS_INFINITE);
+        assert_abs_diff_eq!(c.sharpen_boundary_edge(5.0), SHARPNESS_INFINITE);
     }
 
     #[test]
@@ -553,7 +603,7 @@ mod tests {
         let c = crease();
         // Vertex and all edges stay sharp → no transition → weight 0
         let parent = [0.0f32; 4];
-        let child  = [0.0f32; 4];
+        let child = [0.0f32; 4];
         let w = c.compute_fractional_weight_at_vertex(0.0, 0.0, &parent, Some(&child));
         assert_abs_diff_eq!(w, 0.0);
     }
@@ -563,7 +613,7 @@ mod tests {
         let c = crease();
         // One edge at 0.5 decays to 0: weight should be 0.5
         let parent = [0.5f32, 0.0, 0.0, 0.0];
-        let child  = [0.0f32, 0.0, 0.0, 0.0];
+        let child = [0.0f32, 0.0, 0.0, 0.0];
         let w = c.compute_fractional_weight_at_vertex(0.0, 0.0, &parent, Some(&child));
         assert_abs_diff_eq!(w, 0.5, epsilon = 1e-6);
     }

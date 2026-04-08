@@ -183,9 +183,7 @@ fn resolve_info_set_source(
     false
 }
 
-fn default_value_can_compose(
-    value_type: std::any::TypeId,
-) -> bool {
+fn default_value_can_compose(value_type: std::any::TypeId) -> bool {
     value_type_can_compose_over(value_type)
 }
 
@@ -196,15 +194,14 @@ pub(crate) fn resolve_time_sample_value_from_layer(
     is_pre_time: bool,
     use_linear: bool,
 ) -> Option<Value> {
-    let query_non_block =
-        |layer: &Arc<usd_sdf::Layer>, path: &Path, t: f64| -> Option<Value> {
-            let val = layer.query_time_sample(path, t)?;
-            if val.is::<usd_sdf::ValueBlock>() || val.is_empty() {
-                None
-            } else {
-                Some(val)
-            }
-        };
+    let query_non_block = |layer: &Arc<usd_sdf::Layer>, path: &Path, t: f64| -> Option<Value> {
+        let val = layer.query_time_sample(path, t)?;
+        if val.is::<usd_sdf::ValueBlock>() || val.is_empty() {
+            None
+        } else {
+            Some(val)
+        }
+    };
 
     // Use O(log n) BTreeMap::range() via get_bracketing_time_samples_for_path
     // instead of enumerating all time samples + sort + binary search — O(n log n).
@@ -223,7 +220,8 @@ pub(crate) fn resolve_time_sample_value_from_layer(
     };
 
     // Handle is_pre_time: when exact match, step back one sample
-    let (lower_t, upper_t) = if is_pre_time && lower_t == upper_t && (time - lower_t).abs() < 1e-10 {
+    let (lower_t, upper_t) = if is_pre_time && lower_t == upper_t && (time - lower_t).abs() < 1e-10
+    {
         // Need the sample just before this one — use get_previous
         if let Some(prev) = layer.get_previous_time_sample_for_path(path, time) {
             (prev, lower_t)
@@ -241,9 +239,9 @@ pub(crate) fn resolve_time_sample_value_from_layer(
     let lo_val = query_non_block(layer, path, lower_t);
     let hi_val = query_non_block(layer, path, upper_t);
     match (lo_val, hi_val) {
-        (Some(lo), Some(hi)) => {
-            super::interpolators::interpolate_value(path, time, lower_t, upper_t, &lo, &hi, use_linear)
-        }
+        (Some(lo), Some(hi)) => super::interpolators::interpolate_value(
+            path, time, lower_t, upper_t, &lo, &hi, use_linear,
+        ),
         (Some(lo), None) => Some(lo),
         _ => None,
     }
@@ -339,7 +337,8 @@ impl Attribute {
         let mut info = ResolveInfo::new();
         info.set_prim_path(prim_path.clone());
 
-        let prim_index_opt: Option<std::sync::Arc<usd_pcp::PrimIndex>> = Some(prim_index_arc.clone());
+        let prim_index_opt: Option<std::sync::Arc<usd_pcp::PrimIndex>> =
+            Some(prim_index_arc.clone());
 
         let mut resolver_visited = false;
         if let Some(ref prim_index) = prim_index_opt {
@@ -349,8 +348,7 @@ impl Attribute {
                 .unwrap_or(false);
             // C++: `Usd_Resolver(..., /*skipEmptyNodes=*/!MayHaveOpinionsInClips)` — when clips
             // may apply, iterate empty nodes too so clip opinions are visible.
-            let mut resolver =
-                super::resolver::Resolver::new(prim_index, !prim_may_have_clips);
+            let mut resolver = super::resolver::Resolver::new(prim_index, !prim_may_have_clips);
             let mut is_new_node = true;
             let mut spec_path: Option<Path> = None;
             let mut processing_animation_block = false;
@@ -367,11 +365,7 @@ impl Attribute {
                                 .map(|cc| cc.get_clips_for_prim(&prim_path))
                                 .unwrap_or_default();
                             let relevant =
-                                super::clip_set::get_clips_that_apply_to_node(
-                                    &clips_all,
-                                    n,
-                                    sp,
-                                );
+                                super::clip_set::get_clips_that_apply_to_node(&clips_all, n, sp);
                             if !n.has_specs() && relevant.is_empty() {
                                 resolver.next_node();
                                 is_new_node = true;
@@ -398,8 +392,7 @@ impl Attribute {
                             );
                             return info;
                         }
-                    }
-                    else if !processing_animation_block && layer.has_field(sp, &spline_token) {
+                    } else if !processing_animation_block && layer.has_field(sp, &spline_token) {
                         let did_set_source =
                             resolve_info_set_source(&mut info, ResolveInfoSource::Spline);
                         if did_set_source {
@@ -415,24 +408,19 @@ impl Attribute {
                             }
                             return info;
                         }
-                    }
-                    else if let Some(type_id) = layer.get_field_typeid(sp, &default_token) {
+                    } else if let Some(type_id) = layer.get_field_typeid(sp, &default_token) {
                         if type_id == std::any::TypeId::of::<usd_sdf::ValueBlock>() {
                             if info.source() == ResolveInfoSource::None {
                                 info.set_value_is_blocked(true);
                             }
                             if self.has_fallback_value() {
-                                let _ = resolve_info_set_source(
-                                    &mut info,
-                                    ResolveInfoSource::Fallback,
-                                );
+                                let _ =
+                                    resolve_info_set_source(&mut info, ResolveInfoSource::Fallback);
                             }
                             return info;
-                        }
-                        else if type_id == std::any::TypeId::of::<usd_sdf::AnimationBlock>() {
+                        } else if type_id == std::any::TypeId::of::<usd_sdf::AnimationBlock>() {
                             processing_animation_block = true;
-                        }
-                        else {
+                        } else {
                             let did_set_source =
                                 resolve_info_set_source(&mut info, ResolveInfoSource::Default);
                             let default_can_compose = default_value_can_compose(type_id);
@@ -468,9 +456,7 @@ impl Attribute {
                                 let clips_all = clip_cache.get_clips_for_prim(&prim_path);
                                 if !clips_all.is_empty() {
                                     let candidates = super::clip_set::get_clips_that_apply_to_node(
-                                        &clips_all,
-                                        n,
-                                        sp,
+                                        &clips_all, n, sp,
                                     );
                                     for cs in candidates {
                                         if !super::clip_set::clip_source_layer_matches_resolver_layer(
@@ -479,8 +465,10 @@ impl Attribute {
                                         ) {
                                             continue;
                                         }
-                                        if !super::clip_set::clip_set_has_time_samples(cs.as_ref(), sp)
-                                        {
+                                        if !super::clip_set::clip_set_has_time_samples(
+                                            cs.as_ref(),
+                                            sp,
+                                        ) {
                                             continue;
                                         }
                                         if resolve_info_set_source(
@@ -518,7 +506,8 @@ impl Attribute {
             let mut processing_animation_block = false;
 
             for layer in &layers_to_check {
-                if !processing_animation_block && layer.get_num_time_samples_for_path(attr_path) > 0 {
+                if !processing_animation_block && layer.get_num_time_samples_for_path(attr_path) > 0
+                {
                     let did_set_source =
                         resolve_info_set_source(&mut info, ResolveInfoSource::TimeSamples);
                     if did_set_source {
@@ -531,8 +520,7 @@ impl Attribute {
                         );
                         return info;
                     }
-                }
-                else if !processing_animation_block && layer.has_field(attr_path, &spline_token) {
+                } else if !processing_animation_block && layer.has_field(attr_path, &spline_token) {
                     let did_set_source =
                         resolve_info_set_source(&mut info, ResolveInfoSource::Spline);
                     if did_set_source {
@@ -548,8 +536,7 @@ impl Attribute {
                         }
                         return info;
                     }
-                }
-                else if let Some(type_id) = layer.get_field_typeid(attr_path, &default_token) {
+                } else if let Some(type_id) = layer.get_field_typeid(attr_path, &default_token) {
                     if type_id == std::any::TypeId::of::<usd_sdf::ValueBlock>() {
                         if info.source() == ResolveInfoSource::None {
                             info.set_value_is_blocked(true);
@@ -558,11 +545,9 @@ impl Attribute {
                             let _ = resolve_info_set_source(&mut info, ResolveInfoSource::Fallback);
                         }
                         return info;
-                    }
-                    else if type_id == std::any::TypeId::of::<usd_sdf::AnimationBlock>() {
+                    } else if type_id == std::any::TypeId::of::<usd_sdf::AnimationBlock>() {
                         processing_animation_block = true;
-                    }
-                    else {
+                    } else {
                         let did_set_source =
                             resolve_info_set_source(&mut info, ResolveInfoSource::Default);
                         let default_can_compose = default_value_can_compose(type_id);
@@ -643,11 +628,8 @@ impl Attribute {
                             .clip_cache()
                             .map(|cc| cc.get_clips_for_prim(&prim_path))
                             .unwrap_or_default();
-                        let relevant = super::clip_set::get_clips_that_apply_to_node(
-                            &clips_all,
-                            n,
-                            sp,
-                        );
+                        let relevant =
+                            super::clip_set::get_clips_that_apply_to_node(&clips_all, n, sp);
                         if !n.has_specs() && relevant.is_empty() {
                             resolver.next_node();
                             is_new_node = true;
@@ -672,8 +654,7 @@ impl Attribute {
                         );
                         return info;
                     }
-                }
-                else if !processing_animation_block && layer.has_field(sp, &spline_token) {
+                } else if !processing_animation_block && layer.has_field(sp, &spline_token) {
                     let did_set_source =
                         resolve_info_set_source(&mut info, ResolveInfoSource::Spline);
                     if did_set_source {
@@ -689,8 +670,7 @@ impl Attribute {
                         }
                         return info;
                     }
-                }
-                else if let Some(type_id) = layer.get_field_typeid(sp, &default_token) {
+                } else if let Some(type_id) = layer.get_field_typeid(sp, &default_token) {
                     if type_id == std::any::TypeId::of::<ValueBlock>() {
                         if info.source() == ResolveInfoSource::None {
                             info.set_value_is_blocked(true);
@@ -735,9 +715,7 @@ impl Attribute {
                             let clips_all = clip_cache.get_clips_for_prim(&prim_path);
                             if !clips_all.is_empty() {
                                 let candidates = super::clip_set::get_clips_that_apply_to_node(
-                                    &clips_all,
-                                    n,
-                                    sp,
+                                    &clips_all, n, sp,
                                 );
                                 for cs in candidates {
                                     if !super::clip_set::clip_source_layer_matches_resolver_layer(
@@ -842,8 +820,7 @@ impl Attribute {
                             sp,
                             layer_to_stage_offset,
                         );
-                        let default_can_compose =
-                            default_value_can_compose(type_id);
+                        let default_can_compose = default_value_can_compose(type_id);
                         current_info.set_default_can_compose(default_can_compose);
                         if default_can_compose {
                             current_info = current_info.add_next_weaker_info();
@@ -885,8 +862,7 @@ impl Attribute {
                         attr_path,
                         LayerOffset::identity(),
                     );
-                    let default_can_compose =
-                        default_value_can_compose(type_id);
+                    let default_can_compose = default_value_can_compose(type_id);
                     current_info.set_default_can_compose(default_can_compose);
                     if default_can_compose {
                         current_info = current_info.add_next_weaker_info();
@@ -952,8 +928,7 @@ impl Attribute {
                         sp,
                         layer_to_stage_offset,
                     );
-                    let default_can_compose =
-                        default_value_can_compose(type_id);
+                    let default_can_compose = default_value_can_compose(type_id);
                     current_info.set_default_can_compose(default_can_compose);
                     if default_can_compose {
                         current_info = current_info.add_next_weaker_info();
@@ -1497,7 +1472,10 @@ impl Attribute {
         }
 
         // Ensure attribute spec exists in the layer before writing
-        if layer.get_prim_at_path(&spec_attr_path.get_prim_path()).is_none() {
+        if layer
+            .get_prim_at_path(&spec_attr_path.get_prim_path())
+            .is_none()
+        {
             let _ = layer.create_prim_spec(
                 &spec_attr_path.get_prim_path(),
                 usd_sdf::Specifier::Over,
@@ -1511,7 +1489,11 @@ impl Attribute {
         if time.is_default() {
             layer.set_field(&spec_attr_path, &Token::new("default"), val)
         } else {
-            layer.set_time_sample(&spec_attr_path, edit_target.map_time_to_spec_time(time.value()), val)
+            layer.set_time_sample(
+                &spec_attr_path,
+                edit_target.map_time_to_spec_time(time.value()),
+                val,
+            )
         }
     }
 
@@ -1726,10 +1708,9 @@ impl Attribute {
         if let Some(prim) = stage.get_prim_at_path(&prim_path) {
             let prim_type = prim.type_name();
             if !prim_type.is_empty() {
-                if let Some(sdf_type) = super::schema_registry::schema_get_property_type(
-                    &prim_type,
-                    attr_name.as_str(),
-                ) {
+                if let Some(sdf_type) =
+                    super::schema_registry::schema_get_property_type(&prim_type, attr_name.as_str())
+                {
                     return Token::new(&sdf_type);
                 }
                 if let Some(fallback) =
@@ -1770,9 +1751,10 @@ impl Attribute {
                         };
                     }
                 }
-                if let Some(v) =
-                    super::schema_registry::schema_get_property_variability(&type_name, prop_name.as_str())
-                {
+                if let Some(v) = super::schema_registry::schema_get_property_variability(
+                    &type_name,
+                    prop_name.as_str(),
+                ) {
                     return match v {
                         usd_sdf::Variability::Uniform => Variability::Uniform,
                         usd_sdf::Variability::Varying => Variability::Varying,
@@ -1951,11 +1933,7 @@ impl Attribute {
             layer.create_spec(attr_path, usd_sdf::SpecType::Attribute);
         }
 
-        layer.set_field(
-            attr_path,
-            &*tokens::SPLINE,
-            Value::from(spline.clone()),
-        )
+        layer.set_field(attr_path, &*tokens::SPLINE, Value::from(spline.clone()))
     }
 
     /// Returns the bracketing time samples around the given time.
@@ -2228,7 +2206,8 @@ impl Attribute {
         key: &Token,
         value: impl Into<Value>,
     ) -> bool {
-        self.inner.set_metadata_by_dict_key(dict_key, key, value.into())
+        self.inner
+            .set_metadata_by_dict_key(dict_key, key, value.into())
     }
 
     /// Returns true if metadata dict key exists.

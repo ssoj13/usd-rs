@@ -26,7 +26,9 @@ pub struct PySpline {
 impl PySpline {
     #[new]
     fn new() -> Self {
-        Self { inner: Spline::new() }
+        Self {
+            inner: Spline::new(),
+        }
     }
 
     /// Set a knot on the spline.
@@ -82,7 +84,11 @@ impl PyKnot {
     }
 
     fn __repr__(&self) -> String {
-        format!("Ts.Knot(time={}, value={})", self.inner.time(), self.inner.value())
+        format!(
+            "Ts.Knot(time={}, value={})",
+            self.inner.time(),
+            self.inner.value()
+        )
     }
 }
 
@@ -146,15 +152,50 @@ pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTangentAlgorithm>()?;
 
     // Module-level interp mode constants matching C++ Ts.InterpHeld etc.
-    m.add("InterpHeld", PyInterpMode { inner: InterpMode::Held })?;
-    m.add("InterpLinear", PyInterpMode { inner: InterpMode::Linear })?;
-    m.add("InterpCurve", PyInterpMode { inner: InterpMode::Curve })?;
-    m.add("InterpValueBlock", PyInterpMode { inner: InterpMode::ValueBlock })?;
+    m.add(
+        "InterpHeld",
+        PyInterpMode {
+            inner: InterpMode::Held,
+        },
+    )?;
+    m.add(
+        "InterpLinear",
+        PyInterpMode {
+            inner: InterpMode::Linear,
+        },
+    )?;
+    m.add(
+        "InterpCurve",
+        PyInterpMode {
+            inner: InterpMode::Curve,
+        },
+    )?;
+    m.add(
+        "InterpValueBlock",
+        PyInterpMode {
+            inner: InterpMode::ValueBlock,
+        },
+    )?;
 
     // Module-level tangent algorithm constants matching C++ Ts.TangentAlgorithmNone etc.
-    m.add("TangentAlgorithmNone", PyTangentAlgorithm { inner: TangentAlgorithm::None })?;
-    m.add("TangentAlgorithmCustom", PyTangentAlgorithm { inner: TangentAlgorithm::Custom })?;
-    m.add("TangentAlgorithmAutoEase", PyTangentAlgorithm { inner: TangentAlgorithm::AutoEase })?;
+    m.add(
+        "TangentAlgorithmNone",
+        PyTangentAlgorithm {
+            inner: TangentAlgorithm::None,
+        },
+    )?;
+    m.add(
+        "TangentAlgorithmCustom",
+        PyTangentAlgorithm {
+            inner: TangentAlgorithm::Custom,
+        },
+    )?;
+    m.add(
+        "TangentAlgorithmAutoEase",
+        PyTangentAlgorithm {
+            inner: TangentAlgorithm::AutoEase,
+        },
+    )?;
 
     Ok(())
 }

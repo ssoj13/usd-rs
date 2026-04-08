@@ -1,4 +1,3 @@
-
 //! HdDisplayFilterSchema - Display filter sprim schema.
 //!
 //! Corresponds to pxr/imaging/hd/displayFilterSchema.h.

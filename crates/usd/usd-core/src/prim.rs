@@ -7,8 +7,8 @@ use super::prim_flags::{PrimFlags, PrimFlagsPredicate};
 use super::relationship::Relationship;
 use std::sync::{Arc, Weak};
 use usd_sdf::{Path, Specifier};
-use usd_tf::string_utils::dictionary_less_than;
 use usd_tf::Token;
+use usd_tf::string_utils::dictionary_less_than;
 
 // ============================================================================
 // Prim
@@ -1006,7 +1006,9 @@ impl Prim {
                 }
                 st == usd_sdf::SpecType::Unknown
                     && schema_props.contains(name)
-                    && !super::schema_registry::schema_builtin_relationship_property_name(name.as_str())
+                    && !super::schema_registry::schema_builtin_relationship_property_name(
+                        name.as_str(),
+                    )
             })
             .collect()
     }
@@ -1037,7 +1039,9 @@ impl Prim {
                 }
                 st == usd_sdf::SpecType::Unknown
                     && schema_props.contains(name)
-                    && super::schema_registry::schema_builtin_relationship_property_name(name.as_str())
+                    && super::schema_registry::schema_builtin_relationship_property_name(
+                        name.as_str(),
+                    )
             })
             .collect()
     }
@@ -1464,16 +1468,20 @@ impl Prim {
         // First check stage layers (authoritative source)
         if let Some(stage) = self.stage() {
             let value = stage.get_metadata_for_object(self.path(), key)?;
-            return value
-                .downcast_clone::<T>()
-                .or_else(|| value.cast::<T>().and_then(|casted| casted.get::<T>().cloned()));
+            return value.downcast_clone::<T>().or_else(|| {
+                value
+                    .cast::<T>()
+                    .and_then(|casted| casted.get::<T>().cloned())
+            });
         }
         // Fallback to PrimData cache if no stage
         let data = self.data()?;
         let value = data.get_metadata(key)?;
-        value
-            .downcast_clone::<T>()
-            .or_else(|| value.cast::<T>().and_then(|casted| casted.get::<T>().cloned()))
+        value.downcast_clone::<T>().or_else(|| {
+            value
+                .cast::<T>()
+                .and_then(|casted| casted.get::<T>().cloned())
+        })
     }
 
     /// Sets metadata value.
@@ -2645,7 +2653,8 @@ impl Prim {
         predicate: Option<PrimFlagsPredicate>,
     ) -> Vec<Path> {
         let mut targets = Vec::new();
-        let pred = predicate.unwrap_or_else(|| super::prim_flags::default_predicate().into_predicate());
+        let pred =
+            predicate.unwrap_or_else(|| super::prim_flags::default_predicate().into_predicate());
 
         self.find_relationship_targets_recursive(&pred, &mut targets);
 
@@ -2681,7 +2690,8 @@ impl Prim {
         predicate: Option<PrimFlagsPredicate>,
     ) -> Vec<Path> {
         let mut connections = Vec::new();
-        let pred = predicate.unwrap_or_else(|| super::prim_flags::default_predicate().into_predicate());
+        let pred =
+            predicate.unwrap_or_else(|| super::prim_flags::default_predicate().into_predicate());
 
         self.find_attribute_connections_recursive(&pred, &mut connections);
 

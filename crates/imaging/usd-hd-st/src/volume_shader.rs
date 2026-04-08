@@ -1,4 +1,3 @@
-
 //! VolumeShader - shader for volume rendering in Storm.
 //!
 //! Port of C++ `HdSt_VolumeShader`. Extends the material network shader

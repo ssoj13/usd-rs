@@ -1,4 +1,3 @@
-
 //! HdPrimGather - Filter paths by include/exclude prefixes.
 //!
 //! Corresponds to pxr/imaging/hd/primGather.h.

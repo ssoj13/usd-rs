@@ -1,4 +1,3 @@
-
 //! Retained scene index - mutable scene container.
 
 use super::base::{HdSceneIndexBase, HdSceneIndexBaseImpl, SdfPathVector, TfTokenVector};

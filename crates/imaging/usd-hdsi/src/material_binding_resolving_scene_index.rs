@@ -1,4 +1,3 @@
-
 //! Material binding resolving scene index.
 //!
 //! Resolves material bindings by walking up the hierarchy.
@@ -9,8 +8,8 @@
 //! see the effective binding on every prim.
 
 use once_cell::sync::Lazy;
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::scene_index::filtering::FilteringSceneIndexObserver;
 use usd_hd::scene_index::observer::{
@@ -44,7 +43,9 @@ impl HdsiMaterialBindingResolvingSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }
@@ -90,23 +91,23 @@ impl HdSceneIndexBase for HdsiMaterialBindingResolvingSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
             let input_locked = input.read();
-                let prim = input_locked.get_prim(prim_path);
+            let prim = input_locked.get_prim(prim_path);
 
-                // Check if prim already has a material binding
-                let has_binding = prim
-                    .data_source
-                    .as_ref()
-                    .map(|ds| ds.get(&MATERIAL_BINDING).is_some())
-                    .unwrap_or(false);
+            // Check if prim already has a material binding
+            let has_binding = prim
+                .data_source
+                .as_ref()
+                .map(|ds| ds.get(&MATERIAL_BINDING).is_some())
+                .unwrap_or(false);
 
-                if !has_binding {
-                    if let Some(_inherited) =
-                        self.resolve_material_binding(&*input_locked, &prim_path.get_parent_path())
-                    {
-                    }
+            if !has_binding {
+                if let Some(_inherited) =
+                    self.resolve_material_binding(&*input_locked, &prim_path.get_parent_path())
+                {
                 }
+            }
 
-                return prim;
+            return prim;
         }
         HdSceneIndexPrim::default()
     }

@@ -1,4 +1,3 @@
-
 //! HdSplitDiopterSchema - Split diopter schema.
 //!
 //! Corresponds to pxr/imaging/hd/splitDiopterSchema.h.

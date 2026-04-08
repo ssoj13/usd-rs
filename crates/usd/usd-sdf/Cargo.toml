@@ -28,6 +28,9 @@ parking_lot = "0.12"
 regex = "1"
 memchr = "2"
 
+[dev-dependencies]
+openusd-test-path = { path = "../../base/openusd-test-path" }
+
 [lints.rust]
 unsafe_code = "warn"
 

@@ -18,17 +18,12 @@ fn ensure_init() {
     INIT.call_once(|| usd_sdf::init());
 }
 
-fn testenv_path(relative: &str) -> String {
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    format!("{}/testenv/{}", manifest_dir.replace('\\', "/"), relative)
+fn asset_path(path: &std::path::Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
 }
 
 fn ref_baseline_path(scenario: &str) -> PathBuf {
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    PathBuf::from(manifest_dir).join(format!(
-        "testenv/baselines/compositionResults_{}.txt",
-        scenario
-    ))
+    openusd_test_path::pxr_pcp_museum_baseline_composition_results(scenario)
 }
 
 /// Extract just the filename from a layer identifier path.
@@ -166,9 +161,9 @@ fn compare_baseline(scenario: &str) -> (usize, usize, Vec<String>) {
         return (0, 0, vec!["Empty baseline".into()]);
     }
 
-    let root_path = testenv_path(&format!("museum/{}/root.usda", scenario));
+    let root_path = asset_path(&openusd_test_path::pxr_pcp_museum(scenario, "root.usda"));
     // C++ baseline loads session.usda if present alongside root.usda
-    let session_path = testenv_path(&format!("museum/{}/session.usda", scenario));
+    let session_path = asset_path(&openusd_test_path::pxr_pcp_museum(scenario, "session.usda"));
     let id = if std::path::Path::new(&session_path).exists() {
         LayerStackIdentifier::with_session(root_path.as_str(), Some(session_path.as_str()))
     } else {
@@ -293,7 +288,10 @@ baseline_test!(
 fn debug_basic_instancing_dump() {
     ensure_init();
 
-    let root_path = testenv_path("museum/BasicInstancing/root.usda");
+    let root_path = asset_path(&openusd_test_path::pxr_pcp_museum(
+        "BasicInstancing",
+        "root.usda",
+    ));
     let id = LayerStackIdentifier::new(root_path.as_str());
     let cache = Cache::new(id, true);
     cache.set_include_payload_predicate(Some(std::sync::Arc::new(|_path: &Path| true)));
@@ -368,8 +366,14 @@ fn debug_basic_instancing_dump() {
 fn debug_basic_owner_layer_stack() {
     ensure_init();
 
-    let root_path = testenv_path("museum/BasicOwner/root.usda");
-    let session_path = testenv_path("museum/BasicOwner/session.usda");
+    let root_path = asset_path(&openusd_test_path::pxr_pcp_museum(
+        "BasicOwner",
+        "root.usda",
+    ));
+    let session_path = asset_path(&openusd_test_path::pxr_pcp_museum(
+        "BasicOwner",
+        "session.usda",
+    ));
     let id = LayerStackIdentifier::with_session(root_path.as_str(), Some(session_path.as_str()));
     let cache = Cache::new(id, true);
 
@@ -388,7 +392,10 @@ fn debug_basic_owner_layer_stack() {
 fn debug_basic_list_editing_fields() {
     ensure_init();
 
-    let root_path = testenv_path("museum/BasicListEditing/root.usda");
+    let root_path = asset_path(&openusd_test_path::pxr_pcp_museum(
+        "BasicListEditing",
+        "root.usda",
+    ));
     let id = LayerStackIdentifier::new(root_path.as_str());
     let cache = Cache::new(id.clone(), true);
     let layer_stack = cache
@@ -420,13 +427,18 @@ fn debug_basic_list_editing_fields() {
 fn debug_basic_variant_with_reference_dump() {
     ensure_init();
 
-    let root_path = testenv_path("museum/BasicVariantWithReference/root.usda");
+    let root_path = asset_path(&openusd_test_path::pxr_pcp_museum(
+        "BasicVariantWithReference",
+        "root.usda",
+    ));
     let id = LayerStackIdentifier::new(root_path.as_str());
     let cache = Cache::new(id, true);
     cache.set_include_payload_predicate(Some(std::sync::Arc::new(|_path: &Path| true)));
-    let model_layer =
-        usd_sdf::Layer::find_or_open(testenv_path("museum/BasicVariantWithReference/model.usda"))
-            .expect("model layer must open");
+    let model_layer = usd_sdf::Layer::find_or_open(asset_path(&openusd_test_path::pxr_pcp_museum(
+        "BasicVariantWithReference",
+        "model.usda",
+    )))
+    .expect("model layer must open");
     let refs_tk = usd_tf::Token::new("references");
     let inherits_tk = usd_tf::Token::new("inheritPaths");
     for raw_path in [
@@ -496,8 +508,13 @@ fn debug_basic_variant_with_reference_dump() {
         eprintln!("{}", dump_prim_index(&prim_index, false, false));
     }
 
-    let direct_model_id =
-        LayerStackIdentifier::new(testenv_path("museum/BasicVariantWithReference/model.usda"));
+    let direct_model_id = LayerStackIdentifier::new(
+        asset_path(&openusd_test_path::pxr_pcp_museum(
+            "BasicVariantWithReference",
+            "model.usda",
+        ))
+        .as_str(),
+    );
     let direct_model_cache = Cache::new(direct_model_id, true);
     for prim_path in ["/Model/InstanceViaReference", "/Model/InstanceViaClass"] {
         let path = Path::from_string(prim_path).unwrap();
@@ -514,7 +531,10 @@ fn debug_basic_variant_with_reference_dump() {
 fn debug_typical_rigged_model_dump() {
     ensure_init();
 
-    let root_path = testenv_path("museum/TypicalReferenceToRiggedModel/root.usda");
+    let root_path = asset_path(&openusd_test_path::pxr_pcp_museum(
+        "TypicalReferenceToRiggedModel",
+        "root.usda",
+    ));
     let id = LayerStackIdentifier::new(root_path.as_str());
     let cache = Cache::new(id, true);
     cache.set_include_payload_predicate(Some(std::sync::Arc::new(|_path: &Path| true)));
@@ -528,16 +548,19 @@ fn debug_typical_rigged_model_dump() {
         eprintln!("{}", dump_prim_index(&prim_index, false, false));
     }
 
-    for layer_rel in [
-        "museum/TypicalReferenceToRiggedModel/mcat.usda",
-        "museum/TypicalReferenceToRiggedModel/model_latest.usda",
-    ] {
-        let layer_id = LayerStackIdentifier::new(testenv_path(layer_rel));
+    for (label, file) in [("mcat", "mcat.usda"), ("model_latest", "model_latest.usda")] {
+        let layer_id = LayerStackIdentifier::new(
+            asset_path(&openusd_test_path::pxr_pcp_museum(
+                "TypicalReferenceToRiggedModel",
+                file,
+            ))
+            .as_str(),
+        );
         let layer_cache = Cache::new(layer_id, true);
         layer_cache.set_include_payload_predicate(Some(std::sync::Arc::new(|_path: &Path| true)));
         let path = Path::from_string("/Model").unwrap();
         let (prim_index, errors) = layer_cache.compute_prim_index(&path);
-        eprintln!("DIRECT LAYER {layer_rel} /Model");
+        eprintln!("DIRECT LAYER TypicalReferenceToRiggedModel/{label} /Model");
         eprintln!("errors={errors:?}");
         eprintln!("stack={:?}", get_prim_stack(&prim_index));
         eprintln!("{}", dump_prim_index(&prim_index, false, false));
@@ -549,7 +572,10 @@ fn debug_typical_rigged_model_dump() {
 fn debug_basic_specializes_dump() {
     ensure_init();
 
-    let root_path = testenv_path("museum/BasicSpecializes/root.usda");
+    let root_path = asset_path(&openusd_test_path::pxr_pcp_museum(
+        "BasicSpecializes",
+        "root.usda",
+    ));
     let id = LayerStackIdentifier::new(root_path.as_str());
     let cache = Cache::new(id, true);
     cache.set_include_payload_predicate(Some(std::sync::Arc::new(|_path: &Path| true)));

@@ -1,4 +1,3 @@
-
 //! Comprehensive tests for HDSI module.
 
 #[cfg(test)]

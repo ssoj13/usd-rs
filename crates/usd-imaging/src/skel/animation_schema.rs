@@ -5,11 +5,11 @@
 //! Provides data source schema for skeleton animation data in Hydra.
 
 use std::sync::Arc;
+use usd_gf::{Quatf, Vec3f, Vec3h};
+use usd_hd::data_source::{HdTypedSampledDataSource, SampledToTypedAdapter};
 use usd_hd::{
     HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdDataSourceLocator, cast_to_container,
 };
-use usd_hd::data_source::{HdTypedSampledDataSource, SampledToTypedAdapter};
-use usd_gf::{Quatf, Vec3f, Vec3h};
 use usd_tf::Token;
 
 // Token constants

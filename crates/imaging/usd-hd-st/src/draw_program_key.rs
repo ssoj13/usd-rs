@@ -1,4 +1,3 @@
-
 //! Runtime program-key selection for Storm draw batches.
 //!
 //! OpenUSD does not route `HdStPoints` or `HdStBasisCurves` through the mesh
@@ -116,7 +115,13 @@ impl DrawProgramKey {
     /// Points and wire curves do not use the full lighting stack yet, but they
     /// still use the material fallback color when no vertex color is authored.
     pub fn needs_material_uniforms(&self) -> bool {
-        !matches!(self, Self::Mesh(MeshShaderKey { depth_only: true, .. }))
+        !matches!(
+            self,
+            Self::Mesh(MeshShaderKey {
+                depth_only: true,
+                ..
+            })
+        )
     }
 
     /// Whether this program needs light uniforms bound.

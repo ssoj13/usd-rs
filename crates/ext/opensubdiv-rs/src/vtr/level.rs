@@ -6,11 +6,12 @@
 // vert-face, vert-edge) as SOA (Structure-of-Arrays) with an interleaved
 // [count, offset] pair per component for variable-arity relations.
 
-use crate::sdc::{Options, crease::Rule};
-use super::types::{Index, LocalIndex, INDEX_INVALID, index_is_valid,
-                   ConstIndexArray, IndexArray,
-                   ConstLocalIndexArray, LocalIndexArray};
 use super::fvar_level::FVarLevel;
+use super::types::{
+    ConstIndexArray, ConstLocalIndexArray, INDEX_INVALID, Index, IndexArray, LocalIndex,
+    LocalIndexArray, index_is_valid,
+};
+use crate::sdc::{Options, crease::Rule};
 
 // ---------------------------------------------------------------------------
 // Tags
@@ -22,39 +23,121 @@ use super::fvar_level::FVarLevel;
 pub struct VTag(pub u16);
 
 impl VTag {
-    pub fn clear(&mut self) { self.0 = 0; }
-    pub fn get_bits(self) -> u16 { self.0 }
+    pub fn clear(&mut self) {
+        self.0 = 0;
+    }
+    pub fn get_bits(self) -> u16 {
+        self.0
+    }
 
     // ---- bit accessors ----
-    #[inline] pub fn non_manifold(self)     -> bool { self.0 & 0x0001 != 0 }
-    #[inline] pub fn xordinary(self)        -> bool { self.0 & 0x0002 != 0 }
-    #[inline] pub fn boundary(self)         -> bool { self.0 & 0x0004 != 0 }
-    #[inline] pub fn corner(self)           -> bool { self.0 & 0x0008 != 0 }
-    #[inline] pub fn inf_sharp(self)        -> bool { self.0 & 0x0010 != 0 }
-    #[inline] pub fn semi_sharp(self)       -> bool { self.0 & 0x0020 != 0 }
-    #[inline] pub fn semi_sharp_edges(self) -> bool { self.0 & 0x0040 != 0 }
+    #[inline]
+    pub fn non_manifold(self) -> bool {
+        self.0 & 0x0001 != 0
+    }
+    #[inline]
+    pub fn xordinary(self) -> bool {
+        self.0 & 0x0002 != 0
+    }
+    #[inline]
+    pub fn boundary(self) -> bool {
+        self.0 & 0x0004 != 0
+    }
+    #[inline]
+    pub fn corner(self) -> bool {
+        self.0 & 0x0008 != 0
+    }
+    #[inline]
+    pub fn inf_sharp(self) -> bool {
+        self.0 & 0x0010 != 0
+    }
+    #[inline]
+    pub fn semi_sharp(self) -> bool {
+        self.0 & 0x0020 != 0
+    }
+    #[inline]
+    pub fn semi_sharp_edges(self) -> bool {
+        self.0 & 0x0040 != 0
+    }
     /// 4-bit rule field (bits [10:7]).
-    #[inline] pub fn rule(self) -> u16 { (self.0 >> 7) & 0x000F }
-    #[inline] pub fn incomplete(self)       -> bool { self.0 & 0x0800 != 0 }
-    #[inline] pub fn incid_irreg_face(self) -> bool { self.0 & 0x1000 != 0 }
-    #[inline] pub fn inf_sharp_edges(self)  -> bool { self.0 & 0x2000 != 0 }
-    #[inline] pub fn inf_sharp_crease(self) -> bool { self.0 & 0x4000 != 0 }
-    #[inline] pub fn inf_irregular(self)    -> bool { self.0 & 0x8000 != 0 }
+    #[inline]
+    pub fn rule(self) -> u16 {
+        (self.0 >> 7) & 0x000F
+    }
+    #[inline]
+    pub fn incomplete(self) -> bool {
+        self.0 & 0x0800 != 0
+    }
+    #[inline]
+    pub fn incid_irreg_face(self) -> bool {
+        self.0 & 0x1000 != 0
+    }
+    #[inline]
+    pub fn inf_sharp_edges(self) -> bool {
+        self.0 & 0x2000 != 0
+    }
+    #[inline]
+    pub fn inf_sharp_crease(self) -> bool {
+        self.0 & 0x4000 != 0
+    }
+    #[inline]
+    pub fn inf_irregular(self) -> bool {
+        self.0 & 0x8000 != 0
+    }
 
     // ---- setters ----
-    #[inline] pub fn set_non_manifold(&mut self, v: bool)     { set_bit(&mut self.0, 0x0001, v); }
-    #[inline] pub fn set_xordinary(&mut self, v: bool)        { set_bit(&mut self.0, 0x0002, v); }
-    #[inline] pub fn set_boundary(&mut self, v: bool)         { set_bit(&mut self.0, 0x0004, v); }
-    #[inline] pub fn set_corner(&mut self, v: bool)           { set_bit(&mut self.0, 0x0008, v); }
-    #[inline] pub fn set_inf_sharp(&mut self, v: bool)        { set_bit(&mut self.0, 0x0010, v); }
-    #[inline] pub fn set_semi_sharp(&mut self, v: bool)       { set_bit(&mut self.0, 0x0020, v); }
-    #[inline] pub fn set_semi_sharp_edges(&mut self, v: bool) { set_bit(&mut self.0, 0x0040, v); }
-    #[inline] pub fn set_rule(&mut self, r: u16)              { self.0 = (self.0 & !0x0780) | ((r & 0xF) << 7); }
-    #[inline] pub fn set_incomplete(&mut self, v: bool)       { set_bit(&mut self.0, 0x0800, v); }
-    #[inline] pub fn set_incid_irreg_face(&mut self, v: bool) { set_bit(&mut self.0, 0x1000, v); }
-    #[inline] pub fn set_inf_sharp_edges(&mut self, v: bool)  { set_bit(&mut self.0, 0x2000, v); }
-    #[inline] pub fn set_inf_sharp_crease(&mut self, v: bool) { set_bit(&mut self.0, 0x4000, v); }
-    #[inline] pub fn set_inf_irregular(&mut self, v: bool)    { set_bit(&mut self.0, 0x8000, v); }
+    #[inline]
+    pub fn set_non_manifold(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x0001, v);
+    }
+    #[inline]
+    pub fn set_xordinary(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x0002, v);
+    }
+    #[inline]
+    pub fn set_boundary(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x0004, v);
+    }
+    #[inline]
+    pub fn set_corner(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x0008, v);
+    }
+    #[inline]
+    pub fn set_inf_sharp(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x0010, v);
+    }
+    #[inline]
+    pub fn set_semi_sharp(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x0020, v);
+    }
+    #[inline]
+    pub fn set_semi_sharp_edges(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x0040, v);
+    }
+    #[inline]
+    pub fn set_rule(&mut self, r: u16) {
+        self.0 = (self.0 & !0x0780) | ((r & 0xF) << 7);
+    }
+    #[inline]
+    pub fn set_incomplete(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x0800, v);
+    }
+    #[inline]
+    pub fn set_incid_irreg_face(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x1000, v);
+    }
+    #[inline]
+    pub fn set_inf_sharp_edges(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x2000, v);
+    }
+    #[inline]
+    pub fn set_inf_sharp_crease(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x4000, v);
+    }
+    #[inline]
+    pub fn set_inf_irregular(&mut self, v: bool) {
+        set_bit(&mut self.0, 0x8000, v);
+    }
 
     /// Bitwise-OR of up to `size` tags — produces a "composite" tag.
     pub fn bitwise_or(tags: &[VTag]) -> VTag {
@@ -68,16 +151,42 @@ impl VTag {
 pub struct ETag(pub u8);
 
 impl ETag {
-    pub fn clear(&mut self) { self.0 = 0; }
-    #[inline] pub fn non_manifold(self) -> bool { self.0 & 0x01 != 0 }
-    #[inline] pub fn boundary(self)     -> bool { self.0 & 0x02 != 0 }
-    #[inline] pub fn inf_sharp(self)    -> bool { self.0 & 0x04 != 0 }
-    #[inline] pub fn semi_sharp(self)   -> bool { self.0 & 0x08 != 0 }
+    pub fn clear(&mut self) {
+        self.0 = 0;
+    }
+    #[inline]
+    pub fn non_manifold(self) -> bool {
+        self.0 & 0x01 != 0
+    }
+    #[inline]
+    pub fn boundary(self) -> bool {
+        self.0 & 0x02 != 0
+    }
+    #[inline]
+    pub fn inf_sharp(self) -> bool {
+        self.0 & 0x04 != 0
+    }
+    #[inline]
+    pub fn semi_sharp(self) -> bool {
+        self.0 & 0x08 != 0
+    }
 
-    #[inline] pub fn set_non_manifold(&mut self, v: bool) { set_bit_u8(&mut self.0, 0x01, v); }
-    #[inline] pub fn set_boundary(&mut self, v: bool)     { set_bit_u8(&mut self.0, 0x02, v); }
-    #[inline] pub fn set_inf_sharp(&mut self, v: bool)    { set_bit_u8(&mut self.0, 0x04, v); }
-    #[inline] pub fn set_semi_sharp(&mut self, v: bool)   { set_bit_u8(&mut self.0, 0x08, v); }
+    #[inline]
+    pub fn set_non_manifold(&mut self, v: bool) {
+        set_bit_u8(&mut self.0, 0x01, v);
+    }
+    #[inline]
+    pub fn set_boundary(&mut self, v: bool) {
+        set_bit_u8(&mut self.0, 0x02, v);
+    }
+    #[inline]
+    pub fn set_inf_sharp(&mut self, v: bool) {
+        set_bit_u8(&mut self.0, 0x04, v);
+    }
+    #[inline]
+    pub fn set_semi_sharp(&mut self, v: bool) {
+        set_bit_u8(&mut self.0, 0x08, v);
+    }
 
     pub fn bitwise_or(tags: &[ETag]) -> ETag {
         ETag(tags.iter().fold(0u8, |acc, t| acc | t.0))
@@ -90,25 +199,37 @@ impl ETag {
 pub struct FTag(pub u8);
 
 impl FTag {
-    pub fn clear(&mut self) { self.0 = 0; }
-    #[inline] pub fn hole(self) -> bool { self.0 & 0x01 != 0 }
-    #[inline] pub fn set_hole(&mut self, v: bool) { set_bit_u8(&mut self.0, 0x01, v); }
+    pub fn clear(&mut self) {
+        self.0 = 0;
+    }
+    #[inline]
+    pub fn hole(self) -> bool {
+        self.0 & 0x01 != 0
+    }
+    #[inline]
+    pub fn set_hole(&mut self, v: bool) {
+        set_bit_u8(&mut self.0, 0x01, v);
+    }
 }
 
 /// A span around a vertex (subset of incident faces).
 /// Mirrors C++ `Vtr::internal::Level::VSpan`.
 #[derive(Clone, Copy, Default)]
 pub struct VSpan {
-    pub num_faces:     LocalIndex,
-    pub start_face:    LocalIndex,
+    pub num_faces: LocalIndex,
+    pub start_face: LocalIndex,
     pub corner_in_span: LocalIndex,
-    pub periodic:      bool,
-    pub sharp:         bool,
+    pub periodic: bool,
+    pub sharp: bool,
 }
 
 impl VSpan {
-    pub fn clear(&mut self) { *self = VSpan::default(); }
-    pub fn is_assigned(&self) -> bool { self.num_faces > 0 }
+    pub fn clear(&mut self) {
+        *self = VSpan::default();
+    }
+    pub fn is_assigned(&self) -> bool {
+        self.num_faces > 0
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -141,22 +262,24 @@ pub enum TopologyError {
 impl TopologyError {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::MissingEdgeFaces                     => "Missing edge-face relation",
-            Self::MissingEdgeVerts                     => "Missing edge-vert relation",
-            Self::MissingFaceEdges                     => "Missing face-edge relation",
-            Self::MissingFaceVerts                     => "Missing face-vert relation",
-            Self::MissingVertFaces                     => "Missing vert-face relation",
-            Self::MissingVertEdges                     => "Missing vert-edge relation",
-            Self::FailedCorrelationEdgeFace            => "Correlation failure: edge-face",
-            Self::FailedCorrelationFaceVert            => "Correlation failure: face-vert",
-            Self::FailedCorrelationFaceEdge            => "Correlation failure: face-edge",
-            Self::FailedOrientationIncidentEdge        => "Orientation failure: incident edge",
-            Self::FailedOrientationIncidentFace        => "Orientation failure: incident face",
-            Self::FailedOrientationIncidentFacesEdges  => "Orientation failure: incident faces+edges",
-            Self::DegenerateEdge                       => "Degenerate edge",
-            Self::NonManifoldEdge                      => "Non-manifold edge",
-            Self::InvalidCreaseEdge                    => "Invalid crease edge",
-            Self::InvalidCreaseVert                    => "Invalid crease vertex",
+            Self::MissingEdgeFaces => "Missing edge-face relation",
+            Self::MissingEdgeVerts => "Missing edge-vert relation",
+            Self::MissingFaceEdges => "Missing face-edge relation",
+            Self::MissingFaceVerts => "Missing face-vert relation",
+            Self::MissingVertFaces => "Missing vert-face relation",
+            Self::MissingVertEdges => "Missing vert-edge relation",
+            Self::FailedCorrelationEdgeFace => "Correlation failure: edge-face",
+            Self::FailedCorrelationFaceVert => "Correlation failure: face-vert",
+            Self::FailedCorrelationFaceEdge => "Correlation failure: face-edge",
+            Self::FailedOrientationIncidentEdge => "Orientation failure: incident edge",
+            Self::FailedOrientationIncidentFace => "Orientation failure: incident face",
+            Self::FailedOrientationIncidentFacesEdges => {
+                "Orientation failure: incident faces+edges"
+            }
+            Self::DegenerateEdge => "Degenerate edge",
+            Self::NonManifoldEdge => "Non-manifold edge",
+            Self::InvalidCreaseEdge => "Invalid crease edge",
+            Self::InvalidCreaseVert => "Invalid crease vertex",
         }
     }
 }
@@ -186,33 +309,33 @@ pub struct Level {
     pub(crate) depth: i32,
 
     pub(crate) max_edge_faces: i32,
-    pub(crate) max_valence:    i32,
+    pub(crate) max_valence: i32,
 
     // --- Face-vertex relation (face → [vert]) ---
     /// Interleaved [count, offset] per face (2*face_count entries).
     pub(crate) face_vert_counts_offsets: Vec<i32>,
-    pub(crate) face_vert_indices:        Vec<Index>,
+    pub(crate) face_vert_indices: Vec<Index>,
 
     // --- Face-edge relation (face → [edge]) ---
     pub(crate) face_edge_indices: Vec<Index>,
 
     // --- Edge-vertex relation (edge → [v0, v1]) ---
-    pub(crate) edge_vert_indices: Vec<Index>,  // always 2 per edge
+    pub(crate) edge_vert_indices: Vec<Index>, // always 2 per edge
 
     // --- Edge-face relation (edge → [face]) ---
     pub(crate) edge_face_counts_offsets: Vec<i32>,
-    pub(crate) edge_face_indices:        Vec<Index>,
-    pub(crate) edge_face_local_indices:  Vec<LocalIndex>,
+    pub(crate) edge_face_indices: Vec<Index>,
+    pub(crate) edge_face_local_indices: Vec<LocalIndex>,
 
     // --- Vert-face relation (vert → [face]) ---
     pub(crate) vert_face_counts_offsets: Vec<i32>,
-    pub(crate) vert_face_indices:        Vec<Index>,
-    pub(crate) vert_face_local_indices:  Vec<LocalIndex>,
+    pub(crate) vert_face_indices: Vec<Index>,
+    pub(crate) vert_face_local_indices: Vec<LocalIndex>,
 
     // --- Vert-edge relation (vert → [edge]) ---
     pub(crate) vert_edge_counts_offsets: Vec<i32>,
-    pub(crate) vert_edge_indices:        Vec<Index>,
-    pub(crate) vert_edge_local_indices:  Vec<LocalIndex>,
+    pub(crate) vert_edge_indices: Vec<Index>,
+    pub(crate) vert_edge_local_indices: Vec<LocalIndex>,
 
     // --- Component tags ---
     pub(crate) vert_tags: Vec<VTag>,
@@ -228,19 +351,33 @@ pub struct Level {
 }
 
 // ---- internal bit helpers ----
-#[inline] fn set_bit(x: &mut u16, mask: u16, v: bool) {
-    if v { *x |= mask; } else { *x &= !mask; }
+#[inline]
+fn set_bit(x: &mut u16, mask: u16, v: bool) {
+    if v {
+        *x |= mask;
+    } else {
+        *x &= !mask;
+    }
 }
-#[inline] fn set_bit_u8(x: &mut u8, mask: u8, v: bool) {
-    if v { *x |= mask; } else { *x &= !mask; }
+#[inline]
+fn set_bit_u8(x: &mut u8, mask: u8, v: bool) {
+    if v {
+        *x |= mask;
+    } else {
+        *x &= !mask;
+    }
 }
 
 impl Level {
     /// Create an empty base level.
     pub fn new() -> Self {
         Self {
-            face_count: 0, edge_count: 0, vert_count: 0, depth: 0,
-            max_edge_faces: 0, max_valence: 0,
+            face_count: 0,
+            edge_count: 0,
+            vert_count: 0,
+            depth: 0,
+            max_edge_faces: 0,
+            max_valence: 0,
             face_vert_counts_offsets: Vec::new(),
             face_vert_indices: Vec::new(),
             face_edge_indices: Vec::new(),
@@ -265,63 +402,115 @@ impl Level {
 
     // ---- simple accessors ----
 
-    #[inline] pub fn get_depth(&self) -> i32 { self.depth }
-    #[inline] pub fn get_num_vertices(&self) -> i32 { self.vert_count }
-    #[inline] pub fn get_num_faces(&self)    -> i32 { self.face_count }
-    #[inline] pub fn get_num_edges(&self)    -> i32 { self.edge_count }
-    #[inline] pub fn get_num_face_vertices_total(&self) -> i32 { self.face_vert_indices.len() as i32 }
-    #[inline] pub fn get_num_face_edges_total(&self)    -> i32 { self.face_edge_indices.len() as i32 }
-    #[inline] pub fn get_num_edge_vertices_total(&self) -> i32 { self.edge_vert_indices.len() as i32 }
-    #[inline] pub fn get_num_edge_faces_total(&self)    -> i32 { self.edge_face_indices.len() as i32 }
-    #[inline] pub fn get_num_vertex_faces_total(&self)  -> i32 { self.vert_face_indices.len() as i32 }
-    #[inline] pub fn get_num_vertex_edges_total(&self)  -> i32 { self.vert_edge_indices.len() as i32 }
-    #[inline] pub fn get_max_valence(&self) -> i32 { self.max_valence }
-    #[inline] pub fn get_max_edge_faces(&self) -> i32 { self.max_edge_faces }
+    #[inline]
+    pub fn get_depth(&self) -> i32 {
+        self.depth
+    }
+    #[inline]
+    pub fn get_num_vertices(&self) -> i32 {
+        self.vert_count
+    }
+    #[inline]
+    pub fn get_num_faces(&self) -> i32 {
+        self.face_count
+    }
+    #[inline]
+    pub fn get_num_edges(&self) -> i32 {
+        self.edge_count
+    }
+    #[inline]
+    pub fn get_num_face_vertices_total(&self) -> i32 {
+        self.face_vert_indices.len() as i32
+    }
+    #[inline]
+    pub fn get_num_face_edges_total(&self) -> i32 {
+        self.face_edge_indices.len() as i32
+    }
+    #[inline]
+    pub fn get_num_edge_vertices_total(&self) -> i32 {
+        self.edge_vert_indices.len() as i32
+    }
+    #[inline]
+    pub fn get_num_edge_faces_total(&self) -> i32 {
+        self.edge_face_indices.len() as i32
+    }
+    #[inline]
+    pub fn get_num_vertex_faces_total(&self) -> i32 {
+        self.vert_face_indices.len() as i32
+    }
+    #[inline]
+    pub fn get_num_vertex_edges_total(&self) -> i32 {
+        self.vert_edge_indices.len() as i32
+    }
+    #[inline]
+    pub fn get_max_valence(&self) -> i32 {
+        self.max_valence
+    }
+    #[inline]
+    pub fn get_max_edge_faces(&self) -> i32 {
+        self.max_edge_faces
+    }
 
     // ---- per-component counts and offsets ----
 
-    #[inline] pub fn get_num_face_vertices(&self, f: Index) -> i32 {
+    #[inline]
+    pub fn get_num_face_vertices(&self, f: Index) -> i32 {
         self.face_vert_counts_offsets[2 * f as usize]
     }
-    #[inline] pub fn get_offset_of_face_vertices(&self, f: Index) -> i32 {
+    #[inline]
+    pub fn get_offset_of_face_vertices(&self, f: Index) -> i32 {
         self.face_vert_counts_offsets[2 * f as usize + 1]
     }
-    #[inline] pub fn get_num_face_edges(&self, f: Index) -> i32 {
+    #[inline]
+    pub fn get_num_face_edges(&self, f: Index) -> i32 {
         self.get_num_face_vertices(f)
     }
-    #[inline] pub fn get_offset_of_face_edges(&self, f: Index) -> i32 {
+    #[inline]
+    pub fn get_offset_of_face_edges(&self, f: Index) -> i32 {
         self.get_offset_of_face_vertices(f)
     }
-    #[inline] pub fn get_num_edge_vertices(&self, _e: Index) -> i32 { 2 }
-    #[inline] pub fn get_offset_of_edge_vertices(&self, e: Index) -> i32 { 2 * e }
-    #[inline] pub fn get_num_edge_faces(&self, e: Index) -> i32 {
+    #[inline]
+    pub fn get_num_edge_vertices(&self, _e: Index) -> i32 {
+        2
+    }
+    #[inline]
+    pub fn get_offset_of_edge_vertices(&self, e: Index) -> i32 {
+        2 * e
+    }
+    #[inline]
+    pub fn get_num_edge_faces(&self, e: Index) -> i32 {
         self.edge_face_counts_offsets[2 * e as usize]
     }
-    #[inline] pub fn get_offset_of_edge_faces(&self, e: Index) -> i32 {
+    #[inline]
+    pub fn get_offset_of_edge_faces(&self, e: Index) -> i32 {
         self.edge_face_counts_offsets[2 * e as usize + 1]
     }
-    #[inline] pub fn get_num_vertex_faces(&self, v: Index) -> i32 {
+    #[inline]
+    pub fn get_num_vertex_faces(&self, v: Index) -> i32 {
         self.vert_face_counts_offsets[2 * v as usize]
     }
-    #[inline] pub fn get_offset_of_vertex_faces(&self, v: Index) -> i32 {
+    #[inline]
+    pub fn get_offset_of_vertex_faces(&self, v: Index) -> i32 {
         self.vert_face_counts_offsets[2 * v as usize + 1]
     }
-    #[inline] pub fn get_num_vertex_edges(&self, v: Index) -> i32 {
+    #[inline]
+    pub fn get_num_vertex_edges(&self, v: Index) -> i32 {
         self.vert_edge_counts_offsets[2 * v as usize]
     }
-    #[inline] pub fn get_offset_of_vertex_edges(&self, v: Index) -> i32 {
+    #[inline]
+    pub fn get_offset_of_vertex_edges(&self, v: Index) -> i32 {
         self.vert_edge_counts_offsets[2 * v as usize + 1]
     }
 
     // ---- relation accessors (immutable) ----
 
     pub fn get_face_vertices(&self, f: Index) -> ConstIndexArray<'_> {
-        let count  = self.get_num_face_vertices(f) as usize;
+        let count = self.get_num_face_vertices(f) as usize;
         let offset = self.get_offset_of_face_vertices(f) as usize;
         ConstIndexArray::new(&self.face_vert_indices[offset..offset + count])
     }
     pub fn get_face_edges(&self, f: Index) -> ConstIndexArray<'_> {
-        let count  = self.get_num_face_edges(f) as usize;
+        let count = self.get_num_face_edges(f) as usize;
         let offset = self.get_offset_of_face_edges(f) as usize;
         ConstIndexArray::new(&self.face_edge_indices[offset..offset + count])
     }
@@ -330,33 +519,33 @@ impl Level {
         ConstIndexArray::new(&self.edge_vert_indices[offset..offset + 2])
     }
     pub fn get_edge_faces(&self, e: Index) -> ConstIndexArray<'_> {
-        let count  = self.get_num_edge_faces(e) as usize;
+        let count = self.get_num_edge_faces(e) as usize;
         let offset = self.get_offset_of_edge_faces(e) as usize;
         ConstIndexArray::new(&self.edge_face_indices[offset..offset + count])
     }
     pub fn get_vertex_faces(&self, v: Index) -> ConstIndexArray<'_> {
-        let count  = self.get_num_vertex_faces(v) as usize;
+        let count = self.get_num_vertex_faces(v) as usize;
         let offset = self.get_offset_of_vertex_faces(v) as usize;
         ConstIndexArray::new(&self.vert_face_indices[offset..offset + count])
     }
     pub fn get_vertex_edges(&self, v: Index) -> ConstIndexArray<'_> {
-        let count  = self.get_num_vertex_edges(v) as usize;
+        let count = self.get_num_vertex_edges(v) as usize;
         let offset = self.get_offset_of_vertex_edges(v) as usize;
         ConstIndexArray::new(&self.vert_edge_indices[offset..offset + count])
     }
 
     pub fn get_edge_face_local_indices(&self, e: Index) -> ConstLocalIndexArray<'_> {
-        let count  = self.get_num_edge_faces(e) as usize;
+        let count = self.get_num_edge_faces(e) as usize;
         let offset = self.get_offset_of_edge_faces(e) as usize;
         ConstLocalIndexArray::new(&self.edge_face_local_indices[offset..offset + count])
     }
     pub fn get_vertex_face_local_indices(&self, v: Index) -> ConstLocalIndexArray<'_> {
-        let count  = self.get_num_vertex_faces(v) as usize;
+        let count = self.get_num_vertex_faces(v) as usize;
         let offset = self.get_offset_of_vertex_faces(v) as usize;
         ConstLocalIndexArray::new(&self.vert_face_local_indices[offset..offset + count])
     }
     pub fn get_vertex_edge_local_indices(&self, v: Index) -> ConstLocalIndexArray<'_> {
-        let count  = self.get_num_vertex_edges(v) as usize;
+        let count = self.get_num_vertex_edges(v) as usize;
         let offset = self.get_offset_of_vertex_edges(v) as usize;
         ConstLocalIndexArray::new(&self.vert_edge_local_indices[offset..offset + count])
     }
@@ -364,12 +553,12 @@ impl Level {
     // ---- relation accessors (mutable) ----
 
     pub fn get_face_vertices_mut(&mut self, f: Index) -> IndexArray<'_> {
-        let count  = self.face_vert_counts_offsets[2 * f as usize] as usize;
+        let count = self.face_vert_counts_offsets[2 * f as usize] as usize;
         let offset = self.face_vert_counts_offsets[2 * f as usize + 1] as usize;
         IndexArray::new(&mut self.face_vert_indices[offset..offset + count])
     }
     pub fn get_face_edges_mut(&mut self, f: Index) -> IndexArray<'_> {
-        let count  = self.face_vert_counts_offsets[2 * f as usize] as usize;
+        let count = self.face_vert_counts_offsets[2 * f as usize] as usize;
         let offset = self.face_vert_counts_offsets[2 * f as usize + 1] as usize;
         IndexArray::new(&mut self.face_edge_indices[offset..offset + count])
     }
@@ -378,33 +567,33 @@ impl Level {
         IndexArray::new(&mut self.edge_vert_indices[offset..offset + 2])
     }
     pub fn get_edge_faces_mut(&mut self, e: Index) -> IndexArray<'_> {
-        let count  = self.edge_face_counts_offsets[2 * e as usize] as usize;
+        let count = self.edge_face_counts_offsets[2 * e as usize] as usize;
         let offset = self.edge_face_counts_offsets[2 * e as usize + 1] as usize;
         IndexArray::new(&mut self.edge_face_indices[offset..offset + count])
     }
     pub fn get_vertex_faces_mut(&mut self, v: Index) -> IndexArray<'_> {
-        let count  = self.vert_face_counts_offsets[2 * v as usize] as usize;
+        let count = self.vert_face_counts_offsets[2 * v as usize] as usize;
         let offset = self.vert_face_counts_offsets[2 * v as usize + 1] as usize;
         IndexArray::new(&mut self.vert_face_indices[offset..offset + count])
     }
     pub fn get_vertex_edges_mut(&mut self, v: Index) -> IndexArray<'_> {
-        let count  = self.vert_edge_counts_offsets[2 * v as usize] as usize;
+        let count = self.vert_edge_counts_offsets[2 * v as usize] as usize;
         let offset = self.vert_edge_counts_offsets[2 * v as usize + 1] as usize;
         IndexArray::new(&mut self.vert_edge_indices[offset..offset + count])
     }
 
     pub fn get_edge_face_local_indices_mut(&mut self, e: Index) -> LocalIndexArray<'_> {
-        let count  = self.edge_face_counts_offsets[2 * e as usize] as usize;
+        let count = self.edge_face_counts_offsets[2 * e as usize] as usize;
         let offset = self.edge_face_counts_offsets[2 * e as usize + 1] as usize;
         LocalIndexArray::new(&mut self.edge_face_local_indices[offset..offset + count])
     }
     pub fn get_vertex_face_local_indices_mut(&mut self, v: Index) -> LocalIndexArray<'_> {
-        let count  = self.vert_face_counts_offsets[2 * v as usize] as usize;
+        let count = self.vert_face_counts_offsets[2 * v as usize] as usize;
         let offset = self.vert_face_counts_offsets[2 * v as usize + 1] as usize;
         LocalIndexArray::new(&mut self.vert_face_local_indices[offset..offset + count])
     }
     pub fn get_vertex_edge_local_indices_mut(&mut self, v: Index) -> LocalIndexArray<'_> {
-        let count  = self.vert_edge_counts_offsets[2 * v as usize] as usize;
+        let count = self.vert_edge_counts_offsets[2 * v as usize] as usize;
         let offset = self.vert_edge_counts_offsets[2 * v as usize + 1] as usize;
         LocalIndexArray::new(&mut self.vert_edge_local_indices[offset..offset + count])
     }
@@ -415,19 +604,24 @@ impl Level {
     }
 
     // ---- sharpness ----
-    #[inline] pub fn get_edge_sharpness(&self, e: Index) -> f32 {
+    #[inline]
+    pub fn get_edge_sharpness(&self, e: Index) -> f32 {
         self.edge_sharpness[e as usize]
     }
-    #[inline] pub fn get_edge_sharpness_mut(&mut self, e: Index) -> &mut f32 {
+    #[inline]
+    pub fn get_edge_sharpness_mut(&mut self, e: Index) -> &mut f32 {
         &mut self.edge_sharpness[e as usize]
     }
-    #[inline] pub fn get_vertex_sharpness(&self, v: Index) -> f32 {
+    #[inline]
+    pub fn get_vertex_sharpness(&self, v: Index) -> f32 {
         self.vert_sharpness[v as usize]
     }
-    #[inline] pub fn get_vertex_sharpness_mut(&mut self, v: Index) -> &mut f32 {
+    #[inline]
+    pub fn get_vertex_sharpness_mut(&mut self, v: Index) -> &mut f32 {
         &mut self.vert_sharpness[v as usize]
     }
-    #[inline] pub fn get_vertex_rule(&self, v: Index) -> Rule {
+    #[inline]
+    pub fn get_vertex_rule(&self, v: Index) -> Rule {
         // Rule is stored in VTag bits [10:7]; extract and convert to Rule enum.
         Rule::from_bits(self.vert_tags[v as usize].rule() as u8)
     }
@@ -452,12 +646,30 @@ impl Level {
     }
 
     // ---- tags ----
-    #[inline] pub fn get_vertex_tag(&self, v: Index) -> VTag { self.vert_tags[v as usize] }
-    #[inline] pub fn get_edge_tag(&self, e: Index) -> ETag   { self.edge_tags[e as usize] }
-    #[inline] pub fn get_face_tag(&self, f: Index) -> FTag   { self.face_tags[f as usize] }
-    #[inline] pub fn get_vertex_tag_mut(&mut self, v: Index) -> &mut VTag { &mut self.vert_tags[v as usize] }
-    #[inline] pub fn get_edge_tag_mut(&mut self, e: Index) -> &mut ETag   { &mut self.edge_tags[e as usize] }
-    #[inline] pub fn get_face_tag_mut(&mut self, f: Index) -> &mut FTag   { &mut self.face_tags[f as usize] }
+    #[inline]
+    pub fn get_vertex_tag(&self, v: Index) -> VTag {
+        self.vert_tags[v as usize]
+    }
+    #[inline]
+    pub fn get_edge_tag(&self, e: Index) -> ETag {
+        self.edge_tags[e as usize]
+    }
+    #[inline]
+    pub fn get_face_tag(&self, f: Index) -> FTag {
+        self.face_tags[f as usize]
+    }
+    #[inline]
+    pub fn get_vertex_tag_mut(&mut self, v: Index) -> &mut VTag {
+        &mut self.vert_tags[v as usize]
+    }
+    #[inline]
+    pub fn get_edge_tag_mut(&mut self, e: Index) -> &mut ETag {
+        &mut self.edge_tags[e as usize]
+    }
+    #[inline]
+    pub fn get_face_tag_mut(&mut self, f: Index) -> &mut FTag {
+        &mut self.face_tags[f as usize]
+    }
 
     // ---- holes ----
     pub fn set_face_hole(&mut self, f: Index, b: bool) {
@@ -519,7 +731,7 @@ impl Level {
         for i in 0..2usize {
             let e_index = non_man_edges[i];
             let e_start = non_man_edges[if i != 0 { 0 } else { 1 }];
-            let e_end   = non_man_edges[if i == 0 { 0 } else { 1 }];
+            let e_end = non_man_edges[if i == 0 { 0 } else { 1 }];
 
             let e_faces = self.get_edge_faces(e_index);
             let e_in_face = self.get_edge_face_local_indices(e_index);
@@ -563,7 +775,8 @@ impl Level {
     }
 
     // ---- face-varying ----
-    #[inline] pub fn get_num_fvar_channels(&self) -> i32 {
+    #[inline]
+    pub fn get_num_fvar_channels(&self) -> i32 {
         self.fvar_channels.len() as i32
     }
     pub fn get_num_fvar_values(&self, channel: i32) -> i32 {
@@ -591,7 +804,11 @@ impl Level {
         let channel = self.fvar_channels.len() as i32;
         let mut fvar = Box::new(FVarLevel::new(self as *const Level));
         fvar.set_options(options);
-        fvar.resize(num_values, self.face_count, self.face_vert_indices.len() as i32);
+        fvar.resize(
+            num_values,
+            self.face_count,
+            self.face_vert_indices.len() as i32,
+        );
         self.fvar_channels.push(fvar);
         channel
     }
@@ -613,7 +830,10 @@ impl Level {
     /// Check if face FVar topology matches for the given channel.
     /// Returns true if none of the face's FVar value tags indicate a mismatch.
     pub fn does_face_fvar_topology_match(&self, f: Index, channel: i32) -> bool {
-        !self.get_fvar_level(channel).get_face_composite_value_tag(f).is_mismatch()
+        !self
+            .get_fvar_level(channel)
+            .get_face_composite_value_tag(f)
+            .is_mismatch()
     }
 
     /// Check if edge FVar topology matches for the given channel.
@@ -712,10 +932,15 @@ impl Level {
     /// 2) Build 4-bit crease-vertex mask, look up sharpEdgeFromCreaseMask[16]
     /// 3) Verify sharpness symmetry on all edges of both Crease vertices
     pub fn is_single_crease_patch_full(
-        &self, f: Index, sharpness: &mut f32, edge_in_face: &mut i32,
+        &self,
+        f: Index,
+        sharpness: &mut f32,
+        edge_in_face: &mut i32,
     ) -> bool {
         let fv = self.get_face_vertices(f);
-        if fv.size() != 4 { return false; }
+        if fv.size() != 4 {
+            return false;
+        }
 
         // Composite VTag for all face corners — safe to use for scalar flags only.
         // Do NOT use all_tag.rule() for rule classification: the composite OR's all
@@ -729,20 +954,19 @@ impl Level {
 
         // Build 4-bit mask: bit i set if vertex i individually has Rule::Crease.
         // This matches C++ which checks getVertexRule(fVerts[i]) == RULE_CREASE per vertex.
-        let crease_mask =
-            ((self.get_vertex_tag(fv[0]).rule() == Rule::Crease as u16) as usize) |
-            (((self.get_vertex_tag(fv[1]).rule() == Rule::Crease as u16) as usize) << 1) |
-            (((self.get_vertex_tag(fv[2]).rule() == Rule::Crease as u16) as usize) << 2) |
-            (((self.get_vertex_tag(fv[3]).rule() == Rule::Crease as u16) as usize) << 3);
+        let crease_mask = ((self.get_vertex_tag(fv[0]).rule() == Rule::Crease as u16) as usize)
+            | (((self.get_vertex_tag(fv[1]).rule() == Rule::Crease as u16) as usize) << 1)
+            | (((self.get_vertex_tag(fv[2]).rule() == Rule::Crease as u16) as usize) << 2)
+            | (((self.get_vertex_tag(fv[3]).rule() == Rule::Crease as u16) as usize) << 3);
 
         // Early-out: no crease vertices at all — can't be a single-crease patch.
-        if crease_mask == 0 { return false; }
+        if crease_mask == 0 {
+            return false;
+        }
 
         // Lookup table: exactly 2 adjacent crease vertices → edge index between them
-        const SHARP_EDGE_FROM_CREASE_MASK: [i32; 16] = [
-            -1, -1, -1,  0, -1, -1,  1, -1,
-            -1,  3, -1, -1,  2, -1, -1, -1,
-        ];
+        const SHARP_EDGE_FROM_CREASE_MASK: [i32; 16] =
+            [-1, -1, -1, 0, -1, -1, 1, -1, -1, 3, -1, -1, 2, -1, -1, -1];
 
         let sharp_edge = SHARP_EDGE_FROM_CREASE_MASK[crease_mask];
         if sharp_edge < 0 {
@@ -811,11 +1035,11 @@ impl Level {
         let offset = if fi == 0 {
             0
         } else {
-            let prev = self.face_vert_counts_offsets[2 * (fi - 1)    ] as usize;
-            let off  = self.face_vert_counts_offsets[2 * (fi - 1) + 1] as usize;
+            let prev = self.face_vert_counts_offsets[2 * (fi - 1)] as usize;
+            let off = self.face_vert_counts_offsets[2 * (fi - 1) + 1] as usize;
             prev + off
         };
-        self.face_vert_counts_offsets[2 * fi    ] = count;
+        self.face_vert_counts_offsets[2 * fi] = count;
         self.face_vert_counts_offsets[2 * fi + 1] = offset as i32;
         // Track maximum valence (mirrors C++ _maxValence update in resizeFaceVertices(Index,int))
         self.max_valence = self.max_valence.max(count);
@@ -834,7 +1058,8 @@ impl Level {
     /// Allocate edge-vertex index storage for `2 * edge_count` entries.
     /// Must be called after `resize_edges()`. Mirrors C++ `Level::resizeEdgeVertices()`.
     pub fn resize_edge_vertices(&mut self) {
-        self.edge_vert_indices.resize((2 * self.edge_count) as usize, INDEX_INVALID);
+        self.edge_vert_indices
+            .resize((2 * self.edge_count) as usize, INDEX_INVALID);
     }
 
     pub fn resize_edge_faces(&mut self, e: Index, count: i32) {
@@ -842,11 +1067,11 @@ impl Level {
         let offset = if ei == 0 {
             0
         } else {
-            let prev = self.edge_face_counts_offsets[2 * (ei - 1)    ] as usize;
-            let off  = self.edge_face_counts_offsets[2 * (ei - 1) + 1] as usize;
+            let prev = self.edge_face_counts_offsets[2 * (ei - 1)] as usize;
+            let off = self.edge_face_counts_offsets[2 * (ei - 1) + 1] as usize;
             prev + off
         };
-        self.edge_face_counts_offsets[2 * ei    ] = count;
+        self.edge_face_counts_offsets[2 * ei] = count;
         self.edge_face_counts_offsets[2 * ei + 1] = offset as i32;
         // Track maximum edge-face count (mirrors C++ _maxEdgeFaces update)
         self.max_edge_faces = self.max_edge_faces.max(count);
@@ -870,11 +1095,11 @@ impl Level {
         let offset = if vi == 0 {
             0
         } else {
-            let prev = self.vert_face_counts_offsets[2 * (vi - 1)    ] as usize;
-            let off  = self.vert_face_counts_offsets[2 * (vi - 1) + 1] as usize;
+            let prev = self.vert_face_counts_offsets[2 * (vi - 1)] as usize;
+            let off = self.vert_face_counts_offsets[2 * (vi - 1) + 1] as usize;
             prev + off
         };
-        self.vert_face_counts_offsets[2 * vi    ] = count;
+        self.vert_face_counts_offsets[2 * vi] = count;
         self.vert_face_counts_offsets[2 * vi + 1] = offset as i32;
     }
 
@@ -887,11 +1112,11 @@ impl Level {
         let offset = if vi == 0 {
             0
         } else {
-            let prev = self.vert_edge_counts_offsets[2 * (vi - 1)    ] as usize;
-            let off  = self.vert_edge_counts_offsets[2 * (vi - 1) + 1] as usize;
+            let prev = self.vert_edge_counts_offsets[2 * (vi - 1)] as usize;
+            let off = self.vert_edge_counts_offsets[2 * (vi - 1) + 1] as usize;
             prev + off
         };
-        self.vert_edge_counts_offsets[2 * vi    ] = count;
+        self.vert_edge_counts_offsets[2 * vi] = count;
         self.vert_edge_counts_offsets[2 * vi + 1] = offset as i32;
         // Track maximum valence (mirrors C++ _maxValence update in resizeVertexEdges)
         self.max_valence = self.max_valence.max(count);
@@ -901,7 +1126,9 @@ impl Level {
         self.vert_edge_counts_offsets[2 * v as usize] = count;
     }
 
-    pub fn set_max_valence(&mut self, v: i32) { self.max_valence = v; }
+    pub fn set_max_valence(&mut self, v: i32) {
+        self.max_valence = v;
+    }
 
     // ---- local index population ----
 
@@ -925,11 +1152,11 @@ impl Level {
         // (C++ level.cpp:1819-1829): when the same face appears twice consecutively,
         // start searching from the position after the previous match.
         for v in 0..self.vert_count {
-            let vf_count  = self.get_num_vertex_faces(v) as usize;
+            let vf_count = self.get_num_vertex_faces(v) as usize;
             let vf_offset = self.get_offset_of_vertex_faces(v) as usize;
             let mut v_face_last: Index = INDEX_INVALID;
             for fi in 0..vf_count {
-                let f      = self.vert_face_indices[vf_offset + fi];
+                let f = self.vert_face_indices[vf_offset + fi];
                 let fverts = self.get_face_vertices(f);
                 // If the same face appears again, start search after the previous local index.
                 let v_start = if f == v_face_last {
@@ -938,7 +1165,9 @@ impl Level {
                     0
                 };
                 let fv = fverts.as_slice();
-                let local = fv[v_start..].iter().position(|&x| x == v)
+                let local = fv[v_start..]
+                    .iter()
+                    .position(|&x| x == v)
                     .map(|p| (v_start + p) as LocalIndex)
                     .unwrap_or(0);
                 self.vert_face_local_indices[vf_offset + fi] = local;
@@ -948,10 +1177,10 @@ impl Level {
             // For each vertex: record local index (0=first endpoint, 1=second) in edge.
             // Handle degenerate edges (both endpoints equal) per C++ level.cpp:1843-1847:
             // the first occurrence gets local index 0, the second gets 1.
-            let ve_count  = self.get_num_vertex_edges(v) as usize;
+            let ve_count = self.get_num_vertex_edges(v) as usize;
             let ve_offset = self.get_offset_of_vertex_edges(v) as usize;
             for ei in 0..ve_count {
-                let e  = self.vert_edge_indices[ve_offset + ei];
+                let e = self.vert_edge_indices[ve_offset + ei];
                 let ev = self.get_edge_vertices(e);
                 self.vert_edge_local_indices[ve_offset + ei] = if ev[0] != ev[1] {
                     // Normal edge: local index is which endpoint matches v.
@@ -967,7 +1196,7 @@ impl Level {
         // Track eFaceLast to handle duplicate faces in non-manifold topology
         // (C++ level.cpp:1862-1872): same as the vFaceLast pattern above.
         for e in 0..self.edge_count {
-            let ef_count  = self.get_num_edge_faces(e) as usize;
+            let ef_count = self.get_num_edge_faces(e) as usize;
             let ef_offset = self.get_offset_of_edge_faces(e) as usize;
             let mut e_face_last: Index = INDEX_INVALID;
             for fi in 0..ef_count {
@@ -983,7 +1212,9 @@ impl Level {
                 } else {
                     0
                 };
-                let local = fedges[e_start..].iter().position(|&x| x == e)
+                let local = fedges[e_start..]
+                    .iter()
+                    .position(|&x| x == e)
                     .map(|p| (e_start + p) as LocalIndex)
                     .unwrap_or(0);
                 self.edge_face_local_indices[ef_offset + fi] = local;
@@ -1011,9 +1242,9 @@ impl Level {
     /// Returns false if vertex is non-manifold (cannot be ordered).
     /// Matches C++ `Level::orderVertexFacesAndEdges(Index vIndex)`.
     pub fn order_vertex_faces_and_edges(&mut self, v: Index) -> bool {
-        let vf_count  = self.get_num_vertex_faces(v) as usize;
+        let vf_count = self.get_num_vertex_faces(v) as usize;
         let vf_offset = self.get_offset_of_vertex_faces(v) as usize;
-        let ve_count  = self.get_num_vertex_edges(v) as usize;
+        let ve_count = self.get_num_vertex_edges(v) as usize;
         let ve_offset = self.get_offset_of_vertex_edges(v) as usize;
 
         // Snapshot current unordered lists
@@ -1099,8 +1330,12 @@ impl Level {
             if ordered_faces.len() < f_count {
                 // Cross to the opposite face of e_next
                 let ef = self.get_edge_faces(e_next);
-                if ef.size() == 0 { return false; }
-                if ef.size() == 1 && ef[0] == f_start { return false; }
+                if ef.size() == 0 {
+                    return false;
+                }
+                if ef.size() == 1 && ef[0] == f_start {
+                    return false;
+                }
 
                 // Pick the face that is NOT f_start
                 f_start = if ef[0] == f_start { ef[1] } else { ef[0] };
@@ -1121,10 +1356,8 @@ impl Level {
         }
 
         // Write back ordered lists
-        self.vert_face_indices[vf_offset..vf_offset + f_count]
-            .copy_from_slice(&ordered_faces);
-        self.vert_edge_indices[ve_offset..ve_offset + e_count]
-            .copy_from_slice(&ordered_edges);
+        self.vert_face_indices[vf_offset..vf_offset + f_count].copy_from_slice(&ordered_faces);
+        self.vert_edge_indices[ve_offset..ve_offset + e_count].copy_from_slice(&ordered_edges);
 
         true
     }
@@ -1134,19 +1367,18 @@ impl Level {
     /// Returns false if the vertex neighbourhood is non-manifold / cannot be oriented.
     /// Mirrors C++ `Level::orderVertexFacesAndEdges(Index, Index*, Index*)`.
     fn order_vertex_faces_and_edges_into(
-        &self, v: Index, out_faces: &mut [Index], out_edges: &mut [Index],
+        &self,
+        v: Index,
+        out_faces: &mut [Index],
+        out_edges: &mut [Index],
     ) -> bool {
-        let vf_count  = self.get_num_vertex_faces(v) as usize;
-        let ve_count  = self.get_num_vertex_edges(v) as usize;
+        let vf_count = self.get_num_vertex_faces(v) as usize;
+        let ve_count = self.get_num_vertex_edges(v) as usize;
 
-        let v_faces: &[Index] = &self.vert_face_indices[
-            self.get_offset_of_vertex_faces(v) as usize
-            .. self.get_offset_of_vertex_faces(v) as usize + vf_count
-        ];
-        let v_edges: &[Index] = &self.vert_edge_indices[
-            self.get_offset_of_vertex_edges(v) as usize
-            .. self.get_offset_of_vertex_edges(v) as usize + ve_count
-        ];
+        let v_faces: &[Index] = &self.vert_face_indices[self.get_offset_of_vertex_faces(v) as usize
+            ..self.get_offset_of_vertex_faces(v) as usize + vf_count];
+        let v_edges: &[Index] = &self.vert_edge_indices[self.get_offset_of_vertex_edges(v) as usize
+            ..self.get_offset_of_vertex_edges(v) as usize + ve_count];
 
         let f_count = v_faces.len();
         let e_count = v_edges.len();
@@ -1192,7 +1424,9 @@ impl Level {
                     }
                 }
             }
-            if !index_is_valid(e_start) { return false; }
+            if !index_is_valid(e_start) {
+                return false;
+            }
         }
 
         let mut ordered_faces = Vec::with_capacity(f_count);
@@ -1216,8 +1450,12 @@ impl Level {
 
             if ordered_faces.len() < f_count {
                 let ef = self.get_edge_faces(e_next);
-                if ef.size() == 0 { return false; }
-                if ef.size() == 1 && ef[0] == f_start { return false; }
+                if ef.size() == 0 {
+                    return false;
+                }
+                if ef.size() == 1 && ef[0] == f_start {
+                    return false;
+                }
                 f_start = if ef[0] == f_start { ef[1] } else { ef[0] };
                 let new_fedges = self.get_face_edges(f_start);
                 let new_sl: Vec<Index> = (0..new_fedges.size()).map(|i| new_fedges[i]).collect();
@@ -1251,7 +1489,8 @@ impl Level {
         self.vert_sharpness.resize(vert_count, 0.0);
         self.vert_face_counts_offsets.resize(2 * vert_count, 0);
         self.vert_edge_counts_offsets.resize(2 * vert_count, 0);
-        self.face_edge_indices.resize(self.face_vert_indices.len(), INDEX_INVALID);
+        self.face_edge_indices
+            .resize(self.face_vert_indices.len(), INDEX_INVALID);
 
         // Dynamic per-component lists
         let mut vert_face_list: Vec<Vec<Index>> = vec![Vec::new(); vert_count];
@@ -1263,7 +1502,7 @@ impl Level {
 
         // Iterate faces, build edges
         for f in 0..face_count {
-            let fv_count  = self.face_vert_counts_offsets[2 * f] as usize;
+            let fv_count = self.face_vert_counts_offsets[2 * f] as usize;
             let fv_offset = self.face_vert_counts_offsets[2 * f + 1] as usize;
 
             for vi in 0..fv_count {
@@ -1332,7 +1571,7 @@ impl Level {
         let mut max_vert_faces = 0;
         for v in 0..vert_count {
             let count = vert_face_list[v].len();
-            self.vert_face_counts_offsets[2 * v    ] = count as i32;
+            self.vert_face_counts_offsets[2 * v] = count as i32;
             self.vert_face_counts_offsets[2 * v + 1] = vf_offset as i32;
             self.vert_face_indices.extend_from_slice(&vert_face_list[v]);
             max_vert_faces = max_vert_faces.max(count as i32);
@@ -1348,7 +1587,7 @@ impl Level {
         let mut max_vert_edges = 0;
         for v in 0..vert_count {
             let count = vert_edge_list[v].len();
-            self.vert_edge_counts_offsets[2 * v    ] = count as i32;
+            self.vert_edge_counts_offsets[2 * v] = count as i32;
             self.vert_edge_counts_offsets[2 * v + 1] = ve_offset as i32;
             self.vert_edge_indices.extend_from_slice(&vert_edge_list[v]);
             max_vert_edges = max_vert_edges.max(count as i32);
@@ -1368,7 +1607,7 @@ impl Level {
         let mut max_edge_faces = 0i32;
         for e in 0..edge_count {
             let count = edge_face_list[e].len();
-            self.edge_face_counts_offsets[2 * e    ] = count as i32;
+            self.edge_face_counts_offsets[2 * e] = count as i32;
             self.edge_face_counts_offsets[2 * e + 1] = ef_offset as i32;
             self.edge_face_indices.extend_from_slice(&edge_face_list[e]);
             max_edge_faces = max_edge_faces.max(count as i32);
@@ -1451,7 +1690,9 @@ impl Level {
     ///   - non-manifold edge tagging (degenerate / wrong face count)
     pub fn validate_topology(&self, callback: Option<ValidationCallback>) -> bool {
         let report = |err: TopologyError| {
-            if let Some(cb) = callback { cb(err, err.as_str()); }
+            if let Some(cb) = callback {
+                cb(err, err.as_str());
+            }
         };
 
         // Abort early when essential relation tables are empty
@@ -1466,8 +1707,8 @@ impl Level {
         'face_vert: for f_index in 0..self.get_num_faces() {
             let f_verts = self.get_face_vertices(f_index);
             for i in 0..f_verts.size() as usize {
-                let v_index  = f_verts[i];
-                let v_faces  = self.get_vertex_faces(v_index);
+                let v_index = f_verts[i];
+                let v_faces = self.get_vertex_faces(v_index);
                 let v_in_face = self.get_vertex_face_local_indices(v_index);
                 let found = (0..v_faces.size() as usize)
                     .any(|j| v_faces[j] == f_index && v_in_face[j] as usize == i);
@@ -1487,8 +1728,8 @@ impl Level {
         'face_edge: for f_index in 0..self.get_num_faces() {
             let f_edges = self.get_face_edges(f_index);
             for i in 0..f_edges.size() as usize {
-                let e_index  = f_edges[i];
-                let e_faces  = self.get_edge_faces(e_index);
+                let e_index = f_edges[i];
+                let e_faces = self.get_edge_faces(e_index);
                 let e_in_face = self.get_edge_face_local_indices(e_index);
                 let found = (0..e_faces.size() as usize)
                     .any(|j| e_faces[j] == f_index && e_in_face[j] as usize == i);
@@ -1508,8 +1749,8 @@ impl Level {
         'edge_vert: for e_index in 0..self.get_num_edges() {
             let e_verts = self.get_edge_vertices(e_index);
             for i in 0..2usize {
-                let v_index  = e_verts[i];
-                let v_edges  = self.get_vertex_edges(v_index);
+                let v_index = e_verts[i];
+                let v_edges = self.get_vertex_edges(v_index);
                 let v_in_edge = self.get_vertex_edge_local_indices(v_index);
                 let found = (0..v_edges.size() as usize)
                     .any(|j| v_edges[j] == e_index && v_in_edge[j] as usize == i);
@@ -1532,7 +1773,9 @@ impl Level {
 
         for v_index in 0..self.get_num_vertices() {
             let vt = self.get_vertex_tag(v_index);
-            if vt.incomplete() || vt.non_manifold() { continue; }
+            if vt.incomplete() || vt.non_manifold() {
+                continue;
+            }
 
             let v_faces = self.get_vertex_faces(v_index);
             let v_edges = self.get_vertex_edges(v_index);
@@ -1564,7 +1807,9 @@ impl Level {
         // ---- non-manifold edge tag check ----
         for e_index in 0..self.get_num_edges() {
             let e_tag = self.get_edge_tag(e_index);
-            if e_tag.non_manifold() { continue; }
+            if e_tag.non_manifold() {
+                continue;
+            }
 
             let e_verts = self.get_edge_vertices(e_index);
             if e_verts[0] == e_verts[1] {
@@ -1597,24 +1842,35 @@ impl Level {
 
         // ---- Face relations ----
         eprintln!("    Face relations:");
-        eprintln!("      face-vert counts/offset = {}", self.face_vert_counts_offsets.len());
+        eprintln!(
+            "      face-vert counts/offset = {}",
+            self.face_vert_counts_offsets.len()
+        );
         eprintln!("      face-vert indices = {}", self.face_vert_indices.len());
         for i in 0..self.face_count {
             let fv = self.get_face_vertices(i);
             eprint!("        face {:4} verts: ", i);
-            for k in 0..fv.size() { eprint!(" {}", fv[k]); }
+            for k in 0..fv.size() {
+                eprint!(" {}", fv[k]);
+            }
             eprintln!();
         }
         eprintln!("      face-edge indices = {}", self.face_edge_indices.len());
         for i in 0..self.face_count {
             let fe = self.get_face_edges(i);
             eprint!("        face {:4} edges: ", i);
-            for k in 0..fe.size() { eprint!(" {}", fe[k]); }
+            for k in 0..fe.size() {
+                eprint!(" {}", fe[k]);
+            }
             eprintln!();
         }
         eprintln!("      face tags = {}", self.face_tags.len());
         for i in 0..self.face_count {
-            eprintln!("        face {:4}:  hole = {}", i, self.face_tags[i as usize].hole() as i32);
+            eprintln!(
+                "        face {:4}:  hole = {}",
+                i,
+                self.face_tags[i as usize].hole() as i32
+            );
         }
         if let Some(r) = refinement {
             eprintln!("      face child-verts = {}", r.face_child_vert_index.len());
@@ -1627,62 +1883,113 @@ impl Level {
             let ev = self.get_edge_vertices(i);
             eprintln!("        edge {:4} verts:  {} {}", i, ev[0], ev[1]);
         }
-        eprintln!("      edge-face counts/offset = {}", self.edge_face_counts_offsets.len());
-        eprintln!("      edge-face indices       = {}", self.edge_face_indices.len());
-        eprintln!("      edge-face local-indices = {}", self.edge_face_local_indices.len());
+        eprintln!(
+            "      edge-face counts/offset = {}",
+            self.edge_face_counts_offsets.len()
+        );
+        eprintln!(
+            "      edge-face indices       = {}",
+            self.edge_face_indices.len()
+        );
+        eprintln!(
+            "      edge-face local-indices = {}",
+            self.edge_face_local_indices.len()
+        );
         for i in 0..self.edge_count {
             let ef = self.get_edge_faces(i);
             let efl = self.get_edge_face_local_indices(i);
             eprint!("        edge {:4} faces: ", i);
-            for k in 0..ef.size() { eprint!(" {}", ef[k]); }
+            for k in 0..ef.size() {
+                eprint!(" {}", ef[k]);
+            }
             eprintln!();
             eprint!("             face-edges: ");
-            for k in 0..efl.size() { eprint!(" {}", efl[k]); }
+            for k in 0..efl.size() {
+                eprint!(" {}", efl[k]);
+            }
             eprintln!();
         }
         if let Some(r) = refinement {
             eprintln!("      edge child-verts = {}", r.edge_child_vert_index.len());
             for i in 0..self.edge_count {
-                eprintln!("        edge {:4} child vert:  {}", i, r.edge_child_vert_index[i as usize]);
+                eprintln!(
+                    "        edge {:4} child vert:  {}",
+                    i, r.edge_child_vert_index[i as usize]
+                );
             }
         }
         eprintln!("      edge sharpness = {}", self.edge_sharpness.len());
         for i in 0..self.edge_count {
-            eprintln!("        edge {:4} sharpness:  {:.6}", i, self.edge_sharpness[i as usize]);
+            eprintln!(
+                "        edge {:4} sharpness:  {:.6}",
+                i, self.edge_sharpness[i as usize]
+            );
         }
         eprintln!("      edge tags = {}", self.edge_tags.len());
         for i in 0..self.edge_count {
             let t = self.edge_tags[i as usize];
-            eprintln!("        edge {:4}:  boundary = {}  nonManifold = {}  semiSharp = {}  infSharp = {}",
-                i, t.boundary() as i32, t.non_manifold() as i32, t.semi_sharp() as i32, t.inf_sharp() as i32);
+            eprintln!(
+                "        edge {:4}:  boundary = {}  nonManifold = {}  semiSharp = {}  infSharp = {}",
+                i,
+                t.boundary() as i32,
+                t.non_manifold() as i32,
+                t.semi_sharp() as i32,
+                t.inf_sharp() as i32
+            );
         }
 
         // ---- Vert relations ----
         eprintln!("    Vert relations:");
-        eprintln!("      vert-face counts/offset = {}", self.vert_face_counts_offsets.len());
-        eprintln!("      vert-face indices       = {}", self.vert_face_indices.len());
-        eprintln!("      vert-face local-indices = {}", self.vert_face_local_indices.len());
+        eprintln!(
+            "      vert-face counts/offset = {}",
+            self.vert_face_counts_offsets.len()
+        );
+        eprintln!(
+            "      vert-face indices       = {}",
+            self.vert_face_indices.len()
+        );
+        eprintln!(
+            "      vert-face local-indices = {}",
+            self.vert_face_local_indices.len()
+        );
         for i in 0..self.vert_count {
             let vf = self.get_vertex_faces(i);
             let vfl = self.get_vertex_face_local_indices(i);
             eprint!("        vert {:4} faces: ", i);
-            for k in 0..vf.size() { eprint!(" {}", vf[k]); }
+            for k in 0..vf.size() {
+                eprint!(" {}", vf[k]);
+            }
             eprintln!();
             eprint!("             face-verts: ");
-            for k in 0..vfl.size() { eprint!(" {}", vfl[k]); }
+            for k in 0..vfl.size() {
+                eprint!(" {}", vfl[k]);
+            }
             eprintln!();
         }
-        eprintln!("      vert-edge counts/offset = {}", self.vert_edge_counts_offsets.len());
-        eprintln!("      vert-edge indices       = {}", self.vert_edge_indices.len());
-        eprintln!("      vert-edge local-indices = {}", self.vert_edge_local_indices.len());
+        eprintln!(
+            "      vert-edge counts/offset = {}",
+            self.vert_edge_counts_offsets.len()
+        );
+        eprintln!(
+            "      vert-edge indices       = {}",
+            self.vert_edge_indices.len()
+        );
+        eprintln!(
+            "      vert-edge local-indices = {}",
+            self.vert_edge_local_indices.len()
+        );
         for i in 0..self.vert_count {
             let ve = self.get_vertex_edges(i);
             let vel = self.get_vertex_edge_local_indices(i);
             eprint!("        vert {:4} edges: ", i);
-            for k in 0..ve.size() { eprint!(" {}", ve[k]); }
+            for k in 0..ve.size() {
+                eprint!(" {}", ve[k]);
+            }
             eprintln!();
             eprint!("             edge-verts: ");
-            for k in 0..vel.size() { eprint!(" {}", vel[k]); }
+            for k in 0..vel.size() {
+                eprint!(" {}", vel[k]);
+            }
             eprintln!();
         }
         if let Some(r) = refinement {
@@ -1690,18 +1997,29 @@ impl Level {
         }
         eprintln!("      vert sharpness = {}", self.vert_sharpness.len());
         for i in 0..self.vert_count {
-            eprintln!("        vert {:4} sharpness:  {:.6}", i, self.vert_sharpness[i as usize]);
+            eprintln!(
+                "        vert {:4} sharpness:  {:.6}",
+                i, self.vert_sharpness[i as usize]
+            );
         }
         eprintln!("      vert tags = {}", self.vert_tags.len());
         for i in 0..self.vert_count {
             let t = self.vert_tags[i as usize];
-            eprintln!("        vert {:4}:  rule = {:?}  boundary = {}  corner = {}  xordinary = {}  nonManifold = {}  infSharp = {}  infSharpEdges = {}  infSharpCrease = {}  infIrregular = {}  semiSharp = {}  semiSharpEdges = {}",
-                i, Rule::from_bits(t.rule() as u8),
-                t.boundary() as i32, t.corner() as i32, t.xordinary() as i32,
-                t.non_manifold() as i32, t.inf_sharp() as i32,
-                t.inf_sharp_edges() as i32, t.inf_sharp_crease() as i32,
-                t.inf_irregular() as i32, t.semi_sharp() as i32,
-                t.semi_sharp_edges() as i32);
+            eprintln!(
+                "        vert {:4}:  rule = {:?}  boundary = {}  corner = {}  xordinary = {}  nonManifold = {}  infSharp = {}  infSharpEdges = {}  infSharpCrease = {}  infIrregular = {}  semiSharp = {}  semiSharpEdges = {}",
+                i,
+                Rule::from_bits(t.rule() as u8),
+                t.boundary() as i32,
+                t.corner() as i32,
+                t.xordinary() as i32,
+                t.non_manifold() as i32,
+                t.inf_sharp() as i32,
+                t.inf_sharp_edges() as i32,
+                t.inf_sharp_crease() as i32,
+                t.inf_irregular() as i32,
+                t.semi_sharp() as i32,
+                t.semi_sharp_edges() as i32
+            );
         }
     }
 
@@ -1709,7 +2027,9 @@ impl Level {
 
     /// `i % 4` via bitmask — only valid for non-negative i (mirrors C++ `fastMod4`).
     #[inline(always)]
-    fn fast_mod4(i: usize) -> usize { i & 3 }
+    fn fast_mod4(i: usize) -> usize {
+        i & 3
+    }
 
     /// Return the face point-index array (vertex or fvar) depending on `fvar_channel`.
     #[inline]
@@ -1735,14 +2055,18 @@ impl Level {
     /// ```
     /// Mirrors C++ `Level::gatherQuadRegularInteriorPatchPoints`.
     pub fn gather_quad_regular_interior_patch_points(
-        &self, f: Index, points: &mut [Index], rotation: i32, fvar_channel: i32
+        &self,
+        f: Index,
+        points: &mut [Index],
+        rotation: i32,
+        fvar_channel: i32,
     ) -> i32 {
         debug_assert!((0..4).contains(&rotation));
         static ROT: [usize; 7] = [0, 1, 2, 3, 0, 1, 2];
         let rot = &ROT[rotation as usize..];
 
         let face_verts = self.get_face_vertices(f);
-        let face_pts   = self.face_points(f, fvar_channel);
+        let face_pts = self.face_points(f, fvar_channel);
 
         // 4 face vertices → points[0..4]
         points[0] = face_pts[rot[0]];
@@ -1753,18 +2077,18 @@ impl Level {
         // For each rotated corner: walk to diagonally-opposite face, collect 3 pts.
         let mut pt = 4usize;
         for i in 0..4usize {
-            let v        = face_verts[rot[i]];
-            let v_faces  = self.get_vertex_faces(v);
+            let v = face_verts[rot[i]];
+            let v_faces = self.get_vertex_faces(v);
             let v_in_fcs = self.get_vertex_face_local_indices(v);
 
             let this_in_v = v_faces.find_index_in_4_tuple(f) as usize;
-            let int_in_v  = Self::fast_mod4(this_in_v + 2);
+            let int_in_v = Self::fast_mod4(this_in_v + 2);
 
             let int_face = v_faces[int_in_v as i32];
             let v_in_int = v_in_fcs[int_in_v as i32] as usize;
-            let int_pts  = self.face_points(int_face, fvar_channel);
+            let int_pts = self.face_points(int_face, fvar_channel);
 
-            points[pt    ] = int_pts[Self::fast_mod4(v_in_int + 1)];
+            points[pt] = int_pts[Self::fast_mod4(v_in_int + 1)];
             points[pt + 1] = int_pts[Self::fast_mod4(v_in_int + 2)];
             points[pt + 2] = int_pts[Self::fast_mod4(v_in_int + 3)];
             pt += 3;
@@ -1786,9 +2110,13 @@ impl Level {
     /// ```
     /// Mirrors C++ `Level::gatherQuadRegularBoundaryPatchPoints`.
     pub fn gather_quad_regular_boundary_patch_points(
-        &self, f: Index, points: &mut [Index], boundary_edge_in_face: i32, fvar_channel: i32
+        &self,
+        f: Index,
+        points: &mut [Index],
+        boundary_edge_in_face: i32,
+        fvar_channel: i32,
     ) -> i32 {
-        let bei      = boundary_edge_in_face as usize;
+        let bei = boundary_edge_in_face as usize;
         let int_edge = Self::fast_mod4(bei + 2);
 
         // v0 and v1: the two interior vertices (opposite the boundary edge)
@@ -1799,8 +2127,8 @@ impl Level {
         let v0 = face_verts[int_v0];
         let v1 = face_verts[int_v1];
 
-        let v0_faces  = self.get_vertex_faces(v0);
-        let v1_faces  = self.get_vertex_faces(v1);
+        let v0_faces = self.get_vertex_faces(v0);
+        let v1_faces = self.get_vertex_faces(v1);
         let v0_in_fcs = self.get_vertex_face_local_indices(v0);
         let v1_in_fcs = self.get_vertex_face_local_indices(v1);
 
@@ -1812,35 +2140,35 @@ impl Level {
         let int_v1f = Self::fast_mod4(bnd_v1 + 2);
         let next_v1 = Self::fast_mod4(bnd_v1 + 3);
 
-        let prev_face  = v0_faces[prev_v0 as i32];
-        let int_v0face = v0_faces[int_v0f  as i32];
-        let int_v1face = v1_faces[int_v1f  as i32];
-        let next_face  = v1_faces[next_v1  as i32];
+        let prev_face = v0_faces[prev_v0 as i32];
+        let int_v0face = v0_faces[int_v0f as i32];
+        let int_v1face = v1_faces[int_v1f as i32];
+        let next_face = v1_faces[next_v1 as i32];
 
         let v0_in_prev = v0_in_fcs[prev_v0 as i32] as usize;
-        let v0_in_int  = v0_in_fcs[int_v0f as i32] as usize;
-        let v1_in_int  = v1_in_fcs[int_v1f as i32] as usize;
+        let v0_in_int = v0_in_fcs[int_v0f as i32] as usize;
+        let v1_in_int = v1_in_fcs[int_v1f as i32] as usize;
         let v1_in_next = v1_in_fcs[next_v1 as i32] as usize;
 
-        let this_pts = self.face_points(f,          fvar_channel);
-        let prev_pts = self.face_points(prev_face,  fvar_channel);
-        let iv0_pts  = self.face_points(int_v0face, fvar_channel);
-        let iv1_pts  = self.face_points(int_v1face, fvar_channel);
-        let next_pts = self.face_points(next_face,  fvar_channel);
+        let this_pts = self.face_points(f, fvar_channel);
+        let prev_pts = self.face_points(prev_face, fvar_channel);
+        let iv0_pts = self.face_points(int_v0face, fvar_channel);
+        let iv1_pts = self.face_points(int_v1face, fvar_channel);
+        let next_pts = self.face_points(next_face, fvar_channel);
 
-        points[0]  = this_pts[Self::fast_mod4(bei + 1)];
-        points[1]  = this_pts[Self::fast_mod4(bei + 2)];
-        points[2]  = this_pts[Self::fast_mod4(bei + 3)];
-        points[3]  = this_pts[bei];
+        points[0] = this_pts[Self::fast_mod4(bei + 1)];
+        points[1] = this_pts[Self::fast_mod4(bei + 2)];
+        points[2] = this_pts[Self::fast_mod4(bei + 3)];
+        points[3] = this_pts[bei];
 
-        points[4]  = prev_pts[Self::fast_mod4(v0_in_prev + 2)];
+        points[4] = prev_pts[Self::fast_mod4(v0_in_prev + 2)];
 
-        points[5]  = iv0_pts[Self::fast_mod4(v0_in_int + 1)];
-        points[6]  = iv0_pts[Self::fast_mod4(v0_in_int + 2)];
-        points[7]  = iv0_pts[Self::fast_mod4(v0_in_int + 3)];
+        points[5] = iv0_pts[Self::fast_mod4(v0_in_int + 1)];
+        points[6] = iv0_pts[Self::fast_mod4(v0_in_int + 2)];
+        points[7] = iv0_pts[Self::fast_mod4(v0_in_int + 3)];
 
-        points[8]  = iv1_pts[Self::fast_mod4(v1_in_int + 1)];
-        points[9]  = iv1_pts[Self::fast_mod4(v1_in_int + 2)];
+        points[8] = iv1_pts[Self::fast_mod4(v1_in_int + 1)];
+        points[9] = iv1_pts[Self::fast_mod4(v1_in_int + 2)];
         points[10] = iv1_pts[Self::fast_mod4(v1_in_int + 3)];
 
         points[11] = next_pts[Self::fast_mod4(v1_in_next + 2)];
@@ -1861,15 +2189,19 @@ impl Level {
     /// ```
     /// Mirrors C++ `Level::gatherQuadRegularCornerPatchPoints`.
     pub fn gather_quad_regular_corner_patch_points(
-        &self, f: Index, points: &mut [Index], corner_vert_in_face: i32, fvar_channel: i32
+        &self,
+        f: Index,
+        points: &mut [Index],
+        corner_vert_in_face: i32,
+        fvar_channel: i32,
     ) -> i32 {
-        let cvi      = corner_vert_in_face as usize;
-        let int_fv   = Self::fast_mod4(cvi + 2);
+        let cvi = corner_vert_in_face as usize;
+        let int_fv = Self::fast_mod4(cvi + 2);
 
         let face_verts = self.get_face_vertices(f);
-        let int_vert   = face_verts[int_fv];
+        let int_vert = face_verts[int_fv];
 
-        let iv_faces  = self.get_vertex_faces(int_vert);
+        let iv_faces = self.get_vertex_faces(int_vert);
         let iv_in_fcs = self.get_vertex_face_local_indices(int_vert);
 
         // Find 'f' in int_vert's incident face list
@@ -1882,20 +2214,20 @@ impl Level {
         }
 
         let prev_iv = Self::fast_mod4(corner_in_iv + 1);
-        let int_iv  = Self::fast_mod4(corner_in_iv + 2);
+        let int_iv = Self::fast_mod4(corner_in_iv + 2);
         let next_iv = Self::fast_mod4(corner_in_iv + 3);
 
         let prev_face = iv_faces[prev_iv as i32];
-        let int_face  = iv_faces[int_iv  as i32];
+        let int_face = iv_faces[int_iv as i32];
         let next_face = iv_faces[next_iv as i32];
 
         let iv_in_prev = iv_in_fcs[prev_iv as i32] as usize;
-        let iv_in_int  = iv_in_fcs[int_iv  as i32] as usize;
+        let iv_in_int = iv_in_fcs[int_iv as i32] as usize;
         let iv_in_next = iv_in_fcs[next_iv as i32] as usize;
 
-        let this_pts = self.face_points(f,         fvar_channel);
+        let this_pts = self.face_points(f, fvar_channel);
         let prev_pts = self.face_points(prev_face, fvar_channel);
-        let int_pts  = self.face_points(int_face,  fvar_channel);
+        let int_pts = self.face_points(int_face, fvar_channel);
         let next_pts = self.face_points(next_face, fvar_channel);
 
         points[0] = this_pts[cvi];
@@ -1918,11 +2250,15 @@ impl Level {
     ///
     /// Mirrors C++ `Level::gatherQuadLinearPatchPoints`.
     pub fn gather_quad_linear_patch_points(
-        &self, f: Index, points: &mut [Index], rotation: i32, fvar_channel: i32
+        &self,
+        f: Index,
+        points: &mut [Index],
+        rotation: i32,
+        fvar_channel: i32,
     ) -> i32 {
         debug_assert!((0..4).contains(&rotation));
         static ROT: [usize; 7] = [0, 1, 2, 3, 0, 1, 2];
-        let rot      = &ROT[rotation as usize..];
+        let rot = &ROT[rotation as usize..];
         let face_pts = self.face_points(f, fvar_channel);
 
         points[0] = face_pts[rot[0]];
@@ -1969,7 +2305,10 @@ impl Level {
     /// ```
     /// Mirrors C++ `Level::gatherTriRegularInteriorPatchPoints`.
     pub fn gather_tri_regular_interior_patch_points(
-        &self, f: Index, points: &mut [Index], rotation: i32
+        &self,
+        f: Index,
+        points: &mut [Index],
+        rotation: i32,
     ) -> i32 {
         let f_verts = self.get_face_vertices(f);
         let f_edges = self.get_face_edges(f);
@@ -2006,15 +2345,15 @@ impl Level {
         points[2] = v2;
 
         points[11] = Self::other_of_two(self.get_edge_vertices(v0_edges[(e0_in_v0 + 3) % n0]), v0);
-        points[3]  = Self::other_of_two(self.get_edge_vertices(v0_edges[(e0_in_v0 + 4) % n0]), v0);
-        points[4]  = Self::other_of_two(self.get_edge_vertices(v0_edges[(e0_in_v0 + 5) % n0]), v0);
+        points[3] = Self::other_of_two(self.get_edge_vertices(v0_edges[(e0_in_v0 + 4) % n0]), v0);
+        points[4] = Self::other_of_two(self.get_edge_vertices(v0_edges[(e0_in_v0 + 5) % n0]), v0);
 
-        points[5]  = Self::other_of_two(self.get_edge_vertices(v1_edges[(e1_in_v1 + 3) % n1]), v1);
-        points[6]  = Self::other_of_two(self.get_edge_vertices(v1_edges[(e1_in_v1 + 4) % n1]), v1);
-        points[7]  = Self::other_of_two(self.get_edge_vertices(v1_edges[(e1_in_v1 + 5) % n1]), v1);
+        points[5] = Self::other_of_two(self.get_edge_vertices(v1_edges[(e1_in_v1 + 3) % n1]), v1);
+        points[6] = Self::other_of_two(self.get_edge_vertices(v1_edges[(e1_in_v1 + 4) % n1]), v1);
+        points[7] = Self::other_of_two(self.get_edge_vertices(v1_edges[(e1_in_v1 + 5) % n1]), v1);
 
-        points[8]  = Self::other_of_two(self.get_edge_vertices(v2_edges[(e2_in_v2 + 3) % n2]), v2);
-        points[9]  = Self::other_of_two(self.get_edge_vertices(v2_edges[(e2_in_v2 + 4) % n2]), v2);
+        points[8] = Self::other_of_two(self.get_edge_vertices(v2_edges[(e2_in_v2 + 3) % n2]), v2);
+        points[9] = Self::other_of_two(self.get_edge_vertices(v2_edges[(e2_in_v2 + 4) % n2]), v2);
         points[10] = Self::other_of_two(self.get_edge_vertices(v2_edges[(e2_in_v2 + 5) % n2]), v2);
 
         12
@@ -2025,7 +2364,10 @@ impl Level {
     /// `boundary_edge_in_face` is the local index (0-2) of the boundary edge.
     /// Mirrors C++ `Level::gatherTriRegularBoundaryEdgePatchPoints`.
     pub fn gather_tri_regular_boundary_edge_patch_points(
-        &self, f: Index, points: &mut [Index], boundary_face_edge: i32
+        &self,
+        f: Index,
+        points: &mut [Index],
+        boundary_face_edge: i32,
     ) -> i32 {
         let f_verts = self.get_face_vertices(f);
         let be = boundary_face_edge as usize;
@@ -2065,7 +2407,10 @@ impl Level {
     /// `boundary_face_vert` is the local index (0-2) of the boundary vertex.
     /// Mirrors C++ `Level::gatherTriRegularBoundaryVertexPatchPoints`.
     pub fn gather_tri_regular_boundary_vertex_patch_points(
-        &self, f: Index, points: &mut [Index], boundary_face_vert: i32
+        &self,
+        f: Index,
+        points: &mut [Index],
+        boundary_face_vert: i32,
     ) -> i32 {
         let f_verts = self.get_face_vertices(f);
         let f_edges = self.get_face_edges(f);
@@ -2075,7 +2420,7 @@ impl Level {
         let v1 = f_verts[(bv + 1) % 3];
         let v2 = f_verts[(bv + 2) % 3];
 
-        let e1 = f_edges[bv];            // edge between v0 and v1
+        let e1 = f_edges[bv]; // edge between v0 and v1
         let e2 = f_edges[(bv + 2) % 3]; // edge between v2 and v0
 
         let v1_edges = self.get_vertex_edges(v1);
@@ -2108,7 +2453,10 @@ impl Level {
     /// `corner_face_vert` is the local index (0-2) of the corner vertex.
     /// Mirrors C++ `Level::gatherTriRegularCornerVertexPatchPoints`.
     pub fn gather_tri_regular_corner_vertex_patch_points(
-        &self, f: Index, points: &mut [Index], corner_face_vert: i32
+        &self,
+        f: Index,
+        points: &mut [Index],
+        corner_face_vert: i32,
     ) -> i32 {
         let f_verts = self.get_face_vertices(f);
         let cv = corner_face_vert as usize;
@@ -2136,7 +2484,10 @@ impl Level {
     /// `corner_face_edge` is the local index (0-2) of the shared corner edge.
     /// Mirrors C++ `Level::gatherTriRegularCornerEdgePatchPoints`.
     pub fn gather_tri_regular_corner_edge_patch_points(
-        &self, f: Index, points: &mut [Index], corner_face_edge: i32
+        &self,
+        f: Index,
+        points: &mut [Index],
+        corner_face_edge: i32,
     ) -> i32 {
         let f_verts = self.get_face_vertices(f);
         let ce = corner_face_edge as usize;
@@ -2177,21 +2528,24 @@ impl Level {
     /// 2*N points; boundary vertex → 2*N+1 points.
     /// Mirrors C++ `Level::gatherQuadRegularRingAroundVertex`.
     pub fn gather_quad_regular_ring_around_vertex(
-        &self, v: Index, ring: &mut [Index], fvar_channel: i32
+        &self,
+        v: Index,
+        ring: &mut [Index],
+        fvar_channel: i32,
     ) -> i32 {
-        let v_edges  = self.get_vertex_edges(v);
-        let v_faces  = self.get_vertex_faces(v);
+        let v_edges = self.get_vertex_edges(v);
+        let v_faces = self.get_vertex_faces(v);
         let v_in_fcs = self.get_vertex_face_local_indices(v);
 
         let is_boundary = v_edges.size() > v_faces.size();
-        let nf  = v_faces.size() as usize;
+        let nf = v_faces.size() as usize;
         let mut idx = 0usize;
 
         for i in 0..nf {
             let f_pts = self.face_points(v_faces[i], fvar_channel);
-            let vif   = v_in_fcs[i] as usize;
+            let vif = v_in_fcs[i] as usize;
 
-            ring[idx    ] = f_pts[Self::fast_mod4(vif + 1)];
+            ring[idx] = f_pts[Self::fast_mod4(vif + 1)];
             ring[idx + 1] = f_pts[Self::fast_mod4(vif + 2)];
             idx += 2;
 
@@ -2209,24 +2563,28 @@ impl Level {
     /// Returns the count of ring points written.
     /// Mirrors C++ `Level::gatherQuadRegularPartialRingAroundVertex`.
     pub fn gather_quad_regular_partial_ring_around_vertex(
-        &self, v: Index, span: &VSpan, ring: &mut [Index], fvar_channel: i32
+        &self,
+        v: Index,
+        span: &VSpan,
+        ring: &mut [Index],
+        fvar_channel: i32,
     ) -> i32 {
         debug_assert!(!self.get_vertex_tag(v).non_manifold());
 
-        let v_faces  = self.get_vertex_faces(v);
+        let v_faces = self.get_vertex_faces(v);
         let v_in_fcs = self.get_vertex_face_local_indices(v);
         let nf_total = v_faces.size() as usize;
 
         let n_faces = span.num_faces as usize;
-        let start   = span.start_face as usize;
+        let start = span.start_face as usize;
         let mut idx = 0usize;
 
         for i in 0..n_faces {
             let f_local = (start + i) % nf_total;
-            let f_pts   = self.face_points(v_faces[f_local], fvar_channel);
-            let vif     = v_in_fcs[f_local] as usize;
+            let f_pts = self.face_points(v_faces[f_local], fvar_channel);
+            let vif = v_in_fcs[f_local] as usize;
 
-            ring[idx    ] = f_pts[Self::fast_mod4(vif + 1)];
+            ring[idx] = f_pts[Self::fast_mod4(vif + 1)];
             ring[idx + 1] = f_pts[Self::fast_mod4(vif + 2)];
             idx += 2;
 
@@ -2241,5 +2599,7 @@ impl Level {
 }
 
 impl Default for Level {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

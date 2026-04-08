@@ -30,6 +30,7 @@ members = [
     "crates/base/usd-vt",
     "crates/base/usd-plug",
     "crates/base/usd-work",
+    "crates/base/openusd-test-path",
     # ---- USD core crates ----
     "crates/usd/usd-kind",
     "crates/usd/usd-ar",

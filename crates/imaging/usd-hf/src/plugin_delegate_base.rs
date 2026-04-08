@@ -1,4 +1,3 @@
-
 //! HfPluginDelegateBase - Base trait for Hydra plugin delegate classes.
 //!
 //! In C++ USD, HdRenderDelegate derives from HfPluginBase via an intermediate

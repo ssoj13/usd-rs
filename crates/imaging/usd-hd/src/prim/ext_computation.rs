@@ -1,4 +1,3 @@
-
 //! HdExtComputation - External computation state primitive.
 //!
 //! Represents a client-defined computation for procedural primvar generation.

@@ -6,8 +6,8 @@
 //! A scene index that prepares all prims under a given prototype root
 //! to be instanced by a point instancer.
 
-use std::collections::HashSet;
 use parking_lot::RwLock;
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use usd_hd::HdDataSourceBaseHandle;
 use usd_hd::scene_index::observer::{
@@ -16,7 +16,7 @@ use usd_hd::scene_index::observer::{
 };
 use usd_hd::scene_index::{
     FilteringObserverTarget, HdSceneIndexBase, HdSceneIndexHandle, HdSceneIndexPrim,
-    HdSingleInputFilteringSceneIndexBase, SdfPathVector, wire_filter_to_input, si_ref,
+    HdSingleInputFilteringSceneIndexBase, SdfPathVector, si_ref, wire_filter_to_input,
 };
 use usd_sdf::Path;
 use usd_tf::Token;

@@ -1,4 +1,3 @@
-
 //! HdSt_DependencyForwardingSceneIndex - Storm plugin for dependency forwarding.
 //!
 //! Storm-specific scene index plugin that wraps the core
@@ -8,8 +7,8 @@
 //!
 //! Port of C++ `HdSt_DependencyForwardingSceneIndexPlugin`.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::scene_index::{HdDependencyForwardingSceneIndex, HdSceneIndexHandle};
 
 /// Insertion phase for the dependency forwarding plugin.

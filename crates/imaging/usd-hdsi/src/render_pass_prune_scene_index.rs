@@ -1,4 +1,3 @@
-
 //! Render pass prune scene index.
 //!
 //! Port of pxr/imaging/hdsi/renderPassPruneSceneIndex.
@@ -8,8 +7,8 @@
 use crate::HdCollectionExpressionEvaluator;
 use crate::utils::{compile_collection, remove_pruned_children};
 use once_cell::sync::Lazy;
-use std::sync::{Arc, Mutex};
 use parking_lot::RwLock;
+use std::sync::{Arc, Mutex};
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::scene_index::filtering::FilteringSceneIndexObserver;
 use usd_hd::scene_index::observer::*;
@@ -73,7 +72,9 @@ impl HdsiRenderPassPruneSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }
@@ -98,8 +99,7 @@ impl HdsiRenderPassPruneSceneIndex {
         let mut new_state = RenderPassPruneState::default();
 
         let input_guard = input.read();
-        let globals =
-            HdSceneGlobalsSchema::get_from_scene_index(input_guard.deref());
+        let globals = HdSceneGlobalsSchema::get_from_scene_index(input_guard.deref());
         if let Some(path_ds) = globals.get_active_render_pass_prim() {
             new_state.render_pass_path = path_ds.get_typed_value(0.0);
         }
@@ -318,7 +318,11 @@ impl FilteringObserverTarget for HdsiRenderPassPruneSceneIndex {
 
         let should_forward_original = {
             let state = self.state.lock().expect("Lock poisoned");
-            !prune_added_entries(&state.active_render_pass.prune_eval, entries, &mut extra_added)
+            !prune_added_entries(
+                &state.active_render_pass.prune_eval,
+                entries,
+                &mut extra_added,
+            )
         };
         if should_forward_original {
             self.base.forward_prims_added(self, entries);
@@ -344,7 +348,11 @@ impl FilteringObserverTarget for HdsiRenderPassPruneSceneIndex {
 
         let should_forward_original = {
             let state = self.state.lock().expect("Lock poisoned");
-            !prune_removed_entries(&state.active_render_pass.prune_eval, entries, &mut extra_removed)
+            !prune_removed_entries(
+                &state.active_render_pass.prune_eval,
+                entries,
+                &mut extra_removed,
+            )
         };
         if should_forward_original {
             self.base.forward_prims_removed(self, entries);
@@ -372,9 +380,17 @@ impl FilteringObserverTarget for HdsiRenderPassPruneSceneIndex {
 
         let should_forward_original = {
             let state = self.state.lock().expect("Lock poisoned");
-            !prune_dirtied_entries(&state.active_render_pass.prune_eval, entries, &mut extra_dirty)
+            !prune_dirtied_entries(
+                &state.active_render_pass.prune_eval,
+                entries,
+                &mut extra_dirty,
+            )
         };
-        if entries.len() >= 1000 || !extra_added.is_empty() || !extra_removed.is_empty() || !extra_dirty.is_empty() {
+        if entries.len() >= 1000
+            || !extra_added.is_empty()
+            || !extra_removed.is_empty()
+            || !extra_dirty.is_empty()
+        {
             let first = entries
                 .first()
                 .map(|e| e.prim_path.to_string())

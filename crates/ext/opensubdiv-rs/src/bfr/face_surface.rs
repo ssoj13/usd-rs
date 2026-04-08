@@ -2,12 +2,12 @@
 //!
 //! Ported from OpenSubdiv bfr/faceSurface.h/.cpp.
 
-use crate::sdc::types::SchemeType;
-use crate::sdc::options::{Options, VtxBoundaryInterpolation, FVarLinearInterpolation};
 use super::face_topology::FaceTopology;
 use super::face_vertex::FaceVertex;
 use super::face_vertex_subset::FaceVertexSubset;
 use super::vertex_tag::MultiVertexTag;
+use crate::sdc::options::{FVarLinearInterpolation, Options, VtxBoundaryInterpolation};
+use crate::sdc::types::SchemeType;
 
 pub type Index = super::face_vertex::Index;
 
@@ -19,18 +19,18 @@ pub struct FaceSurface<'a> {
     /// Borrowed reference to the topology (lifetime tied to the topology owner).
     pub(crate) topology: &'a FaceTopology,
     /// Face-vertex or face-varying indices (one flat array for the whole face).
-    pub(crate) indices:  &'a [Index],
+    pub(crate) indices: &'a [Index],
     /// Per-corner topological subsets.
-    pub(crate) corners:  Vec<FaceVertexSubset>,
+    pub(crate) corners: Vec<FaceVertexSubset>,
 
-    pub(crate) combined_tag:    MultiVertexTag,
+    pub(crate) combined_tag: MultiVertexTag,
     pub(crate) options_in_effect: Options,
 
     pub(crate) is_face_varying: bool,
-    pub(crate) matches_vertex:  bool,
-    pub(crate) is_regular:      bool,
+    pub(crate) matches_vertex: bool,
+    pub(crate) is_regular: bool,
     /// Tracks whether Initialize() has been called, mirroring C++ `_topology != 0`.
-    pub(crate) initialized:     bool,
+    pub(crate) initialized: bool,
 }
 
 impl<'a> FaceSurface<'a> {
@@ -54,13 +54,13 @@ impl<'a> FaceSurface<'a> {
 
     // Re-initialize in place for vertex topology.
     pub fn initialize_vertex(&mut self, topology: &'a FaceTopology, vtx_indices: &'a [Index]) {
-        self.topology     = topology;
-        self.indices      = vtx_indices;
+        self.topology = topology;
+        self.indices = vtx_indices;
         self.corners.clear();
         self.combined_tag.clear();
         self.is_face_varying = false;
-        self.matches_vertex  = false;
-        self.initialized     = false; // reset before re-init
+        self.matches_vertex = false;
+        self.initialized = false; // reset before re-init
         self.init_vertex();
     }
 
@@ -70,28 +70,56 @@ impl<'a> FaceSurface<'a> {
 
     /// Returns true after a successful call to `from_vertex` or `from_fvar`.
     /// Mirrors C++ `_topology != 0` (non-null topology pointer).
-    pub fn is_initialized(&self) -> bool { self.initialized }
-    pub fn is_regular(&self) -> bool { self.is_regular }
-    pub fn fvar_topology_matches_vertex(&self) -> bool { self.matches_vertex }
+    pub fn is_initialized(&self) -> bool {
+        self.initialized
+    }
+    pub fn is_regular(&self) -> bool {
+        self.is_regular
+    }
+    pub fn fvar_topology_matches_vertex(&self) -> bool {
+        self.matches_vertex
+    }
 
-    pub fn get_topology(&self) -> &FaceTopology { self.topology }
-    pub fn get_subsets(&self) -> &[FaceVertexSubset] { &self.corners }
-    pub fn get_indices(&self) -> &[Index] { self.indices }
-    pub fn get_tag(&self) -> MultiVertexTag { self.combined_tag }
+    pub fn get_topology(&self) -> &FaceTopology {
+        self.topology
+    }
+    pub fn get_subsets(&self) -> &[FaceVertexSubset] {
+        &self.corners
+    }
+    pub fn get_indices(&self) -> &[Index] {
+        self.indices
+    }
+    pub fn get_tag(&self) -> MultiVertexTag {
+        self.combined_tag
+    }
 
-    pub fn get_face_size(&self) -> i32 { self.topology.get_face_size() }
-    pub fn get_reg_face_size(&self) -> i32 { self.topology.get_reg_face_size() }
+    pub fn get_face_size(&self) -> i32 {
+        self.topology.get_face_size()
+    }
+    pub fn get_reg_face_size(&self) -> i32 {
+        self.topology.get_reg_face_size()
+    }
 
-    pub fn get_sdc_scheme(&self) -> SchemeType { self.topology.get_scheme_type() }
-    pub fn get_sdc_options_in_effect(&self) -> Options { self.options_in_effect }
-    pub fn get_sdc_options_as_assigned(&self) -> Options { self.topology.get_scheme_options() }
+    pub fn get_sdc_scheme(&self) -> SchemeType {
+        self.topology.get_scheme_type()
+    }
+    pub fn get_sdc_options_in_effect(&self) -> Options {
+        self.options_in_effect
+    }
+    pub fn get_sdc_options_as_assigned(&self) -> Options {
+        self.topology.get_scheme_options()
+    }
 
     pub fn get_corner_topology(&self, c: usize) -> &FaceVertex {
         self.topology.get_topology(c)
     }
-    pub fn get_corner_subset(&self, c: usize) -> &FaceVertexSubset { &self.corners[c] }
+    pub fn get_corner_subset(&self, c: usize) -> &FaceVertexSubset {
+        &self.corners[c]
+    }
 
-    pub fn get_num_indices(&self) -> i32 { self.topology.get_num_face_vertices() }
+    pub fn get_num_indices(&self) -> i32 {
+        self.topology.get_num_face_vertices()
+    }
 
     // ------------------------------------------------------------------
     //  Private helpers
@@ -105,12 +133,12 @@ impl<'a> FaceSurface<'a> {
             topology,
             indices,
             corners,
-            combined_tag:     MultiVertexTag::default(),
+            combined_tag: MultiVertexTag::default(),
             options_in_effect: Options::default(),
             is_face_varying: false,
-            matches_vertex:  false,
-            is_regular:      false,
-            initialized:     false,
+            matches_vertex: false,
+            is_regular: false,
+            initialized: false,
         }
     }
 
@@ -145,15 +173,15 @@ impl<'a> FaceSurface<'a> {
         // C++ preInitialize sets _matchesVertex = false before the fvar loop,
         // then the loop does _matchesVertex = _matchesVertex && ..., so it
         // starts false. The Rust port must match this to preserve parity.
-        self.matches_vertex  = false;
+        self.matches_vertex = false;
 
         let mut fvar_ptr = self.indices;
 
         for c in 0..self.get_face_size() as usize {
-            let vtx_sub  = vtx_surface.get_corner_subset(c);
+            let vtx_sub = vtx_surface.get_corner_subset(c);
             let fvar_sub = &mut self.corners[c];
 
-            let vtx_top  = self.topology.get_topology(c);
+            let vtx_top = self.topology.get_topology(c);
             vtx_top.find_face_varying_subset(fvar_sub, fvar_ptr, vtx_sub);
 
             let num_fv = vtx_top.get_num_face_vertices() as usize;
@@ -162,8 +190,8 @@ impl<'a> FaceSurface<'a> {
                 self.sharpen_by_fvar_linear(c, fvar_ptr, vtx_sub);
             }
             self.combined_tag.combine(self.corners[c].get_tag());
-            self.matches_vertex = self.matches_vertex
-                && self.corners[c].shape_matches_superset(vtx_sub);
+            self.matches_vertex =
+                self.matches_vertex && self.corners[c].shape_matches_superset(vtx_sub);
 
             fvar_ptr = &fvar_ptr[num_fv..];
         }
@@ -177,12 +205,17 @@ impl<'a> FaceSurface<'a> {
 
     fn compute_is_regular(&self) -> bool {
         let tags = self.combined_tag;
-        if tags.has_sharp_edges() || tags.has_semi_sharp_vertices() || tags.has_irregular_face_sizes() {
+        if tags.has_sharp_edges()
+            || tags.has_semi_sharp_vertices()
+            || tags.has_irregular_face_sizes()
+        {
             return false;
         }
         let reg4 = self.get_reg_face_size() == 4;
         if !tags.has_boundary_vertices() {
-            if tags.has_inf_sharp_vertices() { return false; }
+            if tags.has_inf_sharp_vertices() {
+                return false;
+            }
             return if reg4 {
                 self.corners[0].get_num_faces() == 4
                     && self.corners[1].get_num_faces() == 4
@@ -199,9 +232,13 @@ impl<'a> FaceSurface<'a> {
         for c in 0..self.get_face_size() as usize {
             let corner = &self.corners[c];
             if corner.is_sharp() {
-                if corner.get_num_faces() != 1 { return false; }
+                if corner.get_num_faces() != 1 {
+                    return false;
+                }
             } else if corner.is_boundary() {
-                if corner.get_num_faces() != reg_boundary { return false; }
+                if corner.get_num_faces() != reg_boundary {
+                    return false;
+                }
             } else if corner.get_num_faces() != reg_interior {
                 return false;
             }
@@ -241,12 +278,18 @@ impl<'a> FaceSurface<'a> {
         let vtx_top = self.topology.get_topology(c);
 
         use VtxBoundaryInterpolation::*;
-        let is_sharp = match self.topology.get_scheme_options().get_vtx_boundary_interpolation() {
-            None   => false,
+        let is_sharp = match self
+            .topology
+            .get_scheme_options()
+            .get_vtx_boundary_interpolation()
+        {
+            None => false,
             EdgeOnly => false,
             EdgeAndCorner => vtx_top.get_num_faces() == 1,
         };
-        if is_sharp { vtx_top.sharpen_subset(vtx_sub); }
+        if is_sharp {
+            vtx_top.sharpen_subset(vtx_sub);
+        }
     }
 
     fn sharpen_by_fvar_linear(
@@ -256,12 +299,16 @@ impl<'a> FaceSurface<'a> {
         vtx_sub: &FaceVertexSubset,
     ) {
         use FVarLinearInterpolation::*;
-        let vtx_top  = self.topology.get_topology(c);
+        let vtx_top = self.topology.get_topology(c);
         let fvar_sub = &mut self.corners[c];
 
-        let is_sharp = match self.topology.get_scheme_options().get_fvar_linear_interpolation() {
-            None    => false,
-            CornersOnly  => fvar_sub.get_num_faces() == 1,
+        let is_sharp = match self
+            .topology
+            .get_scheme_options()
+            .get_fvar_linear_interpolation()
+        {
+            None => false,
+            CornersOnly => fvar_sub.get_num_faces() == 1,
             CornersPlus1 => {
                 let sharp = fvar_sub.get_num_faces() == 1
                     || has_more_than_two_fvar_subsets(vtx_top, fvar_indices);
@@ -297,7 +344,9 @@ impl<'a> FaceSurface<'a> {
                 false
             }
         };
-        if is_sharp { vtx_top.sharpen_subset(&mut self.corners[c]); }
+        if is_sharp {
+            vtx_top.sharpen_subset(&mut self.corners[c]);
+        }
     }
 }
 
@@ -312,16 +361,23 @@ fn has_more_than_two_fvar_subsets(top: &FaceVertex, fvar_indices: &[Index]) -> b
 
     for face in 0..top.get_num_faces() {
         let index = top.get_face_index_at_corner(face, fvar_indices);
-        if index == index_corner { continue; }
+        if index == index_corner {
+            continue;
+        }
         if let Some(other) = index_other {
-            if index != other { return true; }
+            if index != other {
+                return true;
+            }
         } else {
             index_other = Some(index);
         }
         let face_next = top.get_face_next(face);
-        let discont = face_next < 0 || !top.face_indices_match_across_edge(face, face_next, fvar_indices);
+        let discont =
+            face_next < 0 || !top.face_indices_match_across_edge(face, face_next, fvar_indices);
         num_other_edges_discts += discont as i32;
-        if num_other_edges_discts > 2 { return true; }
+        if num_other_edges_discts > 2 {
+            return true;
+        }
     }
     false
 }
@@ -334,31 +390,45 @@ fn has_dependent_sharpness(top: &FaceVertex, subset: &FaceVertexSubset) -> bool 
 
 fn get_dependent_sharpness(top: &FaceVertex, subset: &FaceVertexSubset) -> f32 {
     let first_face = top.get_face_first(subset);
-    let last_face  = top.get_face_last(subset);
+    let last_face = top.get_face_last(subset);
 
     let first_face_prev = top.get_face_previous(first_face);
-    let last_face_next  = top.get_face_next(last_face);
+    let last_face_next = top.get_face_next(last_face);
 
-    let skip_first = if first_face_prev < 0 { -1i32 } else { first_face };
-    let skip_last  = if last_face_next  < 0 { -1i32 } else { last_face_next };
+    let skip_first = if first_face_prev < 0 {
+        -1i32
+    } else {
+        first_face
+    };
+    let skip_last = if last_face_next < 0 {
+        -1i32
+    } else {
+        last_face_next
+    };
 
     let mut sharp = 0.0f32;
     for i in 0..top.get_num_faces() {
         if top.get_face_previous(i) >= 0 {
             if i != skip_first && i != skip_last {
                 let s = top.get_face_edge_sharpness_by_idx(2 * i);
-                if s > sharp { sharp = s; }
+                if s > sharp {
+                    sharp = s;
+                }
             }
         }
     }
-    if sharp > top.get_vertex_sharpness() { sharp } else { 0.0 }
+    if sharp > top.get_vertex_sharpness() {
+        sharp
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sdc::types::SchemeType;
     use crate::sdc::options::Options;
+    use crate::sdc::types::SchemeType;
 
     #[test]
     fn face_surface_is_initialized_false_for_empty_indices() {

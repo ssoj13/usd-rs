@@ -1,4 +1,3 @@
-
 //! HdStField - Storm field (volume) buffer primitive.
 //!
 //! Represents OpenVDB/Field3D volume data. See pxr/imaging/hdSt/field.h for C++ reference.

@@ -1,4 +1,3 @@
-
 //! Task controller scene index - Hydra 2.0 task orchestration.
 //!
 //! A scene index that manages tasks for rendering (or picking),

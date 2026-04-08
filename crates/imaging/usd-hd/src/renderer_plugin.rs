@@ -1,4 +1,3 @@
-
 //! Renderer plugin interface.
 //!
 //! Corresponds to pxr/imaging/hd/rendererPlugin.h.

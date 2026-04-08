@@ -52,6 +52,9 @@ pollster = { version = "0.4", optional = true }
 default = ["wgpu"]
 wgpu = ["dep:usd_hgi_wgpu", "dep:usd_hio", "dep:wgpu", "dep:pollster"]
 
+[dev-dependencies]
+openusd-test-path = { path = "../base/openusd-test-path" }
+
 [lints.rust]
 unsafe_code = "allow" # GL engine requires unsafe
 

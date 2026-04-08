@@ -1,4 +1,3 @@
-
 //! Color channel task - post-process color channel selection/visualization.
 //!
 //! Allows viewing individual color channels (R, G, B, A, luminance) from

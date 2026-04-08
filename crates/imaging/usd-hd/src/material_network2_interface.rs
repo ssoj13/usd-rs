@@ -1,4 +1,3 @@
-
 //! HdMaterialNetwork2Interface - in-memory implementation of
 //! HdMaterialNetworkInterface backed by HdMaterialNetwork2.
 //!

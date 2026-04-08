@@ -8,8 +8,8 @@ use crate::ni_instance_aggregation_data_sources::InstancerPrimSource;
 use crate::ni_instance_aggregation_impl::{self, InstanceInfo};
 use crate::ni_prototype_scene_index::UsdImagingNiPrototypeSceneIndex;
 use crate::rerooting_container_data_source::UsdImagingRerootingContainerDataSource;
-use std::collections::{BTreeMap, HashMap, HashSet};
 use parking_lot::RwLock;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::{Arc, Mutex, Weak};
 use usd_hd::data_source::{
     HdContainerDataSourceHandle, HdDataSourceLocatorSet, HdLazyContainerDataSource,
@@ -317,10 +317,8 @@ impl InstanceObserver {
             (**HdInstanceSchema::get_schema_token()).clone(),
             HdLazyContainerDataSource::new(move || {
                 self_weak.upgrade().and_then(|arc| {
-                    {
-                        let obs = arc.read();
-                        obs.get_instance_schema_data_source(&prim_path)
-                    }
+                    let obs = arc.read();
+                    obs.get_instance_schema_data_source(&prim_path)
                 })
             }) as usd_hd::data_source::HdDataSourceBaseHandle,
         )])
@@ -510,7 +508,9 @@ impl InstanceObserver {
             if !it0.is_empty() {
                 return RemovalLevel::BindingScope;
             }
-            state.info_to_instance.remove(&info.enclosing_prototype_root);
+            state
+                .info_to_instance
+                .remove(&info.enclosing_prototype_root);
             RemovalLevel::EnclosingPrototypeRoot
         } else {
             RemovalLevel::Instance

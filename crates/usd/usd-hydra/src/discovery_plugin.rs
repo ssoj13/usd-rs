@@ -29,8 +29,7 @@ use std::sync::OnceLock;
 use usd_sdr::SdrShaderNodeDiscoveryResult;
 
 /// Embedded shader definitions from OpenUSD usdHydra/shaders/shaderDefs.usda.
-const SHADER_DEFS_USDA: &str =
-    include_str!("shaders/shaderDefs.usda");
+const SHADER_DEFS_USDA: &str = include_str!("shaders/shaderDefs.usda");
 
 /// Source URI used for embedded shader definitions.
 const EMBEDDED_SOURCE_URI: &str = "<embedded:usdHydra/shaderDefs.usda>";

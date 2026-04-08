@@ -2231,7 +2231,11 @@ impl Path {
                 '.' if bracket == 0 && brace == 0 => {
                     // Skip dots that are part of ".." (parent path component)
                     let next = bytes.get(i + 1).copied();
-                    let prev = if i > 0 { bytes.get(i - 1).copied() } else { None };
+                    let prev = if i > 0 {
+                        bytes.get(i - 1).copied()
+                    } else {
+                        None
+                    };
                     if next == Some(b'.') || prev == Some(b'.') {
                         continue;
                     }

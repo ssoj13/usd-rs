@@ -1,4 +1,3 @@
-
 //! HdSt_BasisCurvesTopology - Storm curve topology management.
 //!
 //! Extends Hydra `HdBasisCurvesTopology` with Storm-specific index building for
@@ -77,7 +76,11 @@ impl HdStBasisCurvesTopology {
             "hermite" => CurveBasis::Hermite,
             _ => CurveBasis::BSpline,
         };
-        let curve_type = match topology.curve_type.map(|t| t.as_token_str()).unwrap_or("linear") {
+        let curve_type = match topology
+            .curve_type
+            .map(|t| t.as_token_str())
+            .unwrap_or("linear")
+        {
             "cubic" => CurveType::Cubic,
             _ => CurveType::Linear,
         };
@@ -133,28 +136,28 @@ impl HdStBasisCurvesTopology {
             CurveType::Linear => self.get_total_vertex_count(),
             CurveType::Cubic => match self.basis {
                 CurveBasis::Bezier => {
-                let mut count = 0usize;
-                for &nv in &self.curve_vertex_counts {
-                    let segments = ((nv - 1) / 3).max(0) as usize;
-                    count += segments + 1;
-                }
-                count
+                    let mut count = 0usize;
+                    for &nv in &self.curve_vertex_counts {
+                        let segments = ((nv - 1) / 3).max(0) as usize;
+                        count += segments + 1;
+                    }
+                    count
                 }
                 CurveBasis::BSpline | CurveBasis::CatmullRom | CurveBasis::Hermite => {
-                let mut count = 0usize;
-                for &nv in &self.curve_vertex_counts {
-                    if nv < 4 {
-                        count += 1;
-                        continue;
+                    let mut count = 0usize;
+                    for &nv in &self.curve_vertex_counts {
+                        if nv < 4 {
+                            count += 1;
+                            continue;
+                        }
+                        let segments = if self.wrap == CurveWrap::Periodic {
+                            nv as usize
+                        } else {
+                            (nv - 3) as usize
+                        };
+                        count += segments + 1;
                     }
-                    let segments = if self.wrap == CurveWrap::Periodic {
-                        nv as usize
-                    } else {
-                        (nv - 3) as usize
-                    };
-                    count += segments + 1;
-                }
-                count
+                    count
                 }
             },
         }
@@ -241,7 +244,11 @@ impl HdStBasisCurvesTopology {
 
             let num_segments = match self.basis {
                 CurveBasis::Bezier => {
-                    if nv < 4 { 0 } else { (nv - 1) / 3 }
+                    if nv < 4 {
+                        0
+                    } else {
+                        (nv - 1) / 3
+                    }
                 }
                 _ => {
                     if nv < 4 {

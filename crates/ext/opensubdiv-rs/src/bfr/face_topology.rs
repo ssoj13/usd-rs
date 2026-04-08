@@ -2,27 +2,27 @@
 //!
 //! Ported from OpenSubdiv bfr/faceTopology.h/.cpp.
 
-use crate::sdc::types::{SchemeType, SchemeTypeTraits};
-use crate::sdc::options::Options;
 use super::face_vertex::{FaceVertex, Index};
 use super::vertex_tag::MultiVertexTag;
+use crate::sdc::options::Options;
+use crate::sdc::types::{SchemeType, SchemeTypeTraits};
 
 /// Full topological description of the neighbourhood around a face, comprising
 /// one `FaceVertex` per corner.
 ///
 /// Mirrors `Bfr::FaceTopology`.
 pub struct FaceTopology {
-    pub(crate) scheme_type:    SchemeType,
+    pub(crate) scheme_type: SchemeType,
     pub(crate) scheme_options: Options,
 
-    pub(crate) face_size:           i32,
-    pub(crate) reg_face_size:       i32,
+    pub(crate) face_size: i32,
+    pub(crate) reg_face_size: i32,
     pub(crate) num_face_verts_total: i32,
 
     pub(crate) combined_tag: MultiVertexTag,
 
     pub(crate) is_initialized: bool,
-    pub(crate) is_finalized:   bool,
+    pub(crate) is_finalized: bool,
 
     pub(crate) corner: Vec<FaceVertex>,
 }
@@ -34,12 +34,12 @@ impl FaceTopology {
         Self {
             scheme_type,
             scheme_options,
-            face_size:           0,
+            face_size: 0,
             reg_face_size,
             num_face_verts_total: 0,
             combined_tag: MultiVertexTag::default(),
             is_initialized: false,
-            is_finalized:   false,
+            is_finalized: false,
             corner: Vec::new(),
         }
     }
@@ -48,18 +48,34 @@ impl FaceTopology {
     //  Accessors
     // ------------------------------------------------------------------
 
-    pub fn get_scheme_type(&self)    -> SchemeType { self.scheme_type }
-    pub fn get_scheme_options(&self) -> Options    { self.scheme_options }
+    pub fn get_scheme_type(&self) -> SchemeType {
+        self.scheme_type
+    }
+    pub fn get_scheme_options(&self) -> Options {
+        self.scheme_options
+    }
 
-    pub fn get_face_size(&self)     -> i32 { self.face_size }
-    pub fn get_reg_face_size(&self) -> i32 { self.reg_face_size }
+    pub fn get_face_size(&self) -> i32 {
+        self.face_size
+    }
+    pub fn get_reg_face_size(&self) -> i32 {
+        self.reg_face_size
+    }
 
-    pub fn get_topology(&self, i: usize) -> &FaceVertex { &self.corner[i] }
-    pub fn get_topology_mut(&mut self, i: usize) -> &mut FaceVertex { &mut self.corner[i] }
+    pub fn get_topology(&self, i: usize) -> &FaceVertex {
+        &self.corner[i]
+    }
+    pub fn get_topology_mut(&mut self, i: usize) -> &mut FaceVertex {
+        &mut self.corner[i]
+    }
 
-    pub fn get_tag(&self) -> MultiVertexTag { self.combined_tag }
+    pub fn get_tag(&self) -> MultiVertexTag {
+        self.combined_tag
+    }
 
-    pub fn get_num_face_vertices(&self) -> i32 { self.num_face_verts_total }
+    pub fn get_num_face_vertices(&self) -> i32 {
+        self.num_face_verts_total
+    }
     pub fn get_num_face_vertices_at(&self, i: usize) -> i32 {
         self.corner[i].get_num_face_vertices()
     }
@@ -74,11 +90,11 @@ impl FaceTopology {
 
     /// Prepare for a face of the given size; allocates the corner array.
     pub fn initialize(&mut self, face_size: i32) {
-        self.face_size            = face_size;
+        self.face_size = face_size;
         self.num_face_verts_total = 0;
         self.combined_tag.clear();
         self.is_initialized = true;
-        self.is_finalized   = false;
+        self.is_finalized = false;
         self.corner.resize_with(face_size as usize, FaceVertex::new);
     }
 

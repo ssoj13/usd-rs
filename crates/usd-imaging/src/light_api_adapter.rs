@@ -9,11 +9,11 @@ use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::types::PropertyInvalidationType;
 use std::sync::Arc;
 use usd_core::Prim;
+use usd_hd::schema::{HdLightSchema, HdMaterialSchema};
 use usd_hd::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdDataSourceLocatorSet, HdRetainedContainerDataSource, HdRetainedTypedSampledDataSource,
 };
-use usd_hd::schema::{HdLightSchema, HdMaterialSchema};
 use usd_lux::light_api::LightAPI;
 use usd_tf::Token;
 use usd_vt::Value;
@@ -78,26 +78,22 @@ impl HdContainerDataSource for LightDataSource {
 
         if name.as_str() == "materialSyncMode" {
             if let Some(attr) = self.light_api.get_material_sync_mode_attr() {
-                return Some(
-                    DataSourceAttribute::<Token>::new(
-                        attr,
-                        self.stage_globals.clone(),
-                        self.light_api.get_prim().path().clone(),
-                    ) as HdDataSourceBaseHandle,
-                );
+                return Some(DataSourceAttribute::<Token>::new(
+                    attr,
+                    self.stage_globals.clone(),
+                    self.light_api.get_prim().path().clone(),
+                ) as HdDataSourceBaseHandle);
             }
             return None;
         }
 
         let usd_attr_name = format!("inputs:{}", name.as_str());
         let attr = self.light_api.get_prim().get_attribute(&usd_attr_name)?;
-        Some(
-            DataSourceAttribute::<Value>::new(
-                attr,
-                self.stage_globals.clone(),
-                self.light_api.get_prim().path().clone(),
-            ) as HdDataSourceBaseHandle,
-        )
+        Some(DataSourceAttribute::<Value>::new(
+            attr,
+            self.stage_globals.clone(),
+            self.light_api.get_prim().path().clone(),
+        ) as HdDataSourceBaseHandle)
     }
 }
 

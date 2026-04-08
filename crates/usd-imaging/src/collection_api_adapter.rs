@@ -6,7 +6,7 @@ use super::api_schema_adapter::APISchemaAdapter;
 use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::types::PropertyInvalidationType;
 use std::sync::Arc;
-use usd_core::{collection_api::CollectionAPI, Prim};
+use usd_core::{Prim, collection_api::CollectionAPI};
 use usd_hd::data_source::HdRetainedTypedSampledDataSource;
 use usd_hd::schema::HdCollectionsSchema;
 use usd_hd::{HdContainerDataSource, HdDataSourceBaseHandle, HdDataSourceLocatorSet};
@@ -45,11 +45,9 @@ impl HdContainerDataSource for CollectionContainerDataSource {
 
     fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if name.as_str() == "membershipExpression" {
-            return Some(
-                HdRetainedTypedSampledDataSource::<PathExpression>::new(
-                    self.api.resolve_complete_membership_expression(),
-                ) as HdDataSourceBaseHandle,
-            );
+            return Some(HdRetainedTypedSampledDataSource::<PathExpression>::new(
+                self.api.resolve_complete_membership_expression(),
+            ) as HdDataSourceBaseHandle);
         }
         None
     }
@@ -89,7 +87,9 @@ impl HdContainerDataSource for CollectionsContainerDataSource {
 
     fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if self.api.name() == Some(name) {
-            return Some(CollectionContainerDataSource::new(self.api.clone()) as HdDataSourceBaseHandle);
+            return Some(
+                CollectionContainerDataSource::new(self.api.clone()) as HdDataSourceBaseHandle
+            );
         }
         None
     }

@@ -1,4 +1,3 @@
-
 //! Simple light task - Lighting setup and management.
 //!
 //! Collects lights from the render index and configures the lighting

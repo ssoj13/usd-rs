@@ -1,4 +1,3 @@
-
 //! Scene globals schema for Hydra.
 //!
 //! Port of pxr/imaging/hd/sceneGlobalsSchema.

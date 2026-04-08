@@ -64,8 +64,7 @@ impl CpuVertexBuffer {
 
     /// Same as `create` but panics on invalid dimensions (convenience).
     pub fn new(num_elements: i32, num_vertices: i32) -> Self {
-        Self::create(num_elements, num_vertices)
-            .expect("CpuVertexBuffer: dimensions must be > 0")
+        Self::create(num_elements, num_vertices).expect("CpuVertexBuffer: dimensions must be > 0")
     }
 
     /// Return a raw pointer to the data slice (CPU binding).
@@ -97,7 +96,7 @@ impl VertexBuffer for CpuVertexBuffer {
     fn update_data(&mut self, src: &[f32], start_vertex: i32, num_verts: i32) {
         let elem = self.num_elements as usize;
         let start = start_vertex as usize * elem;
-        let len   = num_verts as usize * elem;
+        let len = num_verts as usize * elem;
         debug_assert!(src.len() >= len, "update_data: src too short");
         debug_assert!(start + len <= self.data.len(), "update_data: out of range");
         self.data[start..start + len].copy_from_slice(&src[..len]);

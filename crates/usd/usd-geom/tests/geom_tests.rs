@@ -2,7 +2,6 @@
 //!
 //! Ported from C++ reference: pxr/usd/usdGeom/testenv/
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use usd_core::{InitialLoadSet, Stage};
@@ -11,13 +10,11 @@ use usd_gf::vec3::Vec3f;
 use usd_sdf::TimeCode;
 use usd_tf::Token;
 
-/// Helper: path to testenv data files
+/// Helper: path under `pxr/usd/usdGeom/testenv/<subdir>/<file>`.
 fn testenv_path(subdir: &str, file: &str) -> String {
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("testenv");
-    path.push(subdir);
-    path.push(file);
-    path.to_string_lossy().to_string()
+    openusd_test_path::pxr_usd_module_testenv("usdGeom", format!("{subdir}/{file}"))
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 /// Helper: open a stage from testenv

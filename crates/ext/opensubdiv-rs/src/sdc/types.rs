@@ -6,8 +6,8 @@
 #[repr(u8)]
 pub enum SchemeType {
     Bilinear = 0,
-    Catmark  = 1,
-    Loop     = 2,
+    Catmark = 1,
+    Loop = 2,
 }
 
 /// Face splitting strategy used by each scheme.
@@ -23,35 +23,35 @@ pub enum Split {
 
 /// Static trait table entry, mirroring the C++ `TraitsEntry` struct.
 struct TraitsEntry {
-    name:                  &'static str,
-    split_type:            Split,
-    regular_face_size:     i32,
+    name: &'static str,
+    split_type: Split,
+    regular_face_size: i32,
     regular_vertex_valence: i32,
-    local_neighborhood:    i32,
+    local_neighborhood: i32,
 }
 
 // The three rows correspond to Bilinear=0, Catmark=1, Loop=2.
 static TRAITS_TABLE: [TraitsEntry; 3] = [
     TraitsEntry {
-        name:                   "bilinear",
-        split_type:             Split::ToQuads,
-        regular_face_size:      4,
+        name: "bilinear",
+        split_type: Split::ToQuads,
+        regular_face_size: 4,
         regular_vertex_valence: 4,
-        local_neighborhood:     0,
+        local_neighborhood: 0,
     },
     TraitsEntry {
-        name:                   "catmark",
-        split_type:             Split::ToQuads,
-        regular_face_size:      4,
+        name: "catmark",
+        split_type: Split::ToQuads,
+        regular_face_size: 4,
         regular_vertex_valence: 4,
-        local_neighborhood:     1,
+        local_neighborhood: 1,
     },
     TraitsEntry {
-        name:                   "loop",
-        split_type:             Split::ToTris,
-        regular_face_size:      3,
+        name: "loop",
+        split_type: Split::ToTris,
+        regular_face_size: 3,
         regular_vertex_valence: 6,
-        local_neighborhood:     1,
+        local_neighborhood: 1,
     },
 ];
 
@@ -99,16 +99,20 @@ impl SchemeTypeTraits {
 
     // ── Short-name aliases (for callers that omit the `get_` prefix) ─────────
 
-    #[inline] pub fn regular_face_size(s: SchemeType) -> i32 {
+    #[inline]
+    pub fn regular_face_size(s: SchemeType) -> i32 {
         Self::get_regular_face_size(s)
     }
-    #[inline] pub fn regular_vertex_valence(s: SchemeType) -> i32 {
+    #[inline]
+    pub fn regular_vertex_valence(s: SchemeType) -> i32 {
         Self::get_regular_vertex_valence(s)
     }
-    #[inline] pub fn local_neighborhood_size(s: SchemeType) -> i32 {
+    #[inline]
+    pub fn local_neighborhood_size(s: SchemeType) -> i32 {
         Self::get_local_neighborhood_size(s)
     }
-    #[inline] pub fn topological_split_type(s: SchemeType) -> Split {
+    #[inline]
+    pub fn topological_split_type(s: SchemeType) -> Split {
         Self::get_topological_split_type(s)
     }
 }
@@ -119,34 +123,73 @@ mod tests {
 
     #[test]
     fn bilinear_traits() {
-        assert_eq!(SchemeTypeTraits::get_topological_split_type(SchemeType::Bilinear), Split::ToQuads);
-        assert_eq!(SchemeTypeTraits::get_regular_face_size(SchemeType::Bilinear), 4);
-        assert_eq!(SchemeTypeTraits::get_regular_vertex_valence(SchemeType::Bilinear), 4);
-        assert_eq!(SchemeTypeTraits::get_local_neighborhood_size(SchemeType::Bilinear), 0);
+        assert_eq!(
+            SchemeTypeTraits::get_topological_split_type(SchemeType::Bilinear),
+            Split::ToQuads
+        );
+        assert_eq!(
+            SchemeTypeTraits::get_regular_face_size(SchemeType::Bilinear),
+            4
+        );
+        assert_eq!(
+            SchemeTypeTraits::get_regular_vertex_valence(SchemeType::Bilinear),
+            4
+        );
+        assert_eq!(
+            SchemeTypeTraits::get_local_neighborhood_size(SchemeType::Bilinear),
+            0
+        );
         assert_eq!(SchemeTypeTraits::get_name(SchemeType::Bilinear), "bilinear");
     }
 
     #[test]
     fn catmark_traits() {
-        assert_eq!(SchemeTypeTraits::get_topological_split_type(SchemeType::Catmark), Split::ToQuads);
-        assert_eq!(SchemeTypeTraits::get_regular_face_size(SchemeType::Catmark), 4);
-        assert_eq!(SchemeTypeTraits::get_regular_vertex_valence(SchemeType::Catmark), 4);
-        assert_eq!(SchemeTypeTraits::get_local_neighborhood_size(SchemeType::Catmark), 1);
+        assert_eq!(
+            SchemeTypeTraits::get_topological_split_type(SchemeType::Catmark),
+            Split::ToQuads
+        );
+        assert_eq!(
+            SchemeTypeTraits::get_regular_face_size(SchemeType::Catmark),
+            4
+        );
+        assert_eq!(
+            SchemeTypeTraits::get_regular_vertex_valence(SchemeType::Catmark),
+            4
+        );
+        assert_eq!(
+            SchemeTypeTraits::get_local_neighborhood_size(SchemeType::Catmark),
+            1
+        );
         assert_eq!(SchemeTypeTraits::get_name(SchemeType::Catmark), "catmark");
     }
 
     #[test]
     fn loop_traits() {
-        assert_eq!(SchemeTypeTraits::get_topological_split_type(SchemeType::Loop), Split::ToTris);
+        assert_eq!(
+            SchemeTypeTraits::get_topological_split_type(SchemeType::Loop),
+            Split::ToTris
+        );
         assert_eq!(SchemeTypeTraits::get_regular_face_size(SchemeType::Loop), 3);
-        assert_eq!(SchemeTypeTraits::get_regular_vertex_valence(SchemeType::Loop), 6);
-        assert_eq!(SchemeTypeTraits::get_local_neighborhood_size(SchemeType::Loop), 1);
+        assert_eq!(
+            SchemeTypeTraits::get_regular_vertex_valence(SchemeType::Loop),
+            6
+        );
+        assert_eq!(
+            SchemeTypeTraits::get_local_neighborhood_size(SchemeType::Loop),
+            1
+        );
         assert_eq!(SchemeTypeTraits::get_name(SchemeType::Loop), "loop");
     }
 
     #[test]
     fn get_type_identity() {
-        assert_eq!(SchemeTypeTraits::get_type(SchemeType::Catmark), SchemeType::Catmark);
-        assert_eq!(SchemeTypeTraits::get_type(SchemeType::Loop), SchemeType::Loop);
+        assert_eq!(
+            SchemeTypeTraits::get_type(SchemeType::Catmark),
+            SchemeType::Catmark
+        );
+        assert_eq!(
+            SchemeTypeTraits::get_type(SchemeType::Loop),
+            SchemeType::Loop
+        );
     }
 }

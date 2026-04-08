@@ -1,4 +1,3 @@
-
 //! HdSceneIndexPrimView - depth-first iterator over scene index prims.
 //!
 //! Port of pxr/imaging/hd/sceneIndexPrimView.{h,cpp}

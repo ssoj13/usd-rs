@@ -1,4 +1,3 @@
-
 //! HdMeshUtil - Triangulation and quadrangulation utilities.
 //!
 //! Corresponds to pxr/imaging/hd/meshUtil.h.

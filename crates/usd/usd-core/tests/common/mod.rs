@@ -24,11 +24,10 @@ pub fn tmp_path(name: &str) -> PathBuf {
     ))
 }
 
-/// Path to test data directory (testenv/).
+/// Path under `pxr/usd/usd/testenv/<subpath>` (requires `OPENUSD_SRC_ROOT`).
 #[allow(dead_code)]
 pub fn testenv_path(subpath: &str) -> PathBuf {
-    let base = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testenv");
-    base.join(subpath)
+    openusd_test_path::pxr_usd_module_testenv("usd", subpath)
 }
 
 /// Float comparison epsilon.

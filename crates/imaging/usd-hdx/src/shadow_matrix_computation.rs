@@ -1,4 +1,3 @@
-
 //! Shadow matrix computation - interface for computing shadow projection matrices.
 //!
 //! Provides the abstract interface used by HdxShadowTask to compute

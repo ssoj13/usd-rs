@@ -1,4 +1,3 @@
-
 //! Plugin registry for managing Hydra plugins.
 //!
 //! Base registry system for discovering, loading, and managing plugins

@@ -1,12 +1,16 @@
+use crate::far::stencil_table_factory::{
+    InterpolationMode, StencilTableFactory, StencilTableOptions,
+};
+use crate::far::types::ConstArray;
 use crate::far::{
     AdaptiveOptions, EndCapType, PatchTable, PatchTableFactory, PatchTableFactoryOptions,
     StencilTable, TopologyRefiner, UniformOptions,
 };
-use crate::far::stencil_table_factory::{InterpolationMode, StencilTableFactory, StencilTableOptions};
-use crate::far::types::ConstArray;
 use crate::osd::{
-    cpu_evaluator::CpuEvaluator, cpu_patch_table::CpuPatchTable,
-    cpu_vertex_buffer::{CpuVertexBuffer, VertexBuffer}, BufferDescriptor,
+    BufferDescriptor,
+    cpu_evaluator::CpuEvaluator,
+    cpu_patch_table::CpuPatchTable,
+    cpu_vertex_buffer::{CpuVertexBuffer, VertexBuffer},
 };
 
 /// Bit indices for MeshBitset flags — mirrors Osd::MeshBits.
@@ -306,12 +310,12 @@ impl CpuMesh {
 
         // --- Patch table ----------------------------------------------------
         let mut po = PatchTableFactoryOptions::default();
-        po.generate_fvar_tables               = bits.test(mesh_bits::FVAR_DATA);
+        po.generate_fvar_tables = bits.test(mesh_bits::FVAR_DATA);
         po.generate_fvar_legacy_linear_patches = !bits.test(mesh_bits::FVAR_ADAPTIVE);
         // Propagate sharp-corner / crease / inf-sharp options — mirrors C++ initializeContext.
         po.generate_legacy_sharp_corner_patches = !bits.test(mesh_bits::USE_SMOOTH_CORNER_PATCH);
-        po.use_single_crease_patch              =  bits.test(mesh_bits::USE_SINGLE_CREASE_PATCH);
-        po.use_inf_sharp_patch                  =  bits.test(mesh_bits::USE_INF_SHARP_PATCH);
+        po.use_single_crease_patch = bits.test(mesh_bits::USE_SINGLE_CREASE_PATCH);
+        po.use_inf_sharp_patch = bits.test(mesh_bits::USE_INF_SHARP_PATCH);
         // Propagate end-cap type from MeshBitset (exclusive bits 7-10).
         if bits.test(mesh_bits::END_CAP_BILINEAR_BASIS) {
             po.end_cap_type = EndCapType::BilinearBasis;
@@ -339,7 +343,10 @@ impl CpuMesh {
         if far_patch.get_num_local_points() > 0 {
             if let Some(local_st) = far_patch.get_local_point_stencil_table_as_stencil_table() {
                 if let Some(merged) = StencilTableFactory::append_local_point_stencil_table(
-                    &refiner, &vertex_stencils, local_st, false,
+                    &refiner,
+                    &vertex_stencils,
+                    local_st,
+                    false,
                 ) {
                     vertex_stencils = merged;
                 }
@@ -391,7 +398,11 @@ impl CpuMesh {
         // --- Buffer descriptors ---------------------------------------------
         let vertex_desc = BufferDescriptor::new(0, num_vertex_elements, vertex_buffer_stride);
         let varying_desc = if bits.test(mesh_bits::INTERLEAVE_VARYING) {
-            BufferDescriptor::new(num_vertex_elements, num_varying_elements, vertex_buffer_stride)
+            BufferDescriptor::new(
+                num_vertex_elements,
+                num_varying_elements,
+                vertex_buffer_stride,
+            )
         } else {
             BufferDescriptor::new(0, num_varying_elements, varying_buffer_stride)
         };
@@ -509,8 +520,7 @@ impl CpuMesh {
                     );
                 } else {
                     // Interleaved: varying lives in the vertex_buffer — clone src.
-                    let v_src_data =
-                        VertexBuffer::bind_cpu_buffer(&self.vertex_buffer).to_vec();
+                    let v_src_data = VertexBuffer::bind_cpu_buffer(&self.vertex_buffer).to_vec();
                     CpuEvaluator::eval_stencils_raw(
                         &v_src_data,
                         &v_src,
@@ -569,12 +579,7 @@ impl MeshInterface for CpuMesh {
     fn update_vertex_buffer(&mut self, vertex_data: &[f32], start_vertex: i32, num_verts: i32) {
         CpuMesh::update_vertex_buffer(self, vertex_data, start_vertex, num_verts);
     }
-    fn update_varying_buffer(
-        &mut self,
-        varying_data: &[f32],
-        start_vertex: i32,
-        num_verts: i32,
-    ) {
+    fn update_varying_buffer(&mut self, varying_data: &[f32], start_vertex: i32, num_verts: i32) {
         CpuMesh::update_varying_buffer(self, varying_data, start_vertex, num_verts);
     }
     fn refine(&mut self) {

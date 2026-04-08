@@ -5,8 +5,8 @@
 
 use usd_tf::string_utils::dictionary_less_than;
 use usd_tf::unicode_utils::{
-    MAXIMUM_VALUE, SURROGATE_END, SURROGATE_START, UTF8_INVALID_CODE_POINT,
-    Utf8CodePoint, Utf8CodePointIterator, Utf8CodePointView, is_utf8_code_point_xid_continue,
+    MAXIMUM_VALUE, SURROGATE_END, SURROGATE_START, UTF8_INVALID_CODE_POINT, Utf8CodePoint,
+    Utf8CodePointIterator, Utf8CodePointView, is_utf8_code_point_xid_continue,
     is_utf8_code_point_xid_start, is_xid_continue, is_xid_start,
 };
 

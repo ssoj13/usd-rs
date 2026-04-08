@@ -1421,7 +1421,6 @@ mod tests {
 
     #[test]
     fn test_decompose_rotation_pure_tw() {
-        
         // Pure twist (rotation around Z = tw_axis)
         let tw_axis = vec3d(0.0, 0.0, 1.0);
         let fb_axis = vec3d(1.0, 0.0, 0.0);

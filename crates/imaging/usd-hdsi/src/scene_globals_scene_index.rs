@@ -1,4 +1,3 @@
-
 //! Scene globals scene index.
 //!
 //! Port of pxr/imaging/hdsi/sceneGlobalsSceneIndex.
@@ -6,8 +5,8 @@
 //! Populates the "sceneGlobals" data source at the root prim per
 //! HdSceneGlobalsSchema and provides public API to mutate it.
 
-use std::sync::{Arc, Weak};
 use parking_lot::RwLock;
+use std::sync::{Arc, Weak};
 use usd_hd::data_source::{
     HdContainerDataSource, HdDataSourceBaseHandle, HdDataSourceLocator, HdDataSourceLocatorSet,
     HdOverlayContainerDataSource, HdRetainedContainerDataSource, HdRetainedTypedSampledDataSource,
@@ -187,7 +186,9 @@ impl HdsiSceneGlobalsSceneIndex {
             Arc::downgrade(&scene) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         scene
     }

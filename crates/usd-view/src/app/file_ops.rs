@@ -9,7 +9,11 @@ use super::ViewerApp;
 /// Uses parent of `hint` if it exists on disk, otherwise falls back to the executable's directory.
 pub(crate) fn dialog_start_dir(hint: Option<&Path>) -> PathBuf {
     if let Some(h) = hint {
-        let dir = if h.is_dir() { h } else { h.parent().unwrap_or(h) };
+        let dir = if h.is_dir() {
+            h
+        } else {
+            h.parent().unwrap_or(h)
+        };
         if dir.exists() {
             return dir.to_path_buf();
         }

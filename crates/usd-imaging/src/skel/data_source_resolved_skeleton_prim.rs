@@ -288,7 +288,8 @@ impl HdSampledDataSource for SkinningTransformsDataSource {
         let mut varying = false;
 
         if let Some(rest_ds) = &self.rest_transforms {
-            varying |= rest_ds.get_contributing_sample_times(start_time, end_time, out_sample_times);
+            varying |=
+                rest_ds.get_contributing_sample_times(start_time, end_time, out_sample_times);
         }
 
         for schema in &self.animation_schemas {
@@ -414,7 +415,10 @@ struct BlendShapesDataSource {
 }
 
 impl BlendShapesDataSource {
-    fn new(animation_schemas: Vec<AnimationSchema>, ranges: Arc<BlendShapeRangesDataSource>) -> Arc<Self> {
+    fn new(
+        animation_schemas: Vec<AnimationSchema>,
+        ranges: Arc<BlendShapeRangesDataSource>,
+    ) -> Arc<Self> {
         Arc::new(Self {
             animation_schemas,
             ranges,
@@ -635,8 +639,11 @@ impl HdSampledDataSource for PointsPrimvarValueDataSource {
         end_time: HdSampledDataSourceTime,
         out_sample_times: &mut Vec<HdSampledDataSourceTime>,
     ) -> bool {
-        self.skinning_transforms
-            .get_contributing_sample_times(start_time, end_time, out_sample_times)
+        self.skinning_transforms.get_contributing_sample_times(
+            start_time,
+            end_time,
+            out_sample_times,
+        )
     }
 }
 
@@ -696,22 +703,18 @@ impl HdContainerDataSource for SkelGuideSkinningPrimvarsDataSource {
 
     fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if *name == points_token() {
-            return Some(
-                DataSourcePrimvar::new(
-                    to_ds(self.guide_data.bone_mesh_points.clone()),
-                    VERTEX.clone(),
-                    POINT.clone(),
-                ) as HdDataSourceBaseHandle,
-            );
+            return Some(DataSourcePrimvar::new(
+                to_ds(self.guide_data.bone_mesh_points.clone()),
+                VERTEX.clone(),
+                POINT.clone(),
+            ) as HdDataSourceBaseHandle);
         }
         if *name == usd_hd::skinning_settings::skinning_xforms_token() {
-            return Some(
-                DataSourcePrimvar::new(
-                    self.skinning_transforms.clone() as HdDataSourceBaseHandle,
-                    CONSTANT.clone(),
-                    Token::empty(),
-                ) as HdDataSourceBaseHandle,
-            );
+            return Some(DataSourcePrimvar::new(
+                self.skinning_transforms.clone() as HdDataSourceBaseHandle,
+                CONSTANT.clone(),
+                Token::empty(),
+            ) as HdDataSourceBaseHandle);
         }
         if *name == usd_hd::skinning_settings::skel_local_to_common_space_token()
             || *name == usd_hd::skinning_settings::common_space_to_prim_local_token()
@@ -733,7 +736,9 @@ impl HdContainerDataSource for SkelGuideSkinningPrimvarsDataSource {
                 .iter()
                 .map(|joint| usd_gf::Vec2f::new(*joint as f32, 1.0))
                 .collect();
-            return Some(DataSourcePrimvar::new_default(to_ds(influences)) as HdDataSourceBaseHandle);
+            return Some(
+                DataSourcePrimvar::new_default(to_ds(influences)) as HdDataSourceBaseHandle
+            );
         }
         if *name == usd_hd::skinning_settings::num_skinning_method_token() {
             return Some(DataSourcePrimvar::new_default(to_ds(0i32)) as HdDataSourceBaseHandle);
@@ -857,7 +862,8 @@ impl DataSourceResolvedSkeletonPrim {
         } else {
             scene_index
                 .read()
-                .get_prim(&animation_source).data_source
+                .get_prim(&animation_source)
+                .data_source
                 .and_then(|ds| AnimationSchema::get_from_parent(&ds))
                 .filter(|schema| schema.is_defined())
         };
@@ -867,11 +873,7 @@ impl DataSourceResolvedSkeletonPrim {
         let instance_animation_sources = xform_resolver.get_instance_animation_source();
         let instance_animation_schemas = instance_animation_sources
             .iter()
-            .filter_map(|path| {
-                scene_index
-                    .read()
-                    .get_prim(path).data_source
-            })
+            .filter_map(|path| scene_index.read().get_prim(path).data_source)
             .filter_map(|ds| AnimationSchema::get_from_parent(&ds))
             .filter(|schema| schema.is_defined())
             .collect();
@@ -950,10 +952,8 @@ impl DataSourceResolvedSkeletonPrim {
     pub fn get_skel_local_to_common_space(
         &self,
     ) -> Option<usd_hd::schema::HdMatrixDataSourceHandle> {
-        let resolver = DataSourceXformResolver::new(
-            self.scene_index.clone(),
-            self.prim_source.clone(),
-        );
+        let resolver =
+            DataSourceXformResolver::new(self.scene_index.clone(), self.prim_source.clone());
         resolver.get_prim_local_to_common_space()
     }
 
@@ -981,7 +981,8 @@ impl DataSourceResolvedSkeletonPrim {
     }
 
     pub fn get_blend_shape_ranges(&self) -> HdVec2iArrayDataSourceHandle {
-        BlendShapeRangesDataSource::new(self.resolved_animation_schemas()) as HdVec2iArrayDataSourceHandle
+        BlendShapeRangesDataSource::new(self.resolved_animation_schemas())
+            as HdVec2iArrayDataSourceHandle
     }
 
     pub fn get_blend_shapes(&self) -> HdTokenArrayDataSourceHandle {
@@ -1147,7 +1148,8 @@ impl HdContainerDataSource for DataSourceResolvedSkeletonPrim {
 
     fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if *name == ResolvedSkeletonSchema::get_schema_token() {
-            return Some(ResolvedSkeletonSchemaDataSource::new(self.clone_handle()) as HdDataSourceBaseHandle);
+            return Some(ResolvedSkeletonSchemaDataSource::new(self.clone_handle())
+                as HdDataSourceBaseHandle);
         }
 
         if *name == mesh_token() {
@@ -1161,16 +1163,16 @@ impl HdContainerDataSource for DataSourceResolvedSkeletonPrim {
                     topology.face_vertex_indices,
                 ))),
                 None,
-                Some(HdRetainedTypedSampledDataSource::new(Token::new("rightHanded"))),
+                Some(HdRetainedTypedSampledDataSource::new(Token::new(
+                    "rightHanded",
+                ))),
             );
-            return Some(
-                HdMeshSchema::build_retained(
-                    Some(topology_container),
-                    Some(HdRetainedTypedSampledDataSource::new(Token::new("none"))),
-                    None,
-                    Some(HdRetainedTypedSampledDataSource::new(true)),
-                ) as HdDataSourceBaseHandle,
-            );
+            return Some(HdMeshSchema::build_retained(
+                Some(topology_container),
+                Some(HdRetainedTypedSampledDataSource::new(Token::new("none"))),
+                None,
+                Some(HdRetainedTypedSampledDataSource::new(true)),
+            ) as HdDataSourceBaseHandle);
         }
 
         if *name == primvars_token() {
@@ -1182,24 +1184,20 @@ impl HdContainerDataSource for DataSourceResolvedSkeletonPrim {
             }
             let skinning_xforms = self.get_skinning_transforms();
             if usd_hd::skinning_settings::is_skinning_deferred() {
-                return Some(
-                    SkelGuideSkinningPrimvarsDataSource::new(
-                        self.get_skel_guide_data(),
-                        skinning_xforms,
-                    ) as HdDataSourceBaseHandle,
-                );
+                return Some(SkelGuideSkinningPrimvarsDataSource::new(
+                    self.get_skel_guide_data(),
+                    skinning_xforms,
+                ) as HdDataSourceBaseHandle);
             }
-            return Some(
-                HdRetainedContainerDataSource::from_entries(&[(
-                    points_token(),
-                    DataSourcePrimvar::new(
-                        PointsPrimvarValueDataSource::new(self.get_skel_guide_data(), skinning_xforms)
-                            as HdDataSourceBaseHandle,
-                        VERTEX.clone(),
-                        POINT.clone(),
-                    ) as HdDataSourceBaseHandle,
-                )]) as HdDataSourceBaseHandle,
-            );
+            return Some(HdRetainedContainerDataSource::from_entries(&[(
+                points_token(),
+                DataSourcePrimvar::new(
+                    PointsPrimvarValueDataSource::new(self.get_skel_guide_data(), skinning_xforms)
+                        as HdDataSourceBaseHandle,
+                    VERTEX.clone(),
+                    POINT.clone(),
+                ) as HdDataSourceBaseHandle,
+            )]) as HdDataSourceBaseHandle);
         }
 
         None

@@ -967,9 +967,9 @@ impl Camera {
             .inner
             .imageable()
             .compute_parent_to_world_transform(time);
-        let parent_to_world_inv = parent_to_world.inverse_with_eps(0.0).unwrap_or_else(|| {
-            Matrix4d::from_scale(f32::MAX as f64)
-        });
+        let parent_to_world_inv = parent_to_world
+            .inverse_with_eps(0.0)
+            .unwrap_or_else(|| Matrix4d::from_scale(f32::MAX as f64));
         let cam_matrix = *camera.transform() * parent_to_world_inv;
 
         // Author the matrix as a single xformOp:transform (clears existing xform ops).

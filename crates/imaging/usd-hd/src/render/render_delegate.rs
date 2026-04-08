@@ -1,4 +1,3 @@
-
 //! HdRenderDelegate - Main extension point for rendering backends.
 //!
 //! The render delegate is the primary interface that rendering backends implement

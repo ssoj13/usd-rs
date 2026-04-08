@@ -2,28 +2,26 @@
 // Factory for constructing a PatchTable from a TopologyRefiner.
 // Contains the public PatchTableFactory API and internal PatchTableBuilder.
 
-use crate::sdc::options::FVarLinearInterpolation;
-use crate::vtr::level::{Level, VSpan};
-use super::patch_builder::{
-    BasisType, PatchBuilder, PatchBuilderOptions, SingleCreaseInfo,
-};
+use super::patch_builder::{BasisType, PatchBuilder, PatchBuilderOptions, SingleCreaseInfo};
 use super::patch_descriptor::{PatchDescriptor, PatchType};
 use super::patch_param::PatchParam;
-use super::patch_table::{
-    PatchArrayDescriptorInfo, PatchTable, FVarChannel,
-};
+use super::patch_table::{FVarChannel, PatchArrayDescriptorInfo, PatchTable};
 use super::ptex_indices::PtexIndices;
 use super::sparse_matrix::SparseMatrix;
 use super::stencil_table::StencilTable;
 use super::topology_refiner::TopologyRefiner;
-use super::types::{Index, INDEX_INVALID, index_is_valid};
+use super::types::{INDEX_INVALID, Index, index_is_valid};
+use crate::sdc::options::FVarLinearInterpolation;
+use crate::vtr::level::{Level, VSpan};
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 #[inline]
-fn is_sharpness_equal(a: f32, b: f32) -> bool { a == b }
+fn is_sharpness_equal(a: f32, b: f32) -> bool {
+    a == b
+}
 
 /// Assign or find an existing sharpness index in the dedup table.
 fn assign_sharpness_index(sharpness: f32, values: &mut Vec<f32>) -> i32 {
@@ -56,15 +54,17 @@ fn offset_indices(indices: &mut [Index], offset: i32) {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(i32)]
 pub enum EndCapType {
-    None           = 0,
-    BilinearBasis  = 1,
-    BSplineBasis   = 2,
-    GregoryBasis   = 3,
-    LegacyGregory  = 4,
+    None = 0,
+    BilinearBasis = 1,
+    BSplineBasis = 2,
+    GregoryBasis = 3,
+    LegacyGregory = 4,
 }
 
 impl Default for EndCapType {
-    fn default() -> Self { EndCapType::GregoryBasis }
+    fn default() -> Self {
+        EndCapType::GregoryBasis
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -75,66 +75,67 @@ impl Default for EndCapType {
 /// Mirrors C++ `Far::PatchTableFactory::Options`.
 #[derive(Debug, Clone)]
 pub struct Options {
-    pub generate_all_levels:            bool,
-    pub include_base_level_indices:     bool,
-    pub include_fvar_base_level_indices:bool,
-    pub triangulate_quads:              bool,
-    pub use_single_crease_patch:        bool,
-    pub use_inf_sharp_patch:            bool,
-    pub max_isolation_level:            u32,
-    pub end_cap_type:                   EndCapType,
-    pub share_end_cap_patch_points:     bool,
-    pub generate_varying_tables:        bool,
-    pub generate_varying_local_points:  bool,
-    pub generate_fvar_tables:           bool,
-    pub patch_precision_double:         bool,
-    pub fvar_patch_precision_double:    bool,
-    pub generate_fvar_legacy_linear_patches:  bool,
+    pub generate_all_levels: bool,
+    pub include_base_level_indices: bool,
+    pub include_fvar_base_level_indices: bool,
+    pub triangulate_quads: bool,
+    pub use_single_crease_patch: bool,
+    pub use_inf_sharp_patch: bool,
+    pub max_isolation_level: u32,
+    pub end_cap_type: EndCapType,
+    pub share_end_cap_patch_points: bool,
+    pub generate_varying_tables: bool,
+    pub generate_varying_local_points: bool,
+    pub generate_fvar_tables: bool,
+    pub patch_precision_double: bool,
+    pub fvar_patch_precision_double: bool,
+    pub generate_fvar_legacy_linear_patches: bool,
     pub generate_legacy_sharp_corner_patches: bool,
-    pub num_fvar_channels:              i32,
-    pub fvar_channel_indices:           Option<Vec<i32>>,
+    pub num_fvar_channels: i32,
+    pub fvar_channel_indices: Option<Vec<i32>>,
 }
 
 impl Default for Options {
-    fn default() -> Self { Self::new(10) }
+    fn default() -> Self {
+        Self::new(10)
+    }
 }
 
 impl Options {
     pub fn new(max_isolation: u32) -> Self {
         Self {
-            generate_all_levels:            false,
-            include_base_level_indices:     true,
-            include_fvar_base_level_indices:false,
-            triangulate_quads:              false,
-            use_single_crease_patch:        false,
-            use_inf_sharp_patch:            false,
-            max_isolation_level:            max_isolation & 0xf,
-            end_cap_type:                   EndCapType::GregoryBasis,
-            share_end_cap_patch_points:     true,
-            generate_varying_tables:        true,
-            generate_varying_local_points:  true,
-            generate_fvar_tables:           false,
-            patch_precision_double:         false,
-            fvar_patch_precision_double:    false,
-            generate_fvar_legacy_linear_patches:  true,
+            generate_all_levels: false,
+            include_base_level_indices: true,
+            include_fvar_base_level_indices: false,
+            triangulate_quads: false,
+            use_single_crease_patch: false,
+            use_inf_sharp_patch: false,
+            max_isolation_level: max_isolation & 0xf,
+            end_cap_type: EndCapType::GregoryBasis,
+            share_end_cap_patch_points: true,
+            generate_varying_tables: true,
+            generate_varying_local_points: true,
+            generate_fvar_tables: false,
+            patch_precision_double: false,
+            fvar_patch_precision_double: false,
+            generate_fvar_legacy_linear_patches: true,
             generate_legacy_sharp_corner_patches: true,
-            num_fvar_channels:              -1,
-            fvar_channel_indices:           None,
+            num_fvar_channels: -1,
+            fvar_channel_indices: None,
         }
     }
 
-    pub fn get_end_cap_type(&self) -> EndCapType { self.end_cap_type }
+    pub fn get_end_cap_type(&self) -> EndCapType {
+        self.end_cap_type
+    }
 
     /// Determine adaptive refinement options matching these patch options.
-    pub fn get_refine_adaptive_options(&self)
-        -> super::topology_refiner::AdaptiveOptions
-    {
-        let mut ao = super::topology_refiner::AdaptiveOptions::new(
-            self.max_isolation_level);
-        ao.use_inf_sharp_patch     = self.use_inf_sharp_patch;
+    pub fn get_refine_adaptive_options(&self) -> super::topology_refiner::AdaptiveOptions {
+        let mut ao = super::topology_refiner::AdaptiveOptions::new(self.max_isolation_level);
+        ao.use_inf_sharp_patch = self.use_inf_sharp_patch;
         ao.use_single_crease_patch = self.use_single_crease_patch;
-        ao.consider_fvar_channels  = self.generate_fvar_tables
-            && !self.generate_fvar_legacy_linear_patches;
+        ao.consider_fvar_channels =
+            self.generate_fvar_tables && !self.generate_fvar_legacy_linear_patches;
         ao
     }
 }
@@ -171,31 +172,31 @@ impl PatchTableFactory {
 /// A <face, level> tuple identifying a single patch.
 #[derive(Debug, Clone, Copy)]
 struct PatchTuple {
-    face_index:  Index,
+    face_index: Index,
     level_index: i32,
 }
 
 /// Topological properties of a single patch, shared between vertex/fvar.
 struct PatchInfo {
-    is_regular:          bool,
-    is_reg_single_crease:bool,
-    reg_boundary_mask:   i32,
-    reg_sharpness:       f32,
-    irreg_corner_spans:  [VSpan; 4],
+    is_regular: bool,
+    is_reg_single_crease: bool,
+    reg_boundary_mask: i32,
+    reg_sharpness: f32,
+    irreg_corner_spans: [VSpan; 4],
     param_boundary_mask: i32,
-    f_matrix:            SparseMatrix<f32>,
+    f_matrix: SparseMatrix<f32>,
 }
 
 impl Default for PatchInfo {
     fn default() -> Self {
         Self {
-            is_regular:          false,
-            is_reg_single_crease:false,
-            reg_boundary_mask:   0,
-            reg_sharpness:       0.0,
-            irreg_corner_spans:  Default::default(),
+            is_regular: false,
+            is_reg_single_crease: false,
+            reg_boundary_mask: 0,
+            reg_sharpness: 0.0,
+            irreg_corner_spans: Default::default(),
             param_boundary_mask: 0,
-            f_matrix:            SparseMatrix::default(),
+            f_matrix: SparseMatrix::default(),
         }
     }
 }
@@ -221,7 +222,11 @@ impl LocalPointStencilBuilder {
     fn new(local_point_offset: i32, expected_stencils: i32) -> Self {
         let mut st = StencilTable::new();
         st.reserve(expected_stencils, expected_stencils * 8);
-        Self { st, local_point_offset, num_local_points: 0 }
+        Self {
+            st,
+            local_point_offset,
+            num_local_points: 0,
+        }
     }
 }
 
@@ -229,43 +234,39 @@ impl LocalPointStencilBuilder {
 /// construction. Mirrors C++ `PatchTableBuilder` private class.
 #[allow(dead_code)]
 struct PatchTableBuilder<'a> {
-    refiner:         &'a TopologyRefiner,
-    options:         Options,
-    selected_faces:  Vec<Index>,
+    refiner: &'a TopologyRefiner,
+    options: Options,
+    selected_faces: Vec<Index>,
 
     // Derived flags
-    requires_local_points:           bool,
-    requires_regular_local_points:   bool,
+    requires_local_points: bool,
+    requires_regular_local_points: bool,
     requires_irregular_local_points: bool,
-    requires_sharpness_array:        bool,
-    requires_fvar_patches:           bool,
-    requires_varying_patches:        bool,
-    build_uniform_linear:            bool,
+    requires_sharpness_array: bool,
+    requires_fvar_patches: bool,
+    requires_varying_patches: bool,
+    build_uniform_linear: bool,
 
     // The PatchTable under construction
     table: PatchTable,
 
     // PatchBuilder for topology queries
     patch_builder: PatchBuilder<'a>,
-    ptex_indices:  PtexIndices,
+    ptex_indices: PtexIndices,
 
     // Identified patches
-    patches:              Vec<PatchTuple>,
-    num_regular_patches:  i32,
-    num_irregular_patches:i32,
+    patches: Vec<PatchTuple>,
+    num_regular_patches: i32,
+    num_irregular_patches: i32,
 
     // Per-level vertex/fvar-value offsets for index remapping
-    level_vert_offsets:       Vec<i32>,
+    level_vert_offsets: Vec<i32>,
     level_fvar_value_offsets: Vec<Vec<i32>>,
-    fvar_channel_indices:    Vec<i32>,
+    fvar_channel_indices: Vec<i32>,
 }
 
 impl<'a> PatchTableBuilder<'a> {
-    fn new(
-        refiner: &'a TopologyRefiner,
-        opts: Options,
-        faces: &[Index],
-    ) -> Self {
+    fn new(refiner: &'a TopologyRefiner, opts: Options, faces: &[Index]) -> Self {
         // Determine fvar channel indices
         let mut fvar_channel_indices = Vec::new();
         if opts.generate_fvar_tables {
@@ -284,32 +285,30 @@ impl<'a> PatchTableBuilder<'a> {
         pb_opts.reg_basis = BasisType::Regular;
         pb_opts.irreg_basis = match opts.get_end_cap_type() {
             EndCapType::BilinearBasis => BasisType::Linear,
-            EndCapType::BSplineBasis  => BasisType::Regular,
-            EndCapType::GregoryBasis  => BasisType::Gregory,
+            EndCapType::BSplineBasis => BasisType::Regular,
+            EndCapType::GregoryBasis => BasisType::Gregory,
             _ => BasisType::Unspecified,
         };
-        pb_opts.fill_missing_boundary_points    = true;
-        pb_opts.approx_inf_sharp_with_smooth    = !opts.use_inf_sharp_patch;
+        pb_opts.fill_missing_boundary_points = true;
+        pb_opts.approx_inf_sharp_with_smooth = !opts.use_inf_sharp_patch;
         pb_opts.approx_smooth_corner_with_sharp = opts.generate_legacy_sharp_corner_patches;
 
         let patch_builder = PatchBuilder::create(refiner, pb_opts);
 
         // Derived flags
         let requires_regular_local_points = false; // regBasis is always Regular
-        let requires_irregular_local_points =
-            opts.get_end_cap_type() != EndCapType::LegacyGregory;
+        let requires_irregular_local_points = opts.get_end_cap_type() != EndCapType::LegacyGregory;
         let requires_local_points =
             requires_irregular_local_points || requires_regular_local_points;
         let requires_sharpness_array = opts.use_single_crease_patch;
-        let requires_fvar_patches    = !fvar_channel_indices.is_empty();
+        let requires_fvar_patches = !fvar_channel_indices.is_empty();
         let requires_varying_patches = opts.generate_varying_tables;
-        let build_uniform_linear     = refiner.is_uniform(); // no non-linear uniform
+        let build_uniform_linear = refiner.is_uniform(); // no non-linear uniform
 
         // Create and initialize the PatchTable
         let mut table = PatchTable::new();
         table.set_max_valence(refiner.get_max_valence());
-        table.set_varying_desc(PatchDescriptor::new(
-            patch_builder.get_linear_patch_type()));
+        table.set_varying_desc(PatchDescriptor::new(patch_builder.get_linear_patch_type()));
 
         Self {
             refiner,
@@ -334,9 +333,13 @@ impl<'a> PatchTableBuilder<'a> {
         }
     }
 
-    fn uniform_polygons_specified(&self) -> bool { self.build_uniform_linear }
+    fn uniform_polygons_specified(&self) -> bool {
+        self.build_uniform_linear
+    }
 
-    fn into_table(self) -> PatchTable { self.table }
+    fn into_table(self) -> PatchTable {
+        self.table
+    }
 
     fn get_refiner_fvar_channel(&self, fvc_in_table: i32) -> i32 {
         if fvc_in_table >= 0 {
@@ -347,7 +350,9 @@ impl<'a> PatchTableBuilder<'a> {
     }
 
     fn is_fvar_channel_linear(&self, fvc: i32) -> bool {
-        if self.options.generate_fvar_legacy_linear_patches { return true; }
+        if self.options.generate_fvar_legacy_linear_patches {
+            return true;
+        }
         let ch = self.get_refiner_fvar_channel(fvc);
         self.refiner.get_fvar_linear_interpolation(ch) == FVarLinearInterpolation::All
     }
@@ -356,32 +361,38 @@ impl<'a> PatchTableBuilder<'a> {
     /// Mirrors C++ `doesFVarTopologyMatch`.
     fn does_fvar_topology_match(&self, patch: &PatchTuple, fvc_in_table: i32) -> bool {
         self.patch_builder.does_fvar_patch_match(
-            patch.level_index, patch.face_index,
-            self.get_refiner_fvar_channel(fvc_in_table))
+            patch.level_index,
+            patch.face_index,
+            self.get_refiner_fvar_channel(fvc_in_table),
+        )
     }
 
     /// Identify fvar-channel-specific patch topology (non-linear path).
     /// Mirrors C++ `identifyPatchTopology(patch, info, fvcInTable)` with fvc >= 0.
-    fn identify_fvar_patch_topology(
-        &self,
-        patch: &PatchTuple,
-        info:  &mut PatchInfo,
-        fvc:   i32,
-    ) {
+    fn identify_fvar_patch_topology(&self, patch: &PatchTuple, info: &mut PatchInfo, fvc: i32) {
         let level_idx = patch.level_index;
-        let face      = patch.face_index;
+        let face = patch.face_index;
         info.is_regular = self.patch_builder.is_patch_regular(level_idx, face, fvc);
         if info.is_regular {
-            info.reg_boundary_mask   = self.patch_builder
+            info.reg_boundary_mask = self
+                .patch_builder
                 .get_regular_patch_boundary_mask(level_idx, face, fvc);
             info.is_reg_single_crease = false;
-            info.reg_sharpness        = 0.0;
-            info.param_boundary_mask  = info.reg_boundary_mask;
+            info.reg_sharpness = 0.0;
+            info.param_boundary_mask = info.reg_boundary_mask;
         } else if self.requires_irregular_local_points {
             self.patch_builder.get_irregular_patch_corner_spans(
-                level_idx, face, &mut info.irreg_corner_spans, fvc);
+                level_idx,
+                face,
+                &mut info.irreg_corner_spans,
+                fvc,
+            );
             self.patch_builder.get_irregular_patch_conversion_matrix(
-                level_idx, face, &info.irreg_corner_spans, &mut info.f_matrix);
+                level_idx,
+                face,
+                &info.irreg_corner_spans,
+                &mut info.f_matrix,
+            );
             info.param_boundary_mask = 0;
         }
     }
@@ -391,14 +402,14 @@ impl<'a> PatchTableBuilder<'a> {
     /// Mirrors C++ `assignFacePoints(patch, fptr[fvc], fvc)`.
     fn assign_fvar_face_points(
         &self,
-        patch:        &PatchTuple,
-        dest:         &mut [Index],
+        patch: &PatchTuple,
+        dest: &mut [Index],
         fvc_in_table: i32,
     ) -> i32 {
         let fvc_refiner = self.get_refiner_fvar_channel(fvc_in_table);
-        let level       = self.refiner.get_level_internal(patch.level_index);
-        let offset      = self.level_fvar_value_offsets
-            [fvc_in_table as usize][patch.level_index as usize];
+        let level = self.refiner.get_level_internal(patch.level_index);
+        let offset =
+            self.level_fvar_value_offsets[fvc_in_table as usize][patch.level_index as usize];
         let fvals = level.get_face_fvar_values(patch.face_index, fvc_refiner);
         let n = fvals.size() as usize;
         for i in 0..n {
@@ -412,20 +423,24 @@ impl<'a> PatchTableBuilder<'a> {
     /// Mirrors C++ `assignPatchPointsAndStencils(patch, fvcPatchInfo, fptr[fvc], helper, fvc)`.
     fn assign_fvar_patch_points(
         &self,
-        patch:           &PatchTuple,
-        info:            &PatchInfo,
-        dest:            &mut [Index],
+        patch: &PatchTuple,
+        info: &PatchInfo,
+        dest: &mut [Index],
         stencil_builder: Option<&mut LocalPointStencilBuilder>,
-        fvc_in_table:    i32,
+        fvc_in_table: i32,
     ) -> i32 {
-        let fvc_refiner   = self.get_refiner_fvar_channel(fvc_in_table);
-        let source_offset = self.level_fvar_value_offsets
-            [fvc_in_table as usize][patch.level_index as usize];
+        let fvc_refiner = self.get_refiner_fvar_channel(fvc_in_table);
+        let source_offset =
+            self.level_fvar_value_offsets[fvc_in_table as usize][patch.level_index as usize];
 
         if info.is_regular {
             let n = self.patch_builder.get_regular_patch_points(
-                patch.level_index, patch.face_index,
-                info.reg_boundary_mask, dest, fvc_refiner);
+                patch.level_index,
+                patch.face_index,
+                info.reg_boundary_mask,
+                dest,
+                fvc_refiner,
+            );
             offset_indices(&mut dest[..n as usize], source_offset);
             n
         } else if self.requires_irregular_local_points {
@@ -433,18 +448,25 @@ impl<'a> PatchTableBuilder<'a> {
             let num_pts = info.f_matrix.get_num_rows();
             let mut src = vec![0i32; num_src as usize];
             self.patch_builder.get_irregular_patch_source_points(
-                patch.level_index, patch.face_index,
-                &info.irreg_corner_spans, &mut src, fvc_refiner);
+                patch.level_index,
+                patch.face_index,
+                &info.irreg_corner_spans,
+                &mut src,
+                fvc_refiner,
+            );
 
             if let Some(builder) = stencil_builder {
                 let first_local = builder.num_local_points;
                 for row in 0..num_pts {
-                    let sz      = info.f_matrix.get_row_size(row) as usize;
-                    let cols    = info.f_matrix.get_row_columns(row);
+                    let sz = info.f_matrix.get_row_size(row) as usize;
+                    let cols = info.f_matrix.get_row_columns(row);
                     let weights = info.f_matrix.get_row_elements(row);
                     builder.st.sizes.push(sz as i32);
                     for k in 0..sz {
-                        builder.st.indices.push(src[cols[k] as usize] + source_offset);
+                        builder
+                            .st
+                            .indices
+                            .push(src[cols[k] as usize] + source_offset);
                         builder.st.weights.push(weights[k]);
                     }
                     dest[row as usize] = builder.local_point_offset + first_local + row;
@@ -476,24 +498,26 @@ impl<'a> PatchTableBuilder<'a> {
             let (reg_type, irreg_type) = if self.is_fvar_channel_linear(fvc as i32) {
                 (linear_type, linear_type)
             } else {
-                (self.patch_builder.get_regular_patch_type(),
-                 self.patch_builder.get_irregular_patch_type())
+                (
+                    self.patch_builder.get_regular_patch_type(),
+                    self.patch_builder.get_irregular_patch_type(),
+                )
             };
 
-            let reg_ncv   = PatchDescriptor::new(reg_type).get_num_control_vertices();
+            let reg_ncv = PatchDescriptor::new(reg_type).get_num_control_vertices();
             let irreg_ncv = PatchDescriptor::new(irreg_type).get_num_control_vertices();
-            let stride    = reg_ncv.max(irreg_ncv);
+            let stride = reg_ncv.max(irreg_ncv);
 
             // Store linear interpolation mode (mirrors C++ setFVarPatchChannelLinearInterpolation).
             let interp = self.refiner.get_fvar_linear_interpolation(refiner_channel);
 
             let ch = FVarChannel {
-                regular_desc:   PatchDescriptor::new(reg_type),
+                regular_desc: PatchDescriptor::new(reg_type),
                 irregular_desc: PatchDescriptor::new(irreg_type),
                 stride,
                 interpolation: interp,
                 vertices: vec![0i32; (total_patches * stride) as usize],
-                params:   vec![PatchParam::default(); total_patches as usize],
+                params: vec![PatchParam::default(); total_patches as usize],
             };
             self.table.fvar_channels.push(ch);
         }
@@ -504,14 +528,18 @@ impl<'a> PatchTableBuilder<'a> {
     // -----------------------------------------------------------------------
 
     fn build_uniform_polygons(&mut self) {
-        let include_base_indices     = self.options.include_base_level_indices;
-        let include_base_fvar        = self.options.include_fvar_base_level_indices;
-        let triangulate = self.options.triangulate_quads
-            && self.patch_builder.get_regular_face_size() == 4;
+        let include_base_indices = self.options.include_base_level_indices;
+        let include_base_fvar = self.options.include_fvar_base_level_indices;
+        let triangulate =
+            self.options.triangulate_quads && self.patch_builder.get_regular_face_size() == 4;
 
-        let max_level   = self.refiner.get_max_level();
-        let first_level = if self.options.generate_all_levels { 1 } else { max_level };
-        let n_levels    = (max_level - first_level + 1) as usize;
+        let max_level = self.refiner.get_max_level();
+        let first_level = if self.options.generate_all_levels {
+            1
+        } else {
+            max_level
+        };
+        let n_levels = (max_level - first_level + 1) as usize;
 
         let ptype = if triangulate {
             PatchType::Triangles
@@ -520,32 +548,36 @@ impl<'a> PatchTableBuilder<'a> {
         };
 
         let desc = PatchDescriptor::new(ptype);
-        let ncv  = desc.get_num_control_vertices();
+        let ncv = desc.get_num_control_vertices();
 
         // Count patches at each level and build patch arrays
         let mut patch_arrays = Vec::with_capacity(n_levels);
         let mut total_patches = 0i32;
-        let mut total_cvs     = 0i32;
+        let mut total_cvs = 0i32;
 
         for level in first_level..=max_level {
             let ref_level = self.refiner.get_level(level);
             let mut npatches = ref_level.get_num_faces();
             if self.refiner.has_holes() {
                 for i in (0..npatches).rev() {
-                    if ref_level.is_face_hole(i) { npatches -= 1; }
+                    if ref_level.is_face_hole(i) {
+                        npatches -= 1;
+                    }
                 }
             }
-            if triangulate { npatches *= 2; }
+            if triangulate {
+                npatches *= 2;
+            }
 
             patch_arrays.push(PatchArrayDescriptorInfo {
-                descriptor:       desc,
-                num_patches:      npatches,
-                index_base:       total_cvs,
+                descriptor: desc,
+                num_patches: npatches,
+                index_base: total_cvs,
                 patch_index_base: total_patches,
                 // Uniform polygons never use the Gregory quad-offset table.
                 quad_offset_index: 0,
             });
-            total_cvs     += npatches * ncv;
+            total_cvs += npatches * ncv;
             total_patches += npatches;
         }
 
@@ -554,27 +586,27 @@ impl<'a> PatchTableBuilder<'a> {
         }
 
         // Allocate buffers
-        let mut all_verts:  Vec<Index>      = vec![0; total_cvs as usize];
-        let mut all_params: Vec<PatchParam>  = vec![PatchParam::default(); total_patches as usize];
+        let mut all_verts: Vec<Index> = vec![0; total_cvs as usize];
+        let mut all_params: Vec<PatchParam> = vec![PatchParam::default(); total_patches as usize];
         // Sharpness not needed for uniform
 
         // FVar channels
         let n_fvar = self.fvar_channel_indices.len();
-        let mut fvar_verts:  Vec<Vec<Index>>     = vec![vec![0; total_cvs as usize]; n_fvar];
-        let mut fvar_params: Vec<Vec<PatchParam>> = vec![vec![PatchParam::default(); total_patches as usize]; n_fvar];
+        let mut fvar_verts: Vec<Vec<Index>> = vec![vec![0; total_cvs as usize]; n_fvar];
+        let mut fvar_params: Vec<Vec<PatchParam>> =
+            vec![vec![PatchParam::default(); total_patches as usize]; n_fvar];
 
         let mut fvar_vert_offsets: Vec<i32> = vec![0; n_fvar];
         if include_base_fvar {
             for (i, &fvc) in self.fvar_channel_indices.iter().enumerate() {
-                fvar_vert_offsets[i] =
-                    self.refiner.get_level(0).get_num_fvar_values(fvc);
+                fvar_vert_offsets[i] = self.refiner.get_level(0).get_num_fvar_values(fvc);
             }
         }
 
         // Populate
         let mut iptr = 0usize;
         let mut pptr = 0usize;
-        let mut fptrs:  Vec<usize> = vec![0; n_fvar];
+        let mut fptrs: Vec<usize> = vec![0; n_fvar];
         let mut fpptrs: Vec<usize> = vec![0; n_fvar];
 
         let mut level_vert_offset: i32 = if include_base_indices {
@@ -585,7 +617,7 @@ impl<'a> PatchTableBuilder<'a> {
 
         for level in 1..=max_level {
             let ref_level = self.refiner.get_level(level);
-            let n_faces   = ref_level.get_num_faces();
+            let n_faces = ref_level.get_num_faces();
 
             if level >= first_level {
                 for face in 0..n_faces {
@@ -600,7 +632,13 @@ impl<'a> PatchTableBuilder<'a> {
                     }
 
                     let pparam = self.patch_builder.compute_patch_param(
-                        level, face, &self.ptex_indices, true, 0, false);
+                        level,
+                        face,
+                        &self.ptex_indices,
+                        true,
+                        0,
+                        false,
+                    );
                     all_params[pptr] = pparam;
                     pptr += 1;
 
@@ -608,8 +646,7 @@ impl<'a> PatchTableBuilder<'a> {
                     for (fi, &fvc) in self.fvar_channel_indices.iter().enumerate() {
                         let fvals = ref_level.get_face_fvar_values(face, fvc);
                         for vi in 0..fvals.size() {
-                            fvar_verts[fi][fptrs[fi]] =
-                                fvar_vert_offsets[fi] + fvals[vi];
+                            fvar_verts[fi][fptrs[fi]] = fvar_vert_offsets[fi] + fvals[vi];
                             fptrs[fi] += 1;
                         }
                         fvar_params[fi][fpptrs[fi]] = pparam;
@@ -618,7 +655,7 @@ impl<'a> PatchTableBuilder<'a> {
 
                     if triangulate {
                         // {v0,v1,v2,v3} -> second tri: {v3,v0,v2}
-                        all_verts[iptr]     = all_verts[iptr - 4]; // v0
+                        all_verts[iptr] = all_verts[iptr - 4]; // v0
                         all_verts[iptr + 1] = all_verts[iptr - 2]; // v2
                         iptr += 2;
                         all_params[pptr] = pparam;
@@ -626,7 +663,7 @@ impl<'a> PatchTableBuilder<'a> {
 
                         for fi in 0..n_fvar {
                             let fp = fptrs[fi];
-                            fvar_verts[fi][fp]     = fvar_verts[fi][fp - 4];
+                            fvar_verts[fi][fp] = fvar_verts[fi][fp - 4];
                             fvar_verts[fi][fp + 1] = fvar_verts[fi][fp - 2];
                             fptrs[fi] += 2;
                             fvar_params[fi][fpptrs[fi]] = pparam;
@@ -639,8 +676,7 @@ impl<'a> PatchTableBuilder<'a> {
             if self.options.generate_all_levels {
                 level_vert_offset += self.refiner.get_level(level).get_num_vertices();
                 for (fi, &fvc) in self.fvar_channel_indices.iter().enumerate() {
-                    fvar_vert_offsets[fi] +=
-                        self.refiner.get_level(level).get_num_fvar_values(fvc);
+                    fvar_vert_offsets[fi] += self.refiner.get_level(level).get_num_fvar_values(fvc);
                 }
             }
         }
@@ -651,17 +687,17 @@ impl<'a> PatchTableBuilder<'a> {
 
         // FVar channels
         for (fi, &fvc) in self.fvar_channel_indices.iter().enumerate() {
-            let reg_desc  = desc;
+            let reg_desc = desc;
             let irreg_desc = desc;
             let interpolation = self.refiner.get_fvar_linear_interpolation(fvc);
             let _ = interpolation; // stored in C++ but not needed here
 
             let mut ch = FVarChannel::default();
-            ch.regular_desc   = reg_desc;
+            ch.regular_desc = reg_desc;
             ch.irregular_desc = irreg_desc;
-            ch.stride         = ncv;
+            ch.stride = ncv;
             ch.vertices = fvar_verts[fi].clone();
-            ch.params   = fvar_params[fi].clone();
+            ch.params = fvar_params[fi].clone();
             self.table.fvar_channels.push(ch);
         }
     }
@@ -676,8 +712,14 @@ impl<'a> PatchTableBuilder<'a> {
     }
 
     fn append_patch(&mut self, level_index: i32, face_index: Index) {
-        self.patches.push(PatchTuple { face_index, level_index });
-        if self.patch_builder.is_patch_regular(level_index, face_index, -1) {
+        self.patches.push(PatchTuple {
+            face_index,
+            level_index,
+        });
+        if self
+            .patch_builder
+            .is_patch_regular(level_index, face_index, -1)
+        {
             self.num_regular_patches += 1;
         } else {
             self.num_irregular_patches += 1;
@@ -695,12 +737,11 @@ impl<'a> PatchTableBuilder<'a> {
 
         for li in 0..self.refiner.get_num_levels() {
             let level = self.refiner.get_level_internal(li);
-            self.level_vert_offsets.push(
-                *self.level_vert_offsets.last().unwrap() + level.get_num_vertices());
+            self.level_vert_offsets
+                .push(*self.level_vert_offsets.last().unwrap() + level.get_num_vertices());
             for (fi, &fvc) in self.fvar_channel_indices.clone().iter().enumerate() {
                 let prev = *self.level_fvar_value_offsets[fi].last().unwrap();
-                self.level_fvar_value_offsets[fi].push(
-                    prev + level.get_num_fvar_values(fvc));
+                self.level_fvar_value_offsets[fi].push(prev + level.get_num_fvar_values(fvc));
             }
         }
 
@@ -721,7 +762,10 @@ impl<'a> PatchTableBuilder<'a> {
                 self.find_descendant_patches(0, f, uniform_level);
             }
         } else if uniform_level >= 0 {
-            let n = self.refiner.get_level_internal(uniform_level).get_num_faces();
+            let n = self
+                .refiner
+                .get_level_internal(uniform_level)
+                .get_num_faces();
             for fi in 0..n {
                 if self.patch_builder.is_face_a_patch(uniform_level, fi) {
                     self.append_patch(uniform_level, fi);
@@ -742,9 +786,7 @@ impl<'a> PatchTableBuilder<'a> {
         }
     }
 
-    fn find_descendant_patches(
-        &mut self, level_index: i32, face_index: Index, target_level: i32,
-    ) {
+    fn find_descendant_patches(&mut self, level_index: i32, face_index: Index, target_level: i32) {
         if (level_index == target_level)
             || self.patch_builder.is_face_a_leaf(level_index, face_index)
         {
@@ -754,9 +796,7 @@ impl<'a> PatchTableBuilder<'a> {
         } else {
             let level = self.refiner.get_level(level_index);
             let child_faces = level.get_face_child_faces(face_index);
-            let children: Vec<Index> = (0..child_faces.size())
-                .map(|i| child_faces[i])
-                .collect();
+            let children: Vec<Index> = (0..child_faces.size()).map(|i| child_faces[i]).collect();
             for cf in children {
                 if index_is_valid(cf) {
                     self.find_descendant_patches(level_index + 1, cf, target_level);
@@ -767,41 +807,51 @@ impl<'a> PatchTableBuilder<'a> {
 
     fn identify_patch_topology(&self, patch: &PatchTuple, info: &mut PatchInfo) {
         let level_idx = patch.level_index;
-        let face      = patch.face_index;
+        let face = patch.face_index;
 
         info.is_regular = self.patch_builder.is_patch_regular(level_idx, face, -1);
 
         if info.is_regular {
-            info.reg_boundary_mask = self.patch_builder
+            info.reg_boundary_mask = self
+                .patch_builder
                 .get_regular_patch_boundary_mask(level_idx, face, -1);
 
             info.is_reg_single_crease = false;
-            info.reg_sharpness        = 0.0;
-            info.param_boundary_mask  = info.reg_boundary_mask;
+            info.reg_sharpness = 0.0;
+            info.param_boundary_mask = info.reg_boundary_mask;
 
             // Single crease detection for interior regular patches
-            if self.requires_sharpness_array
-                && info.reg_boundary_mask == 0
-            {
+            if self.requires_sharpness_array && info.reg_boundary_mask == 0 {
                 if level_idx < self.options.max_isolation_level as i32 {
                     let mut crease_info = SingleCreaseInfo::default();
                     if self.patch_builder.is_regular_single_crease_patch(
-                        level_idx, face, &mut crease_info,
+                        level_idx,
+                        face,
+                        &mut crease_info,
                     ) {
-                        crease_info.crease_sharpness = crease_info.crease_sharpness
+                        crease_info.crease_sharpness = crease_info
+                            .crease_sharpness
                             .min((self.options.max_isolation_level as i32 - level_idx) as f32);
                         info.is_reg_single_crease = true;
-                        info.reg_sharpness        = crease_info.crease_sharpness;
-                        info.param_boundary_mask  = 1 << crease_info.crease_edge_in_face;
+                        info.reg_sharpness = crease_info.crease_sharpness;
+                        info.param_boundary_mask = 1 << crease_info.crease_edge_in_face;
                     }
                 }
             }
         } else if self.requires_irregular_local_points {
             self.patch_builder.get_irregular_patch_corner_spans(
-                level_idx, face, &mut info.irreg_corner_spans, -1);
+                level_idx,
+                face,
+                &mut info.irreg_corner_spans,
+                -1,
+            );
 
             self.patch_builder.get_irregular_patch_conversion_matrix(
-                level_idx, face, &info.irreg_corner_spans, &mut info.f_matrix);
+                level_idx,
+                face,
+                &info.irreg_corner_spans,
+                &mut info.f_matrix,
+            );
 
             info.param_boundary_mask = 0;
         }
@@ -816,17 +866,21 @@ impl<'a> PatchTableBuilder<'a> {
     /// Returns the number of patch control points written.
     fn assign_patch_points(
         &self,
-        patch:          &PatchTuple,
-        info:           &PatchInfo,
-        dest:           &mut [Index],
+        patch: &PatchTuple,
+        info: &PatchInfo,
+        dest: &mut [Index],
         stencil_builder: Option<&mut LocalPointStencilBuilder>,
     ) -> i32 {
         let source_offset = self.level_vert_offsets[patch.level_index as usize];
 
         if info.is_regular {
             let n = self.patch_builder.get_regular_patch_points(
-                patch.level_index, patch.face_index,
-                info.reg_boundary_mask, dest, -1);
+                patch.level_index,
+                patch.face_index,
+                info.reg_boundary_mask,
+                dest,
+                -1,
+            );
             offset_indices(&mut dest[..n as usize], source_offset);
             n
         } else if self.requires_irregular_local_points {
@@ -834,8 +888,12 @@ impl<'a> PatchTableBuilder<'a> {
             let num_pts = info.f_matrix.get_num_rows();
             let mut src = vec![0i32; num_src as usize];
             self.patch_builder.get_irregular_patch_source_points(
-                patch.level_index, patch.face_index,
-                &info.irreg_corner_spans, &mut src, -1);
+                patch.level_index,
+                patch.face_index,
+                &info.irreg_corner_spans,
+                &mut src,
+                -1,
+            );
 
             if let Some(builder) = stencil_builder {
                 // Append one stencil per row of the conversion matrix.
@@ -843,12 +901,15 @@ impl<'a> PatchTableBuilder<'a> {
                 // Mirrors C++ LocalPointHelper::appendLocalPointStencils.
                 let first_local = builder.num_local_points;
                 for row in 0..num_pts {
-                    let sz      = info.f_matrix.get_row_size(row) as usize;
-                    let cols    = info.f_matrix.get_row_columns(row);
+                    let sz = info.f_matrix.get_row_size(row) as usize;
+                    let cols = info.f_matrix.get_row_columns(row);
                     let weights = info.f_matrix.get_row_elements(row);
                     builder.st.sizes.push(sz as i32);
                     for k in 0..sz {
-                        builder.st.indices.push(src[cols[k] as usize] + source_offset);
+                        builder
+                            .st
+                            .indices
+                            .push(src[cols[k] as usize] + source_offset);
                         builder.st.weights.push(weights[k]);
                     }
                     // patch point = local_point_offset + running index
@@ -885,7 +946,7 @@ impl<'a> PatchTableBuilder<'a> {
     }
 
     fn populate_patches(&mut self) {
-        let reg_type   = self.patch_builder.get_regular_patch_type();
+        let reg_type = self.patch_builder.get_regular_patch_type();
         let irreg_type = self.patch_builder.get_irregular_patch_type();
 
         // local_point_offset = total number of refined vertices across all levels.
@@ -909,7 +970,9 @@ impl<'a> PatchTableBuilder<'a> {
         if self.num_irregular_patches > 0 {
             if same_type {
                 array_irregular = array_regular;
-                if num_arrays == 0 { num_arrays = 1; }
+                if num_arrays == 0 {
+                    num_arrays = 1;
+                }
             } else {
                 array_irregular = num_arrays;
                 num_arrays += 1;
@@ -921,20 +984,23 @@ impl<'a> PatchTableBuilder<'a> {
         // Build PatchArrayDescriptorInfos
         #[derive(Clone)]
         struct ArrayInfo {
-            patch_type:  PatchType,
+            patch_type: PatchType,
             num_patches: i32,
         }
         let mut array_infos = vec![
-            ArrayInfo { patch_type: PatchType::NonPatch, num_patches: 0 };
+            ArrayInfo {
+                patch_type: PatchType::NonPatch,
+                num_patches: 0
+            };
             num_arrays as usize
         ];
 
         if self.num_regular_patches > 0 {
-            array_infos[array_regular as usize].patch_type  = reg_type;
+            array_infos[array_regular as usize].patch_type = reg_type;
             array_infos[array_regular as usize].num_patches += self.num_regular_patches;
         }
         if self.num_irregular_patches > 0 {
-            array_infos[array_irregular as usize].patch_type  = irreg_type;
+            array_infos[array_irregular as usize].patch_type = irreg_type;
             array_infos[array_irregular as usize].num_patches += self.num_irregular_patches;
         }
 
@@ -943,11 +1009,11 @@ impl<'a> PatchTableBuilder<'a> {
         let mut poffset = 0i32;
         for ai in &array_infos {
             let desc = PatchDescriptor::new(ai.patch_type);
-            let ncv  = desc.get_num_control_vertices();
+            let ncv = desc.get_num_control_vertices();
             self.table.push_patch_array(PatchArrayDescriptorInfo {
-                descriptor:       desc,
-                num_patches:      ai.num_patches,
-                index_base:       voffset,
+                descriptor: desc,
+                num_patches: ai.num_patches,
+                index_base: voffset,
                 patch_index_base: poffset,
                 // Quad-offset table population is deferred to legacy Gregory build.
                 // For non-legacy paths this stays 0.
@@ -958,11 +1024,11 @@ impl<'a> PatchTableBuilder<'a> {
         }
 
         // Allocate vertex + param buffers
-        let total_cvs     = voffset;
+        let total_cvs = voffset;
         let total_patches = poffset;
-        let mut all_verts  = vec![0i32; total_cvs as usize];
+        let mut all_verts = vec![0i32; total_cvs as usize];
         let mut all_params = vec![PatchParam::default(); total_patches as usize];
-        let mut all_sharp  = if self.requires_sharpness_array {
+        let mut all_sharp = if self.requires_sharpness_array {
             vec![INDEX_INVALID; total_patches as usize]
         } else {
             Vec::new()
@@ -1005,7 +1071,10 @@ impl<'a> PatchTableBuilder<'a> {
                         // Total fvar values across all levels is the local-point base offset
                         // for this channel. Mirrors C++ fvarLocalPointOffset computation.
                         let fvar_lp_offset = self.refiner.get_num_fvar_values_total(fvc_refiner);
-                        Some(LocalPointStencilBuilder::new(fvar_lp_offset, self.num_irregular_patches * 20))
+                        Some(LocalPointStencilBuilder::new(
+                            fvar_lp_offset,
+                            self.num_irregular_patches * 20,
+                        ))
                     })
                     .collect()
             } else {
@@ -1033,19 +1102,23 @@ impl<'a> PatchTableBuilder<'a> {
             let desc = array_infos[arr_idx].patch_type;
             let ncv = PatchDescriptor::new(desc).get_num_control_vertices() as usize;
             let n = self.assign_patch_points(
-                patch, &patch_info, &mut all_verts[*vcur..*vcur + ncv],
-                stencil_builder.as_mut());
+                patch,
+                &patch_info,
+                &mut all_verts[*vcur..*vcur + ncv],
+                stencil_builder.as_mut(),
+            );
             *vcur += n as usize;
 
             // Sharpness
             if self.requires_sharpness_array {
-                all_sharp[*pcur] = assign_sharpness_index(
-                    patch_info.reg_sharpness, &mut sharpness_values);
+                all_sharp[*pcur] =
+                    assign_sharpness_index(patch_info.reg_sharpness, &mut sharpness_values);
             }
 
             // PatchParam
             let pparam = self.patch_builder.compute_patch_param(
-                patch.level_index, patch.face_index,
+                patch.level_index,
+                patch.face_index,
                 &self.ptex_indices,
                 patch_info.is_regular,
                 patch_info.param_boundary_mask,
@@ -1061,8 +1134,8 @@ impl<'a> PatchTableBuilder<'a> {
             if self.requires_fvar_patches {
                 // Whether vertex and fvar precision modes match (both double or both float).
                 // When they match, topology comparison is valid.
-                let fvar_precision_matches = self.options.patch_precision_double
-                    == self.options.fvar_patch_precision_double;
+                let fvar_precision_matches =
+                    self.options.patch_precision_double == self.options.fvar_patch_precision_double;
 
                 for fvc in 0..n_fvar {
                     let stride = self.table.fvar_channels[fvc].stride as usize;
@@ -1074,8 +1147,7 @@ impl<'a> PatchTableBuilder<'a> {
                     if self.is_fvar_channel_linear(fvc as i32) {
                         // Linear fvar: just copy the face quad corner values.
                         self.assign_fvar_face_points(patch, &mut fvar_pts, fvc as i32);
-                        self.table.fvar_channels[fvc].vertices
-                            [vert_base..vert_base + stride]
+                        self.table.fvar_channels[fvc].vertices[vert_base..vert_base + stride]
                             .copy_from_slice(&fvar_pts);
                         // Reuse the vertex PatchParam as-is for linear channels.
                         self.table.fvar_channels[fvc].params[fvar_patch_cursor] = pparam;
@@ -1099,10 +1171,13 @@ impl<'a> PatchTableBuilder<'a> {
                         // Assign patch points (stencil builder is per-channel).
                         let fvar_builder = &mut fvar_stencil_builders[fvc];
                         self.assign_fvar_patch_points(
-                            patch, fvc_info, &mut fvar_pts,
-                            fvar_builder.as_mut(), fvc as i32);
-                        self.table.fvar_channels[fvc].vertices
-                            [vert_base..vert_base + stride]
+                            patch,
+                            fvc_info,
+                            &mut fvar_pts,
+                            fvar_builder.as_mut(),
+                            fvc as i32,
+                        );
+                        self.table.fvar_channels[fvc].vertices[vert_base..vert_base + stride]
                             .copy_from_slice(&fvar_pts);
 
                         // Build fvar-specific PatchParam with fvar boundary mask.
@@ -1130,7 +1205,7 @@ impl<'a> PatchTableBuilder<'a> {
 
         if self.requires_sharpness_array {
             self.table.sharpness_indices = all_sharp;
-            self.table.sharpness_values  = sharpness_values;
+            self.table.sharpness_values = sharpness_values;
         }
 
         // Finalize and store local-point stencil table.
@@ -1139,7 +1214,8 @@ impl<'a> PatchTableBuilder<'a> {
             if builder.num_local_points > 0 {
                 builder.st.finalize();
                 builder.st.set_num_control_vertices(local_point_offset);
-                self.table.set_local_point_stencil_table(Box::new(builder.st));
+                self.table
+                    .set_local_point_stencil_table(Box::new(builder.st));
             }
         }
 
@@ -1160,7 +1236,9 @@ impl<'a> PatchTableBuilder<'a> {
                         while self.table.local_point_fvar_stencil_tables.len() < fvc {
                             self.table.local_point_fvar_stencil_tables.push(None);
                         }
-                        self.table.local_point_fvar_stencil_tables.push(Some(Box::new(builder.st)));
+                        self.table
+                            .local_point_fvar_stencil_tables
+                            .push(Some(Box::new(builder.st)));
                     }
                 }
             }
@@ -1179,11 +1257,11 @@ impl<'a> PatchTableBuilder<'a> {
                 let mut var_verts = vec![0i32; num_patches * nvcv];
 
                 for (pi, patch) in patches.iter().enumerate() {
-                    let level     = self.refiner.get_level_internal(patch.level_index);
-                    let offset    = self.level_vert_offsets[patch.level_index as usize];
-                    let fverts    = level.get_face_vertices(patch.face_index);
-                    let n_fv      = fverts.size() as usize;
-                    let base      = pi * nvcv;
+                    let level = self.refiner.get_level_internal(patch.level_index);
+                    let offset = self.level_vert_offsets[patch.level_index as usize];
+                    let fverts = level.get_face_vertices(patch.face_index);
+                    let n_fv = fverts.size() as usize;
+                    let base = pi * nvcv;
                     // Write up to nvcv face-corner vertices as varying
                     for k in 0..nvcv.min(n_fv) {
                         var_verts[base + k] = fverts[k as i32] + offset;
@@ -1203,7 +1281,6 @@ impl<'a> PatchTableBuilder<'a> {
         }
     }
 }
-
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -1247,9 +1324,9 @@ mod tests {
     #[test]
     fn refine_adaptive_options() {
         let mut opts = Options::default();
-        opts.use_inf_sharp_patch     = true;
+        opts.use_inf_sharp_patch = true;
         opts.use_single_crease_patch = true;
-        opts.generate_fvar_tables    = true;
+        opts.generate_fvar_tables = true;
         opts.generate_fvar_legacy_linear_patches = false;
 
         let ao = opts.get_refine_adaptive_options();

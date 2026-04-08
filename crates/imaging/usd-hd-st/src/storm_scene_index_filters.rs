@@ -1,4 +1,3 @@
-
 //! Storm scene index filter chain.
 //!
 //! In C++, Storm registers scene index plugins via HdSceneIndexPluginRegistry
@@ -130,7 +129,8 @@ pub fn append_storm_filters(input: HdSceneIndexHandle) -> HdSceneIndexHandle {
     // C++: HdSt_NodeIdentifierResolvingSceneIndexPlugin, insertionPhase=0, AtStart
     // Maps material network node identifiers to renderer-specific variants.
     // ------------------------------------------------------------------
-    let si = HdsiNodeIdentifierResolvingSceneIndex::new(chain.clone(), usd_tf::Token::new("glslfx"));
+    let si =
+        HdsiNodeIdentifierResolvingSceneIndex::new(chain.clone(), usd_tf::Token::new("glslfx"));
     chain = scene_index_to_handle(si);
 
     // ------------------------------------------------------------------
@@ -188,8 +188,8 @@ pub fn append_storm_filters(input: HdSceneIndexHandle) -> HdSceneIndexHandle {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use parking_lot::RwLock;
     use std::sync::Arc;
-use parking_lot::RwLock;
     use usd_hd::scene_index::{HdSceneIndexBase, HdSceneIndexPrim};
     use usd_sdf::Path as SdfPath;
 

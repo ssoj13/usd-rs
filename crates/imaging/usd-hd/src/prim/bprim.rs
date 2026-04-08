@@ -1,4 +1,3 @@
-
 //! Bprim - Buffer primitive base trait.
 //!
 //! Bprims represent buffer objects in Hydra. This includes:

@@ -1,4 +1,3 @@
-
 //! HdStInterleavedMemoryManager - Manages interleaved vertex attribute buffers.
 //!
 //! Packs multiple vertex attributes (position, normal, UV, etc.) into a single

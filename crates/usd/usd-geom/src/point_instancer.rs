@@ -86,10 +86,7 @@ fn get_transform_sample<T: Clone + Send + Sync + 'static>(
     })
 }
 
-fn samples_are_aligned<
-    T: Clone + Send + Sync + 'static,
-    U: Clone + Send + Sync + 'static,
->(
+fn samples_are_aligned<T: Clone + Send + Sync + 'static, U: Clone + Send + Sync + 'static>(
     reference: &TransformSampleInfo<T>,
     candidate: &TransformSampleInfo<U>,
     expected_len: usize,
@@ -105,7 +102,8 @@ fn get_inactive_ids(prim: &Prim) -> Vec<i64> {
     let Some(stage) = prim.stage() else {
         return Vec::new();
     };
-    let Some(value) = stage.get_metadata_for_object(prim.path(), &usd_geom_tokens().inactive_ids) else {
+    let Some(value) = stage.get_metadata_for_object(prim.path(), &usd_geom_tokens().inactive_ids)
+    else {
         return Vec::new();
     };
     if let Some(list_op) = value.get::<usd_sdf::ListOp<i64>>() {
@@ -1529,11 +1527,11 @@ impl PointInstancer {
             return false;
         }
 
-        let positions_info = match get_transform_sample::<usd_gf::vec3::Vec3f>(&positions_attr, base_time)
-        {
-            Some(info) => info,
-            None => return false,
-        };
+        let positions_info =
+            match get_transform_sample::<usd_gf::vec3::Vec3f>(&positions_attr, base_time) {
+                Some(info) => info,
+                None => return false,
+            };
 
         let mut velocities: Array<usd_gf::vec3::Vec3f> = Array::new();
         let mut accelerations: Array<usd_gf::vec3::Vec3f> = Array::new();
@@ -1609,7 +1607,10 @@ impl PointInstancer {
             if angular_velocities_attr.is_valid() {
                 if let (Some(orientation_info), Some(candidate)) = (
                     orientations_info.as_ref(),
-                    get_transform_sample::<usd_gf::vec3::Vec3f>(&angular_velocities_attr, base_time),
+                    get_transform_sample::<usd_gf::vec3::Vec3f>(
+                        &angular_velocities_attr,
+                        base_time,
+                    ),
                 ) {
                     if samples_are_aligned(
                         orientation_info,
@@ -1626,7 +1627,8 @@ impl PointInstancer {
             if let Some(orientation_info) = orientations_info {
                 if angular_velocities.is_empty() {
                     if let Some(orient_value) = orientations_attr.get(time) {
-                        if let Some(orient_arr) = extract_array::<usd_gf::quat::Quatf>(&orient_value)
+                        if let Some(orient_arr) =
+                            extract_array::<usd_gf::quat::Quatf>(&orient_value)
                         {
                             orientationsf = orient_arr;
                         }
@@ -1664,7 +1666,10 @@ impl PointInstancer {
             if angular_velocities_attr.is_valid() {
                 if let (Some(orientation_info), Some(candidate)) = (
                     orientations_info.as_ref(),
-                    get_transform_sample::<usd_gf::vec3::Vec3f>(&angular_velocities_attr, base_time),
+                    get_transform_sample::<usd_gf::vec3::Vec3f>(
+                        &angular_velocities_attr,
+                        base_time,
+                    ),
                 ) {
                     if samples_are_aligned(
                         orientation_info,
@@ -1681,7 +1686,8 @@ impl PointInstancer {
             if let Some(orientation_info) = orientations_info {
                 if angular_velocities.is_empty() {
                     if let Some(orient_value) = orientations_attr.get(time) {
-                        if let Some(orient_arr) = extract_array::<usd_gf::quat::Quath>(&orient_value)
+                        if let Some(orient_arr) =
+                            extract_array::<usd_gf::quat::Quath>(&orient_value)
                         {
                             orientations = orient_arr;
                         }
@@ -1791,11 +1797,11 @@ impl PointInstancer {
             return false;
         }
 
-        let positions_info = match get_transform_sample::<usd_gf::vec3::Vec3f>(&positions_attr, base_time)
-        {
-            Some(info) => info,
-            None => return false,
-        };
+        let positions_info =
+            match get_transform_sample::<usd_gf::vec3::Vec3f>(&positions_attr, base_time) {
+                Some(info) => info,
+                None => return false,
+            };
 
         let mut velocities: Array<usd_gf::vec3::Vec3f> = Array::new();
         let mut accelerations: Array<usd_gf::vec3::Vec3f> = Array::new();
@@ -1860,7 +1866,8 @@ impl PointInstancer {
                 orientations_info.as_ref(),
                 get_transform_sample::<usd_gf::vec3::Vec3f>(&angular_velocities_attr, base_time),
             ) {
-                if samples_are_aligned(orientation_info, &candidate, orientation_info.values.len()) {
+                if samples_are_aligned(orientation_info, &candidate, orientation_info.values.len())
+                {
                     angular_velocities_sample_time = candidate.sample_time;
                     angular_velocities = candidate.values;
                 }

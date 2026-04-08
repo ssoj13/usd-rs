@@ -1,4 +1,3 @@
-
 //! HdStRenderDelegate - Storm render delegate implementation.
 //!
 //! The main entry point for Storm rendering. Implements HdRenderDelegate
@@ -14,10 +13,10 @@ use crate::mesh::HdStMesh;
 use crate::render_param::HdStRenderParam;
 use crate::render_pass::HdStRenderPass;
 use crate::resource_registry::{HdStResourceRegistry, HdStResourceRegistrySharedPtr};
+use parking_lot::RwLock;
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::HdSceneDelegate;
 use usd_hd::change_tracker::HdChangeTracker;
 use usd_hd::prim::{HdCamera, HdImageShader};
@@ -205,11 +204,13 @@ impl HdStRenderDelegate {
     /// Uploads all pending buffer sources to GPU, then garbage collects if needed.
     pub fn do_commit_resources(&mut self) {
         // Flush all pending buffer sources accumulated during rprim sync.
-        { let reg = self.resource_registry.read();
+        {
+            let reg = self.resource_registry.read();
             reg.commit();
         }
         if self.render_param.needs_gc() {
-            { let reg = self.resource_registry.read();
+            {
+                let reg = self.resource_registry.read();
                 reg.garbage_collect();
             }
         }
@@ -224,7 +225,8 @@ impl HdStRenderDelegate {
             if driver.name == *RENDER_DRIVER {
                 if let Some(hgi_handle) = driver.driver.get::<HgiDriverHandle>().cloned() {
                     let registry = Arc::new(HdStResourceRegistry::new_with_hgi(hgi_handle));
-                    { let mut reg = self.resource_registry.write();
+                    {
+                        let mut reg = self.resource_registry.write();
                         *reg = registry;
                         return true;
                     }
@@ -372,7 +374,8 @@ impl HdRenderDelegate for HdStRenderDelegate {
     /// C++: merges gpuMemoryUsed + textureMemory.
     fn get_render_stats(&self) -> std::collections::HashMap<String, Value> {
         let mut stats = std::collections::HashMap::new();
-        { let reg = self.resource_registry.read();
+        {
+            let reg = self.resource_registry.read();
             let alloc = reg.get_resource_allocation();
             let gpu_mem = alloc.get("gpuMemoryUsed").copied().unwrap_or(0u64);
             let tex_mem = alloc.get("textureMemory").copied().unwrap_or(0u64);
@@ -624,7 +627,10 @@ impl HdRenderDelegate for HdStRenderDelegate {
                 points.sync_from_delegate(delegate, dirty_bits);
                 points_prims.push(points);
             } else {
-                log::warn!("[storm] sync_rprim_parallel: downcast failed for {}", prim_id);
+                log::warn!(
+                    "[storm] sync_rprim_parallel: downcast failed for {}",
+                    prim_id
+                );
             }
         }
         let phase1_ms = phase1_started.elapsed().as_secs_f64() * 1000.0;
@@ -758,9 +764,7 @@ impl HdRenderDelegate for HdStRenderDelegate {
     }
 
     fn get_resource_registry(&self) -> HdResourceRegistrySharedPtr {
-        self.resource_registry
-            .read()
-            .clone()
+        self.resource_registry.read().clone()
     }
 
     fn get_draw_items_for_rprim(
@@ -786,8 +790,8 @@ impl HdRenderDelegate for HdStRenderDelegate {
 
         // When a typed sync handle exists (RprimAdapter<HdStMesh>), read draw items
         // from it — it's the mesh that was actually synced by HdRprim::sync.
-        if let Some(adapter) = sync_handle
-            .and_then(|sh| sh.downcast_ref::<RprimAdapter<HdStMesh>>())
+        if let Some(adapter) =
+            sync_handle.and_then(|sh| sh.downcast_ref::<RprimAdapter<HdStMesh>>())
         {
             for repr_token in &repr_tokens {
                 for item in adapter.0.get_draw_items(repr_token) {
@@ -869,9 +873,7 @@ impl HdRenderDelegate for HdStRenderDelegate {
 impl HdStRenderDelegate {
     /// Get the Storm resource registry (concrete type) for mesh sync and blit operations.
     pub fn get_st_resource_registry(&self) -> HdStResourceRegistrySharedPtr {
-        self.resource_registry
-            .read()
-            .clone()
+        self.resource_registry.read().clone()
     }
 }
 
@@ -911,12 +913,14 @@ mod tests {
         let sync = delegate.create_rprim_sync(&Token::new("mesh"), &path);
         assert!(prim.is_some());
         assert!(sync.is_some());
-        assert!(prim
-            .as_ref()
-            .is_some_and(|handle| handle.as_ref().is::<HdStMeshHandlePlaceholder>()));
-        assert!(sync
-            .as_ref()
-            .is_some_and(|handle| handle.as_any_ref().is::<RprimAdapter<HdStMesh>>()));
+        assert!(
+            prim.as_ref()
+                .is_some_and(|handle| handle.as_ref().is::<HdStMeshHandlePlaceholder>())
+        );
+        assert!(
+            sync.as_ref()
+                .is_some_and(|handle| handle.as_any_ref().is::<RprimAdapter<HdStMesh>>())
+        );
     }
 
     #[test]

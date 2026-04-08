@@ -1675,7 +1675,7 @@ fn test_implicit_conversions() {
 #[test]
 fn test_time_sampled_points_return_different_values() {
     setup();
-    
+
     usd_core::schema_registry::register_builtin_schemas();
 
     let usda = r#"#usda 1.0

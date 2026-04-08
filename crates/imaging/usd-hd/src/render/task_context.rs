@@ -1,4 +1,3 @@
-
 //! HdTaskContext - Shared state container for task communication.
 //!
 //! The task context is an unordered map of token-value pairs used for

@@ -670,7 +670,13 @@ pub fn dictionary_less_than(lhs: &str, rhs: &str) -> bool {
         ch.is_ascii_alphabetic()
     }
 
-    fn mismatch(lhs: &[u8], rhs: &[u8], lstart: usize, rstart: usize, len: usize) -> (usize, usize) {
+    fn mismatch(
+        lhs: &[u8],
+        rhs: &[u8],
+        lstart: usize,
+        rstart: usize,
+        len: usize,
+    ) -> (usize, usize) {
         for i in 0..len {
             if lhs[lstart + i] != rhs[rstart + i] {
                 return (lstart + i, rstart + i);
@@ -758,7 +764,11 @@ pub fn dictionary_less_than(lhs: &str, rhs: &str) -> bool {
                     return l < r;
                 }
                 let prev = lbytes[lcur - 1];
-                return if is_digit(prev) { is_digit(r) } else { is_digit(l) };
+                return if is_digit(prev) {
+                    is_digit(r)
+                } else {
+                    is_digit(l)
+                };
             }
         } else if !is_alpha(l) || !is_alpha(r) {
             return l < r;
@@ -892,7 +902,9 @@ pub fn escape_string(s: &str) -> String {
                     && (bytes[i + 1] as char).is_ascii_hexdigit()
                 {
                     i += 1;
-                    n = n.saturating_mul(16).saturating_add(hex_to_decimal(bytes[i]));
+                    n = n
+                        .saturating_mul(16)
+                        .saturating_add(hex_to_decimal(bytes[i]));
                     consumed += 1;
                 }
                 result.push(n as char);
@@ -1217,8 +1229,7 @@ pub fn quoted_string_tokenize(source: &str, delimiters: &str) -> Result<Vec<Stri
             }
 
             let quote_char = source.as_bytes()[quote_index] as char;
-            let Some(end_quote) =
-                find_first_of_not_escaped(source, &[quote_char], quote_index + 1)
+            let Some(end_quote) = find_first_of_not_escaped(source, &[quote_char], quote_index + 1)
             else {
                 return Err(format!(
                     "String is missing an end-quote ('{}'): {}",
@@ -1700,7 +1711,9 @@ pub fn double_to_string(d: f64, emit_trailing_zero: bool) -> String {
     let abs = d.abs();
     let s = if abs != 0.0 && !(1e-6..1e15).contains(&abs) {
         let raw = format!("{:.16e}", d);
-        let e_pos = raw.find('e').expect("scientific notation must contain exponent");
+        let e_pos = raw
+            .find('e')
+            .expect("scientific notation must contain exponent");
         let mut mantissa = raw[..e_pos].to_string();
         while mantissa.ends_with('0') {
             mantissa.pop();

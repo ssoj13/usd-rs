@@ -1,4 +1,3 @@
-
 //! HdSt_RenderPassShaderKey - shader key for render pass shaders.
 //!
 //! Builds the shader configuration for Storm's render pass based on

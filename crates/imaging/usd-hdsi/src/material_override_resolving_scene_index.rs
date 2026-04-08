@@ -1,4 +1,3 @@
-
 //! Material override resolving scene index.
 //!
 //! Port of HdsiMaterialOverrideResolvingSceneIndex from
@@ -10,9 +9,9 @@
 //! and overrides are applied only to it.
 
 use once_cell::sync::Lazy;
+use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdDataSourceLocator, HdDataSourceLocatorSet, HdOverlayContainerDataSource,
@@ -812,7 +811,9 @@ impl HdsiMaterialOverrideResolvingSceneIndex {
             FilteringSceneIndexObserver::new(Arc::downgrade(&observer_arc)
                 as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>);
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
 
         observer_arc
@@ -902,11 +903,7 @@ impl HdsiMaterialOverrideResolvingSceneIndex {
 
     /// Create or reuse a generated material for a geometry prim.
     /// Returns the generated material path, or None if not needed.
-    fn add_generated_material(
-        &self,
-        prim_type: &TfToken,
-        prim_path: &SdfPath,
-    ) -> Option<SdfPath> {
+    fn add_generated_material(&self, prim_type: &TfToken, prim_path: &SdfPath) -> Option<SdfPath> {
         // Only geometry prims get generated materials
         if prim_type == &*MATERIAL_PRIM_TYPE {
             return None;
@@ -1301,11 +1298,11 @@ impl HdsiMaterialOverrideResolvingSceneIndex {
                 .lock()
                 .expect("Lock poisoned")
                 .prim_data
-                    .get(&entry.prim_path)
-                    .map(|d| PrimDataSnapshot {
-                        generated_material_path: d.generated_material_path.clone(),
-                        material_override_hash: d.material_override_hash,
-                    });
+                .get(&entry.prim_path)
+                .map(|d| PrimDataSnapshot {
+                    generated_material_path: d.generated_material_path.clone(),
+                    material_override_hash: d.material_override_hash,
+                });
 
             if is_base_material {
                 processed_set.insert(entry.prim_path.clone());
@@ -1464,13 +1461,17 @@ impl FilteringObserverTarget for HdsiMaterialOverrideResolvingSceneIndex {
                         prims_to_invalidate.insert(prim_path.clone());
                     }
                 }
-                for (original_material_path, generated_materials) in &state.old_to_new_material_paths {
+                for (original_material_path, generated_materials) in
+                    &state.old_to_new_material_paths
+                {
                     if !original_material_path.has_prefix(&entry.prim_path) {
                         continue;
                     }
                     for generated_material_path in generated_materials {
                         generated_materials_to_remove.insert(generated_material_path.clone());
-                        if let Some(material_data) = state.material_data.get(generated_material_path) {
+                        if let Some(material_data) =
+                            state.material_data.get(generated_material_path)
+                        {
                             prims_to_invalidate.extend(material_data.bound_prims.iter().cloned());
                         }
                     }

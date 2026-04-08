@@ -1,4 +1,3 @@
-
 //! Bounding box task - Visualize bounding boxes for scene geometry.
 //!
 //! Renders axis-aligned or oriented bounding boxes for debugging and visualization.

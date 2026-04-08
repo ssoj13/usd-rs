@@ -59,7 +59,9 @@ fn finalize_query_value(
     mut value: Value,
     offset: &usd_sdf::LayerOffset,
 ) -> Option<Value> {
-    if value.is_empty() || value.is::<usd_sdf::ValueBlock>() || value.is::<usd_sdf::AnimationBlock>()
+    if value.is_empty()
+        || value.is::<usd_sdf::ValueBlock>()
+        || value.is::<usd_sdf::AnimationBlock>()
     {
         return None;
     }
@@ -250,7 +252,8 @@ impl AttributeQuery {
         let resolve_info =
             if time.is_default() && self.resolve_info.value_source_might_be_time_varying() {
                 if let Some(resolve_target) = &self.resolve_target {
-                    self.attr.get_resolve_info_at_time_with_target(&time, resolve_target)
+                    self.attr
+                        .get_resolve_info_at_time_with_target(&time, resolve_target)
                 } else {
                     self.attr.get_resolve_info_at_time(&time)
                 }
@@ -260,7 +263,9 @@ impl AttributeQuery {
 
         let stage = self.attr.stage()?;
         let prop_name = self.attr.name();
-        let spec_path = resolve_info.prim_path().append_property(prop_name.as_str())?;
+        let spec_path = resolve_info
+            .prim_path()
+            .append_property(prop_name.as_str())?;
 
         match resolve_info.source() {
             ResolveInfoSource::None => None,
@@ -281,7 +286,10 @@ impl AttributeQuery {
                 let local_time = if resolve_info.layer_to_stage_offset().is_identity() {
                     time.value()
                 } else {
-                    resolve_info.layer_to_stage_offset().inverse().apply(time.value())
+                    resolve_info
+                        .layer_to_stage_offset()
+                        .inverse()
+                        .apply(time.value())
                 };
                 let value = resolve_time_sample_value_from_layer(
                     &layer,
@@ -309,9 +317,11 @@ impl AttributeQuery {
                 let clip_cache = stage.clip_cache()?;
                 for clip_set in clip_cache.get_clips_for_prim(&self.attr.prim_path()) {
                     if let Some(value) = clip_set.get_value(self.attr.path(), sdf_time) {
-                        if let Some(value) =
-                            finalize_query_value(&stage, value, resolve_info.layer_to_stage_offset())
-                        {
+                        if let Some(value) = finalize_query_value(
+                            &stage,
+                            value,
+                            resolve_info.layer_to_stage_offset(),
+                        ) {
                             return Some(value);
                         }
                     }
@@ -326,7 +336,10 @@ impl AttributeQuery {
                 let local_time = if resolve_info.layer_to_stage_offset().is_identity() {
                     time.value()
                 } else {
-                    resolve_info.layer_to_stage_offset().inverse().apply(time.value())
+                    resolve_info
+                        .layer_to_stage_offset()
+                        .inverse()
+                        .apply(time.value())
                 };
                 let spline = get_authored_spline(&layer, &spec_path, &*tokens::SPLINE)?;
                 let sample = if time.is_pre_time() {

@@ -1,4 +1,3 @@
-
 //! GlslfxShader - GLSLFX shader wrapper for Storm.
 //!
 //! Port of C++ `HdStGLSLFXShader`.  Wraps a parsed `HioGlslfx` object and

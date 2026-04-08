@@ -3,7 +3,9 @@
 //! Port of `pxr/usdImaging/usdRiPxrImaging/pxrCameraProjectionAPIAdapter.h/cpp`.
 
 use crate::api_schema_adapter::APISchemaAdapter;
-use crate::data_source_mapped::{AttributeMapping, DataSourceMapped, PropertyMapping, PropertyMappings};
+use crate::data_source_mapped::{
+    AttributeMapping, DataSourceMapped, PropertyMapping, PropertyMappings,
+};
 use crate::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use crate::types::PropertyInvalidationType;
 use std::sync::{Arc, LazyLock};
@@ -13,11 +15,12 @@ use usd_hd::schema::{
     HdCameraSchema, HdDependenciesSchema, HdDependencySchemaBuilder, HdPathDataSourceHandle,
 };
 use usd_hd::{
-    HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdDataSourceLocator, HdDataSourceLocatorSet,
-    HdRetainedContainerDataSource, HdTypedSampledDataSource, hd_container_get,
+    HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdDataSourceLocator,
+    HdDataSourceLocatorSet, HdRetainedContainerDataSource, HdTypedSampledDataSource,
+    hd_container_get,
 };
-use usd_shade::Output;
 use usd_sdf::Path;
+use usd_shade::Output;
 use usd_tf::Token;
 
 mod tokens {
@@ -51,7 +54,8 @@ fn connected_path_attribute_factory(
     let output = Output::from_attribute(attr);
     let mut paths = Vec::new();
     let path = if output.get_raw_connected_source_paths(&mut paths) {
-        paths.first()
+        paths
+            .first()
             .map(Path::get_prim_path)
             .unwrap_or_else(Path::empty)
     } else {
@@ -83,11 +87,13 @@ fn get_mappings() -> &'static PropertyMappings {
                     ns = inner_ns;
                     prop_name = inner_prop;
                 }
-                mappings.push(PropertyMapping::Attribute(AttributeMapping::new_with_factory(
-                    usd_name.clone(),
-                    HdDataSourceLocator::new(&[ns, prop_name]),
-                    connected_path_attribute_factory,
-                )));
+                mappings.push(PropertyMapping::Attribute(
+                    AttributeMapping::new_with_factory(
+                        usd_name.clone(),
+                        HdDataSourceLocator::new(&[ns, prop_name]),
+                        connected_path_attribute_factory,
+                    ),
+                ));
             }
         }
 
@@ -98,14 +104,19 @@ fn get_mappings() -> &'static PropertyMappings {
                     if attr.base.usd_name.as_str() == "outputs:ri:projection"
             )
         }) {
-            mappings.push(PropertyMapping::Attribute(AttributeMapping::new_with_factory(
-                Token::new("outputs:ri:projection"),
-                HdDataSourceLocator::new(&[tokens::RI.clone(), tokens::PROJECTION.clone()]),
-                connected_path_attribute_factory,
-            )));
+            mappings.push(PropertyMapping::Attribute(
+                AttributeMapping::new_with_factory(
+                    Token::new("outputs:ri:projection"),
+                    HdDataSourceLocator::new(&[tokens::RI.clone(), tokens::PROJECTION.clone()]),
+                    connected_path_attribute_factory,
+                ),
+            ));
         }
 
-        PropertyMappings::new(mappings, HdCameraSchema::get_namespaced_properties_locator())
+        PropertyMappings::new(
+            mappings,
+            HdCameraSchema::get_namespaced_properties_locator(),
+        )
     });
     &MAPPINGS
 }
@@ -195,10 +206,9 @@ impl APISchemaAdapter for PxrCameraProjectionAPIAdapter {
                 let dependency = HdDependencySchemaBuilder::default()
                     .set_depended_on_data_source_locator(dependency_locator_handle())
                     .set_affected_data_source_locator(dependency_locator_handle())
-                    .set_depended_on_prim_path(
-                        HdRetainedTypedSampledDataSource::<Path>::new(projection_path)
-                            as HdPathDataSourceHandle,
-                    )
+                    .set_depended_on_prim_path(HdRetainedTypedSampledDataSource::<Path>::new(
+                        projection_path,
+                    ) as HdPathDataSourceHandle)
                     .build();
                 let dependencies = HdDependenciesSchema::build_retained(
                     &[tokens::PRIM_DEP_PROJECTION_PRIM.clone()],

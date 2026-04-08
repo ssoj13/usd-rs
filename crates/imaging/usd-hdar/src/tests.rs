@@ -1,4 +1,3 @@
-
 //! Integration tests for hdar module.
 
 #[cfg(test)]

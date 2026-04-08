@@ -1,5 +1,4 @@
-
-use super::error::{far_error, ErrorType};
+use super::error::{ErrorType, far_error};
 use super::topology_refiner::TopologyRefiner;
 use super::types::Index;
 use crate::sdc::types::SchemeTypeTraits;
@@ -23,11 +22,10 @@ impl PtexIndices {
     ///
     /// Mirrors C++ `PtexIndices::PtexIndices(TopologyRefiner const&)`.
     pub fn new(refiner: &TopologyRefiner) -> Self {
-        let reg_face_size =
-            SchemeTypeTraits::get_regular_face_size(refiner.get_scheme_type());
+        let reg_face_size = SchemeTypeTraits::get_regular_face_size(refiner.get_scheme_type());
 
-        let lv    = refiner.get_level(0);
-        let nf    = lv.get_num_faces() as usize;
+        let lv = refiner.get_level(0);
+        let nf = lv.get_num_faces() as usize;
 
         // Allocate nfaces+1 entries — last entry holds total count
         let mut ptex_indices = vec![0i32; nf + 1];
@@ -40,7 +38,10 @@ impl PtexIndices {
         }
         ptex_indices[nf] = ptex_id;
 
-        Self { ptex_indices, reg_face_size }
+        Self {
+            ptex_indices,
+            reg_face_size,
+        }
     }
 
     /// Total number of Ptex faces in the mesh.
@@ -69,9 +70,9 @@ impl PtexIndices {
     #[doc(alias = "GetAdjacency")]
     pub fn get_adjacency(
         &self,
-        refiner:   &TopologyRefiner,
-        face:      i32,
-        quadrant:  i32,
+        refiner: &TopologyRefiner,
+        face: i32,
+        quadrant: i32,
         adj_faces: &mut [i32; 4],
         adj_edges: &mut [i32; 4],
     ) {
@@ -81,8 +82,8 @@ impl PtexIndices {
         if fedges.size() == self.reg_face_size {
             // Regular ptex quad face — one Ptex face per coarse face
             for i in 0..self.reg_face_size as usize {
-                let edge      = fedges[i as i32];
-                let adj_face  = get_adjacent_face(&level, edge, face as Index);
+                let edge = fedges[i as i32];
+                let adj_face = get_adjacent_face(&level, edge, face as Index);
                 if adj_face < 0 {
                     adj_faces[i] = -1;
                     adj_edges[i] = 0;
@@ -95,8 +96,8 @@ impl PtexIndices {
                     } else {
                         // Neighbor is an n-gon sub-face
                         let local = aedges.find_index(edge);
-                        adj_faces[i] = self.ptex_indices[adj_face as usize]
-                            + (local + 1) % aedges.size();
+                        adj_faces[i] =
+                            self.ptex_indices[adj_face as usize] + (local + 1) % aedges.size();
                         adj_edges[i] = 3;
                     }
                 }
@@ -108,7 +109,7 @@ impl PtexIndices {
             }
         } else if self.reg_face_size == 4 {
             // Catmark n-gon → virtual sub-quad 'quadrant'
-            let nq   = fedges.size();
+            let nq = fedges.size();
             let next = (quadrant + 1) % nq;
             let prev = (quadrant + nq - 1) % nq;
 
@@ -119,8 +120,8 @@ impl PtexIndices {
             adj_edges[2] = 1;
 
             // Outer neighbor along edge 0
-            let edge0      = fedges[quadrant];
-            let adj_face0  = get_adjacent_face(&level, edge0, face as Index);
+            let edge0 = fedges[quadrant];
+            let adj_face0 = get_adjacent_face(&level, edge0, face as Index);
             if adj_face0 < 0 {
                 adj_faces[0] = -1;
                 adj_edges[0] = 0;
@@ -137,8 +138,8 @@ impl PtexIndices {
             }
 
             // Outer neighbor along edge 3
-            let edge3      = fedges[prev];
-            let adj_face3  = get_adjacent_face(&level, edge3, face as Index);
+            let edge3 = fedges[prev];
+            let adj_face3 = get_adjacent_face(&level, edge3, face as Index);
             if adj_face3 < 0 {
                 adj_faces[3] = -1;
                 adj_edges[3] = 0;
@@ -173,12 +174,16 @@ impl PtexIndices {
 /// Mirrors the anonymous `getAdjacentFace` in C++ ptexIndices.cpp.
 fn get_adjacent_face(
     level: &super::topology_level::TopologyLevel,
-    edge:  Index,
-    face:  Index,
+    edge: Index,
+    face: Index,
 ) -> Index {
     let adj_faces = level.get_edge_faces(edge);
     if adj_faces.size() != 2 {
         return -1;
     }
-    if adj_faces[0] == face { adj_faces[1] } else { adj_faces[0] }
+    if adj_faces[0] == face {
+        adj_faces[1]
+    } else {
+        adj_faces[0]
+    }
 }

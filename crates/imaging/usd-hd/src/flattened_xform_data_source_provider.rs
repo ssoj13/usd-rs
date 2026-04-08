@@ -1,4 +1,3 @@
-
 //! HdFlattenedXformDataSourceProvider - Flattens xform by concatenating parent * local matrices.
 //!
 //! Port of pxr/imaging/hd/flattenedXformDataSourceProvider.cpp.
@@ -7,9 +6,9 @@
 //! Otherwise, the flattened result is local * parent (row-vector convention).
 
 use crate::data_source::{
-    HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
-    HdDataSourceLocatorSet, HdRetainedTypedSampledDataSource, HdSampledDataSource,
-    HdSampledDataSourceTime, HdTypedSampledDataSource,
+    HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle, HdDataSourceLocatorSet,
+    HdRetainedTypedSampledDataSource, HdSampledDataSource, HdSampledDataSourceTime,
+    HdTypedSampledDataSource,
 };
 use crate::flattened_data_source_provider::{
     HdFlattenedDataSourceProvider, HdFlattenedDataSourceProviderContext,
@@ -17,8 +16,8 @@ use crate::flattened_data_source_provider::{
 use crate::flo_debug::flo_debug_enabled;
 use crate::schema::{HdMatrixDataSourceHandle, HdXformSchema};
 use once_cell::sync::Lazy;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use usd_gf::Matrix4d;
 use usd_vt::Value;
 
@@ -189,8 +188,8 @@ impl HdTypedSampledDataSource<Matrix4d> for MatrixCombinerDataSource {
             }
             return self.cached_result_at_0;
         }
-        let value =
-            self.local.get_typed_value(shutter_offset) * self.parent.get_typed_value(shutter_offset);
+        let value = self.local.get_typed_value(shutter_offset)
+            * self.parent.get_typed_value(shutter_offset);
         if debug_stats {
             if let Some(started) = started {
                 DEBUG_TYPED_VALUE_TOTAL_NS

@@ -1,4 +1,3 @@
-
 //! HdStBasisCurves - Storm basis curves prim implementation.
 //!
 //! This module deliberately mirrors the retained three-phase Storm contract
@@ -11,7 +10,7 @@
 //! bits, which meant valid `BasisCurves` prims from USD/Alembic loaded into the
 //! stage but never reached the live Storm draw path.
 
-use crate::basis_curves_computations::{interpolate_primvar, CurveInterpolation};
+use crate::basis_curves_computations::{CurveInterpolation, interpolate_primvar};
 use crate::basis_curves_topology::{CurveIndexResult, HdStBasisCurvesTopology};
 use crate::buffer_resource::{HdStBufferArrayRange, HdStBufferResourceSharedPtr};
 use crate::draw_item::{
@@ -222,13 +221,21 @@ impl HdStBasisCurves {
 
             let expanded_colors = display_color_value
                 .as_vec_clone::<Vec3f>()
-                .map(|colors| expand_curve_vec3f_primvar(&self.topology, &colors, display_color_indices.as_deref()))
+                .map(|colors| {
+                    expand_curve_vec3f_primvar(
+                        &self.topology,
+                        &colors,
+                        display_color_indices.as_deref(),
+                    )
+                })
                 .unwrap_or_default();
             self.vertex_data.colors = flatten_vec3f(&expanded_colors);
 
             let expanded_normals = normals_value
                 .as_vec_clone::<Vec3f>()
-                .map(|normals| expand_curve_vec3f_primvar(&self.topology, &normals, normals_indices.as_deref()))
+                .map(|normals| {
+                    expand_curve_vec3f_primvar(&self.topology, &normals, normals_indices.as_deref())
+                })
                 .unwrap_or_default();
             self.vertex_data.normals = flatten_vec3f(&expanded_normals);
 
@@ -519,15 +526,16 @@ impl HdStBasisCurves {
         // BAR stream sizes map: positions→positions, widths→normals slot,
         // normals→uvs slot, colors→colors. The binder reads normals_byte_size
         // for widths offset and uvs_byte_size for normals offset.
-        let vertex_bar: HdBufferArrayRangeSharedPtr = Arc::new(HdStBufferArrayRange::with_stream_sizes(
-            vbuf,
-            vbuf_offset,
-            vbuf_size,
-            self.vertex_data.get_positions_byte_size(),
-            self.vertex_data.get_widths_byte_size(),   // → normals slot (binder reads as widths)
-            self.vertex_data.get_normals_byte_size(),   // → uvs slot (binder reads as normals)
-            self.vertex_data.get_colors_byte_size(),
-        ));
+        let vertex_bar: HdBufferArrayRangeSharedPtr =
+            Arc::new(HdStBufferArrayRange::with_stream_sizes(
+                vbuf,
+                vbuf_offset,
+                vbuf_size,
+                self.vertex_data.get_positions_byte_size(),
+                self.vertex_data.get_widths_byte_size(), // → normals slot (binder reads as widths)
+                self.vertex_data.get_normals_byte_size(), // → uvs slot (binder reads as normals)
+                self.vertex_data.get_colors_byte_size(),
+            ));
         let element_bar: HdBufferArrayRangeSharedPtr =
             Arc::new(HdStBufferArrayRange::new(ibuf, ibuf_offset, ibuf_size));
 
@@ -544,7 +552,9 @@ impl HdStBasisCurves {
             }
             item.set_primitive_topology(self.active_draw_topology);
             item.set_primitive_kind(DrawPrimitiveKind::BasisCurves);
-            item.set_geometric_shader_key(basis_curves_geometric_shader_key(self.active_draw_topology));
+            item.set_geometric_shader_key(basis_curves_geometric_shader_key(
+                self.active_draw_topology,
+            ));
             item.set_visible(self.visible);
             item.set_material_network_shader(self.material_params.clone());
             item.set_bbox(bbox.0, bbox.1);

@@ -1,4 +1,3 @@
-
 //! HdField - Field buffer primitive base.
 //!
 //! Hydra schema for a USD field primitive. Acts like a texture, combined

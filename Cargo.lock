@@ -3367,6 +3367,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "openusd-test-path"
+version = "0.1.0"
+
+[[package]]
 name = "option-ext"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5004,6 +5008,7 @@ name = "usd-core"
 version = "0.1.0"
 dependencies = [
  "once_cell",
+ "openusd-test-path",
  "ordered-float 5.1.0",
  "parking_lot",
  "rayon",
@@ -5034,6 +5039,7 @@ version = "0.1.0"
 dependencies = [
  "log",
  "once_cell",
+ "openusd-test-path",
  "paste",
  "usd-core",
  "usd-gf",
@@ -5289,6 +5295,7 @@ dependencies = [
  "indexmap 2.13.0",
  "log",
  "once_cell",
+ "openusd-test-path",
  "parking_lot",
  "pollster",
  "serde_json",
@@ -5341,6 +5348,7 @@ name = "usd-lux"
 version = "0.1.0"
 dependencies = [
  "log",
+ "openusd-test-path",
  "usd-core",
  "usd-geom",
  "usd-gf",
@@ -5385,6 +5393,7 @@ version = "0.1.0"
 dependencies = [
  "bitflags 2.10.0",
  "once_cell",
+ "openusd-test-path",
  "parking_lot",
  "rayon",
  "tempfile",
@@ -5578,6 +5587,7 @@ dependencies = [
  "log",
  "memchr",
  "once_cell",
+ "openusd-test-path",
  "ordered-float 5.1.0",
  "parking_lot",
  "regex",
@@ -5617,6 +5627,7 @@ dependencies = [
 name = "usd-shade"
 version = "0.1.0"
 dependencies = [
+ "openusd-test-path",
  "tempfile",
  "usd-core",
  "usd-geom",

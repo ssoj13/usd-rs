@@ -1,4 +1,3 @@
-
 //! RAII handle for render delegate created by plugin.
 //!
 //! Corresponds to pxr/imaging/hd/pluginRenderDelegateUniqueHandle.h.

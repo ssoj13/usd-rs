@@ -1,10 +1,10 @@
 // Copyright 2014 DreamWorks Animation LLC.
 // Ported to Rust from OpenSubdiv 3.7.0 vtr/quadRefinement.h/.cpp
 
-use crate::sdc::{Options, types::Split};
 use super::level::Level;
-use super::types::{Index, LocalIndex, index_is_valid};
 use super::refinement::{Refinement, RefinementOptions};
+use super::types::{Index, LocalIndex, index_is_valid};
+use crate::sdc::{Options, types::Split};
 
 /// Quad-splitting (Catmark / Bilinear) refinement.
 /// Mirrors C++ `Vtr::internal::QuadRefinement`.
@@ -19,7 +19,7 @@ impl QuadRefinement {
         let mut r = unsafe { Refinement::new(parent, child, options, Split::ToQuads) };
         // Wire all scheme-specific callbacks so that a bare Box<Refinement>
         // (as used in refine_adaptive) can call refine() correctly.
-        r.allocate_fn    = Some(QuadRefinement::allocate_parent_child_indices_impl);
+        r.allocate_fn = Some(QuadRefinement::allocate_parent_child_indices_impl);
         r.sparse_face_fn = Some(QuadRefinement::mark_sparse_face_children_impl);
         r.populate_fv_fn = Some(QuadRefinement::populate_face_vertex_relation_impl);
         r.populate_fe_fn = Some(QuadRefinement::populate_face_edge_relation_impl);
@@ -33,7 +33,8 @@ impl QuadRefinement {
     pub fn refine(&mut self, opts: RefinementOptions) {
         // Wire up virtual-dispatch overrides before calling the base refine().
         // In C++ these are virtual methods; here we set them manually.
-        self.0.refine_with_callbacks(opts,
+        self.0.refine_with_callbacks(
+            opts,
             QuadRefinement::allocate_parent_child_indices_impl,
             QuadRefinement::mark_sparse_face_children_impl,
             QuadRefinement::populate_face_vertex_relation_impl,
@@ -45,16 +46,26 @@ impl QuadRefinement {
         );
     }
 
-    pub fn inner(&self) -> &Refinement { &self.0 }
-    pub fn inner_mut(&mut self) -> &mut Refinement { &mut self.0 }
+    pub fn inner(&self) -> &Refinement {
+        &self.0
+    }
+    pub fn inner_mut(&mut self) -> &mut Refinement {
+        &mut self.0
+    }
 
     // =========================================================================
     // allocateParentChildIndices  (C++ QuadRefinement::allocateParentChildIndices)
     // =========================================================================
 
     fn allocate_parent_child_indices_impl(r: &mut Refinement) {
-        let (fv_indices_len, fe_indices_len, ev_indices_len,
-             f_vert_count, e_vert_count, v_vert_count) = unsafe {
+        let (
+            fv_indices_len,
+            fe_indices_len,
+            ev_indices_len,
+            f_vert_count,
+            e_vert_count,
+            v_vert_count,
+        ) = unsafe {
             let p = &*r.parent;
             (
                 p.face_vert_indices.len(),
@@ -89,9 +100,8 @@ impl QuadRefinement {
         let num_faces = r.parent().get_num_faces();
 
         for p_face in 0..num_faces {
-            let f_verts: Vec<Index> = unsafe {
-                (&*r.parent).get_face_vertices(p_face).as_slice().to_vec()
-            };
+            let f_verts: Vec<Index> =
+                unsafe { (&*r.parent).get_face_vertices(p_face).as_slice().to_vec() };
 
             let p_face_tag = &r.parent_face_tag[p_face as usize];
 
@@ -115,31 +125,34 @@ impl QuadRefinement {
                         let i_prev = if i > 0 { i - 1 } else { f_verts.len() - 1 };
                         // Mark neighboring child face and edges
                         let pf_co = r.face_child_face_co_pub(p_face);
-                        r.face_child_face_indices[pf_co.1 + i] = super::refinement::SPARSE_MASK_NEIGHBORING;
-                        r.face_child_edge_indices[pf_co.1 + i]      = super::refinement::SPARSE_MASK_NEIGHBORING;
-                        r.face_child_edge_indices[pf_co.1 + i_prev] = super::refinement::SPARSE_MASK_NEIGHBORING;
+                        r.face_child_face_indices[pf_co.1 + i] =
+                            super::refinement::SPARSE_MASK_NEIGHBORING;
+                        r.face_child_edge_indices[pf_co.1 + i] =
+                            super::refinement::SPARSE_MASK_NEIGHBORING;
+                        r.face_child_edge_indices[pf_co.1 + i_prev] =
+                            super::refinement::SPARSE_MASK_NEIGHBORING;
                         marked = true;
                     }
                 }
 
                 if marked {
-                    r.face_child_vert_index[p_face as usize] = super::refinement::SPARSE_MASK_NEIGHBORING;
+                    r.face_child_vert_index[p_face as usize] =
+                        super::refinement::SPARSE_MASK_NEIGHBORING;
 
                     // Assign transitional bits from incident edge tags
-                    let f_edges: Vec<Index> = unsafe {
-                        (&*r.parent).get_face_edges(p_face).as_slice().to_vec()
-                    };
+                    let f_edges: Vec<Index> =
+                        unsafe { (&*r.parent).get_face_edges(p_face).as_slice().to_vec() };
                     let n = f_edges.len();
                     let mut trans: u8 = 0;
                     if n == 4 {
                         trans = ((r.parent_edge_tag[f_edges[0] as usize].transitional as u8) << 0)
-                              | ((r.parent_edge_tag[f_edges[1] as usize].transitional as u8) << 1)
-                              | ((r.parent_edge_tag[f_edges[2] as usize].transitional as u8) << 2)
-                              | ((r.parent_edge_tag[f_edges[3] as usize].transitional as u8) << 3);
+                            | ((r.parent_edge_tag[f_edges[1] as usize].transitional as u8) << 1)
+                            | ((r.parent_edge_tag[f_edges[2] as usize].transitional as u8) << 2)
+                            | ((r.parent_edge_tag[f_edges[3] as usize].transitional as u8) << 3);
                     } else if n == 3 {
                         trans = ((r.parent_edge_tag[f_edges[0] as usize].transitional as u8) << 0)
-                              | ((r.parent_edge_tag[f_edges[1] as usize].transitional as u8) << 1)
-                              | ((r.parent_edge_tag[f_edges[2] as usize].transitional as u8) << 2);
+                            | ((r.parent_edge_tag[f_edges[1] as usize].transitional as u8) << 1)
+                            | ((r.parent_edge_tag[f_edges[2] as usize].transitional as u8) << 2);
                     } else {
                         for fe in &f_edges {
                             trans |= r.parent_edge_tag[*fe as usize].transitional;
@@ -163,7 +176,9 @@ impl QuadRefinement {
                 Self::populate_face_vertex_counts_and_offsets(r);
             }
             let nf = (&*r.child).get_num_faces();
-            (&mut *r.child).face_vert_indices.resize((nf * 4) as usize, 0);
+            (&mut *r.child)
+                .face_vert_indices
+                .resize((nf * 4) as usize, 0);
         }
         Self::populate_face_vertices_from_parent_faces(r);
     }
@@ -174,7 +189,7 @@ impl QuadRefinement {
             let nf = child.get_num_faces() as usize;
             child.face_vert_counts_offsets.resize(nf * 2, 0);
             for i in 0..nf {
-                child.face_vert_counts_offsets[i * 2    ] = 4;
+                child.face_vert_counts_offsets[i * 2] = 4;
                 child.face_vert_counts_offsets[i * 2 + 1] = (i << 2) as i32;
             }
         }
@@ -197,13 +212,15 @@ impl QuadRefinement {
 
             for j in 0..pf_size {
                 let c_face = p_face_children[j];
-                if !index_is_valid(c_face) { continue; }
+                if !index_is_valid(c_face) {
+                    continue;
+                }
 
                 let j_prev = if j > 0 { j - 1 } else { pf_size - 1 };
 
-                let c_vert_of_face  = r.face_child_vert_index[p_face as usize];
+                let c_vert_of_face = r.face_child_vert_index[p_face as usize];
                 let c_vert_of_eprev = r.edge_child_vert_index[p_face_edges[j_prev] as usize];
-                let c_vert_of_vert  = r.vert_child_vert_index[p_face_verts[j] as usize];
+                let c_vert_of_vert = r.vert_child_vert_index[p_face_verts[j] as usize];
                 let c_vert_of_enext = r.edge_child_vert_index[p_face_edges[j] as usize];
 
                 unsafe {
@@ -212,12 +229,12 @@ impl QuadRefinement {
 
                     if pf_size == 4 {
                         // Quad: standard orientation
-                        let j_opp  = if j_prev > 0 { j_prev - 1 } else { 3 };
-                        let j_next = if j_opp  > 0 { j_opp  - 1 } else { 3 };
+                        let j_opp = if j_prev > 0 { j_prev - 1 } else { 3 };
+                        let j_next = if j_opp > 0 { j_opp - 1 } else { 3 };
 
-                        c_face_verts[j]      = c_vert_of_vert;
+                        c_face_verts[j] = c_vert_of_vert;
                         c_face_verts[j_next] = c_vert_of_enext;
-                        c_face_verts[j_opp]  = c_vert_of_face;
+                        c_face_verts[j_opp] = c_vert_of_face;
                         c_face_verts[j_prev] = c_vert_of_eprev;
                     } else {
                         // Non-quad: fixed orientation
@@ -242,7 +259,9 @@ impl QuadRefinement {
                 Self::populate_face_vertex_counts_and_offsets(r);
             }
             let nf = (&*r.child).get_num_faces();
-            (&mut *r.child).face_edge_indices.resize((nf * 4) as usize, 0);
+            (&mut *r.child)
+                .face_edge_indices
+                .resize((nf * 4) as usize, 0);
         }
         Self::populate_face_edges_from_parent_faces(r);
     }
@@ -264,7 +283,9 @@ impl QuadRefinement {
 
             for j in 0..pf_size {
                 let c_face = p_face_child_faces[j];
-                if !index_is_valid(c_face) { continue; }
+                if !index_is_valid(c_face) {
+                    continue;
+                }
 
                 let j_prev = if j > 0 { j - 1 } else { pf_size - 1 };
 
@@ -308,12 +329,12 @@ impl QuadRefinement {
                     let mut c_face_edges = child.get_face_edges_mut(c_face); // mut slice
 
                     if pf_size == 4 {
-                        let j_opp  = if j_prev > 0 { j_prev - 1 } else { 3 };
-                        let j_next = if j_opp  > 0 { j_opp  - 1 } else { 3 };
+                        let j_opp = if j_prev > 0 { j_prev - 1 } else { 3 };
+                        let j_next = if j_opp > 0 { j_opp - 1 } else { 3 };
 
-                        c_face_edges[j]      = c_edge_of_next;
+                        c_face_edges[j] = c_edge_of_next;
                         c_face_edges[j_next] = c_edge_perp_next;
-                        c_face_edges[j_opp]  = c_edge_perp_prev;
+                        c_face_edges[j_opp] = c_edge_perp_prev;
                         c_face_edges[j_prev] = c_edge_of_prev;
                     } else {
                         c_face_edges[0] = c_edge_of_next;
@@ -333,7 +354,9 @@ impl QuadRefinement {
     fn populate_edge_vertex_relation_impl(r: &mut Refinement) {
         unsafe {
             let nce = (&*r.child).get_num_edges();
-            (&mut *r.child).edge_vert_indices.resize((nce * 2) as usize, 0);
+            (&mut *r.child)
+                .edge_vert_indices
+                .resize((nce * 2) as usize, 0);
         }
         Self::populate_edge_vertices_from_parent_faces(r);
         Self::populate_edge_vertices_from_parent_edges(r);
@@ -352,7 +375,9 @@ impl QuadRefinement {
 
             for j in 0..p_face_edges.len() {
                 let c_edge = p_face_child_edges[j];
-                if !index_is_valid(c_edge) { continue; }
+                if !index_is_valid(c_edge) {
+                    continue;
+                }
 
                 unsafe {
                     let child = &mut *r.child;
@@ -380,7 +405,9 @@ impl QuadRefinement {
 
             for j in 0..2usize {
                 let c_edge = p_edge_children[j];
-                if !index_is_valid(c_edge) { continue; }
+                if !index_is_valid(c_edge) {
+                    continue;
+                }
 
                 unsafe {
                     let child = &mut *r.child;
@@ -439,7 +466,9 @@ impl QuadRefinement {
 
             for j in 0..pf_size {
                 let c_edge = p_face_child_edges[j];
-                if !index_is_valid(c_edge) { continue; }
+                if !index_is_valid(c_edge) {
+                    continue;
+                }
 
                 let j_next = if (j + 1) < pf_size { j + 1 } else { 0 };
 
@@ -453,14 +482,20 @@ impl QuadRefinement {
 
                     if index_is_valid(p_face_child_faces[j]) {
                         child.edge_face_indices[offset + count] = p_face_child_faces[j];
-                        child.edge_face_local_indices[offset + count] =
-                            if pf_size == 4 { j_next as LocalIndex } else { 1 };
+                        child.edge_face_local_indices[offset + count] = if pf_size == 4 {
+                            j_next as LocalIndex
+                        } else {
+                            1
+                        };
                         count += 1;
                     }
                     if index_is_valid(p_face_child_faces[j_next]) {
                         child.edge_face_indices[offset + count] = p_face_child_faces[j_next];
-                        child.edge_face_local_indices[offset + count] =
-                            if pf_size == 4 { ((j_next + 2) & 3) as LocalIndex } else { 2 };
+                        child.edge_face_local_indices[offset + count] = if pf_size == 4 {
+                            ((j_next + 2) & 3) as LocalIndex
+                        } else {
+                            2
+                        };
                         count += 1;
                     }
                     // Trim to actual count.
@@ -482,7 +517,8 @@ impl QuadRefinement {
             let (p_edge_faces, p_edge_in_face, p_edge_verts) = unsafe {
                 let p = &*r.parent;
                 let ef: Vec<Index> = p.get_edge_faces(p_edge).as_slice().to_vec();
-                let einf: Vec<LocalIndex> = p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
+                let einf: Vec<LocalIndex> =
+                    p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
                 let ev: [Index; 2] = [
                     p.get_edge_vertices(p_edge)[0],
                     p.get_edge_vertices(p_edge)[1],
@@ -492,7 +528,9 @@ impl QuadRefinement {
 
             for j in 0..2usize {
                 let c_edge = p_edge_children[j];
-                if !index_is_valid(c_edge) { continue; }
+                if !index_is_valid(c_edge) {
+                    continue;
+                }
 
                 unsafe {
                     let child = &mut *r.child;
@@ -502,13 +540,13 @@ impl QuadRefinement {
                     let mut c_edge_face_count = 0usize;
 
                     for i in 0..p_edge_faces.len() {
-                        let p_face      = p_edge_faces[i];
+                        let p_face = p_edge_faces[i];
                         let edge_in_face = p_edge_in_face[i] as usize;
 
                         let p_face_children: Vec<Index> = r.get_face_child_faces(p_face).to_vec();
                         let p_face_size = p_face_children.len();
-                        let p_face_verts: Vec<Index> = (&*r.parent).get_face_vertices(p_face)
-                            .as_slice().to_vec();
+                        let p_face_verts: Vec<Index> =
+                            (&*r.parent).get_face_vertices(p_face).as_slice().to_vec();
 
                         let child_of_edge = if p_edge_verts[0] == p_edge_verts[1] {
                             j
@@ -517,7 +555,9 @@ impl QuadRefinement {
                         };
 
                         let mut child_in_face = edge_in_face + child_of_edge;
-                        if child_in_face == p_face_children.len() { child_in_face = 0; }
+                        if child_in_face == p_face_children.len() {
+                            child_in_face = 0;
+                        }
 
                         if index_is_valid(p_face_children[child_in_face]) {
                             let child = &mut *r.child;
@@ -545,9 +585,7 @@ impl QuadRefinement {
     fn populate_vertex_face_relation_impl(r: &mut Refinement) {
         let estimate = unsafe {
             let p = &*r.parent;
-            p.face_vert_indices.len()
-                + p.edge_face_indices.len() * 2
-                + p.vert_face_indices.len()
+            p.face_vert_indices.len() + p.edge_face_indices.len() * 2 + p.vert_face_indices.len()
         };
 
         unsafe {
@@ -583,7 +621,9 @@ impl QuadRefinement {
 
         for p_face in 0..num_faces {
             let c_vert = r.face_child_vert_index[p_face as usize];
-            if !index_is_valid(c_vert) { continue; }
+            if !index_is_valid(c_vert) {
+                continue;
+            }
 
             let p_face_children: Vec<Index> = r.get_face_child_faces(p_face).to_vec();
             let pf_size = p_face_children.len();
@@ -598,8 +638,11 @@ impl QuadRefinement {
                 for j in 0..pf_size {
                     if index_is_valid(p_face_children[j]) {
                         child.vert_face_indices[offset + count] = p_face_children[j];
-                        child.vert_face_local_indices[offset + count] =
-                            if pf_size == 4 { ((j + 2) & 3) as LocalIndex } else { 2 };
+                        child.vert_face_local_indices[offset + count] = if pf_size == 4 {
+                            ((j + 2) & 3) as LocalIndex
+                        } else {
+                            2
+                        };
                         count += 1;
                     }
                 }
@@ -613,12 +656,15 @@ impl QuadRefinement {
 
         for p_edge in 0..num_edges {
             let c_vert = r.edge_child_vert_index[p_edge as usize];
-            if !index_is_valid(c_vert) { continue; }
+            if !index_is_valid(c_vert) {
+                continue;
+            }
 
             let (p_edge_faces, p_edge_in_face) = unsafe {
                 let p = &*r.parent;
                 let ef: Vec<Index> = p.get_edge_faces(p_edge).as_slice().to_vec();
-                let einf: Vec<LocalIndex> = p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
+                let einf: Vec<LocalIndex> =
+                    p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
                 (ef, einf)
             };
 
@@ -630,14 +676,18 @@ impl QuadRefinement {
                 let mut count = 0usize;
 
                 for i in 0..p_edge_faces.len() {
-                    let p_face      = p_edge_faces[i];
+                    let p_face = p_edge_faces[i];
                     let edge_in_face = p_edge_in_face[i] as usize;
 
                     let p_face_children: Vec<Index> = r.get_face_child_faces(p_face).to_vec();
                     let pf_size = p_face_children.len();
 
                     let fc0 = edge_in_face;
-                    let fc1 = if (edge_in_face + 1) < pf_size { edge_in_face + 1 } else { 0 };
+                    let fc1 = if (edge_in_face + 1) < pf_size {
+                        edge_in_face + 1
+                    } else {
+                        0
+                    };
 
                     // Second child first (for CC-wise ordering)
                     if index_is_valid(p_face_children[fc1]) {
@@ -663,12 +713,15 @@ impl QuadRefinement {
 
         for p_vert in 0..num_verts {
             let c_vert = r.vert_child_vert_index[p_vert as usize];
-            if !index_is_valid(c_vert) { continue; }
+            if !index_is_valid(c_vert) {
+                continue;
+            }
 
             let (p_vert_faces, p_vert_in_face) = unsafe {
                 let p = &*r.parent;
                 let vf: Vec<Index> = p.get_vertex_faces(p_vert).as_slice().to_vec();
-                let vinf: Vec<LocalIndex> = p.get_vertex_face_local_indices(p_vert).as_slice().to_vec();
+                let vinf: Vec<LocalIndex> =
+                    p.get_vertex_face_local_indices(p_vert).as_slice().to_vec();
                 (vf, vinf)
             };
 
@@ -680,7 +733,7 @@ impl QuadRefinement {
                 let mut count = 0usize;
 
                 for i in 0..p_vert_faces.len() {
-                    let p_face       = p_vert_faces[i];
+                    let p_face = p_vert_faces[i];
                     let vert_in_face = p_vert_in_face[i] as usize;
 
                     let p_face_children: Vec<Index> = r.get_face_child_faces(p_face).to_vec();
@@ -688,8 +741,11 @@ impl QuadRefinement {
 
                     if index_is_valid(p_face_children[vert_in_face]) {
                         child.vert_face_indices[offset + count] = p_face_children[vert_in_face];
-                        child.vert_face_local_indices[offset + count] =
-                            if pf_size == 4 { vert_in_face as LocalIndex } else { 0 };
+                        child.vert_face_local_indices[offset + count] = if pf_size == 4 {
+                            vert_in_face as LocalIndex
+                        } else {
+                            0
+                        };
                         count += 1;
                     }
                 }
@@ -744,7 +800,9 @@ impl QuadRefinement {
 
         for p_face in 0..num_faces {
             let c_vert = r.face_child_vert_index[p_face as usize];
-            if !index_is_valid(c_vert) { continue; }
+            if !index_is_valid(c_vert) {
+                continue;
+            }
 
             let (p_face_verts_len, p_face_child_edges) = unsafe {
                 let p = &*r.parent;
@@ -779,12 +837,15 @@ impl QuadRefinement {
 
         for p_edge in 0..num_edges {
             let c_vert = r.edge_child_vert_index[p_edge as usize];
-            if !index_is_valid(c_vert) { continue; }
+            if !index_is_valid(c_vert) {
+                continue;
+            }
 
             let (p_edge_faces, p_edge_in_face, p_edge_verts, p_edge_child_edges) = unsafe {
                 let p = &*r.parent;
                 let ef: Vec<Index> = p.get_edge_faces(p_edge).as_slice().to_vec();
-                let einf: Vec<LocalIndex> = p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
+                let einf: Vec<LocalIndex> =
+                    p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
                 let ev: [Index; 2] = [
                     p.get_edge_vertices(p_edge)[0],
                     p.get_edge_vertices(p_edge)[1],
@@ -814,7 +875,7 @@ impl QuadRefinement {
 
                 // Then append interior face edges with swap for correct ordering
                 for i in 0..p_edge_faces.len() {
-                    let p_face       = p_edge_faces[i];
+                    let p_face = p_edge_faces[i];
                     let edge_in_face = p_edge_in_face[i] as usize;
 
                     let c_edge_of_face = r.get_face_child_edges(p_face)[edge_in_face];
@@ -827,11 +888,12 @@ impl QuadRefinement {
 
                         // Swap for CC-wise order on first face
                         if i == 0 && count == 3 {
-                            let p_face_verts: Vec<Index> = (&*r.parent).get_face_vertices(p_face)
-                                .as_slice().to_vec();
+                            let p_face_verts: Vec<Index> =
+                                (&*r.parent).get_face_vertices(p_face).as_slice().to_vec();
                             let child = &mut *r.child;
                             if (p_edge_verts[0] != p_edge_verts[1])
-                               && (p_face_verts[edge_in_face] == p_edge_verts[0]) {
+                                && (p_face_verts[edge_in_face] == p_edge_verts[0])
+                            {
                                 child.vert_edge_indices.swap(offset, offset + 1);
                                 child.vert_edge_local_indices.swap(offset, offset + 1);
                             }
@@ -850,12 +912,15 @@ impl QuadRefinement {
 
         for p_vert in 0..num_verts {
             let c_vert = r.vert_child_vert_index[p_vert as usize];
-            if !index_is_valid(c_vert) { continue; }
+            if !index_is_valid(c_vert) {
+                continue;
+            }
 
             let (p_vert_edges, p_vert_in_edge) = unsafe {
                 let p = &*r.parent;
                 let ve: Vec<Index> = p.get_vertex_edges(p_vert).as_slice().to_vec();
-                let vine: Vec<LocalIndex> = p.get_vertex_edge_local_indices(p_vert).as_slice().to_vec();
+                let vine: Vec<LocalIndex> =
+                    p.get_vertex_edge_local_indices(p_vert).as_slice().to_vec();
                 (ve, vine)
             };
 
@@ -867,7 +932,7 @@ impl QuadRefinement {
                 let mut count = 0usize;
 
                 for i in 0..p_vert_edges.len() {
-                    let p_edge_idx  = p_vert_edges[i];
+                    let p_edge_idx = p_vert_edges[i];
                     let p_edge_vert = p_vert_in_edge[i] as usize;
 
                     let p_edge_child = r.get_edge_child_edges(p_edge_idx)[p_edge_vert];

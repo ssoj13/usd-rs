@@ -9,8 +9,8 @@ use crate::data_source_mapped::{
 use crate::data_source_primvars::{DataSourceCustomPrimvars, PrimvarMapping};
 use crate::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use crate::types::PropertyInvalidationType;
-use std::sync::LazyLock;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use usd_core::Prim;
 use usd_geom::curves::Curves;
 use usd_geom::nurbs_curves::NurbsCurves;
@@ -155,10 +155,8 @@ impl DataSourceNurbsCurvesPrim {
             )) as usd_hd::HdContainerDataSourceHandle;
 
             return Some(match base.as_ref().and_then(cast_to_container) {
-                Some(base_container) => {
-                    HdOverlayContainerDataSource::new_2(base_container, custom)
-                        as HdDataSourceBaseHandle
-                }
+                Some(base_container) => HdOverlayContainerDataSource::new_2(base_container, custom)
+                    as HdDataSourceBaseHandle,
                 None => custom as HdDataSourceBaseHandle,
             });
         }
@@ -264,8 +262,8 @@ mod tests {
             PropertyInvalidationType::PropertyChanged,
         );
 
-        assert!(locators.contains(&HdPrimvarsSchema::get_default_locator().append(
-            &usd_geom_tokens().point_weights
-        )));
+        assert!(locators.contains(
+            &HdPrimvarsSchema::get_default_locator().append(&usd_geom_tokens().point_weights)
+        ));
     }
 }

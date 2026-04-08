@@ -1,4 +1,3 @@
-
 //! HdDirtyList - Cached list of dirty rprims for efficient sync iteration.
 //!
 //! Corresponds to pxr/imaging/hd/dirtyList.h.

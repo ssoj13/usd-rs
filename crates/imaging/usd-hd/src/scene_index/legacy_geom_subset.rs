@@ -1,4 +1,3 @@
-
 //! HdLegacyGeomSubsetSceneIndex - Converts legacy geom subsets to geomSubset prims.
 //!
 //! Corresponds to pxr/imaging/hd/legacyGeomSubsetSceneIndex.h.

@@ -1,4 +1,3 @@
-
 //! Draw target render pass state (ported from drawTargetRenderPassState.h).
 //!
 //! Non-GL-specific render pass state for draw targets. Stores camera,

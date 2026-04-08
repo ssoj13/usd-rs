@@ -996,7 +996,6 @@ mod tests {
 
     #[test]
     fn test_write_then_read_png() {
-        
         // Create a tiny 2x2 RGBA PNG in memory via image crate, save it temporarily,
         // then load it back and verify dimensions.
         let temp_path = std::env::temp_dir().join("usd_hio_test_2x2.png");

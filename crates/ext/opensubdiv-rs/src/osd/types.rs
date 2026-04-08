@@ -1,4 +1,4 @@
-use crate::far::{PatchHandle, PatchDescriptor, PatchParam as FarPatchParam};
+use crate::far::{PatchDescriptor, PatchHandle, PatchParam as FarPatchParam};
 
 /// Parametric coordinate on a specific patch — mirrors Osd::PatchCoord.
 ///
@@ -143,7 +143,11 @@ pub struct PatchParam {
 
 impl PatchParam {
     pub fn new(field0: i32, field1: i32, sharpness: f32) -> Self {
-        Self { field0, field1, sharpness }
+        Self {
+            field0,
+            field1,
+            sharpness,
+        }
     }
 
     /// Copy from a Far::PatchParam, setting sharpness explicitly.
@@ -184,7 +188,7 @@ mod tests {
 
     #[test]
     fn patch_array_stride_mixed() {
-        let reg = PatchDescriptor::new(PatchType::Regular);      // 16 CVs
+        let reg = PatchDescriptor::new(PatchType::Regular); // 16 CVs
         let irr = PatchDescriptor::new(PatchType::GregoryBasis); // 20 CVs
         let pa = PatchArray::new_mixed(reg, irr, 2, 0, 0);
         assert_eq!(pa.get_stride(), 20); // max(16, 20)

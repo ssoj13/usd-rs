@@ -1,4 +1,3 @@
-
 //! VolumeShaderKey - shader variant selection for volume rendering.
 //!
 //! Port of C++ `HdSt_VolumeShaderKey`. Simple key with VS + FS stages

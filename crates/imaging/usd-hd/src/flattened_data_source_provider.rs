@@ -1,4 +1,3 @@
-
 //! HdFlattenedDataSourceProvider - Provider for flattening hierarchical data.
 //!
 //! Corresponds to pxr/imaging/hd/flattenedDataSourceProvider.h.
@@ -7,8 +6,8 @@
 //! data source at each prim from inherited state.
 
 use crate::data_source::{HdContainerDataSourceHandle, HdDataSourceLocatorSet, cast_to_container};
-use crate::scene_index::flattening::HdFlatteningSceneIndex;
 use crate::scene_index::base::HdSceneIndexBase;
+use crate::scene_index::flattening::HdFlatteningSceneIndex;
 use crate::scene_index::prim::HdSceneIndexPrim;
 use parking_lot::RwLock;
 use std::sync::{Arc, Weak};

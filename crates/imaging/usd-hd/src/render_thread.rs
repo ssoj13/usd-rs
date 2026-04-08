@@ -1,4 +1,3 @@
-
 //! HdRenderThread - Background render thread with state machine.
 //!
 //! Corresponds to pxr/imaging/hd/renderThread.h.

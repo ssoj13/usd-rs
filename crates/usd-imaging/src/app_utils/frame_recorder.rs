@@ -10,7 +10,9 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 use usd_camera_util::CameraUtilFraming;
 use usd_core::{Stage, TimeCode as UsdTimeCode};
 use usd_geom::{BBoxCache, Camera, get_stage_up_axis, usd_geom_tokens};
-use usd_gf::{Camera as GfCamera, FOVDirection, Matrix4d, Rect2i, Rotation, Vec2d, Vec2i, Vec3d, Vec4f};
+use usd_gf::{
+    Camera as GfCamera, FOVDirection, Matrix4d, Rect2i, Rotation, Vec2d, Vec2i, Vec3d, Vec4f,
+};
 use usd_render::{RenderPass, RenderProduct, RenderSettings, USD_RENDER_TOKENS};
 use usd_sdf::Path;
 use usd_tf::Token;
@@ -121,7 +123,10 @@ pub(crate) fn save_exr_pixels(
     .map_err(|e| format!("failed to save {}: {e}", path.display()))
 }
 
-pub(crate) fn write_frame_from_engine(engine: &Engine, output_path: &StdPath) -> Result<(), String> {
+pub(crate) fn write_frame_from_engine(
+    engine: &Engine,
+    output_path: &StdPath,
+) -> Result<(), String> {
     match detect_output_format(output_path)? {
         FrameOutputFormat::Exr => {
             let pixels = engine
@@ -157,7 +162,11 @@ fn has_purpose(purposes: &[Token], purpose: &str) -> bool {
 fn value_to_path(value: &Value) -> Option<Path> {
     value
         .downcast_clone::<Path>()
-        .or_else(|| value.downcast_clone::<String>().and_then(|s| Path::from_string(&s)))
+        .or_else(|| {
+            value
+                .downcast_clone::<String>()
+                .and_then(|s| Path::from_string(&s))
+        })
         .or_else(|| {
             value
                 .downcast_clone::<Token>()
@@ -508,13 +517,7 @@ impl FrameRecorder {
         ));
         engine.set_framing(framing);
         engine.set_render_buffer_size(Vec2i::new(self.image_width as i32, image_height as i32));
-        engine.set_color_correction_settings(
-            self.color_correction_mode.as_str(),
-            "",
-            "",
-            "",
-            "",
-        );
+        engine.set_color_correction_settings(self.color_correction_mode.as_str(), "", "", "", "");
 
         let render_params = RenderParams {
             frame: time_code,
@@ -575,7 +578,10 @@ mod tests {
             Token::new("proxy"),
             Token::new("bogus"),
         ]);
-        assert_eq!(recorder.get_included_purposes(), &[Token::new("default"), Token::new("proxy")]);
+        assert_eq!(
+            recorder.get_included_purposes(),
+            &[Token::new("default"), Token::new("proxy")]
+        );
     }
 
     #[test]

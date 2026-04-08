@@ -49,14 +49,18 @@ impl PyMaterial {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: Material::get(&stage.inner, &p) })
+        Ok(Self {
+            inner: Material::get(&stage.inner, &p),
+        })
     }
 
     /// Material.Define(stage, path) -> Material
     #[staticmethod]
     fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: Material::define(&stage.inner, &p) })
+        Ok(Self {
+            inner: Material::define(&stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -70,13 +74,19 @@ impl PyMaterial {
     /// CreateSurfaceOutput(render_context="") -> Output
     #[pyo3(signature = (render_context = ""))]
     fn create_surface_output(&self, render_context: &str) -> PyOutput {
-        PyOutput { inner: self.inner.create_surface_output(&Token::new(render_context)) }
+        PyOutput {
+            inner: self
+                .inner
+                .create_surface_output(&Token::new(render_context)),
+        }
     }
 
     /// GetSurfaceOutput(render_context="") -> Output
     #[pyo3(signature = (render_context = ""))]
     fn get_surface_output(&self, render_context: &str) -> PyOutput {
-        PyOutput { inner: self.inner.get_surface_output(&Token::new(render_context)) }
+        PyOutput {
+            inner: self.inner.get_surface_output(&Token::new(render_context)),
+        }
     }
 
     /// ComputeSurfaceSource(render_contexts=[]) -> (Shader, outputName, outputType) or None
@@ -90,9 +100,15 @@ impl PyMaterial {
         let contexts: Vec<Token> = render_contexts.iter().map(|s| Token::new(s)).collect();
         let mut source_name = Token::new("");
         let mut source_type = usd_shade::types::AttributeType::Invalid;
-        let shader = self.inner.compute_surface_source(&contexts, &mut source_name, &mut source_type);
+        let shader =
+            self.inner
+                .compute_surface_source(&contexts, &mut source_name, &mut source_type);
         if shader.is_valid() {
-            Some((PyShader { inner: shader }, source_name.as_str().to_string(), format!("{source_type:?}")))
+            Some((
+                PyShader { inner: shader },
+                source_name.as_str().to_string(),
+                format!("{source_type:?}"),
+            ))
         } else {
             None
         }
@@ -107,9 +123,15 @@ impl PyMaterial {
         let contexts: Vec<Token> = render_contexts.iter().map(|s| Token::new(s)).collect();
         let mut source_name = Token::new("");
         let mut source_type = usd_shade::types::AttributeType::Invalid;
-        let shader = self.inner.compute_displacement_source(&contexts, &mut source_name, &mut source_type);
+        let shader =
+            self.inner
+                .compute_displacement_source(&contexts, &mut source_name, &mut source_type);
         if shader.is_valid() {
-            Some((PyShader { inner: shader }, source_name.as_str().to_string(), format!("{source_type:?}")))
+            Some((
+                PyShader { inner: shader },
+                source_name.as_str().to_string(),
+                format!("{source_type:?}"),
+            ))
         } else {
             None
         }
@@ -122,7 +144,9 @@ impl PyMaterial {
 
     /// GetBaseMaterial() -> Material
     fn get_base_material(&self) -> PyMaterial {
-        PyMaterial { inner: self.inner.get_base_material() }
+        PyMaterial {
+            inner: self.inner.get_base_material(),
+        }
     }
 
     /// ClearBaseMaterial()
@@ -153,13 +177,17 @@ impl PyShader {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: Shader::get(&stage.inner, &p) })
+        Ok(Self {
+            inner: Shader::get(&stage.inner, &p),
+        })
     }
 
     #[staticmethod]
     fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: Shader::define(&stage.inner, &p) })
+        Ok(Self {
+            inner: Shader::define(&stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -183,23 +211,31 @@ impl PyShader {
     /// CreateInput(name, type_name) -> Input
     fn create_input(&self, name: &str, type_name: &str) -> PyInput {
         let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyInput { inner: self.inner.create_input(&Token::new(name), &tn) }
+        PyInput {
+            inner: self.inner.create_input(&Token::new(name), &tn),
+        }
     }
 
     /// CreateOutput(name, type_name) -> Output
     fn create_output(&self, name: &str, type_name: &str) -> PyOutput {
         let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyOutput { inner: self.inner.create_output(&Token::new(name), &tn) }
+        PyOutput {
+            inner: self.inner.create_output(&Token::new(name), &tn),
+        }
     }
 
     /// GetInput(name) -> Input
     fn get_input(&self, name: &str) -> PyInput {
-        PyInput { inner: self.inner.get_input(&Token::new(name)) }
+        PyInput {
+            inner: self.inner.get_input(&Token::new(name)),
+        }
     }
 
     /// GetOutput(name) -> Output
     fn get_output(&self, name: &str) -> PyOutput {
-        PyOutput { inner: self.inner.get_output(&Token::new(name)) }
+        PyOutput {
+            inner: self.inner.get_output(&Token::new(name)),
+        }
     }
 
     /// GetInputs(only_authored=False) -> list[Input]
@@ -245,13 +281,17 @@ impl PyNodeGraph {
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: NodeGraph::get(&stage.inner, &p) })
+        Ok(Self {
+            inner: NodeGraph::get(&stage.inner, &p),
+        })
     }
 
     #[staticmethod]
     fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: NodeGraph::define(&stage.inner, &p) })
+        Ok(Self {
+            inner: NodeGraph::define(&stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -264,27 +304,32 @@ impl PyNodeGraph {
 
     fn create_input(&self, name: &str, type_name: &str) -> PyInput {
         let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyInput { inner: self.inner.create_input(&Token::new(name), &tn) }
+        PyInput {
+            inner: self.inner.create_input(&Token::new(name), &tn),
+        }
     }
 
     fn create_output(&self, name: &str, type_name: &str) -> PyOutput {
         let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyOutput { inner: self.inner.create_output(&Token::new(name), &tn) }
+        PyOutput {
+            inner: self.inner.create_output(&Token::new(name), &tn),
+        }
     }
 
     fn get_input(&self, name: &str) -> PyInput {
-        PyInput { inner: self.inner.get_input(&Token::new(name)) }
+        PyInput {
+            inner: self.inner.get_input(&Token::new(name)),
+        }
     }
 
     fn get_output(&self, name: &str) -> PyOutput {
-        PyOutput { inner: self.inner.get_output(&Token::new(name)) }
+        PyOutput {
+            inner: self.inner.get_output(&Token::new(name)),
+        }
     }
 
     /// ComputeOutputSource(output_name) -> (Shader, outputName, outputType) or None
-    fn compute_output_source(
-        &self,
-        output_name: &str,
-    ) -> Option<(PyShader, String, String)> {
+    fn compute_output_source(&self, output_name: &str) -> Option<(PyShader, String, String)> {
         let mut source_name = Token::new("");
         let mut source_type = usd_shade::types::AttributeType::Invalid;
         let shader = self.inner.compute_output_source(
@@ -293,7 +338,11 @@ impl PyNodeGraph {
             &mut source_type,
         );
         if shader.is_valid() {
-            Some((PyShader { inner: shader }, source_name.as_str().to_string(), format!("{source_type:?}")))
+            Some((
+                PyShader { inner: shader },
+                source_name.as_str().to_string(),
+                format!("{source_type:?}"),
+            ))
         } else {
             None
         }
@@ -338,7 +387,8 @@ impl PyInput {
     /// Set(value, time=default_time) — sets float value; other types not yet bridged via VtValue
     #[pyo3(signature = (value, time = 0.0))]
     fn set(&self, value: f64, time: f64) -> bool {
-        self.inner.set(Value::from(value as f32), TimeCode::new(time))
+        self.inner
+            .set(Value::from(value as f32), TimeCode::new(time))
     }
 
     /// ConnectToSource(source_path) -> bool
@@ -452,7 +502,9 @@ impl PyConnectableAPI {
             .inner
             .get_prim_at_path(&p)
             .ok_or_else(|| PyValueError::new_err(format!("No prim at path: {path}")))?;
-        Ok(Self { inner: ConnectableAPI::new(prim) })
+        Ok(Self {
+            inner: ConnectableAPI::new(prim),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -461,12 +513,16 @@ impl PyConnectableAPI {
 
     fn create_input(&self, name: &str, type_name: &str) -> PyInput {
         let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyInput { inner: self.inner.create_input(&Token::new(name), &tn) }
+        PyInput {
+            inner: self.inner.create_input(&Token::new(name), &tn),
+        }
     }
 
     fn create_output(&self, name: &str, type_name: &str) -> PyOutput {
         let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyOutput { inner: self.inner.create_output(&Token::new(name), &tn) }
+        PyOutput {
+            inner: self.inner.create_output(&Token::new(name), &tn),
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -499,14 +555,18 @@ impl PyMaterialBindingAPI {
             .inner
             .get_prim_at_path(&p)
             .ok_or_else(|| PyValueError::new_err(format!("No prim at path: {path}")))?;
-        Ok(Self { inner: MaterialBindingAPI::apply(&prim) })
+        Ok(Self {
+            inner: MaterialBindingAPI::apply(&prim),
+        })
     }
 
     /// MaterialBindingAPI.Get(stage, path)
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: MaterialBindingAPI::get(&stage.inner, &p) })
+        Ok(Self {
+            inner: MaterialBindingAPI::get(&stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -516,7 +576,8 @@ impl PyMaterialBindingAPI {
     /// Bind(material, strength="weakerThanDescendants", purpose="") -> bool
     #[pyo3(signature = (material, strength = "weakerThanDescendants", purpose = ""))]
     fn bind(&self, material: &PyMaterial, strength: &str, purpose: &str) -> bool {
-        self.inner.bind(&material.inner, &Token::new(strength), &Token::new(purpose))
+        self.inner
+            .bind(&material.inner, &Token::new(strength), &Token::new(purpose))
     }
 
     /// UnbindDirectBinding(purpose="") -> bool
@@ -546,7 +607,11 @@ impl PyMaterialBindingAPI {
     fn get_direct_binding(&self, purpose: &str) -> Option<PyMaterial> {
         let binding = self.inner.get_direct_binding(&Token::new(purpose));
         let mat = binding.get_material();
-        if mat.is_valid() { Some(PyMaterial { inner: mat }) } else { None }
+        if mat.is_valid() {
+            Some(PyMaterial { inner: mat })
+        } else {
+            None
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -577,14 +642,18 @@ impl PyCoordSysAPI {
             .inner
             .get_prim_at_path(&p)
             .ok_or_else(|| PyValueError::new_err(format!("No prim at path: {path}")))?;
-        Ok(Self { inner: CoordSysAPI::apply(&prim, &Token::new(name)) })
+        Ok(Self {
+            inner: CoordSysAPI::apply(&prim, &Token::new(name)),
+        })
     }
 
     /// CoordSysAPI.Get(stage, path) -> CoordSysAPI
     #[staticmethod]
     fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
-        Ok(Self { inner: CoordSysAPI::get(&stage.inner, &p) })
+        Ok(Self {
+            inner: CoordSysAPI::get(&stage.inner, &p),
+        })
     }
 
     fn is_valid(&self) -> bool {
@@ -625,20 +694,62 @@ struct PyTokens;
 
 #[pymethods]
 impl PyTokens {
-    #[getter] fn allPurpose(&self) -> &str { "allPurpose" }
-    #[getter] fn displacement(&self) -> &str { "displacement" }
-    #[getter] fn full(&self) -> &str { "full" }
-    #[getter] fn inputs(&self) -> &str { "inputs:" }
-    #[getter] fn interfaceOnly(&self) -> &str { "interfaceOnly" }
-    #[getter] fn materialBind(&self) -> &str { "materialBind" }
-    #[getter] fn outputs(&self) -> &str { "outputs:" }
-    #[getter] fn surface(&self) -> &str { "surface" }
-    #[getter] fn volume(&self) -> &str { "volume" }
-    #[getter] fn id(&self) -> &str { "info:id" }
-    #[getter] fn sdrMetadata(&self) -> &str { "sdrMetadata" }
-    #[getter] fn weakerThanDescendants(&self) -> &str { "weakerThanDescendants" }
-    #[getter] fn strongerThanDescendants(&self) -> &str { "strongerThanDescendants" }
-    #[getter] fn preview(&self) -> &str { "preview" }
+    #[getter]
+    fn allPurpose(&self) -> &str {
+        "allPurpose"
+    }
+    #[getter]
+    fn displacement(&self) -> &str {
+        "displacement"
+    }
+    #[getter]
+    fn full(&self) -> &str {
+        "full"
+    }
+    #[getter]
+    fn inputs(&self) -> &str {
+        "inputs:"
+    }
+    #[getter]
+    fn interfaceOnly(&self) -> &str {
+        "interfaceOnly"
+    }
+    #[getter]
+    fn materialBind(&self) -> &str {
+        "materialBind"
+    }
+    #[getter]
+    fn outputs(&self) -> &str {
+        "outputs:"
+    }
+    #[getter]
+    fn surface(&self) -> &str {
+        "surface"
+    }
+    #[getter]
+    fn volume(&self) -> &str {
+        "volume"
+    }
+    #[getter]
+    fn id(&self) -> &str {
+        "info:id"
+    }
+    #[getter]
+    fn sdrMetadata(&self) -> &str {
+        "sdrMetadata"
+    }
+    #[getter]
+    fn weakerThanDescendants(&self) -> &str {
+        "weakerThanDescendants"
+    }
+    #[getter]
+    fn strongerThanDescendants(&self) -> &str {
+        "strongerThanDescendants"
+    }
+    #[getter]
+    fn preview(&self) -> &str {
+        "preview"
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -650,9 +761,18 @@ struct PyAttributeType;
 
 #[pymethods]
 impl PyAttributeType {
-    #[classattr] fn Invalid() -> i32 { 0 }
-    #[classattr] fn Input() -> i32 { 1 }
-    #[classattr] fn Output() -> i32 { 2 }
+    #[classattr]
+    fn Invalid() -> i32 {
+        0
+    }
+    #[classattr]
+    fn Input() -> i32 {
+        1
+    }
+    #[classattr]
+    fn Output() -> i32 {
+        2
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -668,9 +788,13 @@ impl PyUtils {
     #[staticmethod]
     #[pyo3(name = "GetType")]
     fn get_type(name: &str) -> i32 {
-        if name.starts_with("inputs:") { 1 }
-        else if name.starts_with("outputs:") { 2 }
-        else { 0 }
+        if name.starts_with("inputs:") {
+            1
+        } else if name.starts_with("outputs:") {
+            2
+        } else {
+            0
+        }
     }
 
     /// GetBaseNameAndType(name) -> (baseName, attrType)

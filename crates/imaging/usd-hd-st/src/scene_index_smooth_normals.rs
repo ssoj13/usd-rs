@@ -1,4 +1,3 @@
-
 //! HdSt_SmoothNormalsSceneIndex - smooth normal computation for meshes.
 //!
 //! Filtering scene index that augments mesh prims with computed smooth normals.
@@ -11,8 +10,8 @@
 //!
 //! Port of C++ `HdSt_SmoothNormalsComputationCPU`/`GPU` + scene index pattern.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdDataSourceLocator, HdDataSourceLocatorSet, HdOverlayContainerDataSource,
@@ -175,7 +174,8 @@ impl HdStSmoothNormalsSceneIndex {
 impl HdSceneIndexBase for HdStSmoothNormalsSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 let prim = input_lock.get_prim(prim_path);
 
                 // Only augment mesh prims with a data source
@@ -195,7 +195,8 @@ impl HdSceneIndexBase for HdStSmoothNormalsSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_child_prim_paths(prim_path);
             }
         }

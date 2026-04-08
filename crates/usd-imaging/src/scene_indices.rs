@@ -248,8 +248,8 @@ pub fn create_scene_indices(info: UsdImagingCreateSceneIndicesInfo) -> UsdImagin
     // resolves material bindings and primvars from ancestors.
     {
         diag("flattening");
-        let flattening_args = crate::flattened_data_source_providers
-            ::usd_imaging_flattened_data_source_providers();
+        let flattening_args =
+            crate::flattened_data_source_providers::usd_imaging_flattened_data_source_providers();
         let si = usd_hd::scene_index::HdFlatteningSceneIndex::new(
             Some(scene_index),
             Some(flattening_args),
@@ -372,17 +372,15 @@ mod tests {
     use crate::skel::{
         BindingSchema, DataSourceResolvedPointsBasedPrim, SkeletonResolvingSceneIndex,
     };
-    use std::path::PathBuf;
     use usd_hd::scene_index::si_ref;
     use usd_hd::schema::HdMeshSchema;
 
-    fn open_reference_stage(relative_path: &str) -> Arc<Stage> {
-        let fixture_path: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(relative_path);
-        Stage::open(
-            fixture_path.to_str().expect("fixture path utf8"),
-            usd_core::common::InitialLoadSet::LoadAll,
-        )
-        .expect("open reference stage")
+    fn open_reference_stage(relative_under_usd_imaging_testenv: &str) -> Arc<Stage> {
+        let fixture_path =
+            openusd_test_path::pxr_usd_imaging_testenv(relative_under_usd_imaging_testenv);
+        let p = fixture_path.to_string_lossy().replace('\\', "/");
+        Stage::open(p.as_str(), usd_core::common::InitialLoadSet::LoadAll)
+            .expect("open reference stage")
     }
 
     fn has_mesh_topology(scene: &HdSceneIndexHandle, prim_path: &usd_sdf::Path) -> bool {
@@ -446,7 +444,8 @@ mod tests {
         let material_bindings = create_material_bindings_resolving_scene_index(scene_index);
         scene_index = scene_index_to_handle(material_bindings);
 
-        let plugin_scene = UsdImagingSceneIndexPluginRegistry::add_plugin_scene_indices(scene_index);
+        let plugin_scene =
+            UsdImagingSceneIndexPluginRegistry::add_plugin_scene_indices(scene_index);
 
         (stage_ssi, plugin_scene)
     }
@@ -481,16 +480,17 @@ mod tests {
     fn test_skeleton_resolution_survives_pre_plugin_chain_steps() {
         usd_core::schema_registry::register_builtin_schemas();
 
-        let fixture =
-            "testenv/testUsdImagingGLSkeleton/skeleton.usda";
+        let fixture = "testUsdImagingGLSkeleton/skeleton.usda";
 
-        let stage_type = resolve_skeleton_type_after_chain(open_reference_stage(fixture), |scene| scene);
+        let stage_type =
+            resolve_skeleton_type_after_chain(open_reference_stage(fixture), |scene| scene);
         assert_eq!(stage_type, "mesh");
 
-        let extent_type = resolve_skeleton_type_after_chain(open_reference_stage(fixture), |scene| {
-            let extent = create_extent_resolving_scene_index(scene);
-            scene_index_to_handle(extent)
-        });
+        let extent_type =
+            resolve_skeleton_type_after_chain(open_reference_stage(fixture), |scene| {
+                let extent = create_extent_resolving_scene_index(scene);
+                scene_index_to_handle(extent)
+            });
         assert_eq!(extent_type, "mesh");
 
         let pi_type = resolve_skeleton_type_after_chain(open_reference_stage(fixture), |scene| {
@@ -515,27 +515,28 @@ mod tests {
         });
         assert_eq!(ni_type, "mesh");
 
-        let material_type = resolve_skeleton_type_after_chain(open_reference_stage(fixture), |scene| {
-            let extent = create_extent_resolving_scene_index(scene);
-            let scene = scene_index_to_handle(extent);
-            let pi = PiPrototypePropagatingSceneIndex::new(scene);
-            let scene = scene_index_to_handle(pi);
-            let ni = UsdImagingNiPrototypePropagatingSceneIndex::new_with_instance_names(
-                scene,
-                instance_data_source_names(),
-                None,
-            );
-            let scene = scene_index_to_handle(ni);
-            let notice = HdNoticeBatchingSceneIndex::new(scene);
-            let scene = scene_index_to_handle(notice);
-            let proxy = InstanceProxyPathTranslationSceneIndex::new_with_proxy_path_names(
-                scene,
-                proxy_path_translation_data_source_names(),
-            );
-            let scene = scene_index_to_handle(proxy);
-            let material = create_material_bindings_resolving_scene_index(scene);
-            scene_index_to_handle(material)
-        });
+        let material_type =
+            resolve_skeleton_type_after_chain(open_reference_stage(fixture), |scene| {
+                let extent = create_extent_resolving_scene_index(scene);
+                let scene = scene_index_to_handle(extent);
+                let pi = PiPrototypePropagatingSceneIndex::new(scene);
+                let scene = scene_index_to_handle(pi);
+                let ni = UsdImagingNiPrototypePropagatingSceneIndex::new_with_instance_names(
+                    scene,
+                    instance_data_source_names(),
+                    None,
+                );
+                let scene = scene_index_to_handle(ni);
+                let notice = HdNoticeBatchingSceneIndex::new(scene);
+                let scene = scene_index_to_handle(notice);
+                let proxy = InstanceProxyPathTranslationSceneIndex::new_with_proxy_path_names(
+                    scene,
+                    proxy_path_translation_data_source_names(),
+                );
+                let scene = scene_index_to_handle(proxy);
+                let material = create_material_bindings_resolving_scene_index(scene);
+                scene_index_to_handle(material)
+            });
         assert_eq!(material_type, "mesh");
     }
 
@@ -543,15 +544,11 @@ mod tests {
     fn test_plugin_chain_resolves_skeleton_fixture_to_mesh_before_storm() {
         usd_core::schema_registry::register_builtin_schemas();
 
-        let stage = open_reference_stage(
-            "testenv/testUsdImagingGLSkeleton/skeleton.usda",
-        );
+        let stage = open_reference_stage("testUsdImagingGLSkeleton/skeleton.usda");
         let plugin_scene = build_scene_through_plugins(stage);
         let skeleton_path =
             usd_sdf::Path::from_string("/SkelChar/Skeleton").expect("skeleton path");
-        let prim = plugin_scene
-            .read()
-            .get_prim(&skeleton_path);
+        let prim = plugin_scene.read().get_prim(&skeleton_path);
 
         assert_eq!(prim.prim_type.as_str(), "mesh");
     }
@@ -560,9 +557,7 @@ mod tests {
     fn test_create_scene_indices_resolves_skeleton_fixture_to_mesh() {
         usd_core::schema_registry::register_builtin_schemas();
 
-        let stage = open_reference_stage(
-            "testenv/testUsdImagingGLSkeleton/skeleton.usda",
-        );
+        let stage = open_reference_stage("testUsdImagingGLSkeleton/skeleton.usda");
         let scene_indices = create_scene_indices(UsdImagingCreateSceneIndicesInfo {
             stage: Some(stage),
             ..Default::default()
@@ -579,11 +574,9 @@ mod tests {
             has_mesh_topology(&scene_indices.final_scene_index, &skeleton_path),
             "full create_scene_indices chain must preserve mesh topology for resolved skeleton guides",
         );
-        let (face_count, index_count) = mesh_topology_sizes(
-            &scene_indices.final_scene_index,
-            &skeleton_path,
-        )
-        .expect("resolved skeleton guide topology sizes");
+        let (face_count, index_count) =
+            mesh_topology_sizes(&scene_indices.final_scene_index, &skeleton_path)
+                .expect("resolved skeleton guide topology sizes");
         assert!(
             face_count > 0 && index_count > 0,
             "resolved skeleton guide should expose non-empty bone mesh topology",
@@ -594,18 +587,13 @@ mod tests {
     fn test_create_scene_indices_inherits_skel_root_binding_for_skinned_mesh() {
         usd_core::schema_registry::register_builtin_schemas();
 
-        let stage = open_reference_stage(
-            "testenv/testUsdImagingGLUsdSkel/arm.usda",
-        );
+        let stage = open_reference_stage("testUsdImagingGLUsdSkel/arm.usda");
         let scene_indices = create_scene_indices(UsdImagingCreateSceneIndicesInfo {
             stage: Some(stage),
             ..Default::default()
         });
         let mesh_path = usd_sdf::Path::from_string("/Model/Arm").expect("mesh path");
-        let prim = scene_indices
-            .final_scene_index
-            .read()
-            .get_prim(&mesh_path);
+        let prim = scene_indices.final_scene_index.read().get_prim(&mesh_path);
         let prim_source = prim.data_source.expect("mesh data source");
         let binding = BindingSchema::get_from_parent(&prim_source);
         let resolved = DataSourceResolvedPointsBasedPrim::new_from_scene(
@@ -619,7 +607,10 @@ mod tests {
             binding.get_has_skel_root(),
             "skinned mesh must inherit skelBinding.hasSkelRoot from its SkelRoot ancestor",
         );
-        assert!(resolved.is_some(), "skinned mesh must resolve to a points-based skinning prim");
+        assert!(
+            resolved.is_some(),
+            "skinned mesh must resolve to a points-based skinning prim"
+        );
         assert_eq!(
             resolved
                 .as_ref()

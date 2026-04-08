@@ -19,6 +19,9 @@ usd_tf = { package = "usd-tf", path = "../../base/usd-tf" }
 usd_vt = { package = "usd-vt", path = "../../base/usd-vt" }
 log = "0.4"
 
+[dev-dependencies]
+openusd-test-path = { path = "../../base/openusd-test-path" }
+
 [lints.rust]
 unsafe_code = "warn"
 

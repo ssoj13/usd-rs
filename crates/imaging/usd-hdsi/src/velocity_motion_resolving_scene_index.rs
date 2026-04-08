@@ -1,13 +1,12 @@
-
 //! Velocity motion resolving scene index.
 //!
 //! Resolves velocity-based motion blur for points, instanceTranslations,
 //! instanceRotations, and instanceScales.
 
 use crate::tokens::VELOCITY_MOTION_RESOLVING_SCENE_INDEX_TOKENS;
+use parking_lot::RwLock;
 use std::ops::Deref;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_gf::{Quatf, Vec3f};
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
@@ -594,7 +593,9 @@ impl HdsiVelocityMotionResolvingSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

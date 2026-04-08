@@ -1,10 +1,10 @@
 // Copyright 2014 DreamWorks Animation LLC.
 // Ported to Rust from OpenSubdiv 3.7.0 vtr/triRefinement.h/.cpp
 
-use crate::sdc::{Options, types::Split};
 use super::level::Level;
-use super::types::{Index, LocalIndex, index_is_valid};
 use super::refinement::{Refinement, RefinementOptions};
+use super::types::{Index, LocalIndex, index_is_valid};
+use crate::sdc::{Options, types::Split};
 
 /// Tri-splitting (Loop) refinement.
 /// Mirrors C++ `Vtr::internal::TriRefinement`.
@@ -19,7 +19,7 @@ impl TriRefinement {
         let mut r = unsafe { Refinement::new(parent, child, options, Split::ToTris) };
         // Wire all scheme-specific callbacks so that a bare Box<Refinement>
         // (as used in refine_adaptive) can call refine() correctly.
-        r.allocate_fn    = Some(TriRefinement::allocate_parent_child_indices_impl);
+        r.allocate_fn = Some(TriRefinement::allocate_parent_child_indices_impl);
         r.sparse_face_fn = Some(TriRefinement::mark_sparse_face_children_impl);
         r.populate_fv_fn = Some(TriRefinement::populate_face_vertex_relation_impl);
         r.populate_fe_fn = Some(TriRefinement::populate_face_edge_relation_impl);
@@ -32,7 +32,8 @@ impl TriRefinement {
 
     pub fn refine(&mut self, opts: RefinementOptions) {
         // Wire up virtual-dispatch overrides before calling the base refine().
-        self.0.refine_with_callbacks(opts,
+        self.0.refine_with_callbacks(
+            opts,
             TriRefinement::allocate_parent_child_indices_impl,
             TriRefinement::mark_sparse_face_children_impl,
             TriRefinement::populate_face_vertex_relation_impl,
@@ -44,8 +45,12 @@ impl TriRefinement {
         );
     }
 
-    pub fn inner(&self) -> &Refinement { &self.0 }
-    pub fn inner_mut(&mut self) -> &mut Refinement { &mut self.0 }
+    pub fn inner(&self) -> &Refinement {
+        &self.0
+    }
+    pub fn inner_mut(&mut self) -> &mut Refinement {
+        &mut self.0
+    }
 
     // =========================================================================
     // allocateParentChildIndices  (C++ TriRefinement::allocateParentChildIndices)
@@ -60,8 +65,8 @@ impl TriRefinement {
             let p = &*r.parent;
             (
                 p.get_num_faces(),
-                p.face_edge_indices.len(),   // used for face-child-edge count
-                p.edge_vert_indices.len(),   // used for edge-child-edge count
+                p.face_edge_indices.len(), // used for face-child-edge count
+                p.edge_vert_indices.len(), // used for edge-child-edge count
                 p.get_num_edges(),
                 p.get_num_vertices(),
             )
@@ -69,7 +74,8 @@ impl TriRefinement {
 
         // face-child-faces: every tri face → 4 child faces (fixed count=4, offset=4*i)
         // We use a local vector, not the shared parent face-vert c/o.
-        r.local_face_child_face_counts_offsets.resize(num_faces as usize * 2, 4);
+        r.local_face_child_face_counts_offsets
+            .resize(num_faces as usize * 2, 4);
         for i in 0..(num_faces as usize) {
             r.local_face_child_face_counts_offsets[i * 2 + 1] = (4 * i) as i32;
         }
@@ -122,9 +128,8 @@ impl TriRefinement {
             debug_assert_eq!(f_child_faces.len(), 4);
             debug_assert_eq!(f_child_edges.len(), 3);
 
-            let f_verts: Vec<Index> = unsafe {
-                (&*r.parent).get_face_vertices(p_face).as_slice().to_vec()
-            };
+            let f_verts: Vec<Index> =
+                unsafe { (&*r.parent).get_face_vertices(p_face).as_slice().to_vec() };
 
             let is_selected = r.parent_face_tag[p_face as usize].selected;
 
@@ -154,14 +159,13 @@ impl TriRefinement {
 
                 if marked {
                     // Check transitional edges
-                    let f_edges: Vec<Index> = unsafe {
-                        (&*r.parent).get_face_edges(p_face).as_slice().to_vec()
-                    };
+                    let f_edges: Vec<Index> =
+                        unsafe { (&*r.parent).get_face_edges(p_face).as_slice().to_vec() };
 
-                    let trans: u8 =
-                        ((r.parent_edge_tag[f_edges[0] as usize].transitional as u8) << 0)
-                      | ((r.parent_edge_tag[f_edges[1] as usize].transitional as u8) << 1)
-                      | ((r.parent_edge_tag[f_edges[2] as usize].transitional as u8) << 2);
+                    let trans: u8 = ((r.parent_edge_tag[f_edges[0] as usize].transitional as u8)
+                        << 0)
+                        | ((r.parent_edge_tag[f_edges[1] as usize].transitional as u8) << 1)
+                        | ((r.parent_edge_tag[f_edges[2] as usize].transitional as u8) << 2);
 
                     r.parent_face_tag[p_face as usize].transitional = trans;
 
@@ -224,7 +228,9 @@ impl TriRefinement {
                 Self::populate_face_vertex_counts_and_offsets(r);
             }
             let nf = (&*r.child).get_num_faces();
-            (&mut *r.child).face_vert_indices.resize((nf * 3) as usize, 0);
+            (&mut *r.child)
+                .face_vert_indices
+                .resize((nf * 3) as usize, 0);
         }
         Self::populate_face_vertices_from_parent_faces(r);
     }
@@ -328,7 +334,9 @@ impl TriRefinement {
                 Self::populate_face_vertex_counts_and_offsets(r);
             }
             let nf = (&*r.child).get_num_faces();
-            (&mut *r.child).face_edge_indices.resize((nf * 3) as usize, 0);
+            (&mut *r.child)
+                .face_edge_indices
+                .resize((nf * 3) as usize, 0);
         }
         Self::populate_face_edges_from_parent_faces(r);
     }
@@ -364,8 +372,7 @@ impl TriRefinement {
                 };
 
                 // Degenerate edge → no reversal concern; treat as reversed
-                let edge_reversed_wrt_face = (p_ev0 != p_ev1)
-                    && (p_face_verts[i] != p_ev0);
+                let edge_reversed_wrt_face = (p_ev0 != p_ev1) && (p_face_verts[i] != p_ev0);
 
                 p_edge_child_edges[i][0] = c_edges[edge_reversed_wrt_face as usize];
                 p_edge_child_edges[i][1] = c_edges[!edge_reversed_wrt_face as usize];
@@ -441,7 +448,9 @@ impl TriRefinement {
     fn populate_edge_vertex_relation_impl(r: &mut Refinement) {
         unsafe {
             let nce = (&*r.child).get_num_edges();
-            (&mut *r.child).edge_vert_indices.resize((nce * 2) as usize, 0);
+            (&mut *r.child)
+                .edge_vert_indices
+                .resize((nce * 2) as usize, 0);
         }
         Self::populate_edge_vertices_from_parent_faces(r);
         Self::populate_edge_vertices_from_parent_edges(r);
@@ -593,7 +602,9 @@ impl TriRefinement {
             //   Local index in corner face = (j+1)%3, in middle face = (j+1)%3.
             for j in 0..3usize {
                 let c_edge = p_face_child_edges[j];
-                if !index_is_valid(c_edge) { continue; }
+                if !index_is_valid(c_edge) {
+                    continue;
+                }
 
                 unsafe {
                     let child = &mut *r.child;
@@ -632,7 +643,8 @@ impl TriRefinement {
             let (p_edge_faces, p_edge_in_face, p_edge_verts) = unsafe {
                 let p = &*r.parent;
                 let ef: Vec<Index> = p.get_edge_faces(p_edge).as_slice().to_vec();
-                let einf: Vec<LocalIndex> = p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
+                let einf: Vec<LocalIndex> =
+                    p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
                 let ev: [Index; 2] = [
                     p.get_edge_vertices(p_edge)[0],
                     p.get_edge_vertices(p_edge)[1],
@@ -642,7 +654,9 @@ impl TriRefinement {
 
             for j in 0..2usize {
                 let c_edge = p_edge_children[j];
-                if !index_is_valid(c_edge) { continue; }
+                if !index_is_valid(c_edge) {
+                    continue;
+                }
 
                 unsafe {
                     let child = &mut *r.child;
@@ -652,11 +666,11 @@ impl TriRefinement {
                     let mut count = 0usize;
 
                     for i in 0..p_edge_faces.len() {
-                        let p_face       = p_edge_faces[i];
+                        let p_face = p_edge_faces[i];
                         let edge_in_face = p_edge_in_face[i] as usize;
 
-                        let p_face_verts: Vec<Index> = (&*r.parent).get_face_vertices(p_face)
-                            .as_slice().to_vec();
+                        let p_face_verts: Vec<Index> =
+                            (&*r.parent).get_face_vertices(p_face).as_slice().to_vec();
                         let p_face_children: Vec<Index> = r.get_face_child_faces(p_face).to_vec();
 
                         // Identify which child face of this parent face is incident to c_edge.
@@ -669,12 +683,16 @@ impl TriRefinement {
                         };
 
                         let mut child_in_face = edge_in_face + child_of_edge;
-                        if child_in_face == p_face_verts.len() { child_in_face = 0; }
+                        if child_in_face == p_face_verts.len() {
+                            child_in_face = 0;
+                        }
 
                         if index_is_valid(p_face_children[child_in_face]) {
                             let child = &mut *r.child;
-                            child.edge_face_indices[offset + count] = p_face_children[child_in_face];
-                            child.edge_face_local_indices[offset + count] = edge_in_face as LocalIndex;
+                            child.edge_face_indices[offset + count] =
+                                p_face_children[child_in_face];
+                            child.edge_face_local_indices[offset + count] =
+                                edge_in_face as LocalIndex;
                             count += 1;
                         }
                     }
@@ -733,12 +751,15 @@ impl TriRefinement {
 
         for p_edge in 0..num_edges {
             let c_vert = r.edge_child_vert_index[p_edge as usize];
-            if !index_is_valid(c_vert) { continue; }
+            if !index_is_valid(c_vert) {
+                continue;
+            }
 
             let (p_edge_faces, p_edge_in_face) = unsafe {
                 let p = &*r.parent;
                 let ef: Vec<Index> = p.get_edge_faces(p_edge).as_slice().to_vec();
-                let einf: Vec<LocalIndex> = p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
+                let einf: Vec<LocalIndex> =
+                    p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
                 (ef, einf)
             };
 
@@ -751,20 +772,20 @@ impl TriRefinement {
                 let mut count = 0usize;
 
                 for i in 0..p_edge_faces.len() {
-                    let p_face       = p_edge_faces[i];
+                    let p_face = p_edge_faces[i];
                     let edge_in_face = p_edge_in_face[i] as usize;
 
                     // Three child faces of the parent tri that share this edge midpoint:
                     //   leadingFace  = (edgeInFace+1) % 3  (next corner)
                     //   middleFace   = 3                   (interior)
                     //   trailingFace = edgeInFace          (this corner)
-                    let leading_face  = (edge_in_face + 1) % 3;
-                    let middle_face   = 3usize;
+                    let leading_face = (edge_in_face + 1) % 3;
+                    let middle_face = 3usize;
                     let trailing_face = edge_in_face;
 
                     // Local indices of the child vertex within each child face
-                    let leading_local  = edge_in_face as LocalIndex;
-                    let middle_local   = ((edge_in_face + 2) % 3) as LocalIndex;
+                    let leading_local = edge_in_face as LocalIndex;
+                    let middle_local = ((edge_in_face + 2) % 3) as LocalIndex;
                     let trailing_local = ((edge_in_face + 1) % 3) as LocalIndex;
 
                     let p_face_children: Vec<Index> = r.get_face_child_faces(p_face).to_vec();
@@ -800,12 +821,15 @@ impl TriRefinement {
 
         for p_vert in 0..num_verts {
             let c_vert = r.vert_child_vert_index[p_vert as usize];
-            if !index_is_valid(c_vert) { continue; }
+            if !index_is_valid(c_vert) {
+                continue;
+            }
 
             let (p_vert_faces, p_vert_in_face) = unsafe {
                 let p = &*r.parent;
                 let vf: Vec<Index> = p.get_vertex_faces(p_vert).as_slice().to_vec();
-                let vinf: Vec<LocalIndex> = p.get_vertex_face_local_indices(p_vert).as_slice().to_vec();
+                let vinf: Vec<LocalIndex> =
+                    p.get_vertex_face_local_indices(p_vert).as_slice().to_vec();
                 (vf, vinf)
             };
 
@@ -817,8 +841,8 @@ impl TriRefinement {
                 let mut count = 0usize;
 
                 for i in 0..p_vert_faces.len() {
-                    let p_face       = p_vert_faces[i];
-                    let vert_in_face = p_vert_in_face[i] as usize;   // which child of this face
+                    let p_face = p_vert_faces[i];
+                    let vert_in_face = p_vert_in_face[i] as usize; // which child of this face
 
                     let p_face_children: Vec<Index> = r.get_face_child_faces(p_face).to_vec();
 
@@ -848,7 +872,8 @@ impl TriRefinement {
         let estimate = unsafe {
             let p = &*r.parent;
             // 2 interior edges per parent edge-face + 2 child-edges-of-edge + parent vert-edges
-            p.edge_face_indices.len() * 2 + p.get_num_edges() as usize * 2
+            p.edge_face_indices.len() * 2
+                + p.get_num_edges() as usize * 2
                 + p.vert_edge_indices.len()
         };
 
@@ -883,12 +908,15 @@ impl TriRefinement {
 
         for p_edge in 0..num_edges {
             let c_vert = r.edge_child_vert_index[p_edge as usize];
-            if !index_is_valid(c_vert) { continue; }
+            if !index_is_valid(c_vert) {
+                continue;
+            }
 
             let (p_edge_faces, p_edge_in_face, p_edge_verts, p_edge_child_edges) = unsafe {
                 let p = &*r.parent;
                 let ef: Vec<Index> = p.get_edge_faces(p_edge).as_slice().to_vec();
-                let einf: Vec<LocalIndex> = p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
+                let einf: Vec<LocalIndex> =
+                    p.get_edge_face_local_indices(p_edge).as_slice().to_vec();
                 let ev: [Index; 2] = [
                     p.get_edge_vertices(p_edge)[0],
                     p.get_edge_vertices(p_edge)[1],
@@ -911,7 +939,7 @@ impl TriRefinement {
                 let mut c_edge_of_edge1 = super::types::INDEX_INVALID;
 
                 for i in 0..p_edge_faces.len() {
-                    let p_face       = p_edge_faces[i];
+                    let p_face = p_edge_faces[i];
                     let edge_in_face = p_edge_in_face[i] as usize;
 
                     let p_face_child_edges: Vec<Index> = r.get_face_child_edges(p_face).to_vec();
@@ -920,8 +948,8 @@ impl TriRefinement {
                         // Determine reversal from the first face
                         if p_edge_verts[0] != p_edge_verts[1] {
                             p_edge_reversed = {
-                                let fv: Vec<Index> = (&*r.parent).get_face_vertices(p_face)
-                                    .as_slice().to_vec();
+                                let fv: Vec<Index> =
+                                    (&*r.parent).get_face_vertices(p_face).as_slice().to_vec();
                                 fv[edge_in_face] != p_edge_verts[0]
                             };
                         }
@@ -972,12 +1000,15 @@ impl TriRefinement {
 
         for p_vert in 0..num_verts {
             let c_vert = r.vert_child_vert_index[p_vert as usize];
-            if !index_is_valid(c_vert) { continue; }
+            if !index_is_valid(c_vert) {
+                continue;
+            }
 
             let (p_vert_edges, p_vert_in_edge) = unsafe {
                 let p = &*r.parent;
                 let ve: Vec<Index> = p.get_vertex_edges(p_vert).as_slice().to_vec();
-                let vine: Vec<LocalIndex> = p.get_vertex_edge_local_indices(p_vert).as_slice().to_vec();
+                let vine: Vec<LocalIndex> =
+                    p.get_vertex_edge_local_indices(p_vert).as_slice().to_vec();
                 (ve, vine)
             };
 
@@ -989,7 +1020,7 @@ impl TriRefinement {
                 let mut count = 0usize;
 
                 for i in 0..p_vert_edges.len() {
-                    let p_edge_idx  = p_vert_edges[i];
+                    let p_edge_idx = p_vert_edges[i];
                     let p_edge_vert = p_vert_in_edge[i] as usize;
 
                     // The child edge of the parent edge that touches this corner vertex

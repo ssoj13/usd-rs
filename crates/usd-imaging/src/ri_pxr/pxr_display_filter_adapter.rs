@@ -2,7 +2,9 @@
 
 use std::sync::Arc;
 
-use super::data_source_render_terminal::{DataSourceRenderTerminalPrim, display_filter_resource_locator};
+use super::data_source_render_terminal::{
+    DataSourceRenderTerminalPrim, display_filter_resource_locator,
+};
 use crate::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use crate::prim_adapter::PrimAdapter;
 use crate::types::PropertyInvalidationType;
@@ -99,7 +101,8 @@ mod tests {
         let adapter = PxrDisplayFilterAdapter::new();
         let stage = Stage::create_in_memory(usd_core::common::InitialLoadSet::LoadAll).unwrap();
         let globals: DataSourceStageGlobalsHandle = Arc::new(NoOpStageGlobals::default());
-        let data = adapter.get_imaging_subprim_data(&stage.get_pseudo_root(), &Token::new(""), &globals);
+        let data =
+            adapter.get_imaging_subprim_data(&stage.get_pseudo_root(), &Token::new(""), &globals);
         assert!(data.is_some());
     }
 }

@@ -1,4 +1,3 @@
-
 //! Buffer specification for describing GPU buffer layouts.
 
 use crate::types::HdTupleType;

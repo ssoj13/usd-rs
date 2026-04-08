@@ -1,4 +1,3 @@
-
 //! HdSt_MaterialBindingResolvingSceneIndex - material binding resolution for Storm.
 //!
 //! Plugin scene index that wraps the generic material binding resolving scene
@@ -19,8 +18,8 @@
 //! Port of C++ `HdSt_MaterialBindingResolvingSceneIndexPlugin` which
 //! wraps `HdsiMaterialBindingResolvingSceneIndex`.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdDataSourceLocator, HdOverlayContainerDataSource, HdRetainedContainerDataSource,
@@ -216,7 +215,8 @@ impl HdStMaterialBindingResolvingSceneIndex {
 impl HdSceneIndexBase for HdStMaterialBindingResolvingSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 let prim = input_lock.get_prim(prim_path);
 
                 if let Some(base_ds) = prim.data_source.clone() {
@@ -240,7 +240,8 @@ impl HdSceneIndexBase for HdStMaterialBindingResolvingSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_child_prim_paths(prim_path);
             }
         }

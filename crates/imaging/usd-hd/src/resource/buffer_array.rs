@@ -1,4 +1,3 @@
-
 //! Buffer array aggregation for coherent GPU buffers.
 
 use super::buffer_array_range::{HdBufferArrayRangeHandle, HdBufferArrayRangeWeakHandle};

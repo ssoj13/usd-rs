@@ -59,7 +59,9 @@ impl HdDataSourceBase for MatrixProductDataSource {
         Some(self)
     }
 
-    fn as_matrix_data_source(&self) -> Option<Arc<dyn HdTypedSampledDataSource<Matrix4d> + Send + Sync>> {
+    fn as_matrix_data_source(
+        &self,
+    ) -> Option<Arc<dyn HdTypedSampledDataSource<Matrix4d> + Send + Sync>> {
         Some(Arc::new(self.clone()))
     }
 }
@@ -247,9 +249,10 @@ impl DataSourceXformResolver {
             let primvars = HdPrimvarsSchema::get_from_parent(instancer_ds);
             let anim_primvar = primvars.get_primvar(&skel_anim);
             if let Some(pv_container) = anim_primvar {
-                if let Some(paths) =
-                    get_typed_value_from_container_vec_path(&pv_container, &Token::new("primvarValue"))
-                {
+                if let Some(paths) = get_typed_value_from_container_vec_path(
+                    &pv_container,
+                    &Token::new("primvarValue"),
+                ) {
                     if !paths.is_empty() {
                         return paths;
                     }

@@ -60,7 +60,7 @@
 
 use super::adapter_registry::AdapterRegistry;
 use super::prim_adapter::PrimAdapter;
-use crate::change_handler::{fields_to_dirty_bits, ChangeHandler};
+use crate::change_handler::{ChangeHandler, fields_to_dirty_bits};
 use crate::instance_adapter::{InstanceVisibility, InstancerData, PrimvarInfo, ProtoPrim};
 use crate::light_linking_cache::LightLinkingCache;
 use parking_lot::RwLock;
@@ -69,12 +69,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use usd_core::TimeCode as UsdTimeCode;
 use usd_core::{Attribute as UsdAttribute, Prim, Stage};
+use usd_geom::Imageable;
+use usd_geom::XformCache;
 use usd_geom::mesh::Mesh;
 use usd_geom::model_api::ModelAPI;
 use usd_geom::point_based::PointBased;
 use usd_geom::primvars_api::PrimvarsAPI;
-use usd_geom::Imageable;
-use usd_geom::XformCache;
 use usd_gf::{Matrix4d, Range3d, Vec3d, Vec3f, Vec4d};
 use usd_hd::enums::{HdCullStyle, HdInterpolation};
 use usd_hd::material_network::{HdMaterialNetworkMap, HdMaterialNetworkV1, HdMaterialNode};

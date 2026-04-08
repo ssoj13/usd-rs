@@ -1,4 +1,3 @@
-
 //! HdStDrawItemInstance - Per-instance state for a draw item.
 //!
 //! Stores visibility and batch association for a single draw item instance.

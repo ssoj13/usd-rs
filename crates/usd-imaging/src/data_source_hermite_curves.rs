@@ -186,13 +186,11 @@ impl HdContainerDataSource for DataSourceHermiteCurves {
 
     fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if *name == *tokens::TOPOLOGY {
-            return Some(
-                DataSourceHermiteCurvesTopology::new(
-                    self.scene_index_path.clone(),
-                    self.curves.clone(),
-                    self.stage_globals.clone(),
-                ) as HdDataSourceBaseHandle,
-            );
+            return Some(DataSourceHermiteCurvesTopology::new(
+                self.scene_index_path.clone(),
+                self.curves.clone(),
+                self.stage_globals.clone(),
+            ) as HdDataSourceBaseHandle);
         }
         None
     }
@@ -273,13 +271,11 @@ impl DataSourceHermiteCurvesPrim {
 
     pub fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if *name == *tokens::BASIS_CURVES {
-            return Some(
-                DataSourceHermiteCurves::new(
-                    self.scene_index_path.clone(),
-                    HermiteCurves::new(self.prim.clone()),
-                    self.stage_globals.clone(),
-                ) as HdDataSourceBaseHandle,
-            );
+            return Some(DataSourceHermiteCurves::new(
+                self.scene_index_path.clone(),
+                HermiteCurves::new(self.prim.clone()),
+                self.stage_globals.clone(),
+            ) as HdDataSourceBaseHandle);
         }
         self.base.get(name)
     }
@@ -293,8 +289,7 @@ impl DataSourceHermiteCurvesPrim {
         properties: &[Token],
         invalidation_type: PropertyInvalidationType,
     ) -> HdDataSourceLocatorSet {
-        let mut result =
-            DataSourceGprim::invalidate(prim, subprim, properties, invalidation_type);
+        let mut result = DataSourceGprim::invalidate(prim, subprim, properties, invalidation_type);
 
         if subprim.is_empty() {
             for property_name in properties {
@@ -316,8 +311,8 @@ impl DataSourceHermiteCurvesPrim {
 mod tests {
     use super::*;
     use crate::data_source_stage_globals::NoOpStageGlobals;
-    use usd_core::common::InitialLoadSet;
     use usd_core::Stage;
+    use usd_core::common::InitialLoadSet;
     use usd_hd::HdTypedSampledDataSource;
 
     #[test]

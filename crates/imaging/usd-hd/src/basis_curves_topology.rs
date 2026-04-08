@@ -1,4 +1,3 @@
-
 //! HdBasisCurvesTopology - Topology data for basis curves.
 //!
 //! Corresponds to pxr/imaging/hd/basisCurvesTopology.h.

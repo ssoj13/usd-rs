@@ -1,4 +1,3 @@
-
 //! HdStRenderPassState - Storm render pass state management.
 //!
 //! Manages camera parameters, viewport, shader references, clip planes,

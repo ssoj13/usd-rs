@@ -5,8 +5,8 @@
 
 use usd_geom::{
     BasisCurves, Boundable, Camera, Capsule, Capsule1, Cone, Cube, Curves, Cylinder, Cylinder1,
-    Gprim, HermiteCurves, Mesh, NurbsCurves, NurbsPatch, Plane, PointBased, PointInstancer,
-    Points, Sphere, TetMesh, Xformable,
+    Gprim, HermiteCurves, Mesh, NurbsCurves, NurbsPatch, Plane, PointBased, PointInstancer, Points,
+    Sphere, TetMesh, Xformable,
 };
 
 /// Resolve `UsdGeomXformable` for a schema (composition chain in `usd-geom`).

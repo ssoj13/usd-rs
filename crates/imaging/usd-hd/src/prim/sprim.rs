@@ -1,4 +1,3 @@
-
 //! Sprim - State primitive base trait.
 //!
 //! Sprims represent rendering state objects in Hydra. This includes:

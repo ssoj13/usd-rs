@@ -1,4 +1,3 @@
-
 //! hdSt - Storm Render Delegate
 //!
 //! Storm is the default rasterization-based render delegate for Hydra.

@@ -1,4 +1,3 @@
-
 //! Native instance prototype pruning scene index.
 //!
 //! Prunes (removes) prototype prims from the scene. After prototype data
@@ -24,8 +23,8 @@
 //!
 //! OpenUSD: `pxr/usdImaging/usdImaging/niPrototypePruningSceneIndex.h`
 
-use std::collections::HashSet;
 use parking_lot::RwLock;
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use usd_hd::HdDataSourceBaseHandle;
 use usd_hd::scene_index::observer::{
@@ -33,8 +32,8 @@ use usd_hd::scene_index::observer::{
 };
 use usd_hd::scene_index::{
     FilteringObserverTarget, HdContainerDataSourceHandle, HdSceneIndexBase, HdSceneIndexHandle,
-    HdSceneIndexPrim, HdSingleInputFilteringSceneIndexBase, SdfPathVector, wire_filter_to_input,
-    si_ref,
+    HdSceneIndexPrim, HdSingleInputFilteringSceneIndexBase, SdfPathVector, si_ref,
+    wire_filter_to_input,
 };
 use usd_sdf::Path as SdfPath;
 use usd_tf::Token as TfToken;
@@ -161,7 +160,11 @@ impl UsdImagingNiPrototypePruningSceneIndex {
     ///
     /// * `path` - Path to mark as pruned
     fn mark_pruned(&self, path: SdfPath) {
-        self.state.lock().expect("Lock poisoned").pruned_paths.insert(path);
+        self.state
+            .lock()
+            .expect("Lock poisoned")
+            .pruned_paths
+            .insert(path);
     }
 
     /// Checks if a path was previously marked as pruned.
@@ -426,13 +429,23 @@ mod tests {
         let path = SdfPath::from_string("/__Prototype_1").unwrap();
         scene_index.mark_pruned(path.clone());
         assert_eq!(
-            scene_index.state.lock().expect("Lock poisoned").pruned_paths.len(),
+            scene_index
+                .state
+                .lock()
+                .expect("Lock poisoned")
+                .pruned_paths
+                .len(),
             1
         );
 
         scene_index.set_pruning_enabled(false);
         assert_eq!(
-            scene_index.state.lock().expect("Lock poisoned").pruned_paths.len(),
+            scene_index
+                .state
+                .lock()
+                .expect("Lock poisoned")
+                .pruned_paths
+                .len(),
             0
         );
     }

@@ -1,4 +1,3 @@
-
 //! Unbound material pruning scene index.
 //!
 //! Port of pxr/imaging/hdsi/unboundMaterialPruningSceneIndex.
@@ -8,9 +7,9 @@
 
 use crate::tokens::UNBOUND_MATERIAL_PRUNING_SCENE_INDEX_TOKENS;
 use crate::utils;
+use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::HdTypedSampledDataSource;
 use usd_hd::data_source::{
     HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle, HdDataSourceLocatorSet,
@@ -116,7 +115,9 @@ impl HdsiUnboundMaterialPruningSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

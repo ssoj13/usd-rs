@@ -53,14 +53,25 @@ impl<'a, T> ConstArray<'a, T> {
     where
         T: PartialEq,
     {
-        debug_assert!(self.data.len() >= 4, "find_index_in_4_tuple: slice too short");
-        if self.data[0] == value { return 0; }
-        if self.data[1] == value { return 1; }
-        if self.data[2] == value { return 2; }
-        if self.data[3] == value { return 3; }
+        debug_assert!(
+            self.data.len() >= 4,
+            "find_index_in_4_tuple: slice too short"
+        );
+        if self.data[0] == value {
+            return 0;
+        }
+        if self.data[1] == value {
+            return 1;
+        }
+        if self.data[2] == value {
+            return 2;
+        }
+        if self.data[3] == value {
+            return 3;
+        }
         // SAFETY: caller guarantees value exists in the tuple (debug_assert above).
         debug_assert!(false, "find_index_in_4_tuple: value not found");
-        -1  // unreachable in correct usage
+        -1 // unreachable in correct usage
     }
 
     /// Linear search, returning the first matching index or -1.

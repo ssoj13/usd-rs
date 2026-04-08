@@ -121,7 +121,9 @@ struct RecordingObserver {
 
 impl RecordingObserver {
     fn new() -> Self {
-        Self { events: Mutex::new(Vec::new()) }
+        Self {
+            events: Mutex::new(Vec::new()),
+        }
     }
 
     fn get_events(&self) -> Vec<Event> {
@@ -327,13 +329,11 @@ fn test_retained_observer_prims_dirtied() {
 
     // Must add a real data source so dirty_prims passes the "prim exists" filter.
     let ds = HdRetainedContainerDataSource::new_1(tok("color"), int_ds(7));
-    scene
-        .write()
-        .add_prims(&[RetainedAddedPrimEntry::new(
-            path("/P"),
-            tok("mesh"),
-            Some(ds as _),
-        )]);
+    scene.write().add_prims(&[RetainedAddedPrimEntry::new(
+        path("/P"),
+        tok("mesh"),
+        Some(ds as _),
+    )]);
 
     let (obs_handle, obs_arc) = make_observer();
     scene.read().add_observer(obs_handle);
@@ -363,12 +363,10 @@ fn test_retained_dirty_nonexistent_prim_is_filtered() {
     let loc = HdDataSourceLocator::from_token(tok("x"));
     let mut dirty_set = HdDataSourceLocatorSet::new();
     dirty_set.insert(loc);
-    scene
-        .write()
-        .dirty_prims(&vec![DirtiedPrimEntry::new(
-            path("/NonExistent"),
-            dirty_set,
-        )]);
+    scene.write().dirty_prims(&vec![DirtiedPrimEntry::new(
+        path("/NonExistent"),
+        dirty_set,
+    )]);
 
     assert!(obs_arc.get_events().is_empty());
 }
@@ -559,22 +557,18 @@ fn test_merging_data_source_overlay() {
 fn test_merging_remove_input_scene() {
     // Add two scenes for /A.  Remove the stronger one, verify B takes over.
     let scene_a = HdRetainedSceneIndex::new();
-    scene_a
-        .write()
-        .add_prims(&[RetainedAddedPrimEntry::new(
-            path("/A"),
-            tok("mesh"),
-            Some(HdRetainedContainerDataSource::new_1(tok("x"), int_ds(10)) as _),
-        )]);
+    scene_a.write().add_prims(&[RetainedAddedPrimEntry::new(
+        path("/A"),
+        tok("mesh"),
+        Some(HdRetainedContainerDataSource::new_1(tok("x"), int_ds(10)) as _),
+    )]);
 
     let scene_b = HdRetainedSceneIndex::new();
-    scene_b
-        .write()
-        .add_prims(&[RetainedAddedPrimEntry::new(
-            path("/A"),
-            tok("mesh"),
-            Some(HdRetainedContainerDataSource::new_1(tok("x"), int_ds(20)) as _),
-        )]);
+    scene_b.write().add_prims(&[RetainedAddedPrimEntry::new(
+        path("/A"),
+        tok("mesh"),
+        Some(HdRetainedContainerDataSource::new_1(tok("x"), int_ds(20)) as _),
+    )]);
 
     let handle_a = scene_index_to_handle(scene_a);
     let handle_b = scene_index_to_handle(scene_b);
@@ -761,26 +755,22 @@ fn test_flattening_scene_index() {
     {
         let xform_container = make_xform_ds(0.0, 0.0, 10.0);
         let prim_ds = HdRetainedContainerDataSource::new_1(XFORM.clone(), xform_container);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/A/B"),
-                tok("huh"),
-                Some(prim_ds as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/A/B"),
+            tok("huh"),
+            Some(prim_ds as _),
+        )]);
     }
 
     // /A/B/C - translate(5, 0, 0)
     {
         let xform_container = make_xform_ds(5.0, 0.0, 0.0);
         let prim_ds = HdRetainedContainerDataSource::new_1(XFORM.clone(), xform_container);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/A/B/C"),
-                tok("huh"),
-                Some(prim_ds as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/A/B/C"),
+            tok("huh"),
+            Some(prim_ds as _),
+        )]);
     }
 
     // Helper: read matrix from a scene index at given path.
@@ -832,13 +822,11 @@ fn test_flattening_scene_index() {
     {
         let xform_container = make_xform_ds(0.0, 0.0, 20.0);
         let prim_ds = HdRetainedContainerDataSource::new_1(XFORM.clone(), xform_container);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/A/B"),
-                tok("huh"),
-                Some(prim_ds as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/A/B"),
+            tok("huh"),
+            Some(prim_ds as _),
+        )]);
     }
 
     // Flattened /A/B/C should now be translate(5, 0, 20).
@@ -925,13 +913,11 @@ fn test_flattening_scene_index_preserves_time_samples() {
             (1.0, make_translate(0.0, 0.0, 20.0)),
         ]);
         let prim_ds = HdRetainedContainerDataSource::new_1(XFORM.clone(), xform_container);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/A/B"),
-                tok("huh"),
-                Some(prim_ds as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/A/B"),
+            tok("huh"),
+            Some(prim_ds as _),
+        )]);
     }
 
     {
@@ -940,13 +926,11 @@ fn test_flattening_scene_index_preserves_time_samples() {
             (1.0, make_translate(7.0, 0.0, 0.0)),
         ]);
         let prim_ds = HdRetainedContainerDataSource::new_1(XFORM.clone(), xform_container);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/A/B/C"),
-                tok("huh"),
-                Some(prim_ds as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/A/B/C"),
+            tok("huh"),
+            Some(prim_ds as _),
+        )]);
     }
 
     let flat_lock = flattening.read();
@@ -1006,23 +990,19 @@ fn test_flattening_scene_index_clone_box_keeps_live_container_state() {
 
     let parent_ds =
         HdRetainedContainerDataSource::new_1(XFORM.clone(), make_xform_ds(0.0, 0.0, 10.0));
-    retained
-        .write()
-        .add_prims(&[RetainedAddedPrimEntry::new(
-            path("/A/B"),
-            tok("group"),
-            Some(parent_ds as _),
-        )]);
+    retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+        path("/A/B"),
+        tok("group"),
+        Some(parent_ds as _),
+    )]);
 
     let child_ds =
         HdRetainedContainerDataSource::new_1(XFORM.clone(), make_xform_ds(5.0, 0.0, 0.0));
-    retained
-        .write()
-        .add_prims(&[RetainedAddedPrimEntry::new(
-            path("/A/B/C"),
-            tok("group"),
-            Some(child_ds as _),
-        )]);
+    retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+        path("/A/B/C"),
+        tok("group"),
+        Some(child_ds as _),
+    )]);
 
     let prim_base = {
         let flat_lock = flattening.read();
@@ -1054,13 +1034,11 @@ fn test_flattening_scene_index_clone_box_keeps_live_container_state() {
 
     let updated_parent_ds =
         HdRetainedContainerDataSource::new_1(XFORM.clone(), make_xform_ds(0.0, 0.0, 20.0));
-    retained
-        .write()
-        .add_prims(&[RetainedAddedPrimEntry::new(
-            path("/A/B"),
-            tok("group"),
-            Some(updated_parent_ds as _),
-        )]);
+    retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+        path("/A/B"),
+        tok("group"),
+        Some(updated_parent_ds as _),
+    )]);
 
     let (tx1, tz1) = read_flattened_tx_tz(&prim_base);
     assert!((tx1 - 5.0_f64).abs() < 1e-9);
@@ -1102,16 +1080,14 @@ fn test_dependency_forwarding_scene_index() {
     forwarding.read().set_manual_garbage_collect(true);
 
     // /A — no dependencies
-    retained
-        .write()
-        .add_prims(&[RetainedAddedPrimEntry::new(
-            path("/A"),
-            tok("group"),
-            Some(HdRetainedContainerDataSource::new_1(
-                tok("dummy"),
-                HdRetainedTypedSampledDataSource::new(0i32) as _,
-            ) as _),
-        )]);
+    retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+        path("/A"),
+        tok("group"),
+        Some(HdRetainedContainerDataSource::new_1(
+            tok("dummy"),
+            HdRetainedTypedSampledDataSource::new(0i32) as _,
+        ) as _),
+    )]);
 
     // /B — depends on /A.taco -> affects /B.chicken
     {
@@ -1121,13 +1097,11 @@ fn test_dependency_forwarding_scene_index() {
             .set_affected_data_source_locator(loc_ds("chicken"))
             .build();
         let prim_ds = make_deps_container("test", dep as _);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/B"),
-                tok("group"),
-                Some(prim_ds as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/B"),
+            tok("group"),
+            Some(prim_ds as _),
+        )]);
     }
 
     // /C — depends on /B.chicken -> affects /C.salsa
@@ -1138,13 +1112,11 @@ fn test_dependency_forwarding_scene_index() {
             .set_affected_data_source_locator(loc_ds("salsa"))
             .build();
         let prim_ds = make_deps_container("test", dep as _);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/C"),
-                tok("group"),
-                Some(prim_ds as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/C"),
+            tok("group"),
+            Some(prim_ds as _),
+        )]);
     }
 
     // Cycle: D->E->F->D
@@ -1155,13 +1127,11 @@ fn test_dependency_forwarding_scene_index() {
             .set_affected_data_source_locator(loc_ds("attr1"))
             .build();
         let prim_ds = make_deps_container("test", dep as _);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/D"),
-                tok("group"),
-                Some(prim_ds as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/D"),
+            tok("group"),
+            Some(prim_ds as _),
+        )]);
     }
     {
         let dep = HdDependencySchemaBuilder::default()
@@ -1170,13 +1140,11 @@ fn test_dependency_forwarding_scene_index() {
             .set_affected_data_source_locator(loc_ds("attr2"))
             .build();
         let prim_ds = make_deps_container("test", dep as _);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/E"),
-                tok("group"),
-                Some(prim_ds as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/E"),
+            tok("group"),
+            Some(prim_ds as _),
+        )]);
     }
     {
         let dep = HdDependencySchemaBuilder::default()
@@ -1185,13 +1153,11 @@ fn test_dependency_forwarding_scene_index() {
             .set_affected_data_source_locator(loc_ds("attr3"))
             .build();
         let prim_ds = make_deps_container("test", dep as _);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/F"),
-                tok("group"),
-                Some(prim_ds as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/F"),
+            tok("group"),
+            Some(prim_ds as _),
+        )]);
     }
 
     // Attach observer.
@@ -1312,16 +1278,14 @@ fn test_dependency_forwarding_scene_index_eviction() {
     // Shared setup: /A (no deps), /B (depends on /A.taco->chicken), /C (no deps).
     let init_scenes = || {
         let retained = HdRetainedSceneIndex::new();
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/A"),
-                tok("group"),
-                Some(HdRetainedContainerDataSource::new_1(
-                    tok("x"),
-                    HdRetainedTypedSampledDataSource::new(0i32) as _,
-                ) as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/A"),
+            tok("group"),
+            Some(HdRetainedContainerDataSource::new_1(
+                tok("x"),
+                HdRetainedTypedSampledDataSource::new(0i32) as _,
+            ) as _),
+        )]);
         let dep_b = HdDependencySchemaBuilder::default()
             .set_depended_on_prim_path(path_ds("/A"))
             .set_depended_on_data_source_locator(loc_ds("taco"))
@@ -1331,23 +1295,19 @@ fn test_dependency_forwarding_scene_index_eviction() {
             tok("__dependencies"),
             HdRetainedContainerDataSource::new_1(tok("test"), dep_b as _) as _,
         );
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/B"),
-                tok("group"),
-                Some(deps_b as _),
-            )]);
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path("/C"),
-                tok("group"),
-                Some(HdRetainedContainerDataSource::new_1(
-                    tok("y"),
-                    HdRetainedTypedSampledDataSource::new(0i32) as _,
-                ) as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/B"),
+            tok("group"),
+            Some(deps_b as _),
+        )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path("/C"),
+            tok("group"),
+            Some(HdRetainedContainerDataSource::new_1(
+                tok("y"),
+                HdRetainedTypedSampledDataSource::new(0i32) as _,
+            ) as _),
+        )]);
 
         let retained_handle = scene_index_to_handle(retained.clone());
         let forwarding = HdDependencyForwardingSceneIndex::new(Some(retained_handle));
@@ -1536,26 +1496,24 @@ fn test_dependency_forwarding_scene_index_for_dependent_dependencies() {
     // Initial pets: /Dog and /Cat
     let initial_pets = [("/Dog", "bark"), ("/Cat", "meow"), ("/Tiger", "growl")];
     for (p, sound) in &initial_pets {
-        retained
-            .write()
-            .add_prims(&[RetainedAddedPrimEntry::new(
-                path(p),
-                tok("group"),
-                Some(HdRetainedContainerDataSource::new(
-                    [
-                        (
-                            tok("hungry"),
-                            HdRetainedTypedSampledDataSource::new(false) as HdDataSourceBaseHandle,
-                        ),
-                        (
-                            tok(sound),
-                            HdRetainedTypedSampledDataSource::new(false) as HdDataSourceBaseHandle,
-                        ),
-                    ]
-                    .into_iter()
-                    .collect(),
-                ) as _),
-            )]);
+        retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+            path(p),
+            tok("group"),
+            Some(HdRetainedContainerDataSource::new(
+                [
+                    (
+                        tok("hungry"),
+                        HdRetainedTypedSampledDataSource::new(false) as HdDataSourceBaseHandle,
+                    ),
+                    (
+                        tok(sound),
+                        HdRetainedTypedSampledDataSource::new(false) as HdDataSourceBaseHandle,
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+            ) as _),
+        )]);
     }
 
     // /Human container with pets=[/Dog, /Cat] initially.
@@ -1575,13 +1533,11 @@ fn test_dependency_forwarding_scene_index_for_dependent_dependencies() {
         .into_iter()
         .collect(),
     );
-    retained
-        .write()
-        .add_prims(&[RetainedAddedPrimEntry::new(
-            path("/Human"),
-            tok("group"),
-            Some(human_ds as _),
-        )]);
+    retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+        path("/Human"),
+        tok("group"),
+        Some(human_ds as _),
+    )]);
 
     let retained_handle = scene_index_to_handle(retained.clone());
     let forwarding = HdDependencyForwardingSceneIndex::new(Some(retained_handle));
@@ -1613,13 +1569,11 @@ fn test_dependency_forwarding_scene_index_for_dependent_dependencies() {
         .into_iter()
         .collect(),
     );
-    retained
-        .write()
-        .add_prims(&[RetainedAddedPrimEntry::new(
-            path("/Human"),
-            tok("group"),
-            Some(human_ds_updated as _),
-        )]);
+    retained.write().add_prims(&[RetainedAddedPrimEntry::new(
+        path("/Human"),
+        tok("group"),
+        Some(human_ds_updated as _),
+    )]);
     // Clear observer noise from the add.
     obs_arc.clear();
 

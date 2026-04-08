@@ -18,12 +18,12 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use usd_core::Prim;
 use usd_gf::{Interval, Matrix4d, Vec3d};
+use usd_hd::schema::HdMatrixDataSourceHandle;
 use usd_hd::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdDataSourceLocator, HdDataSourceLocatorSet, HdRetainedTypedSampledDataSource,
     HdSampledDataSource, HdSampledDataSourceTime, HdTypedSampledDataSource,
 };
-use usd_hd::schema::HdMatrixDataSourceHandle;
 use usd_sdf::{Path, TimeCode};
 use usd_tf::Token;
 use usd_vt::Value;
@@ -383,7 +383,8 @@ impl HdSampledDataSource for DataSourceXformMatrix {
         } else {
             TimeCode::new(base_time.value())
         };
-        let matrix = self.xform_query
+        let matrix = self
+            .xform_query
             .get_local_transformation(time)
             .unwrap_or_else(usd_gf::Matrix4d::identity);
         Value::from(matrix)
@@ -493,10 +494,9 @@ impl DataSourceXform {
         scene_index_path: Path,
         stage_globals: DataSourceStageGlobalsHandle,
     ) -> Arc<Self> {
-        let xform_query =
-            usd_geom::xformable::XformQuery::from_xformable(&usd_geom::xformable::Xformable::new(
-                prim.clone(),
-            ));
+        let xform_query = usd_geom::xformable::XformQuery::from_xformable(
+            &usd_geom::xformable::Xformable::new(prim.clone()),
+        );
         Self::from_query(xform_query, scene_index_path, stage_globals)
     }
 
@@ -1023,24 +1023,27 @@ impl HdContainerDataSource for DataSourcePrim {
         // Cached: XformQuery creation is expensive (~0.3ms) — resolves all xformOps
         // and creates AttributeQueries. Cache the result for the DataSourcePrim lifetime.
         if name == &*tokens::XFORM {
-            return self.cached_xform.get_or_init(|| {
-                if !self.is_xformable() {
-                    return None;
-                }
-                let xformable = usd_geom::xformable::Xformable::new(self.prim.clone());
-                if !xformable.is_valid() {
-                    return None;
-                }
-                let xform_query = usd_geom::xformable::XformQuery::from_xformable(&xformable);
-                if !xform_query.transform_might_have_effect() {
-                    return None;
-                }
-                Some(DataSourceXform::from_query(
-                    xform_query,
-                    self.hydra_path.clone(),
-                    self.stage_globals.clone(),
-                ))
-            }).clone();
+            return self
+                .cached_xform
+                .get_or_init(|| {
+                    if !self.is_xformable() {
+                        return None;
+                    }
+                    let xformable = usd_geom::xformable::Xformable::new(self.prim.clone());
+                    if !xformable.is_valid() {
+                        return None;
+                    }
+                    let xform_query = usd_geom::xformable::XformQuery::from_xformable(&xformable);
+                    if !xform_query.transform_might_have_effect() {
+                        return None;
+                    }
+                    Some(DataSourceXform::from_query(
+                        xform_query,
+                        self.hydra_path.clone(),
+                        self.stage_globals.clone(),
+                    ))
+                })
+                .clone();
         }
 
         // "visibility" -> DataSourceVisibility (for UsdGeomImageable prims)
@@ -1406,7 +1409,9 @@ mod tests {
         let stage = make_stage();
         let root_path = Path::from_string("/Root").unwrap();
         let child_path = Path::from_string("/Root/Child").unwrap();
-        let root = stage.define_prim(root_path.as_str(), "Xform").expect("define root");
+        let root = stage
+            .define_prim(root_path.as_str(), "Xform")
+            .expect("define root");
         let child = stage
             .define_prim(child_path.as_str(), "Xform")
             .expect("define child");

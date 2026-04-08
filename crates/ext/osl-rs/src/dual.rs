@@ -401,7 +401,11 @@ fn safe_powf(base: Float, exp: Float) -> Float {
         }
         // Check odd/even: odd exponent keeps negative sign, even gives positive.
         let result = (-base).powf(exp);
-        if (exp as i64) & 1 != 0 { -result } else { result }
+        if (exp as i64) & 1 != 0 {
+            -result
+        } else {
+            result
+        }
     } else {
         base.powf(exp)
     }

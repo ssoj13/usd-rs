@@ -97,14 +97,13 @@ pub fn run(config: ViewerConfig) -> eframe::Result<()> {
             egui_wgpu::wgpu::TextureFormat::Rgba8Unorm,
             egui_wgpu::wgpu::TextureFormat::Bgra8Unorm,
         ];
-        options.wgpu_options.wgpu_setup = egui_wgpu::WgpuSetup::CreateNew(
-            egui_wgpu::WgpuSetupCreateNew {
+        options.wgpu_options.wgpu_setup =
+            egui_wgpu::WgpuSetup::CreateNew(egui_wgpu::WgpuSetupCreateNew {
                 device_descriptor: std::sync::Arc::new(|adapter| {
                     usd_hgi_wgpu::HgiWgpu::create_device_descriptor(adapter, "usd-view")
                 }),
                 ..Default::default()
-            },
-        );
+            });
     }
 
     log::trace!("[PERF] launcher pre-init: {:?}", _app_t0.elapsed());

@@ -1,4 +1,3 @@
-
 //! Prim managing scene index observer.
 //!
 //! Port of pxr/imaging/hdsi/primManagingSceneIndexObserver.{h,cpp}

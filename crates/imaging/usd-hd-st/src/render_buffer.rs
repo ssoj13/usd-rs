@@ -1,4 +1,3 @@
-
 //! HdStRenderBuffer - Storm render buffer implementation.
 //!
 //! Implements render buffer (render target) for the Storm backend.

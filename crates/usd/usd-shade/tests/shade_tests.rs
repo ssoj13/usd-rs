@@ -7,7 +7,6 @@
 ///   - testUsdShadeConnectability.py  -> test_connectability_*
 ///   - testUsdShadeUdimUtils.py   -> test_udim_*
 ///   - testUsdShadeBinding.py     -> test_binding_*
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use usd_core::{InitialLoadSet, Stage};
@@ -1591,13 +1590,10 @@ fn test_node_def_api() {
 // testUsdShadeMaterialSpecializesBaseComposition.py — file-based tests
 // ===========================================================================
 
-fn testenv_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testenv")
-}
-
 fn open_testenv_stage(subdir: &str, filename: &str) -> Arc<Stage> {
     ensure_formats();
-    let path = testenv_dir().join(subdir).join(filename);
+    let path =
+        openusd_test_path::pxr_usd_module_testenv("usdShade", format!("{subdir}/{filename}"));
     let path_str = path.to_string_lossy().replace('\\', "/");
     Stage::open(&path_str, InitialLoadSet::LoadAll)
         .unwrap_or_else(|e| panic!("Failed to open {}: {}", path_str, e))

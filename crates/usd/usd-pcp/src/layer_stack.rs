@@ -1300,13 +1300,18 @@ mod tests {
 
     #[test]
     fn test_owned_sublayers_are_reordered_ahead_of_unowned() {
-        let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("testenv")
-            .join("museum")
-            .join("BasicOwner");
-        let root = Layer::find_or_open(base.join("root.usda").to_string_lossy().as_ref()).unwrap();
-        let session =
-            Layer::find_or_open(base.join("session.usda").to_string_lossy().as_ref()).unwrap();
+        let root = Layer::find_or_open(
+            openusd_test_path::pxr_pcp_museum("BasicOwner", "root.usda")
+                .to_string_lossy()
+                .as_ref(),
+        )
+        .unwrap();
+        let session = Layer::find_or_open(
+            openusd_test_path::pxr_pcp_museum("BasicOwner", "session.usda")
+                .to_string_lossy()
+                .as_ref(),
+        )
+        .unwrap();
 
         assert!(root.get_has_owned_sublayers());
         assert_eq!(session.get_session_owner(), "foo");

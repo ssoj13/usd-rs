@@ -3,13 +3,18 @@
 //! Composes a stronger time-sample series over a weaker one using `value_try_compose_over`
 //! (matches the optional compose function in OpenUSD).
 
-use usd_vt::{value_try_compose_over, Value};
+use usd_vt::{Value, value_try_compose_over};
 
 fn times_equal_default(a: f64, b: f64) -> bool {
     (a - b).abs() <= 1e-6
 }
 
-fn held_index(series: &[(f64, Value)], iter: usize, time: f64, eq: impl Fn(f64, f64) -> bool) -> usize {
+fn held_index(
+    series: &[(f64, Value)],
+    iter: usize,
+    time: f64,
+    eq: impl Fn(f64, f64) -> bool,
+) -> usize {
     if iter == series.len() {
         return series.len().saturating_sub(1);
     }
@@ -88,7 +93,12 @@ pub fn sdf_compose_time_sample_series(
     out
 }
 
-fn held_index_bool(series: &[(f64, bool)], iter: usize, time: f64, eq: impl Fn(f64, f64) -> bool) -> usize {
+fn held_index_bool(
+    series: &[(f64, bool)],
+    iter: usize,
+    time: f64,
+    eq: impl Fn(f64, f64) -> bool,
+) -> usize {
     if iter == series.len() {
         return series.len().saturating_sub(1);
     }

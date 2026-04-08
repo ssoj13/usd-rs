@@ -1,4 +1,3 @@
-
 //! Ext computation primvar pruning scene index.
 //!
 //! Port of pxr/imaging/hdsi/extComputationPrimvarPruningSceneIndex.
@@ -8,9 +7,9 @@
 //! the primvar's value, allowing downstream scene indices to transform the
 //! data like any authored primvar.
 
+use parking_lot::RwLock;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdSampledDataSource, HdSampledDataSourceTime, cast_to_container,
@@ -578,7 +577,9 @@ impl HdsiExtComputationPrimvarPruningSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

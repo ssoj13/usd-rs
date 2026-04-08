@@ -1,4 +1,3 @@
-
 //! HdSt_FlatNormalsSceneIndex - flat normal computation for meshes.
 //!
 //! Filtering scene index that augments mesh prims with computed flat normals.
@@ -13,8 +12,8 @@
 //!
 //! Port of C++ `HdSt_FlatNormalsComputationCPU`/`GPU` into scene index pattern.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdDataSourceLocator, HdDataSourceLocatorSet, HdOverlayContainerDataSource,
@@ -176,7 +175,8 @@ impl HdStFlatNormalsSceneIndex {
 impl HdSceneIndexBase for HdStFlatNormalsSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 let prim = input_lock.get_prim(prim_path);
 
                 // Only augment mesh prims that have a data source
@@ -196,7 +196,8 @@ impl HdSceneIndexBase for HdStFlatNormalsSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_child_prim_paths(prim_path);
             }
         }

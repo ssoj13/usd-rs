@@ -1,4 +1,3 @@
-
 //! HdMaterialNodeParameterSchema - Value data source for a material node parameter.
 //!
 //! Corresponds to pxr/imaging/hd/materialNodeParameterSchema.h

@@ -31,8 +31,7 @@ use usd_core::attribute::Attribute;
 use usd_gf::{Vec2f, Vec2i, Vec3f, Vec3i, Vec4f, Vec4i};
 use usd_hd::{
     HdDataSourceBase, HdDataSourceBaseHandle, HdDataSourceLocator, HdSampledDataSource,
-    HdSampledDataSourceTime,
-    HdTypedSampledDataSource, HdValueExtract,
+    HdSampledDataSourceTime, HdTypedSampledDataSource, HdValueExtract,
 };
 use usd_sdf::{Path, TimeCode};
 use usd_tf::Token;
@@ -477,7 +476,8 @@ mod tests {
     #[test]
     fn test_typed_data_source_attribute_debug() {
         let attr = Attribute::invalid();
-        let ds = DataSourceAttribute::<Value>::new(attr, create_test_globals(), Path::absolute_root());
+        let ds =
+            DataSourceAttribute::<Value>::new(attr, create_test_globals(), Path::absolute_root());
         let debug_str = format!("{:?}", ds);
         assert!(debug_str.contains("DataSourceAttribute"));
     }
@@ -485,7 +485,8 @@ mod tests {
     #[test]
     fn test_typed_data_source_attribute_get_value() {
         let attr = Attribute::invalid();
-        let ds = DataSourceAttribute::<Value>::new(attr, create_test_globals(), Path::absolute_root());
+        let ds =
+            DataSourceAttribute::<Value>::new(attr, create_test_globals(), Path::absolute_root());
 
         // Invalid attribute returns empty value
         let value = ds.get_value(0.0);
@@ -495,7 +496,8 @@ mod tests {
     #[test]
     fn test_typed_data_source_attribute_sample_times() {
         let attr = Attribute::invalid();
-        let ds = DataSourceAttribute::<Value>::new(attr, create_test_globals(), Path::absolute_root());
+        let ds =
+            DataSourceAttribute::<Value>::new(attr, create_test_globals(), Path::absolute_root());
 
         let mut sample_times = Vec::new();
         let has_samples = ds.get_contributing_sample_times(-0.25, 0.25, &mut sample_times);
@@ -506,7 +508,8 @@ mod tests {
     #[test]
     fn test_as_sampled_returns_self() {
         let attr = Attribute::invalid();
-        let ds = DataSourceAttribute::<Value>::new(attr, create_test_globals(), Path::absolute_root());
+        let ds =
+            DataSourceAttribute::<Value>::new(attr, create_test_globals(), Path::absolute_root());
 
         // as_sampled() must return Some — this is required for the adapter fallback
         assert!(ds.as_sampled().is_some());

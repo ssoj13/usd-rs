@@ -1,4 +1,3 @@
-
 //! Rerooting container data source - path prefix replacement.
 //!
 //! Port of pxr/usdImaging/usdImaging/rerootingContainerDataSource.h/cpp

@@ -1,4 +1,3 @@
-
 //! Smooth normals computation for meshes.
 //!
 //! Computes per-vertex normals by averaging cross products of incident face edges.

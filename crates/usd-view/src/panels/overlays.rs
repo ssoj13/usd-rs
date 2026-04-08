@@ -356,9 +356,9 @@ pub fn draw_grid(
         // Second axis lines: Y-up → parallel to Z (blue), Z-up → parallel to Y (green).
         let (base_color_z, width_z) = if is_axis {
             if is_z_up {
-                ([60u8, 200, 60], 2.0_f32)  // Y axis = green for Z-up
+                ([60u8, 200, 60], 2.0_f32) // Y axis = green for Z-up
             } else {
-                ([60u8, 100, 200], 2.0_f32)  // Z axis = blue for Y-up
+                ([60u8, 100, 200], 2.0_f32) // Z axis = blue for Y-up
             }
         } else if is_major {
             ([120, 120, 120], 1.2)

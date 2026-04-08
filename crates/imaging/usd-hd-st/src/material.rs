@@ -1,4 +1,3 @@
-
 //! HdStMaterial - Storm material implementation.
 //!
 //! Handles material/shader compilation and parameter binding.

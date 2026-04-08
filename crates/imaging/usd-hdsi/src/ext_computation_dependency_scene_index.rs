@@ -1,4 +1,3 @@
-
 //! Ext computation dependency scene index.
 //!
 //! Overlays __dependencies on every prim to track ext computation inputs,
@@ -6,8 +5,8 @@
 //! when upstream computation data changes.
 
 use once_cell::sync::Lazy;
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdDataSourceLocator,
     HdOverlayContainerDataSource, HdRetainedContainerDataSource, HdRetainedTypedSampledDataSource,
@@ -280,7 +279,9 @@ impl HdsiExtComputationDependencySceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

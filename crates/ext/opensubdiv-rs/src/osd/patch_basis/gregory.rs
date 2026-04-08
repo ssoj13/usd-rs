@@ -16,18 +16,19 @@ const BOUNDARY_GREGORY: [usize; 12] = [0, 1, 7, 5, 2, 6, 16, 12, 15, 17, 11, 10]
 const BOUNDARY_BEZ_S_COL: [usize; 12] = [0, 1, 2, 3, 0, 3, 0, 3, 0, 1, 2, 3];
 const BOUNDARY_BEZ_T_ROW: [usize; 12] = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 3, 3];
 
-const INTERIOR_GREGORY:   [usize; 8] = [3, 4, 8, 9, 13, 14, 18, 19];
-const INTERIOR_BEZ_S_COL: [usize; 8] = [1, 1, 2, 2,  2,  2,  1,  1];
-const INTERIOR_BEZ_T_ROW: [usize; 8] = [1, 1, 1, 1,  2,  2,  2,  2];
+const INTERIOR_GREGORY: [usize; 8] = [3, 4, 8, 9, 13, 14, 18, 19];
+const INTERIOR_BEZ_S_COL: [usize; 8] = [1, 1, 2, 2, 2, 2, 1, 1];
+const INTERIOR_BEZ_T_ROW: [usize; 8] = [1, 1, 1, 1, 2, 2, 2, 2];
 
 /// Evaluate Gregory quad patch basis.  Returns 20.
 ///
 /// Uses the approximated derivative (same as GPU shaders).
 pub fn eval_basis_gregory(
-    s: f32, t: f32,
-    wp:   Option<&mut [f32; 20]>,
-    wds:  Option<&mut [f32; 20]>,
-    wdt:  Option<&mut [f32; 20]>,
+    s: f32,
+    t: f32,
+    wp: Option<&mut [f32; 20]>,
+    wds: Option<&mut [f32; 20]>,
+    wdt: Option<&mut [f32; 20]>,
     wdss: Option<&mut [f32; 20]>,
     wdst: Option<&mut [f32; 20]>,
     wdtt: Option<&mut [f32; 20]>,
@@ -36,39 +37,63 @@ pub fn eval_basis_gregory(
     let need_d2 = wdss.is_some() || wdst.is_some() || wdtt.is_some();
 
     // Bezier curve bases at s and t
-    let mut bs   = [0f32; 4];
-    let mut bt   = [0f32; 4];
-    let mut bds  = [0f32; 4];
-    let mut bdt  = [0f32; 4];
+    let mut bs = [0f32; 4];
+    let mut bt = [0f32; 4];
+    let mut bds = [0f32; 4];
+    let mut bdt = [0f32; 4];
     let mut bdss = [0f32; 4];
     let mut bdtt = [0f32; 4];
 
-    eval_bezier_curve(s, Some(&mut bs),
-        if need_d1 { Some(&mut bds)  } else { None },
-        if need_d2 { Some(&mut bdss) } else { None });
-    eval_bezier_curve(t, Some(&mut bt),
-        if need_d1 { Some(&mut bdt)  } else { None },
-        if need_d2 { Some(&mut bdtt) } else { None });
+    eval_bezier_curve(
+        s,
+        Some(&mut bs),
+        if need_d1 { Some(&mut bds) } else { None },
+        if need_d2 { Some(&mut bdss) } else { None },
+    );
+    eval_bezier_curve(
+        t,
+        Some(&mut bt),
+        if need_d1 { Some(&mut bdt) } else { None },
+        if need_d2 { Some(&mut bdtt) } else { None },
+    );
 
     // Rational multipliers G for interior points
     let sc = 1.0 - s;
     let tc = 1.0 - t;
 
-    let df0 = { let d = s + t;   if d <= 0.0 { 1.0 } else { 1.0 / d } };
-    let df1 = { let d = sc + t;  if d <= 0.0 { 1.0 } else { 1.0 / d } };
-    let df2 = { let d = sc + tc; if d <= 0.0 { 1.0 } else { 1.0 / d } };
-    let df3 = { let d = s + tc;  if d <= 0.0 { 1.0 } else { 1.0 / d } };
+    let df0 = {
+        let d = s + t;
+        if d <= 0.0 { 1.0 } else { 1.0 / d }
+    };
+    let df1 = {
+        let d = sc + t;
+        if d <= 0.0 { 1.0 } else { 1.0 / d }
+    };
+    let df2 = {
+        let d = sc + tc;
+        if d <= 0.0 { 1.0 } else { 1.0 / d }
+    };
+    let df3 = {
+        let d = s + tc;
+        if d <= 0.0 { 1.0 } else { 1.0 / d }
+    };
 
     let g: [f32; 8] = [
-         s * df0, 1.0 -  s * df0,
-         t * df1, 1.0 -  t * df1,
-        sc * df2, 1.0 - sc * df2,
-        tc * df3, 1.0 - tc * df3,
+        s * df0,
+        1.0 - s * df0,
+        t * df1,
+        1.0 - t * df1,
+        sc * df2,
+        1.0 - sc * df2,
+        tc * df3,
+        1.0 - tc * df3,
     ];
 
     // Position weights
     if let Some(w) = wp {
-        for k in w.iter_mut() { *k = 0.0; }
+        for k in w.iter_mut() {
+            *k = 0.0;
+        }
         for i in 0..12 {
             w[BOUNDARY_GREGORY[i]] = bs[BOUNDARY_BEZ_S_COL[i]] * bt[BOUNDARY_BEZ_T_ROW[i]];
         }
@@ -80,23 +105,33 @@ pub fn eval_basis_gregory(
     // Derivative weights (approximate — Bezier differentiation of the
     // G-weighted patch, matching the GPU shader path)
     if let (Some(ds), Some(dt)) = (wds, wdt) {
-        for k in ds.iter_mut() { *k = 0.0; }
-        for k in dt.iter_mut() { *k = 0.0; }
+        for k in ds.iter_mut() {
+            *k = 0.0;
+        }
+        for k in dt.iter_mut() {
+            *k = 0.0;
+        }
         if let (Some(dss), Some(dst), Some(dtt)) = (wdss, wdst, wdtt) {
-            for k in dss.iter_mut() { *k = 0.0; }
-            for k in dst.iter_mut() { *k = 0.0; }
-            for k in dtt.iter_mut() { *k = 0.0; }
+            for k in dss.iter_mut() {
+                *k = 0.0;
+            }
+            for k in dst.iter_mut() {
+                *k = 0.0;
+            }
+            for k in dtt.iter_mut() {
+                *k = 0.0;
+            }
 
             // Boundary points
             for i in 0..12 {
                 let dst_i = BOUNDARY_GREGORY[i];
                 let tr = BOUNDARY_BEZ_T_ROW[i];
                 let sc_i = BOUNDARY_BEZ_S_COL[i];
-                ds[dst_i]  = bds[sc_i]  * bt[tr];
-                dt[dst_i]  = bdt[tr]    * bs[sc_i];
+                ds[dst_i] = bds[sc_i] * bt[tr];
+                dt[dst_i] = bdt[tr] * bs[sc_i];
                 dss[dst_i] = bdss[sc_i] * bt[tr];
-                dst[dst_i] = bds[sc_i]  * bdt[tr];
-                dtt[dst_i] = bs[sc_i]   * bdtt[tr];
+                dst[dst_i] = bds[sc_i] * bdt[tr];
+                dtt[dst_i] = bs[sc_i] * bdtt[tr];
             }
             // Interior points (approximate)
             for j in 0..8 {
@@ -104,11 +139,11 @@ pub fn eval_basis_gregory(
                 let tr = INTERIOR_BEZ_T_ROW[j];
                 let sc_j = INTERIOR_BEZ_S_COL[j];
                 let gj = g[j];
-                ds[dst_j]  = bds[sc_j]  * bt[tr]   * gj;
-                dt[dst_j]  = bdt[tr]    * bs[sc_j]  * gj;
-                dss[dst_j] = bdss[sc_j] * bt[tr]    * gj;
-                dst[dst_j] = bds[sc_j]  * bdt[tr]   * gj;
-                dtt[dst_j] = bs[sc_j]   * bdtt[tr]  * gj;
+                ds[dst_j] = bds[sc_j] * bt[tr] * gj;
+                dt[dst_j] = bdt[tr] * bs[sc_j] * gj;
+                dss[dst_j] = bdss[sc_j] * bt[tr] * gj;
+                dst[dst_j] = bds[sc_j] * bdt[tr] * gj;
+                dtt[dst_j] = bs[sc_j] * bdtt[tr] * gj;
             }
         } else {
             // First derivs only
@@ -117,15 +152,15 @@ pub fn eval_basis_gregory(
                 let tr = BOUNDARY_BEZ_T_ROW[i];
                 let sc_i = BOUNDARY_BEZ_S_COL[i];
                 ds[dst_i] = bds[sc_i] * bt[tr];
-                dt[dst_i] = bdt[tr]   * bs[sc_i];
+                dt[dst_i] = bdt[tr] * bs[sc_i];
             }
             for j in 0..8 {
                 let dst_j = INTERIOR_GREGORY[j];
                 let tr = INTERIOR_BEZ_T_ROW[j];
                 let sc_j = INTERIOR_BEZ_S_COL[j];
                 let gj = g[j];
-                ds[dst_j] = bds[sc_j] * bt[tr]  * gj;
-                dt[dst_j] = bdt[tr]   * bs[sc_j] * gj;
+                ds[dst_j] = bds[sc_j] * bt[tr] * gj;
+                dt[dst_j] = bdt[tr] * bs[sc_j] * gj;
             }
         }
     }
@@ -139,17 +174,17 @@ pub fn eval_basis_gregory(
 /// Convert 15 Bezier triangle weights + 6 rational multipliers to 18
 /// Gregory triangle weights.  Mirrors `Osd_convertBezierWeightsToGregory`.
 fn convert_bezier_to_gregory(wb: &[f32; 15], rg: &[f32; 6], wg: &mut [f32; 18]) {
-    wg[0]  = wb[0];
-    wg[1]  = wb[1];
-    wg[2]  = wb[5];
-    wg[3]  = wb[6] * rg[0];
-    wg[4]  = wb[6] * rg[1];
+    wg[0] = wb[0];
+    wg[1] = wb[1];
+    wg[2] = wb[5];
+    wg[3] = wb[6] * rg[0];
+    wg[4] = wb[6] * rg[1];
 
-    wg[5]  = wb[4];
-    wg[6]  = wb[8];
-    wg[7]  = wb[3];
-    wg[8]  = wb[7] * rg[2];
-    wg[9]  = wb[7] * rg[3];
+    wg[5] = wb[4];
+    wg[6] = wb[8];
+    wg[7] = wb[3];
+    wg[8] = wb[7] * rg[2];
+    wg[9] = wb[7] * rg[3];
 
     wg[10] = wb[14];
     wg[11] = wb[12];
@@ -164,10 +199,11 @@ fn convert_bezier_to_gregory(wb: &[f32; 15], rg: &[f32; 6], wg: &mut [f32; 18]) 
 
 /// Evaluate Gregory triangle patch basis.  Returns 18.
 pub fn eval_basis_gregory_tri(
-    s: f32, t: f32,
-    wp:   Option<&mut [f32; 18]>,
-    wds:  Option<&mut [f32; 18]>,
-    wdt:  Option<&mut [f32; 18]>,
+    s: f32,
+    t: f32,
+    wp: Option<&mut [f32; 18]>,
+    wds: Option<&mut [f32; 18]>,
+    wdt: Option<&mut [f32; 18]>,
     wdss: Option<&mut [f32; 18]>,
     wdst: Option<&mut [f32; 18]>,
     wdtt: Option<&mut [f32; 18]>,
@@ -178,9 +214,18 @@ pub fn eval_basis_gregory_tri(
 
     // Rational multipliers for the 3 pairs of interior points
     let mut g = [1.0_f32, 0.0, 1.0, 0.0, 1.0, 0.0];
-    if u + v > 0.0 { g[0] = u / (u + v); g[1] = v / (u + v); }
-    if v + w > 0.0 { g[2] = v / (v + w); g[3] = w / (v + w); }
-    if w + u > 0.0 { g[4] = w / (w + u); g[5] = u / (w + u); }
+    if u + v > 0.0 {
+        g[0] = u / (u + v);
+        g[1] = v / (u + v);
+    }
+    if v + w > 0.0 {
+        g[2] = v / (v + w);
+        g[3] = w / (v + w);
+    }
+    if w + u > 0.0 {
+        g[4] = w / (w + u);
+        g[5] = u / (w + u);
+    }
 
     let mut bp = [0f32; 15];
     let mut bds = [0f32; 15];
@@ -226,8 +271,11 @@ mod tests {
     fn gregory_quad_partition_of_unity() {
         let mut wp = [0f32; 20];
         eval_basis_gregory(0.3, 0.4, Some(&mut wp), None, None, None, None, None);
-        assert!((wp.iter().sum::<f32>() - 1.0).abs() < 1e-5,
-            "sum={}", wp.iter().sum::<f32>());
+        assert!(
+            (wp.iter().sum::<f32>() - 1.0).abs() < 1e-5,
+            "sum={}",
+            wp.iter().sum::<f32>()
+        );
     }
 
     #[test]
@@ -241,7 +289,10 @@ mod tests {
     fn gregory_tri_partition_of_unity() {
         let mut wp = [0f32; 18];
         eval_basis_gregory_tri(0.3, 0.4, Some(&mut wp), None, None, None, None, None);
-        assert!((wp.iter().sum::<f32>() - 1.0).abs() < 1e-5,
-            "sum={}", wp.iter().sum::<f32>());
+        assert!(
+            (wp.iter().sum::<f32>() - 1.0).abs() < 1e-5,
+            "sum={}",
+            wp.iter().sum::<f32>()
+        );
     }
 }

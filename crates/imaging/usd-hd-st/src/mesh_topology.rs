@@ -1,4 +1,3 @@
-
 //! HdSt_MeshTopology - Storm mesh topology with triangulation, quadrangulation,
 //! and subdivision support.
 //!

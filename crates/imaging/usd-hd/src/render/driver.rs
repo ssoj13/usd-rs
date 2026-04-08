@@ -1,4 +1,3 @@
-
 //! HdDriver - GPU device handle wrapper.
 //!
 //! Represents a device object (typically a render device) owned by the application

@@ -1,4 +1,3 @@
-
 //! HdEngine - Top-level entry point for executing Hydra rendering.
 //!
 //! The engine executes render tasks and manages the task context.

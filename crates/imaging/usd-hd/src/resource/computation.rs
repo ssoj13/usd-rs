@@ -1,4 +1,3 @@
-
 //! GPU computation interface for procedural data generation.
 
 use super::buffer_spec::HdBufferSpecVector;

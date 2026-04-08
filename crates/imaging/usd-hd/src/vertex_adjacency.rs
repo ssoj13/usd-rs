@@ -1,4 +1,3 @@
-
 //! Mesh vertex adjacency for smooth normal computation.
 //!
 //! Encapsulates mesh adjacency information used for smooth normal computation.

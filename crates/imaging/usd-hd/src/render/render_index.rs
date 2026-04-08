@@ -1,4 +1,3 @@
-
 //! HdRenderIndex - Central registry for scene primitives.
 //!
 //! The render index is a flattened representation of the scene graph,
@@ -33,20 +32,20 @@ use super::render_delegate::{HdRenderDelegate, HdRprimCollection};
 use super::task::HdTaskSharedPtr;
 use super::task_context::HdTaskContext;
 use crate::change_tracker::HdChangeTracker;
-use crate::flo_debug::flo_debug_enabled;
 use crate::flattened_xform_data_source_provider::{
     read_debug_flattened_xform_stats, reset_debug_flattened_xform_stats,
 };
+use crate::flo_debug::flo_debug_enabled;
 use crate::prim::instancer::HdInstancer;
 use crate::scene_index::base::HdSceneIndexHandle;
+use crate::scene_index::flattening::{
+    read_debug_flattening_xform_get_stats, reset_debug_flattening_xform_get_stats,
+};
 use crate::scene_index::legacy_prim::HdLegacyPrimSceneIndex;
 use crate::scene_index::merging::HdMergingSceneIndex;
 use crate::scene_index::notice_batching::HdNoticeBatchingSceneIndex;
 use crate::scene_index::observer::HdSceneIndexObserverHandle;
 use crate::scene_index::prefixing::HdPrefixingSceneIndex;
-use crate::scene_index::flattening::{
-    read_debug_flattening_xform_get_stats, reset_debug_flattening_xform_get_stats,
-};
 use crate::scene_index_adapter_scene_delegate::{
     HdSceneIndexAdapterSceneDelegate, read_debug_transform_stats, reset_debug_transform_stats,
 };
@@ -2308,24 +2307,21 @@ impl HdRenderIndex {
                     if diag_sync {
                         eprintln!(
                             "[render_index::sync_rprims] sync_rprims_typed:before_sync_dyn id={} type={}",
-                            id,
-                            entry.type_id
+                            id, entry.type_id
                         );
                     }
                     sh.sync_dyn(scene_delegate, None, &mut bits, &repr_token);
                     if diag_sync {
                         eprintln!(
                             "[render_index::sync_rprims] sync_rprims_typed:after_sync_dyn id={} type={}",
-                            id,
-                            entry.type_id
+                            id, entry.type_id
                         );
                     }
                     let clean_bits = bits & crate::change_tracker::HdRprimDirtyBits::VARYING;
                     if diag_sync {
                         eprintln!(
                             "[render_index::sync_rprims] sync_rprims_typed:mark_clean id={} type={}",
-                            id,
-                            entry.type_id
+                            id, entry.type_id
                         );
                     }
                     self.tracker.mark_rprim_clean(&id, clean_bits);
@@ -3857,7 +3853,9 @@ mod tests {
         assert!(index.insert_rprim(&mesh, &delegate_id, &prim_id));
 
         index.dirty_rprim_ids.clear();
-        index.tracker.mark_rprim_clean(&prim_id, HdRprimDirtyBits::CLEAN);
+        index
+            .tracker
+            .mark_rprim_clean(&prim_id, HdRprimDirtyBits::CLEAN);
 
         index.mark_rprim_dirty(&prim_id, HdRprimDirtyBits::DIRTY_TRANSFORM);
 

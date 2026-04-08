@@ -1,4 +1,3 @@
-
 //! Coordinate system prim scene index.
 //!
 //! If prim P has a coord sys binding FOO to another prim Q, the scene
@@ -7,10 +6,10 @@
 //! Port of pxr/imaging/hdsi/coordSysPrimSceneIndex.
 
 use crate::utils::{collect_prim_paths, make_coord_sys_prim_path};
+use parking_lot::RwLock;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdRetainedContainerDataSource, HdRetainedTypedSampledDataSource, cast_to_container,
@@ -275,7 +274,9 @@ impl HdsiCoordSysPrimSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }
@@ -295,7 +296,9 @@ impl HdsiCoordSysPrimSceneIndex {
 
         let parent_prim_path = prim_path.get_parent_path();
         let state = self.state.lock().expect("Lock poisoned");
-        let name_to_ref = state.targeted_prim_to_name_to_ref_count.get(&parent_prim_path)?;
+        let name_to_ref = state
+            .targeted_prim_to_name_to_ref_count
+            .get(&parent_prim_path)?;
         let coord_sys_name = TfToken::new(&prim_name[COORD_SYS_PRIM_PREFIX.len()..]);
         if !name_to_ref.contains_key(&coord_sys_name) {
             return None;
@@ -387,7 +390,9 @@ impl HdsiCoordSysPrimSceneIndex {
             removed_coord_sys_prims.insert(make_coord_sys_prim_path(&binding.path, &binding.name));
             name_to_ref.remove(&binding.name);
             if name_to_ref.is_empty() {
-                state.targeted_prim_to_name_to_ref_count.remove(&binding.path);
+                state
+                    .targeted_prim_to_name_to_ref_count
+                    .remove(&binding.path);
             }
         }
     }

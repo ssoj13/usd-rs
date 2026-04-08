@@ -1,4 +1,3 @@
-
 use crate::far::types::Index;
 
 // ---------------------------------------------------------------------------
@@ -10,18 +9,24 @@ use crate::far::types::Index;
 /// Mirrors C++ `Far::Stencil` / `Far::StencilReal<REAL>`.
 #[derive(Clone, Copy)]
 pub struct Stencil<'a> {
-    size:    &'a i32,
+    size: &'a i32,
     indices: &'a [Index],
     weights: &'a [f32],
 }
 
 impl<'a> Stencil<'a> {
     /// Number of contributing control vertices.
-    pub fn get_size(&self) -> i32 { *self.size }
+    pub fn get_size(&self) -> i32 {
+        *self.size
+    }
     /// Control vertex indices for this stencil.
-    pub fn get_vertex_indices(&self) -> &'a [Index] { self.indices }
+    pub fn get_vertex_indices(&self) -> &'a [Index] {
+        self.indices
+    }
     /// Interpolation weights (parallel with indices).
-    pub fn get_weights(&self) -> &'a [f32] { self.weights }
+    pub fn get_weights(&self) -> &'a [f32] {
+        self.weights
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -32,25 +37,41 @@ impl<'a> Stencil<'a> {
 ///
 /// Mirrors C++ `Far::LimitStencil` / `Far::LimitStencilReal<REAL>`.
 pub struct LimitStencilView<'a> {
-    size:        &'a i32,
-    indices:     &'a [Index],
-    weights:     &'a [f32],
-    du_weights:  Option<&'a [f32]>,
-    dv_weights:  Option<&'a [f32]>,
+    size: &'a i32,
+    indices: &'a [Index],
+    weights: &'a [f32],
+    du_weights: Option<&'a [f32]>,
+    dv_weights: Option<&'a [f32]>,
     duu_weights: Option<&'a [f32]>,
     duv_weights: Option<&'a [f32]>,
     dvv_weights: Option<&'a [f32]>,
 }
 
 impl<'a> LimitStencilView<'a> {
-    pub fn get_size(&self)           -> i32              { *self.size }
-    pub fn get_vertex_indices(&self) -> &'a [Index]      { self.indices }
-    pub fn get_weights(&self)        -> &'a [f32]        { self.weights }
-    pub fn get_du_weights(&self)     -> Option<&'a [f32]>{ self.du_weights }
-    pub fn get_dv_weights(&self)     -> Option<&'a [f32]>{ self.dv_weights }
-    pub fn get_duu_weights(&self)    -> Option<&'a [f32]>{ self.duu_weights }
-    pub fn get_duv_weights(&self)    -> Option<&'a [f32]>{ self.duv_weights }
-    pub fn get_dvv_weights(&self)    -> Option<&'a [f32]>{ self.dvv_weights }
+    pub fn get_size(&self) -> i32 {
+        *self.size
+    }
+    pub fn get_vertex_indices(&self) -> &'a [Index] {
+        self.indices
+    }
+    pub fn get_weights(&self) -> &'a [f32] {
+        self.weights
+    }
+    pub fn get_du_weights(&self) -> Option<&'a [f32]> {
+        self.du_weights
+    }
+    pub fn get_dv_weights(&self) -> Option<&'a [f32]> {
+        self.dv_weights
+    }
+    pub fn get_duu_weights(&self) -> Option<&'a [f32]> {
+        self.duu_weights
+    }
+    pub fn get_duv_weights(&self) -> Option<&'a [f32]> {
+        self.duv_weights
+    }
+    pub fn get_dvv_weights(&self) -> Option<&'a [f32]> {
+        self.dvv_weights
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -82,33 +103,53 @@ impl StencilTable {
     /// Build from pre-populated data (used by factory).
     pub fn from_data(
         num_control_vertices: i32,
-        sizes:   Vec<i32>,
+        sizes: Vec<i32>,
         offsets: Vec<i32>,
         indices: Vec<i32>,
         weights: Vec<f32>,
     ) -> Self {
-        Self { num_control_vertices, sizes, offsets, indices, weights }
+        Self {
+            num_control_vertices,
+            sizes,
+            offsets,
+            indices,
+            weights,
+        }
     }
 
-    pub fn get_num_control_vertices(&self) -> i32 { self.num_control_vertices }
-    pub fn get_num_stencils(&self)         -> i32 { self.sizes.len() as i32 }
+    pub fn get_num_control_vertices(&self) -> i32 {
+        self.num_control_vertices
+    }
+    pub fn get_num_stencils(&self) -> i32 {
+        self.sizes.len() as i32
+    }
 
-    pub fn sizes(&self)   -> &[i32] { &self.sizes }
-    pub fn offsets(&self) -> &[i32] { &self.offsets }
-    pub fn indices(&self) -> &[i32] { &self.indices }
-    pub fn weights(&self) -> &[f32] { &self.weights }
+    pub fn sizes(&self) -> &[i32] {
+        &self.sizes
+    }
+    pub fn offsets(&self) -> &[i32] {
+        &self.offsets
+    }
+    pub fn indices(&self) -> &[i32] {
+        &self.indices
+    }
+    pub fn weights(&self) -> &[f32] {
+        &self.weights
+    }
 
-    pub fn set_num_control_vertices(&mut self, n: i32) { self.num_control_vertices = n; }
+    pub fn set_num_control_vertices(&mut self, n: i32) {
+        self.num_control_vertices = n;
+    }
 
     /// Return a view of stencil `i`.
     ///
     /// Mirrors C++ `StencilTable::GetStencil(Index i)`.
     pub fn get_stencil(&self, i: Index) -> Stencil<'_> {
         assert!(!self.offsets.is_empty() && (i as usize) < self.offsets.len());
-        let ofs  = self.offsets[i as usize] as usize;
+        let ofs = self.offsets[i as usize] as usize;
         let size = self.sizes[i as usize] as usize;
         Stencil {
-            size:    &self.sizes[i as usize],
+            size: &self.sizes[i as usize],
             indices: &self.indices[ofs..ofs + size],
             weights: &self.weights[ofs..ofs + size],
         }
@@ -181,17 +222,13 @@ impl StencilTable {
     ///
     /// This is a type-erased slice version of C++
     /// `StencilTable::UpdateValues(T const*, U*, Index start, Index end)`.
-    pub fn update_values_f32_slice(
-        &self,
-        src: &[f32],
-        dst: &mut [f32],
-        start: i32,
-        end:   i32,
-    ) {
-        if self.sizes.is_empty() { return; }
+    pub fn update_values_f32_slice(&self, src: &[f32], dst: &mut [f32], start: i32, end: i32) {
+        if self.sizes.is_empty() {
+            return;
+        }
         let ns = self.get_num_stencils() as usize;
-        let s  = if start > 0 { start as usize } else { 0 };
-        let e  = if end > start { end as usize } else { ns };
+        let s = if start > 0 { start as usize } else { 0 };
+        let e = if end > start { end as usize } else { ns };
 
         let mut idx = if s > 0 && !self.offsets.is_empty() {
             self.offsets[s] as usize
@@ -200,7 +237,7 @@ impl StencilTable {
         };
 
         for i in s..e {
-            let sz  = self.sizes[i] as usize;
+            let sz = self.sizes[i] as usize;
             let mut val = 0.0f32;
             for _ in 0..sz {
                 val += src[self.indices[idx] as usize] * self.weights[idx];
@@ -219,8 +256,12 @@ impl StencilTable {
         U: FnMut(i32, f32),
     {
         let ns = self.get_num_stencils();
-        let s  = if start > 0 { start as usize } else { 0 };
-        let e  = if end > start { end as usize } else { ns as usize };
+        let s = if start > 0 { start as usize } else { 0 };
+        let e = if end > start {
+            end as usize
+        } else {
+            ns as usize
+        };
 
         let mut idx = if s > 0 && !self.offsets.is_empty() {
             self.offsets[s] as usize
@@ -229,7 +270,7 @@ impl StencilTable {
         };
 
         for i in s..e {
-            let sz  = self.sizes[i] as usize;
+            let sz = self.sizes[i] as usize;
             let mut val = 0.0f32;
             for _ in 0..sz {
                 val += src(self.indices[idx] as i32) * self.weights[idx];
@@ -274,9 +315,9 @@ impl StencilTable {
 pub struct LimitStencilTable {
     pub base: StencilTable,
     /// Derivative weights in the u direction.
-    pub du_weights:  Vec<f32>,
+    pub du_weights: Vec<f32>,
     /// Derivative weights in the v direction.
-    pub dv_weights:  Vec<f32>,
+    pub dv_weights: Vec<f32>,
     /// Second-order derivative weights (optional).
     pub duu_weights: Vec<f32>,
     pub duv_weights: Vec<f32>,
@@ -292,19 +333,18 @@ impl LimitStencilTable {
     #[allow(clippy::too_many_arguments)]
     pub fn from_data(
         num_control_vertices: i32,
-        sizes:       Vec<i32>,
-        offsets:     Vec<i32>,
-        indices:     Vec<i32>,
-        weights:     Vec<f32>,
-        du_weights:  Vec<f32>,
-        dv_weights:  Vec<f32>,
+        sizes: Vec<i32>,
+        offsets: Vec<i32>,
+        indices: Vec<i32>,
+        weights: Vec<f32>,
+        du_weights: Vec<f32>,
+        dv_weights: Vec<f32>,
         duu_weights: Vec<f32>,
         duv_weights: Vec<f32>,
         dvv_weights: Vec<f32>,
     ) -> Self {
         Self {
-            base: StencilTable::from_data(
-                num_control_vertices, sizes, offsets, indices, weights),
+            base: StencilTable::from_data(num_control_vertices, sizes, offsets, indices, weights),
             du_weights,
             dv_weights,
             duu_weights,
@@ -313,53 +353,89 @@ impl LimitStencilTable {
         }
     }
 
-    pub fn get_num_control_vertices(&self) -> i32 { self.base.get_num_control_vertices() }
-    pub fn get_num_stencils(&self)         -> i32 { self.base.get_num_stencils() }
+    pub fn get_num_control_vertices(&self) -> i32 {
+        self.base.get_num_control_vertices()
+    }
+    pub fn get_num_stencils(&self) -> i32 {
+        self.base.get_num_stencils()
+    }
 
-    pub fn get_stencil(&self, i: Index) -> Stencil<'_> { self.base.get_stencil(i) }
+    pub fn get_stencil(&self, i: Index) -> Stencil<'_> {
+        self.base.get_stencil(i)
+    }
 
     /// Return a full limit-stencil view at index `i`.
     ///
     /// Mirrors C++ `LimitStencilTable::GetLimitStencil(Index i)`.
     pub fn get_limit_stencil(&self, i: Index) -> LimitStencilView<'_> {
         assert!(!self.base.offsets.is_empty() && (i as usize) < self.base.offsets.len());
-        let ofs  = self.base.offsets[i as usize] as usize;
+        let ofs = self.base.offsets[i as usize] as usize;
         let size = self.base.sizes[i as usize] as usize;
 
-        let du_opt  = if self.du_weights.is_empty()  { None } else { Some(&self.du_weights[ofs..ofs + size]) };
-        let dv_opt  = if self.dv_weights.is_empty()  { None } else { Some(&self.dv_weights[ofs..ofs + size]) };
-        let duu_opt = if self.duu_weights.is_empty() { None } else { Some(&self.duu_weights[ofs..ofs + size]) };
-        let duv_opt = if self.duv_weights.is_empty() { None } else { Some(&self.duv_weights[ofs..ofs + size]) };
-        let dvv_opt = if self.dvv_weights.is_empty() { None } else { Some(&self.dvv_weights[ofs..ofs + size]) };
+        let du_opt = if self.du_weights.is_empty() {
+            None
+        } else {
+            Some(&self.du_weights[ofs..ofs + size])
+        };
+        let dv_opt = if self.dv_weights.is_empty() {
+            None
+        } else {
+            Some(&self.dv_weights[ofs..ofs + size])
+        };
+        let duu_opt = if self.duu_weights.is_empty() {
+            None
+        } else {
+            Some(&self.duu_weights[ofs..ofs + size])
+        };
+        let duv_opt = if self.duv_weights.is_empty() {
+            None
+        } else {
+            Some(&self.duv_weights[ofs..ofs + size])
+        };
+        let dvv_opt = if self.dvv_weights.is_empty() {
+            None
+        } else {
+            Some(&self.dvv_weights[ofs..ofs + size])
+        };
 
         LimitStencilView {
-            size:        &self.base.sizes[i as usize],
-            indices:     &self.base.indices[ofs..ofs + size],
-            weights:     &self.base.weights[ofs..ofs + size],
-            du_weights:  du_opt,
-            dv_weights:  dv_opt,
+            size: &self.base.sizes[i as usize],
+            indices: &self.base.indices[ofs..ofs + size],
+            weights: &self.base.weights[ofs..ofs + size],
+            du_weights: du_opt,
+            dv_weights: dv_opt,
             duu_weights: duu_opt,
             duv_weights: duv_opt,
             dvv_weights: dvv_opt,
         }
     }
 
-    pub fn du_weights(&self)  -> &[f32] { &self.du_weights }
-    pub fn dv_weights(&self)  -> &[f32] { &self.dv_weights }
-    pub fn duu_weights(&self) -> &[f32] { &self.duu_weights }
-    pub fn duv_weights(&self) -> &[f32] { &self.duv_weights }
-    pub fn dvv_weights(&self) -> &[f32] { &self.dvv_weights }
+    pub fn du_weights(&self) -> &[f32] {
+        &self.du_weights
+    }
+    pub fn dv_weights(&self) -> &[f32] {
+        &self.dv_weights
+    }
+    pub fn duu_weights(&self) -> &[f32] {
+        &self.duu_weights
+    }
+    pub fn duv_weights(&self) -> &[f32] {
+        &self.duv_weights
+    }
+    pub fn dvv_weights(&self) -> &[f32] {
+        &self.dvv_weights
+    }
 
     /// Update `dst` with u/v derivatives from `src` using limit weights.
     ///
     /// Mirrors C++ `LimitStencilTable::UpdateDerivs(src, uderivs, vderivs, start, end)`.
     pub fn update_derivs_f32_slice(
         &self,
-        src:     &[f32],
+        src: &[f32],
         uderivs: &mut [f32],
         vderivs: &mut [f32],
-        start:   i32,
-        end:     i32,
+        start: i32,
+        end: i32,
     ) {
         update_weighted(src, uderivs, &self.base, &self.du_weights, start, end);
         update_weighted(src, vderivs, &self.base, &self.dv_weights, start, end);
@@ -389,24 +465,26 @@ impl LimitStencilTable {
 
 /// Apply weighted stencil data from `weights_vec` to `dst` given `src`.
 fn update_weighted(
-    src:         &[f32],
-    dst:         &mut [f32],
-    table:       &StencilTable,
+    src: &[f32],
+    dst: &mut [f32],
+    table: &StencilTable,
     weights_vec: &[f32],
-    start:       i32,
-    end:         i32,
+    start: i32,
+    end: i32,
 ) {
-    if table.sizes.is_empty() || weights_vec.is_empty() { return; }
+    if table.sizes.is_empty() || weights_vec.is_empty() {
+        return;
+    }
     let ns = table.get_num_stencils() as usize;
-    let s  = if start > 0 { start as usize } else { 0 };
-    let e  = if end > start { end as usize } else { ns };
+    let s = if start > 0 { start as usize } else { 0 };
+    let e = if end > start { end as usize } else { ns };
     let mut idx = if s > 0 && !table.offsets.is_empty() {
         table.offsets[s] as usize
     } else {
         0
     };
     for i in s..e {
-        let sz  = table.sizes[i] as usize;
+        let sz = table.sizes[i] as usize;
         let mut val = 0.0f32;
         for _ in 0..sz {
             val += src[table.indices[idx] as usize] * weights_vec[idx];
@@ -452,7 +530,7 @@ mod tests {
 
     #[test]
     fn update_values_slice() {
-        let t   = make_table();
+        let t = make_table();
         let src = [1.0f32, 3.0, 5.0];
         let mut dst = [0.0f32; 2];
         t.update_values_f32_slice(&src, &mut dst, -1, -1);
@@ -473,8 +551,7 @@ mod tests {
     #[test]
     fn append_stencils() {
         let t1 = make_table();
-        let t2 = StencilTable::from_data(
-            3, vec![1], vec![0], vec![0], vec![1.0]);
+        let t2 = StencilTable::from_data(3, vec![1], vec![0], vec![0], vec![1.0]);
         let mut combined = t1;
         combined.append(&t2);
         assert_eq!(combined.get_num_stencils(), 3);
@@ -482,13 +559,7 @@ mod tests {
 
     #[test]
     fn limit_stencil_table() {
-        let base = StencilTable::from_data(
-            2,
-            vec![1, 1],
-            vec![0, 1],
-            vec![0, 1],
-            vec![1.0, 1.0],
-        );
+        let base = StencilTable::from_data(2, vec![1, 1], vec![0, 1], vec![0, 1], vec![1.0, 1.0]);
         let lt = LimitStencilTable {
             base,
             du_weights: vec![0.1, 0.2],

@@ -3,8 +3,9 @@
 // All tests require Vulkan hardware and are marked #[ignore] by default.
 // Run with: cargo test --test test_hgi_vulkan -- --ignored
 //
-// Image comparison tests save output PNGs alongside the test binary;
-// baseline images are in tests/testenv/baseline/.
+// Image comparison tests save output PNGs alongside the test binary.
+// Optional baselines: set USD_RS_GPU_BASELINE_ROOT to a directory containing the
+// PNG file names below, or place them under tests/baseline/ next to this crate.
 
 use usd_hgi::blit_cmds::{RawCpuBuffer, RawCpuBufferMut};
 use usd_hgi::types::get_mip_infos;
@@ -20,6 +21,20 @@ use usd_gf::Vec3i;
 // ---------------------------------------------------------------------------
 
 const IMG_SIZE: i32 = 512;
+
+fn baseline_png(name: &str) -> String {
+    if let Ok(root) = std::env::var("USD_RS_GPU_BASELINE_ROOT") {
+        return std::path::Path::new(&root)
+            .join(name)
+            .to_string_lossy()
+            .into_owned();
+    }
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/baseline")
+        .join(name)
+        .to_string_lossy()
+        .into_owned()
+}
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -1120,7 +1135,7 @@ fn test_graphics_cmds_clear() {
 
     let out_path = "graphicsCmdsClear.png";
     save_gpu_texture_to_file(&mut hgi, &color_tex0, width, height, format, out_path);
-    compare_with_baseline(out_path, "tests/testenv/baseline/graphics_cmds_clear.png");
+    compare_with_baseline(out_path, &baseline_png("graphics_cmds_clear.png"));
 
     hgi.destroy_texture(&color_tex0);
     hgi.destroy_texture(&color_tex1);
@@ -1152,7 +1167,7 @@ fn test_create_srgba_texture() {
 
     let out_path = "srgba.png";
     save_gpu_texture_to_file(&mut hgi, &tex, width, height, format, out_path);
-    compare_with_baseline(out_path, "tests/testenv/baseline/srgba.png");
+    compare_with_baseline(out_path, &baseline_png("srgba.png"));
 
     hgi.destroy_texture(&tex);
 }
@@ -1248,10 +1263,7 @@ fn test_hgi_texture_to_buffer_copy() {
         format,
         out_path,
     );
-    compare_with_baseline(
-        out_path,
-        "tests/testenv/baseline/copy_texture_to_buffer.png",
-    );
+    compare_with_baseline(out_path, &baseline_png("copy_texture_to_buffer.png"));
 
     hgi.destroy_buffer(&buf);
     hgi.destroy_texture(&tex);
@@ -1305,10 +1317,7 @@ fn test_hgi_buffer_to_texture_copy() {
         format,
         out_path,
     );
-    compare_with_baseline(
-        out_path,
-        "tests/testenv/baseline/copy_buffer_to_texture.png",
-    );
+    compare_with_baseline(out_path, &baseline_png("copy_buffer_to_texture.png"));
 
     hgi.destroy_texture(&tex);
     hgi.destroy_buffer(&buf);

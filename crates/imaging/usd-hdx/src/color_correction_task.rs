@@ -1,4 +1,3 @@
-
 //! Color correction task - Apply color grading.
 //!
 //! Records deferred color-correction intent for the rendered AOV.

@@ -262,8 +262,7 @@ mod tests {
 
     #[test]
     fn test_data_source_primvar_advertises_container_interface() {
-        let value_source =
-            HdRetainedTypedSampledDataSource::new(1i32) as HdDataSourceBaseHandle;
+        let value_source = HdRetainedTypedSampledDataSource::new(1i32) as HdDataSourceBaseHandle;
         let primvar = DataSourcePrimvar::new_default(value_source) as HdDataSourceBaseHandle;
         assert!(cast_to_container(&primvar).is_some());
     }

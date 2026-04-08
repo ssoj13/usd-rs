@@ -11,11 +11,11 @@
 //! - Triangulates polygons via fan triangulation before Draco encoding
 //! - Interfaces and CLI match the Python `usdcompress` tool exactly
 
-use usd::sdf::layer_offset::LayerOffset;
 use usd::sdf::TimeCode;
+use usd::sdf::layer_offset::LayerOffset;
+use usd::usd::Stage;
 use usd::usd::common::{InitialLoadSet, ListPosition};
 use usd::usd::prim::Prim;
-use usd::usd::Stage;
 use usd::usd_geom::mesh::Mesh as UsdGeomMesh;
 
 use draco_bitstream::compression::encode::Encoder as DracoEncoder;
@@ -244,11 +244,7 @@ impl<'a> UsdDracoEncoder<'a> {
             None => UNSPECIFIED,
             Some(v) => {
                 let val = if v { 1 } else { 0 };
-                if invert {
-                    1 - val
-                } else {
-                    val
-                }
+                if invert { 1 - val } else { val }
             }
         }
     }

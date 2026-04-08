@@ -1,4 +1,3 @@
-
 //! Selection scene index observer - observes scene index changes for selection.
 //!
 //! Watches scene index notifications (prims added/removed/dirtied) to keep
@@ -6,8 +5,8 @@
 //! selection entries are cleaned up.
 //! Port of pxr/imaging/hdx/selectionSceneIndexObserver.h/cpp
 
-use std::collections::HashSet;
 use parking_lot::RwLock;
+use std::collections::HashSet;
 use usd_hd::scene_index::base::HdSceneIndexBase;
 use usd_hd::scene_index::observer::{
     AddedPrimEntry, DirtiedPrimEntry, HdSceneIndexObserver, RemovedPrimEntry, RenamedPrimEntry,
@@ -124,11 +123,7 @@ mod tests {
             fn get_child_prim_paths(&self, _: &Path) -> Vec<Path> {
                 Vec::new()
             }
-            fn add_observer(
-                &self,
-                _: usd_hd::scene_index::observer::HdSceneIndexObserverHandle,
-            ) {
-            }
+            fn add_observer(&self, _: usd_hd::scene_index::observer::HdSceneIndexObserverHandle) {}
             fn remove_observer(
                 &self,
                 _: &usd_hd::scene_index::observer::HdSceneIndexObserverHandle,

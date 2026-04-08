@@ -2,8 +2,8 @@
 //!
 //! Mirrors `Bfr::Parameterization` from `parameterization.h/cpp`.
 
-use crate::sdc::{SchemeType, SchemeTypeTraits};
 use super::limits::Limits;
+use crate::sdc::{SchemeType, SchemeTypeTraits};
 
 /// The three kinds of face parameterizations.
 ///
@@ -12,9 +12,9 @@ use super::limits::Limits;
 #[repr(u8)]
 pub enum ParameterizationType {
     /// Quadrilateral domain `[0,1]^2`.
-    Quad         = 0,
+    Quad = 0,
     /// Triangular domain.
-    Tri          = 1,
+    Tri = 1,
     /// N-sided face partitioned into quadrilateral sub-faces.
     QuadSubFaces = 2,
 }
@@ -26,14 +26,18 @@ pub enum ParameterizationType {
 /// Mirrors `Bfr::Parameterization`.
 #[derive(Clone, Copy, Debug)]
 pub struct Parameterization {
-    kind:      u8,   // ParameterizationType discriminant
-    u_dim:     u8,   // columns in the sub-face grid (QUAD_SUBFACES only)
-    face_size: u16,  // 0 means invalid
+    kind: u8,       // ParameterizationType discriminant
+    u_dim: u8,      // columns in the sub-face grid (QUAD_SUBFACES only)
+    face_size: u16, // 0 means invalid
 }
 
 impl Default for Parameterization {
     fn default() -> Self {
-        Parameterization { kind: 0, u_dim: 0, face_size: 0 }
+        Parameterization {
+            kind: 0,
+            u_dim: 0,
+            face_size: 0,
+        }
     }
 }
 
@@ -165,12 +169,12 @@ impl Parameterization {
 
     /// Return the `(u,v)` coordinate of the face centre.
     pub fn get_center_coord<R: num_traits::Float>(self) -> [R; 2] {
-        let third  = R::from(1.0 / 3.0).unwrap();
-        let half   = R::from(0.5).unwrap();
+        let third = R::from(1.0 / 3.0).unwrap();
+        let half = R::from(0.5).unwrap();
 
         match self.get_type() {
             ParameterizationType::Tri => [third, third],
-            _                         => [half,  half],
+            _ => [half, half],
         }
     }
 
@@ -188,16 +192,12 @@ impl Parameterization {
         let u_tile = uv[0].to_i32().unwrap_or(0);
         let v_tile = uv[1].to_i32().unwrap_or(0);
         let three_quarter = R::from(0.75).unwrap();
-        (v_tile + ((uv[1] - R::from(v_tile).unwrap()) > three_quarter) as i32)
-            * self.u_dim as i32
+        (v_tile + ((uv[1] - R::from(v_tile).unwrap()) > three_quarter) as i32) * self.u_dim as i32
             + (u_tile + ((uv[0] - R::from(u_tile).unwrap()) > three_quarter) as i32)
     }
 
     /// Convert `uv` to a sub-face index + local (unnormalised) `uv`.
-    pub fn convert_coord_to_sub_face<R: num_traits::Float>(
-        self,
-        uv: [R; 2],
-    ) -> (i32, [R; 2]) {
+    pub fn convert_coord_to_sub_face<R: num_traits::Float>(self, uv: [R; 2]) -> (i32, [R; 2]) {
         self.convert_coord_to_sub_face_impl(false, uv)
     }
 
@@ -243,8 +243,8 @@ impl Parameterization {
         let u_tile = (uv[0] + quarter).to_i32().unwrap_or(0);
         let v_tile = (uv[1] + quarter).to_i32().unwrap_or(0);
 
-        let u_dim  = self.u_dim as i32;
-        let fs     = self.face_size as i32;
+        let u_dim = self.u_dim as i32;
+        let fs = self.face_size as i32;
 
         let u_tile = u_tile.max(0).min(u_dim - 1);
         let v_tile = {

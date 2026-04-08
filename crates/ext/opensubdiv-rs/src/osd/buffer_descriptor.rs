@@ -24,7 +24,11 @@ pub struct BufferDescriptor {
 impl BufferDescriptor {
     /// Construct with explicit fields.
     pub fn new(offset: i32, length: i32, stride: i32) -> Self {
-        Self { offset, length, stride }
+        Self {
+            offset,
+            length,
+            stride,
+        }
     }
 
     /// Returns the element-local offset within one stride period.
@@ -67,8 +71,16 @@ impl BufferDescriptor {
     /// and correct; callers that want cache-key semantics must use `matches()`.
     #[doc(alias = "isEqual")]
     pub fn matches(&self, other: &Self) -> bool {
-        let lo_self  = if self.stride  > 0 { self.offset  % self.stride  } else { 0 };
-        let lo_other = if other.stride > 0 { other.offset % other.stride } else { 0 };
+        let lo_self = if self.stride > 0 {
+            self.offset % self.stride
+        } else {
+            0
+        };
+        let lo_other = if other.stride > 0 {
+            other.offset % other.stride
+        } else {
+            0
+        };
         lo_self == lo_other && self.length == other.length && self.stride == other.stride
     }
 }

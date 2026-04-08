@@ -14,8 +14,8 @@
 
 use crate::prototype_scene_index_utils::is_renderable_prim_type;
 use once_cell::sync::Lazy;
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_gf::Matrix4d;
 use usd_hd::data_source::{
     HdDataSourceBaseHandle, HdOverlayContainerDataSource, HdRetainedContainerDataSource,
@@ -27,8 +27,8 @@ use usd_hd::scene_index::observer::{
 };
 use usd_hd::scene_index::{
     FilteringObserverTarget, HdContainerDataSourceHandle, HdSceneIndexBase, HdSceneIndexHandle,
-    HdSceneIndexPrim, HdSingleInputFilteringSceneIndexBase, SdfPathVector, wire_filter_to_input,
-    si_ref,
+    HdSceneIndexPrim, HdSingleInputFilteringSceneIndexBase, SdfPathVector, si_ref,
+    wire_filter_to_input,
 };
 use usd_hd::schema::HdInstancedBySchema;
 use usd_sdf::Path as SdfPath;

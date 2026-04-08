@@ -1,4 +1,3 @@
-
 //! Hydra Image I/O (HIO) - Base abstractions for texture image reading and writing.
 //!
 //! This module provides the foundational types and traits for reading and writing

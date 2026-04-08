@@ -10,9 +10,9 @@
 //! - Capsule
 //! - Plane
 
+use super::data_source_attribute::DataSourceAttribute;
 use super::data_source_gprim::DataSourceGprim;
 use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
-use super::data_source_attribute::DataSourceAttribute;
 use super::prim_adapter::PrimAdapter;
 use super::types::PropertyInvalidationType;
 use std::sync::Arc;

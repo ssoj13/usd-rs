@@ -16,9 +16,9 @@
 //! - `_MergingSceneIndexObserver`: forwards merging SI notifications to outer observers.
 //! - `GetPrim`/`GetChildPrimPaths`: delegate to the merging scene index.
 
+use parking_lot::RwLock;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Weak};
-use parking_lot::RwLock;
 use usd_hd::data_source::{
     HdDataSourceBaseHandle, HdDataSourceLocator, HdRetainedContainerDataSource,
     HdRetainedTypedSampledDataSource,
@@ -116,7 +116,9 @@ impl UsdPrimInfoSceneIndex {
             src.remove(instancer_hash);
             if src.is_empty() {
                 self.sources.remove(prototype);
-                self.inner.write().remove_prims(&vec![RemovedPrimEntry::new(prototype.clone())]);
+                self.inner
+                    .write()
+                    .remove_prims(&vec![RemovedPrimEntry::new(prototype.clone())]);
             }
         }
     }
@@ -288,7 +290,9 @@ impl InstancerObserver {
         // Add the rerooting scene index to the merging scene index
         if let Some(ref rerooting_si) = obs.rerooting_scene_index {
             let ctx = obs.context.read();
-            ctx.merging_scene.write().add_input_scene(rerooting_si.clone(), propagated_prototype.clone());
+            ctx.merging_scene
+                .write()
+                .add_input_scene(rerooting_si.clone(), propagated_prototype.clone());
         }
 
         obs.populate();
@@ -429,7 +433,9 @@ impl InstancerObserver {
             .cloned()
             .collect();
         for key in stale_keys {
-            context.write().usd_prim_info_scene
+            context
+                .write()
+                .usd_prim_info_scene
                 .remove_propagated_prototype(&key, instancer_hash);
             proto_to_observer.remove(&key);
         }
@@ -451,22 +457,27 @@ impl InstancerObserver {
                 ));
                 proto_to_observer.insert(prototype.clone(), sub_obs);
 
-                context.write().usd_prim_info_scene.add_propagated_prototype(
-                    prototype,
-                    instancer_hash.clone(),
-                    propagated_prototype.clone(),
-                );
+                context
+                    .write()
+                    .usd_prim_info_scene
+                    .add_propagated_prototype(
+                        prototype,
+                        instancer_hash.clone(),
+                        propagated_prototype.clone(),
+                    );
             }
         }
 
         // Update instancer topology in retained SI
         if let Some(topo_ds) = instancer_topology_ds(&propagated_prototypes) {
             let ctx = context.read();
-            ctx.instancer_scene.write().add_prims(&[RetainedAddedPrimEntry::new(
-                rerooted_instancer.clone(),
-                tokens::INSTANCER.clone(),
-                Some(topo_ds),
-            )]);
+            ctx.instancer_scene
+                .write()
+                .add_prims(&[RetainedAddedPrimEntry::new(
+                    rerooted_instancer.clone(),
+                    tokens::INSTANCER.clone(),
+                    Some(topo_ds),
+                )]);
         }
     }
 
@@ -483,9 +494,11 @@ impl InstancerObserver {
                     .is_some()
                 {
                     let ctx = self.context.read();
-                    ctx.instancer_scene.write().remove_prims(&vec![RemovedPrimEntry::new(
-                        self.rerooted_path(&entry.prim_path),
-                    )]);
+                    ctx.instancer_scene
+                        .write()
+                        .remove_prims(&vec![RemovedPrimEntry::new(
+                            self.rerooted_path(&entry.prim_path),
+                        )]);
                 }
             }
         }
@@ -560,7 +573,9 @@ impl InstancerObserver {
 
         if !removed_instancers.is_empty() {
             let ctx = self.context.read();
-            ctx.instancer_scene.write().remove_prims(&removed_instancers);
+            ctx.instancer_scene
+                .write()
+                .remove_prims(&removed_instancers);
         }
     }
 }
@@ -686,7 +701,9 @@ impl PiPrototypePropagatingSceneIndex {
         // Add input scene to merging SI (weakest opinion, added last)
         {
             let ctx = context.read();
-            ctx.merging_scene.write().add_input_scene(input, Path::absolute_root());
+            ctx.merging_scene
+                .write()
+                .add_input_scene(input, Path::absolute_root());
         }
 
         // Create root instancer observer
@@ -700,8 +717,8 @@ impl PiPrototypePropagatingSceneIndex {
 
         // Register merging SI observer for notification forwarding
         let weak_si = Arc::downgrade(&si);
-        let merging_obs = Arc::new(MergingSceneIndexObserver::new(weak_si))
-            as HdSceneIndexObserverHandle;
+        let merging_obs =
+            Arc::new(MergingSceneIndexObserver::new(weak_si)) as HdSceneIndexObserverHandle;
 
         {
             let si_lock = si.read();

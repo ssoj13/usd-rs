@@ -1,6 +1,5 @@
 //! Tests for UsdGeomSubset, ported from testUsdGeomSubset.py
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use usd_core::{InitialLoadSet, Stage};
@@ -14,11 +13,9 @@ use usd_tf::Token;
 // ============================================================================
 
 fn testenv_path(file: &str) -> String {
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("testenv");
-    path.push("testUsdGeomSubset");
-    path.push(file);
-    path.to_string_lossy().to_string()
+    openusd_test_path::pxr_usd_module_testenv("usdGeom", format!("testUsdGeomSubset/{file}"))
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 fn open_stage(file: &str) -> Arc<Stage> {

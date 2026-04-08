@@ -205,19 +205,29 @@ fn test_inline_cube_scene() {
 }
 
 // ---------------------------------------------------------------------------
-// Test 5-6: OpenUSD reference test scenes
+// Test 5-6: OpenUSD reference test scenes (require OPENUSD_SRC_ROOT)
 // ---------------------------------------------------------------------------
 
-const REF_TESTENV: &str = "_ref/OpenUSD/pxr/usdImaging/bin/testusdview/testenv";
+fn ref_testusdview_usda(rel_under_testenv: &str) -> Option<String> {
+    let root = std::env::var_os("OPENUSD_SRC_ROOT")?;
+    let p = std::path::PathBuf::from(root)
+        .join("pxr/usdImaging/bin/testusdview/testenv")
+        .join(rel_under_testenv);
+    if !p.is_file() {
+        return None;
+    }
+    Some(p.to_string_lossy().replace('\\', "/"))
+}
 
 #[test]
 fn test_ref_complexity_scene() {
     ensure_init();
-    let path = data_path(&format!("{REF_TESTENV}/testUsdviewComplexity/test.usda"));
-    if !std::path::Path::new(&path).exists() {
-        eprintln!("SKIP: OpenUSD submodule not available at {path}");
+    let Some(path) = ref_testusdview_usda("testUsdviewComplexity/test.usda") else {
+        eprintln!(
+            "SKIP: set OPENUSD_SRC_ROOT or missing pxr/usdImaging/bin/testusdview/testenv asset"
+        );
         return;
-    }
+    };
 
     let stage = match Stage::open(&path, InitialLoadSet::LoadAll) {
         Ok(s) => s,
@@ -256,11 +266,12 @@ fn test_ref_complexity_scene() {
 #[test]
 fn test_ref_lights_scene() {
     ensure_init();
-    let path = data_path(&format!("{REF_TESTENV}/testUsdviewLights/test.usda"));
-    if !std::path::Path::new(&path).exists() {
-        eprintln!("SKIP: OpenUSD submodule not available at {path}");
+    let Some(path) = ref_testusdview_usda("testUsdviewLights/test.usda") else {
+        eprintln!(
+            "SKIP: set OPENUSD_SRC_ROOT or missing pxr/usdImaging/bin/testusdview/testenv asset"
+        );
         return;
-    }
+    };
 
     let stage = match Stage::open(&path, InitialLoadSet::LoadAll) {
         Ok(s) => s,

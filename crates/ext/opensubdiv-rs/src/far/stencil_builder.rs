@@ -1,4 +1,3 @@
-
 //! Internal stencil accumulator used by `StencilTableFactory`.
 //!
 //! Mirrors C++ `Far::internal::StencilBuilder<REAL>` and its inner
@@ -14,43 +13,46 @@
 /// Weights can be scalar-only or include 1st/2nd derivatives.
 struct WeightTable {
     // Per-element data (parallel arrays)
-    dests:    Vec<i32>,  // which stencil each element belongs to
-    sources:  Vec<i32>,  // source vertex for each element
-    weights:  Vec<f64>,  // point weight
-    du:       Vec<f64>,  // u-derivative weight (empty if not needed)
-    dv:       Vec<f64>,  // v-derivative weight
-    duu:      Vec<f64>,
-    duv:      Vec<f64>,
-    dvv:      Vec<f64>,
+    dests: Vec<i32>,   // which stencil each element belongs to
+    sources: Vec<i32>, // source vertex for each element
+    weights: Vec<f64>, // point weight
+    du: Vec<f64>,      // u-derivative weight (empty if not needed)
+    dv: Vec<f64>,      // v-derivative weight
+    duu: Vec<f64>,
+    duv: Vec<f64>,
+    dvv: Vec<f64>,
 
     // Per-stencil metadata
-    indices:  Vec<i32>,  // offset into sources/weights for stencil i
-    sizes:    Vec<i32>,  // element count for stencil i
+    indices: Vec<i32>, // offset into sources/weights for stencil i
+    sizes: Vec<i32>,   // element count for stencil i
 
     // Counters
-    size:          i32,  // total elements inserted
-    last_offset:   i32,  // offset of the stencil currently being built
-    coarse_count:  i32,  // number of coarse (control) vertices
-    compact:       bool, // combine duplicate source entries
+    size: i32,         // total elements inserted
+    last_offset: i32,  // offset of the stencil currently being built
+    coarse_count: i32, // number of coarse (control) vertices
+    compact: bool,     // combine duplicate source entries
 }
 
 impl WeightTable {
     fn new(coarse_verts: i32, gen_ctrl_stencils: bool, compact: bool) -> Self {
-        let cap = std::cmp::max(coarse_verts, std::cmp::min(5 * 1024 * 1024, coarse_verts * 2));
+        let cap = std::cmp::max(
+            coarse_verts,
+            std::cmp::min(5 * 1024 * 1024, coarse_verts * 2),
+        );
         let cap = cap as usize;
 
         let mut tbl = WeightTable {
-            dests:   Vec::with_capacity(cap),
+            dests: Vec::with_capacity(cap),
             sources: Vec::with_capacity(cap),
             weights: Vec::with_capacity(cap),
-            du:  Vec::new(),
-            dv:  Vec::new(),
+            du: Vec::new(),
+            dv: Vec::new(),
             duu: Vec::new(),
             duv: Vec::new(),
             dvv: Vec::new(),
             indices: Vec::new(),
-            sizes:   Vec::new(),
-            size:        0,
+            sizes: Vec::new(),
+            size: 0,
             last_offset: 0,
             coarse_count: coarse_verts,
             compact,
@@ -70,8 +72,8 @@ impl WeightTable {
 
         for i in 0..n {
             tbl.indices[i] = i as i32;
-            tbl.sizes[i]   = 1;
-            tbl.dests[i]   = i as i32;
+            tbl.sizes[i] = 1;
+            tbl.dests[i] = i as i32;
             tbl.sources[i] = i as i32;
             tbl.weights[i] = 1.0;
         }
@@ -81,21 +83,25 @@ impl WeightTable {
         tbl
     }
 
-    fn set_coarse_vert_count(&mut self, n: i32) { self.coarse_count = n; }
+    fn set_coarse_vert_count(&mut self, n: i32) {
+        self.coarse_count = n;
+    }
 
     // ---- Internal helpers --------------------------------------------------
 
     /// Add a (src → dst) weight, potentially merging with an existing entry.
     fn add_with_weight_scalar(&mut self, src: i32, dst: i32, weight: f64) {
-        if weight == 0.0 { return; }
+        if weight == 0.0 {
+            return;
+        }
 
         if src < self.coarse_count {
             self.merge_scalar(src, dst, weight, 1.0);
         } else {
             // Factorize: expand src's own stencil
-            let len   = self.sizes[src as usize];
+            let len = self.sizes[src as usize];
             let start = self.indices[src as usize];
-            for k in start..start+len {
+            for k in start..start + len {
                 let k = k as usize;
                 debug_assert!(self.sources[k] < self.coarse_count);
                 let src_w = self.weights[k];
@@ -105,8 +111,8 @@ impl WeightTable {
     }
 
     fn merge_scalar(&mut self, src: i32, dst: i32, weight: f64, factor: f64) {
-        let lo  = self.last_offset as usize;
-        let sz  = self.size as usize;
+        let lo = self.last_offset as usize;
+        let sz = self.size as usize;
 
         if self.compact && !self.dests.is_empty() && self.dests[lo] == dst {
             // Look for an existing entry for src in the current stencil
@@ -128,7 +134,7 @@ impl WeightTable {
                 self.sizes.resize((dst + 1) as usize, 0);
             }
             self.indices[dst as usize] = self.sources.len() as i32;
-            self.sizes[dst as usize]   = 0;
+            self.sizes[dst as usize] = 0;
             self.last_offset = self.sources.len() as i32;
         }
         self.size += 1;
@@ -139,18 +145,16 @@ impl WeightTable {
     }
 
     /// Add with first derivatives (du, dv).
-    fn add_with_weight_1st_deriv(
-        &mut self, src: i32, dst: i32, w: f64, du: f64, dv: f64,
-    ) {
+    fn add_with_weight_1st_deriv(&mut self, src: i32, dst: i32, w: f64, du: f64, dv: f64) {
         // Ensure du/dv arrays exist and are padded to weights length
         self.ensure_deriv_arrays();
 
         if src < self.coarse_count {
             self.merge_1st(src, dst, w, du, dv, 1.0);
         } else {
-            let len   = self.sizes[src as usize];
+            let len = self.sizes[src as usize];
             let start = self.indices[src as usize];
-            for k in start..start+len {
+            for k in start..start + len {
                 let k = k as usize;
                 let sw = self.weights[k];
                 self.merge_1st(self.sources[k], dst, sw * w, sw * du, sw * dv, 1.0);
@@ -182,7 +186,7 @@ impl WeightTable {
                 self.sizes.resize((dst + 1) as usize, 0);
             }
             self.indices[dst as usize] = self.sources.len() as i32;
-            self.sizes[dst as usize]   = 0;
+            self.sizes[dst as usize] = 0;
             self.last_offset = self.sources.len() as i32;
         }
         self.size += 1;
@@ -213,8 +217,15 @@ impl WeightTable {
 
     /// Add with second derivatives (du, dv, duu, duv, dvv).
     fn add_with_weight_2nd_deriv(
-        &mut self, src: i32, dst: i32,
-        w: f64, du: f64, dv: f64, duu: f64, duv: f64, dvv: f64,
+        &mut self,
+        src: i32,
+        dst: i32,
+        w: f64,
+        du: f64,
+        dv: f64,
+        duu: f64,
+        duv: f64,
+        dvv: f64,
     ) {
         self.ensure_deriv_arrays();
         self.ensure_2nd_deriv_arrays();
@@ -222,14 +233,20 @@ impl WeightTable {
         if src < self.coarse_count {
             self.add_entry_2nd(src, dst, w, du, dv, duu, duv, dvv);
         } else {
-            let len   = self.sizes[src as usize];
+            let len = self.sizes[src as usize];
             let start = self.indices[src as usize];
-            for k in start..start+len {
-                let k  = k as usize;
+            for k in start..start + len {
+                let k = k as usize;
                 let sw = self.weights[k];
                 self.add_entry_2nd(
-                    self.sources[k], dst,
-                    sw*w, sw*du, sw*dv, sw*duu, sw*duv, sw*dvv,
+                    self.sources[k],
+                    dst,
+                    sw * w,
+                    sw * du,
+                    sw * dv,
+                    sw * duu,
+                    sw * duv,
+                    sw * dvv,
                 );
             }
         }
@@ -237,8 +254,15 @@ impl WeightTable {
 
     #[allow(clippy::too_many_arguments)]
     fn add_entry_2nd(
-        &mut self, src: i32, dst: i32,
-        w: f64, du: f64, dv: f64, duu: f64, duv: f64, dvv: f64,
+        &mut self,
+        src: i32,
+        dst: i32,
+        w: f64,
+        du: f64,
+        dv: f64,
+        duu: f64,
+        duv: f64,
+        dvv: f64,
     ) {
         if self.dests.is_empty() || dst != *self.dests.last().unwrap() {
             if (dst + 1) as usize > self.indices.len() {
@@ -246,7 +270,7 @@ impl WeightTable {
                 self.sizes.resize((dst + 1) as usize, 0);
             }
             self.indices[dst as usize] = self.sources.len() as i32;
-            self.sizes[dst as usize]   = 0;
+            self.sizes[dst as usize] = 0;
             self.last_offset = self.sources.len() as i32;
         }
         self.size += 1;
@@ -279,33 +303,66 @@ impl StencilBuilder {
     /// * `gen_ctrl_vert_stencils` — if true, identity stencils are pre-inserted
     ///   for all coarse vertices (weight = 1.0).
     /// * `compact_weights` — merge duplicate source entries per stencil.
-    pub fn new(coarse_vert_count: i32, gen_ctrl_vert_stencils: bool, compact_weights: bool) -> Self {
-        Self { table: WeightTable::new(coarse_vert_count, gen_ctrl_vert_stencils, compact_weights) }
+    pub fn new(
+        coarse_vert_count: i32,
+        gen_ctrl_vert_stencils: bool,
+        compact_weights: bool,
+    ) -> Self {
+        Self {
+            table: WeightTable::new(coarse_vert_count, gen_ctrl_vert_stencils, compact_weights),
+        }
     }
 
-    pub fn get_num_vertices_total(&self) -> usize { self.table.weights.len() }
+    pub fn get_num_vertices_total(&self) -> usize {
+        self.table.weights.len()
+    }
 
     pub fn get_num_verts_in_stencil(&self, stencil_index: usize) -> i32 {
-        if stencil_index >= self.table.sizes.len() { return 0; }
+        if stencil_index >= self.table.sizes.len() {
+            return 0;
+        }
         self.table.sizes[stencil_index]
     }
 
-    pub fn set_coarse_vert_count(&mut self, n: i32) { self.table.set_coarse_vert_count(n); }
+    pub fn set_coarse_vert_count(&mut self, n: i32) {
+        self.table.set_coarse_vert_count(n);
+    }
 
-    pub fn get_stencil_offsets(&self) -> &[i32] { &self.table.indices }
-    pub fn get_stencil_sizes(&self)   -> &[i32] { &self.table.sizes }
-    pub fn get_stencil_sources(&self) -> &[i32] { &self.table.sources }
-    pub fn get_stencil_weights(&self) -> &[f64] { &self.table.weights }
-    pub fn get_stencil_du_weights(&self) -> &[f64] { &self.table.du }
-    pub fn get_stencil_dv_weights(&self) -> &[f64] { &self.table.dv }
-    pub fn get_stencil_duu_weights(&self) -> &[f64] { &self.table.duu }
-    pub fn get_stencil_duv_weights(&self) -> &[f64] { &self.table.duv }
-    pub fn get_stencil_dvv_weights(&self) -> &[f64] { &self.table.dvv }
+    pub fn get_stencil_offsets(&self) -> &[i32] {
+        &self.table.indices
+    }
+    pub fn get_stencil_sizes(&self) -> &[i32] {
+        &self.table.sizes
+    }
+    pub fn get_stencil_sources(&self) -> &[i32] {
+        &self.table.sources
+    }
+    pub fn get_stencil_weights(&self) -> &[f64] {
+        &self.table.weights
+    }
+    pub fn get_stencil_du_weights(&self) -> &[f64] {
+        &self.table.du
+    }
+    pub fn get_stencil_dv_weights(&self) -> &[f64] {
+        &self.table.dv
+    }
+    pub fn get_stencil_duu_weights(&self) -> &[f64] {
+        &self.table.duu
+    }
+    pub fn get_stencil_duv_weights(&self) -> &[f64] {
+        &self.table.duv
+    }
+    pub fn get_stencil_dvv_weights(&self) -> &[f64] {
+        &self.table.dvv
+    }
 
     // ---- Index facade (returned by the factory) ----------------------------
 
     pub fn index(&mut self, i: i32) -> StencilIndex<'_> {
-        StencilIndex { builder: self, index: i }
+        StencilIndex {
+            builder: self,
+            index: i,
+        }
     }
 }
 
@@ -323,49 +380,66 @@ pub struct StencilIndex<'a> {
 
 impl<'a> StencilIndex<'a> {
     /// Offset this index by `n` (returns a *new* value-type index).
-    pub fn offset(&self, n: i32) -> i32 { self.index + n }
+    pub fn offset(&self, n: i32) -> i32 {
+        self.index + n
+    }
 
     /// Add `weight` * source vertex `src` to this stencil entry.
     pub fn add_with_weight_vertex(&mut self, src: i32, weight: f64) {
-        if weight == 0.0 { return; }
-        self.builder.table.add_with_weight_scalar(src, self.index, weight);
+        if weight == 0.0 {
+            return;
+        }
+        self.builder
+            .table
+            .add_with_weight_scalar(src, self.index, weight);
     }
 
     /// Add weights for a full existing stencil (factorize).
     pub fn add_with_weight_stencil(
         &mut self,
-        src_size:    i32,
+        src_size: i32,
         src_indices: &[i32],
         src_weights: &[f32],
-        weight:      f64,
+        weight: f64,
     ) {
-        if weight == 0.0 { return; }
+        if weight == 0.0 {
+            return;
+        }
         for k in 0..src_size as usize {
             let w = src_weights[k] as f64;
-            if w == 0.0 { continue; }
-            self.builder.table.add_with_weight_scalar(
-                src_indices[k], self.index, w * weight,
-            );
+            if w == 0.0 {
+                continue;
+            }
+            self.builder
+                .table
+                .add_with_weight_scalar(src_indices[k], self.index, w * weight);
         }
     }
 
     /// Add with first-derivative weights.
     pub fn add_with_weight_1st(
         &mut self,
-        src_size:    i32,
+        src_size: i32,
         src_indices: &[i32],
         src_weights: &[f32],
-        weight:      f64,
-        du:          f64,
-        dv:          f64,
+        weight: f64,
+        du: f64,
+        dv: f64,
     ) {
-        if weight == 0.0 && du == 0.0 && dv == 0.0 { return; }
+        if weight == 0.0 && du == 0.0 && dv == 0.0 {
+            return;
+        }
         for k in 0..src_size as usize {
             let w = src_weights[k] as f64;
-            if w == 0.0 { continue; }
+            if w == 0.0 {
+                continue;
+            }
             self.builder.table.add_with_weight_1st_deriv(
-                src_indices[k], self.index,
-                w * weight, w * du, w * dv,
+                src_indices[k],
+                self.index,
+                w * weight,
+                w * du,
+                w * dv,
             );
         }
     }
@@ -374,29 +448,39 @@ impl<'a> StencilIndex<'a> {
     #[allow(clippy::too_many_arguments)]
     pub fn add_with_weight_2nd(
         &mut self,
-        src_size:    i32,
+        src_size: i32,
         src_indices: &[i32],
         src_weights: &[f32],
-        weight:      f64,
-        du:          f64,
-        dv:          f64,
-        duu:         f64,
-        duv:         f64,
-        dvv:         f64,
+        weight: f64,
+        du: f64,
+        dv: f64,
+        duu: f64,
+        duv: f64,
+        dvv: f64,
     ) {
-        if weight == 0.0 && du == 0.0 && dv == 0.0
-            && duu == 0.0 && duv == 0.0 && dvv == 0.0 { return; }
+        if weight == 0.0 && du == 0.0 && dv == 0.0 && duu == 0.0 && duv == 0.0 && dvv == 0.0 {
+            return;
+        }
         for k in 0..src_size as usize {
             let w = src_weights[k] as f64;
-            if w == 0.0 { continue; }
+            if w == 0.0 {
+                continue;
+            }
             self.builder.table.add_with_weight_2nd_deriv(
-                src_indices[k], self.index,
-                w*weight, w*du, w*dv, w*duu, w*duv, w*dvv,
+                src_indices[k],
+                self.index,
+                w * weight,
+                w * du,
+                w * dv,
+                w * duu,
+                w * duv,
+                w * dvv,
             );
         }
     }
 
-    pub fn clear(&mut self) { /* nothing needed: builder never clears mid-row */ }
+    pub fn clear(&mut self) { /* nothing needed: builder never clears mid-row */
+    }
 }
 
 // ---------------------------------------------------------------------------

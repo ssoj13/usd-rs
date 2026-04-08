@@ -983,8 +983,7 @@ impl Schema {
         );
 
         self.base.register_field(
-            FieldDefinition::new("clips", Value::empty())
-                .with_info("doc", "Value clips metadata"),
+            FieldDefinition::new("clips", Value::empty()).with_info("doc", "Value clips metadata"),
         );
 
         self.base.register_field(

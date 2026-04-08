@@ -1,4 +1,3 @@
-
 //! HdInstanceRegistry - Shared instance dictionary with GC.
 //!
 //! Corresponds to pxr/imaging/hd/instanceRegistry.h.

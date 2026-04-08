@@ -12,7 +12,7 @@ use super::types::Index;
 #[derive(Debug, Default, Clone)]
 pub struct FVarChannel {
     /// Number of distinct face-varying values in this channel.
-    pub num_values:    i32,
+    pub num_values: i32,
     /// Per-face-corner value indices (one per face vertex, same order as face-verts).
     pub value_indices: Vec<Index>,
 }
@@ -68,7 +68,9 @@ pub struct TopologyDescriptor {
 }
 
 impl TopologyDescriptor {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 #[cfg(test)]
@@ -79,7 +81,7 @@ mod tests {
     fn test_default_zeroed() {
         let d = TopologyDescriptor::default();
         assert_eq!(d.num_vertices, 0);
-        assert_eq!(d.num_faces,    0);
+        assert_eq!(d.num_faces, 0);
         assert!(d.num_verts_per_face.is_empty());
         assert!(!d.is_left_handed);
     }

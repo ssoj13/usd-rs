@@ -1,4 +1,3 @@
-
 //! Scene index utility functions.
 //!
 //! Corresponds to pxr/imaging/hd/sceneIndexUtil.h.

@@ -1,4 +1,3 @@
-
 //! HdStGLSLProgram - GLSL program wrapper.
 //!
 //! Manages GLSL shader compilation, linking, and uniform binding.

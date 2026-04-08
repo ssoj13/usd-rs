@@ -122,7 +122,8 @@ impl Resolver {
                     })
                 })
                 .unwrap_or(0);
-            resolver.current_layer_index = layer_idx.min(resolver.cached_layers.len().saturating_sub(1));
+            resolver.current_layer_index =
+                layer_idx.min(resolver.cached_layers.len().saturating_sub(1));
         }
 
         resolver
@@ -174,8 +175,7 @@ impl Resolver {
                 resolver.current_layer_index = layers
                     .iter()
                     .position(|l| {
-                        Arc::ptr_eq(l, &start_layer)
-                            || l.identifier() == start_layer.identifier()
+                        Arc::ptr_eq(l, &start_layer) || l.identifier() == start_layer.identifier()
                     })
                     .unwrap_or(0);
             }
@@ -256,7 +256,8 @@ impl Resolver {
             }
         } else if let Some(h) = info.layer() {
             if let Some(layer_arc) = h.upgrade() {
-                let idx = r.cached_layers
+                let idx = r
+                    .cached_layers
                     .iter()
                     .position(|l| {
                         Arc::ptr_eq(l, &layer_arc) || l.identifier() == layer_arc.identifier()
@@ -320,9 +321,7 @@ impl Resolver {
         if !self.is_valid() {
             return None;
         }
-        self.cached_layers
-            .get(self.current_layer_index)
-            .cloned()
+        self.cached_layers.get(self.current_layer_index).cloned()
     }
 
     /// Returns a translated path for the current PcpNode and Layer for a valid resolver.

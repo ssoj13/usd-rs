@@ -1,4 +1,3 @@
-
 //! HdImageShader - Image shader state primitive.
 //!
 //! Fullscreen image shader for post-process effects (OIT resolve, outline, etc).

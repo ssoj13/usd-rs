@@ -1,13 +1,12 @@
-
 //! HdSt_ExtCompSceneIndex - external computation data processing.
 //!
 //! Filtering scene index that processes external computation (ExtComputation)
 //! data for Storm. ExtComputations allow GPU or CPU computations to produce
 //! primvar data consumed by other prims during rendering.
 
+use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::{HdDataSourceBaseHandle, HdDataSourceLocator};
 use usd_hd::scene_index::{
     AddedPrimEntry, DirtiedPrimEntry, FilteringObserverTarget, HdSceneIndexBase,
@@ -56,7 +55,8 @@ impl HdStExtCompSceneIndex {
 impl HdSceneIndexBase for HdStExtCompSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_prim(prim_path);
             }
         }
@@ -65,7 +65,8 @@ impl HdSceneIndexBase for HdStExtCompSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_child_prim_paths(prim_path);
             }
         }

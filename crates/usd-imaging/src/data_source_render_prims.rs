@@ -159,7 +159,8 @@ impl HdContainerDataSource for DataSourceRenderPass {
             return Some(HdRetainedTypedSampledDataSource::new(pass_type));
         }
         if name == &*tokens::RENDER_SOURCE {
-            let render_source = first_forwarded_target(self.usd_render_pass.get_render_source_rel())?;
+            let render_source =
+                first_forwarded_target(self.usd_render_pass.get_render_source_rel())?;
             return Some(HdRetainedTypedSampledDataSource::new(render_source));
         }
         None
@@ -206,7 +207,9 @@ impl HdContainerDataSource for DataSourceRenderSettings {
 
     fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if name == &*tokens::NAMESPACED_SETTINGS {
-            return Some(compute_namespaced_settings_ds(self.usd_render_settings.get_prim()));
+            return Some(compute_namespaced_settings_ds(
+                self.usd_render_settings.get_prim(),
+            ));
         }
         if name == &*tokens::CAMERA {
             let target = first_forwarded_target(
@@ -220,7 +223,10 @@ impl HdContainerDataSource for DataSourceRenderSettings {
             )));
         }
 
-        let attr = self.usd_render_settings.get_prim().get_attribute(name.as_str())?;
+        let attr = self
+            .usd_render_settings
+            .get_prim()
+            .get_attribute(name.as_str())?;
         Some(DataSourceAttribute::<Value>::new(
             attr,
             self.stage_globals.clone(),
@@ -269,10 +275,14 @@ impl HdContainerDataSource for DataSourceRenderProduct {
 
     fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if name == &*tokens::NAMESPACED_SETTINGS {
-            return Some(compute_namespaced_settings_ds(self.usd_render_product.get_prim()));
+            return Some(compute_namespaced_settings_ds(
+                self.usd_render_product.get_prim(),
+            ));
         }
         if name == &*tokens::CAMERA {
-            let target = first_forwarded_target(self.usd_render_product.as_settings_base().get_camera_rel())?;
+            let target = first_forwarded_target(
+                self.usd_render_product.as_settings_base().get_camera_rel(),
+            )?;
             return Some(HdRetainedTypedSampledDataSource::new(target));
         }
         if name == &*tokens::ORDERED_VARS {
@@ -281,10 +291,14 @@ impl HdContainerDataSource for DataSourceRenderProduct {
             )));
         }
 
-        let attr = self.usd_render_product.get_prim().get_attribute(name.as_str())?;
-        let settings_base_names: HashSet<Token> = RenderSettingsBase::get_schema_attribute_names(true)
-            .into_iter()
-            .collect();
+        let attr = self
+            .usd_render_product
+            .get_prim()
+            .get_attribute(name.as_str())?;
+        let settings_base_names: HashSet<Token> =
+            RenderSettingsBase::get_schema_attribute_names(true)
+                .into_iter()
+                .collect();
         if settings_base_names.contains(name) && !attr.has_authored_value() {
             return None;
         }
@@ -337,9 +351,14 @@ impl HdContainerDataSource for DataSourceRenderVar {
 
     fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if name == &*tokens::NAMESPACED_SETTINGS {
-            return Some(compute_namespaced_settings_ds(self.usd_render_var.get_prim()));
+            return Some(compute_namespaced_settings_ds(
+                self.usd_render_var.get_prim(),
+            ));
         }
-        let attr = self.usd_render_var.get_prim().get_attribute(name.as_str())?;
+        let attr = self
+            .usd_render_var
+            .get_prim()
+            .get_attribute(name.as_str())?;
         Some(DataSourceAttribute::<Value>::new(
             attr,
             self.stage_globals.clone(),
@@ -715,7 +734,8 @@ mod tests {
     fn test_render_settings_prim_names_match_reference() {
         let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("create stage");
         let prim = stage.get_pseudo_root();
-        let ds = DataSourceRenderSettingsPrim::new(Path::absolute_root(), prim, create_test_globals());
+        let ds =
+            DataSourceRenderSettingsPrim::new(Path::absolute_root(), prim, create_test_globals());
         let names = ds.get_names();
         assert_eq!(names, vec![UsdRenderSettingsSchema::get_schema_token()]);
     }
@@ -739,6 +759,9 @@ mod tests {
         let prim = stage.get_pseudo_root();
         let ds = DataSourceRenderPassPrim::new(Path::absolute_root(), prim, create_test_globals());
         let names = ds.get_names();
-        assert_eq!(names, vec![(*HdRenderPassSchema::get_schema_token()).clone()]);
+        assert_eq!(
+            names,
+            vec![(*HdRenderPassSchema::get_schema_token()).clone()]
+        );
     }
 }

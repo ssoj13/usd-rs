@@ -15,8 +15,9 @@ fn setup() {
 
 /// Helper to get the testenv directory for LinkingAPI tests.
 fn testenv_dir() -> String {
-    let manifest = env!("CARGO_MANIFEST_DIR");
-    format!("{}/testenv/testUsdLuxLinkingAPI", manifest)
+    openusd_test_path::pxr_usd_module_testenv("usdLux", "testUsdLuxLinkingAPI")
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 // =============================================================================

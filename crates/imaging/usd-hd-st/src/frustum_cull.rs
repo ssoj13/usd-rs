@@ -1,4 +1,3 @@
-
 //! GPU frustum culling for Storm indirect draw batches.
 //!
 //! Port of `HdSt_IndirectDrawBatch::_ExecuteFrustumCull` (non-instanced,

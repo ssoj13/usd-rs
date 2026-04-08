@@ -1296,13 +1296,11 @@ impl Stage {
                 // by a stronger/equally-strong Def later in the walk.
                 if !found_specifier {
                     if let Some(spec_val) = layer.get_field(&site_path, &specifier_token) {
-                        let parsed = spec_val
-                            .downcast_clone::<Specifier>()
-                            .or_else(|| {
-                                spec_val
-                                    .downcast_clone::<String>()
-                                    .and_then(|s| Specifier::try_from(s.as_str()).ok())
-                            });
+                        let parsed = spec_val.downcast_clone::<Specifier>().or_else(|| {
+                            spec_val
+                                .downcast_clone::<String>()
+                                .and_then(|s| Specifier::try_from(s.as_str()).ok())
+                        });
                         if let Some(s) = parsed {
                             match s {
                                 Specifier::Def => {
@@ -1371,7 +1369,10 @@ impl Stage {
         let mut found_active = false;
         let mut found_kind = false;
         let parent_data = prim_data.parent();
-        let parent_is_group = parent_data.as_ref().map(|parent| parent.is_group()).unwrap_or(false);
+        let parent_is_group = parent_data
+            .as_ref()
+            .map(|parent| parent.is_group())
+            .unwrap_or(false);
         let parent_is_defined = parent_data
             .as_ref()
             .map(|parent| parent.is_defined())
@@ -1396,9 +1397,8 @@ impl Stage {
                 | PrimFlags::ABSTRACT,
         );
 
-        let is_defining_spec =
-            prim_data.specifier() == usd_sdf::Specifier::Def
-                || prim_data.specifier() == usd_sdf::Specifier::Class;
+        let is_defining_spec = prim_data.specifier() == usd_sdf::Specifier::Def
+            || prim_data.specifier() == usd_sdf::Specifier::Class;
         if is_defining_spec {
             prim_data.add_flags(PrimFlags::HAS_DEFINING_SPECIFIER);
         }
@@ -1428,9 +1428,10 @@ impl Stage {
             for layer in layer_stack.get_layers() {
                 if !found_active {
                     if let Some(val) = layer.get_field(&site_path, &active_token) {
-                        let active = val
-                            .downcast_clone::<bool>()
-                            .or_else(|| val.cast::<bool>().and_then(|casted| casted.get::<bool>().copied()));
+                        let active = val.downcast_clone::<bool>().or_else(|| {
+                            val.cast::<bool>()
+                                .and_then(|casted| casted.get::<bool>().copied())
+                        });
                         if let Some(active) = active {
                             if !active {
                                 prim_data.remove_flags(PrimFlags::ACTIVE);
@@ -1446,7 +1447,8 @@ impl Stage {
                             let kind = Token::new(&kind_str);
                             let is_group = usd_kind::is_group_kind(&kind);
                             let is_component = usd_kind::is_component_kind(&kind);
-                            let is_model = is_group || is_component || usd_kind::is_model_kind(&kind);
+                            let is_model =
+                                is_group || is_component || usd_kind::is_model_kind(&kind);
                             if is_group {
                                 prim_data.add_flags(PrimFlags::GROUP);
                             }
@@ -1460,7 +1462,8 @@ impl Stage {
                         } else if let Some(kind) = val.downcast_clone::<Token>() {
                             let is_group = usd_kind::is_group_kind(&kind);
                             let is_component = usd_kind::is_component_kind(&kind);
-                            let is_model = is_group || is_component || usd_kind::is_model_kind(&kind);
+                            let is_model =
+                                is_group || is_component || usd_kind::is_model_kind(&kind);
                             if is_group {
                                 prim_data.add_flags(PrimFlags::GROUP);
                             }
@@ -1751,7 +1754,13 @@ impl Stage {
             }
         }
 
-        let Some(pcp_cache) = self.pcp_cache.read().expect("rwlock poisoned").as_ref().cloned() else {
+        let Some(pcp_cache) = self
+            .pcp_cache
+            .read()
+            .expect("rwlock poisoned")
+            .as_ref()
+            .cloned()
+        else {
             return Vec::new();
         };
 
@@ -1798,7 +1807,11 @@ impl Stage {
             });
 
             if let Some(layer_stack) = root_layer_stack {
-                if layer_stack.get_layers().iter().any(|l| Arc::ptr_eq(l, layer)) {
+                if layer_stack
+                    .get_layers()
+                    .iter()
+                    .any(|l| Arc::ptr_eq(l, layer))
+                {
                     let offset = layer_stack
                         .get_layer_offset(layer)
                         .unwrap_or_else(usd_sdf::LayerOffset::identity);
@@ -1820,7 +1833,11 @@ impl Stage {
                     let Some(layer_stack) = node.layer_stack() else {
                         continue;
                     };
-                    if !layer_stack.get_layers().iter().any(|l| Arc::ptr_eq(l, layer)) {
+                    if !layer_stack
+                        .get_layers()
+                        .iter()
+                        .any(|l| Arc::ptr_eq(l, layer))
+                    {
                         continue;
                     }
 
@@ -1829,10 +1846,7 @@ impl Stage {
                         .get_layer_offset(layer)
                         .unwrap_or_else(usd_sdf::LayerOffset::identity);
                     let map_function = map_to_root.compose_offset(&layer_offset);
-                    return EditTarget::for_layer_with_map_function(
-                        layer.clone(),
-                        map_function,
-                    );
+                    return EditTarget::for_layer_with_map_function(layer.clone(), map_function);
                 }
             }
         }
@@ -2065,7 +2079,10 @@ impl Stage {
                 } else {
                     self.get_prim_data(&parent_path)
                 };
-                if parent_data.as_ref().is_some_and(|parent| !parent.is_active()) {
+                if parent_data
+                    .as_ref()
+                    .is_some_and(|parent| !parent.is_active())
+                {
                     return None;
                 }
                 let self_has_defining_specifier =
@@ -2126,7 +2143,9 @@ impl Stage {
                 return Some(super::object::Object::new(weak, path.clone()));
             }
         } else if path.is_property_path() {
-            if self.get_attribute_at_path(path).is_some() || self.get_relationship_at_path(path).is_some() {
+            if self.get_attribute_at_path(path).is_some()
+                || self.get_relationship_at_path(path).is_some()
+            {
                 return Some(super::object::Object::new(weak, path.clone()));
             }
         }
@@ -2140,7 +2159,9 @@ impl Stage {
             return None;
         }
 
-        if self.get_attribute_at_path(path).is_some() || self.get_relationship_at_path(path).is_some() {
+        if self.get_attribute_at_path(path).is_some()
+            || self.get_relationship_at_path(path).is_some()
+        {
             let weak = self.self_ref.get()?.clone();
             return Some(super::property::Property::new(weak, path.clone()));
         }
@@ -2281,7 +2302,8 @@ impl Stage {
             ResolveInfoSource::Default => info.value_source_might_be_time_varying(),
             ResolveInfoSource::Spline => true,
             ResolveInfoSource::ValueClips => {
-                let Some(spec_path) = info.prim_path().append_property(attr.name().get_text()) else {
+                let Some(spec_path) = info.prim_path().append_property(attr.name().get_text())
+                else {
                     return false;
                 };
                 let Some(clip_cache) = self.clip_cache() else {
@@ -2300,13 +2322,17 @@ impl Stage {
                         continue;
                     }
                     if clip_set_has_time_samples(clip_set.as_ref(), &spec_path) {
-                        return value_from_clips_might_be_time_varying(clip_set.as_ref(), &spec_path);
+                        return value_from_clips_might_be_time_varying(
+                            clip_set.as_ref(),
+                            &spec_path,
+                        );
                     }
                 }
                 false
             }
             ResolveInfoSource::TimeSamples => {
-                let Some(spec_path) = info.prim_path().append_property(attr.name().get_text()) else {
+                let Some(spec_path) = info.prim_path().append_property(attr.name().get_text())
+                else {
                     return false;
                 };
                 let Some(layer_handle) = info.layer() else {
@@ -3466,7 +3492,8 @@ impl Stage {
         if serial <= prev {
             return;
         }
-        self.last_layers_notice_serial.store(serial, Ordering::Release);
+        self.last_layers_notice_serial
+            .store(serial, Ordering::Release);
         self.last_change_serial.store(serial, Ordering::Release);
 
         self.record_pending_changes(changed_paths);
@@ -3938,8 +3965,8 @@ impl Stage {
 
     fn register_layer_change_listener(self: &Arc<Self>) {
         let weak_stage = Arc::downgrade(self);
-        let key = usd_tf::notice::register_global::<usd_sdf::notice::LayersDidChange, _>(
-            move |notice| {
+        let key =
+            usd_tf::notice::register_global::<usd_sdf::notice::LayersDidChange, _>(move |notice| {
                 let Some(stage) = weak_stage.upgrade() else {
                     return;
                 };
@@ -3953,7 +3980,8 @@ impl Stage {
                 let mut changed_paths = Vec::new();
                 for (layer, change_list) in notice.base().iter() {
                     let is_participating = participatory_layers.iter().any(|candidate| {
-                        Arc::ptr_eq(candidate, layer) || candidate.identifier() == layer.identifier()
+                        Arc::ptr_eq(candidate, layer)
+                            || candidate.identifier() == layer.identifier()
                     });
                     if !is_participating {
                         continue;
@@ -3962,15 +3990,14 @@ impl Stage {
                 }
 
                 if !changed_paths.is_empty() {
-                    stage.handle_layers_did_change(notice.base().serial_number() as u64, changed_paths);
+                    stage.handle_layers_did_change(
+                        notice.base().serial_number() as u64,
+                        changed_paths,
+                    );
                 }
-            },
-        );
+            });
 
-        *self
-            .layers_did_change_key
-            .lock()
-            .expect("mutex poisoned") = Some(key);
+        *self.layers_did_change_key.lock().expect("mutex poisoned") = Some(key);
     }
 
     /// Saves all dirty layers except session layers (matches C++ Save).
@@ -4348,7 +4375,10 @@ impl Stage {
 
         let spec_type = self.get_object_spec_type(path);
         if spec_type != SpecType::Unknown {
-            for field in usd_sdf::Schema::instance().base().get_required_fields(spec_type) {
+            for field in usd_sdf::Schema::instance()
+                .base()
+                .get_required_fields(spec_type)
+            {
                 if !field.as_str().starts_with('_') {
                     fields.insert(field);
                 }
@@ -4399,7 +4429,8 @@ impl Stage {
         if !schema.base().is_registered(key) {
             return false;
         }
-        if spec_type != SpecType::Unknown && !schema.base().is_valid_field_for_spec(key, spec_type) {
+        if spec_type != SpecType::Unknown && !schema.base().is_valid_field_for_spec(key, spec_type)
+        {
             return false;
         }
         let edit_target = self.get_edit_target();

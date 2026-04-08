@@ -1,4 +1,3 @@
-
 //! Rprim utility functions for Storm (ported from primUtils.h).
 //!
 //! Provides helper functions for:

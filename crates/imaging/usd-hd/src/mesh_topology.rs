@@ -1,4 +1,3 @@
-
 //! HdMeshTopology - Mesh topology for Hydra.
 //!
 //! Corresponds to pxr/imaging/hd/meshTopology.h.

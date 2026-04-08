@@ -1,4 +1,3 @@
-
 //! HdInstancer - Instancing support for prims.
 //!
 //! Provides instancing (copying) of geometry across multiple transforms.

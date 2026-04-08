@@ -284,7 +284,10 @@ impl BSDF for SheenBSDF {
         // from bsdf_sheenltc_param.h). Return zero contribution so callers get a
         // well-defined (black) result rather than silent wrong output.
         if self.mode == SheenMode::Ltc {
-            return BSDFEval { f: Color3::ZERO, pdf: 0.0 };
+            return BSDFEval {
+                f: Color3::ZERO,
+                pdf: 0.0,
+            };
         }
 
         let cos_i = wi.z.max(0.0);

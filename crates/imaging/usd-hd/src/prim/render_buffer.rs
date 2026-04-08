@@ -1,4 +1,3 @@
-
 //! HdRenderBuffer - Buffer primitive for render targets.
 //!
 //! Represents a 2D or 3D buffer for rendering output. Used for:

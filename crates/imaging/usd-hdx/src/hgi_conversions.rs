@@ -1,4 +1,3 @@
-
 //! HGI type conversions for Hydra extensions.
 //!
 //! Converts between `HdFormat` (Hydra's abstract format enum) and `HgiFormat`

@@ -1,4 +1,3 @@
-
 //! Scene material pruning scene index.
 //!
 //! Port of pxr/imaging/hdsi/sceneMaterialPruningSceneIndex.
@@ -7,10 +6,10 @@
 //! and clears prim type for non-builtin materials.
 
 use crate::utils;
-use std::fmt;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::fmt;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdRetainedContainerDataSource,
@@ -114,7 +113,9 @@ impl HdsiSceneMaterialPruningSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }
@@ -193,7 +194,10 @@ impl HdsiSceneMaterialPruningSceneIndex {
             let guard = this.read();
             let delegate = usd_hd::scene_index::base::SceneIndexDelegate(Arc::clone(this));
             let sender = &delegate as &dyn HdSceneIndexBase;
-            guard.base.base().send_prims_dirtied(sender, &dirtied_entries);
+            guard
+                .base
+                .base()
+                .send_prims_dirtied(sender, &dirtied_entries);
         }
     }
 }

@@ -250,8 +250,7 @@ fn reassign_from_iterator() {
     drop(map);
 
     // Replace with a new set
-    let map: DenseHashMap<usize, &str> =
-        [(2717usize, "dl"), (2129, "eg")].into_iter().collect();
+    let map: DenseHashMap<usize, &str> = [(2717usize, "dl"), (2129, "eg")].into_iter().collect();
 
     assert_eq!(map.len(), 2);
     assert_eq!(map.get(&2717), Some(&"dl"));

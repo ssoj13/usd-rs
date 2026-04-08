@@ -760,4 +760,3 @@ pub fn get_behavior(prim: &Prim) -> Option<Arc<dyn ConnectableAPIBehavior>> {
 pub fn has_behavior_for_type(type_name: &str) -> bool {
     BehaviorRegistry::get_instance().has_behavior_for_type(type_name)
 }
-

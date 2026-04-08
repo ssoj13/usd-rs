@@ -1,4 +1,3 @@
-
 //! Render task - Main geometry rendering task.
 //!
 //! Executes rendering for a collection of primitives using a render pass.

@@ -5,8 +5,8 @@
 //! Provides resolved data for mesh/basisCurves/points deformed by skeleton.
 
 use super::binding_schema::BindingSchema;
-use super::blend_shape_schema::BlendShapeSchema;
 use super::blend_shape_data::BlendShapeData;
+use super::blend_shape_schema::BlendShapeSchema;
 use super::data_source_utils::get_typed_value_from_container_token;
 use super::joint_influences_data::JointInfluencesData;
 use super::resolved_skeleton_schema::ResolvedSkeletonSchema;
@@ -346,12 +346,14 @@ impl DataSourceResolvedPointsBasedPrim {
             }
 
             let mut joint_influence_locators = HdDataSourceLocatorSet::new();
-            joint_influence_locators.insert(HdPrimvarsSchema::get_default_locator().append(
-                &BindingSchema::get_joint_indices_primvar_token(),
-            ));
-            joint_influence_locators.insert(HdPrimvarsSchema::get_default_locator().append(
-                &BindingSchema::get_joint_weights_primvar_token(),
-            ));
+            joint_influence_locators.insert(
+                HdPrimvarsSchema::get_default_locator()
+                    .append(&BindingSchema::get_joint_indices_primvar_token()),
+            );
+            joint_influence_locators.insert(
+                HdPrimvarsSchema::get_default_locator()
+                    .append(&BindingSchema::get_joint_weights_primvar_token()),
+            );
             joint_influence_locators.insert(BindingSchema::get_joints_locator());
             if dirty_locators.intersects(&joint_influence_locators) {
                 dirty_aggregator_inputs.insert(HdExtComputationSchema::get_input_values_locator());
@@ -374,9 +376,7 @@ impl DataSourceResolvedPointsBasedPrim {
 
             let geom_bind_locator = HdPrimvarsSchema::get_default_locator()
                 .append(&BindingSchema::get_geom_bind_transform_primvar_token());
-            if dirty_locators
-                .intersects(&HdDataSourceLocatorSet::from_locator(geom_bind_locator))
-            {
+            if dirty_locators.intersects(&HdDataSourceLocatorSet::from_locator(geom_bind_locator)) {
                 dirty_aggregator_inputs.insert(HdExtComputationSchema::get_input_values_locator());
                 mark_points_and_normals_dirty();
             }
@@ -398,13 +398,19 @@ impl DataSourceResolvedPointsBasedPrim {
                         &self.prim_path,
                         &EXT_COMPUTATION_NAME_TOKENS.points_aggregator_computation,
                     ) {
-                        entries.push(DirtiedPrimEntry::new(points_agg, dirty_aggregator_inputs.clone()));
+                        entries.push(DirtiedPrimEntry::new(
+                            points_agg,
+                            dirty_aggregator_inputs.clone(),
+                        ));
                     }
                     if let Some(normals_agg) = ext_comp_prim_path(
                         &self.prim_path,
                         &EXT_COMPUTATION_NAME_TOKENS.normals_aggregator_computation,
                     ) {
-                        entries.push(DirtiedPrimEntry::new(normals_agg, dirty_aggregator_inputs.clone()));
+                        entries.push(DirtiedPrimEntry::new(
+                            normals_agg,
+                            dirty_aggregator_inputs.clone(),
+                        ));
                     }
                 }
                 if !dirty_computation_inputs.is_empty() {
@@ -412,13 +418,19 @@ impl DataSourceResolvedPointsBasedPrim {
                         &self.prim_path,
                         &EXT_COMPUTATION_NAME_TOKENS.points_computation,
                     ) {
-                        entries.push(DirtiedPrimEntry::new(points_comp, dirty_computation_inputs.clone()));
+                        entries.push(DirtiedPrimEntry::new(
+                            points_comp,
+                            dirty_computation_inputs.clone(),
+                        ));
                     }
                     if let Some(normals_comp) = ext_comp_prim_path(
                         &self.prim_path,
                         &EXT_COMPUTATION_NAME_TOKENS.normals_computation,
                     ) {
-                        entries.push(DirtiedPrimEntry::new(normals_comp, dirty_computation_inputs.clone()));
+                        entries.push(DirtiedPrimEntry::new(
+                            normals_comp,
+                            dirty_computation_inputs.clone(),
+                        ));
                     }
                 }
             }

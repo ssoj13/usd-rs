@@ -1,7 +1,7 @@
 // Port of pxr/imaging/hd/testenv/testHdDirtyBitsTranslator.cpp
 
-use usd_hd::data_source::{HdDataSourceLocator, HdDataSourceLocatorSet};
 use usd_hd::change_tracker::HdRprimDirtyBits;
+use usd_hd::data_source::{HdDataSourceLocator, HdDataSourceLocatorSet};
 use usd_hd::dirty_bits_translator::{HD_CLEAN, HdDirtyBits, HdDirtyBitsTranslator};
 use usd_hd::schema::{HdPrimvarsSchema, PRIMVAR_VALUE};
 use usd_tf::Token;
@@ -137,7 +137,9 @@ fn test_custom_rprim_types() {
 
 #[test]
 fn test_mesh_points_primvar_value_locator_maps_to_dirty_points() {
-    let set = HdDataSourceLocatorSet::from_locator(HdPrimvarsSchema::get_points_locator().append(&PRIMVAR_VALUE));
+    let set = HdDataSourceLocatorSet::from_locator(
+        HdPrimvarsSchema::get_points_locator().append(&PRIMVAR_VALUE),
+    );
     let bits = HdDirtyBitsTranslator::rprim_locator_set_to_dirty_bits(&Token::new("mesh"), &set);
     assert_ne!(
         bits & HdRprimDirtyBits::DIRTY_POINTS,

@@ -1,6 +1,7 @@
 //! Museum integration tests - verifying composition results against
 //! the OpenUSD PCP Museum test cases.
 
+use std::path::Path as StdPath;
 use usd_pcp::{ArcType, Cache, LayerStackIdentifier};
 use usd_sdf::Path;
 
@@ -12,14 +13,13 @@ fn ensure_init() {
     });
 }
 
-fn testenv_path(relative: &str) -> String {
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    format!("{}/testenv/{}", manifest_dir.replace('\\', "/"), relative)
+fn asset_path(path: &StdPath) -> String {
+    path.to_string_lossy().replace('\\', "/")
 }
 
-fn make_cache(root_usda: &str) -> std::sync::Arc<Cache> {
+fn make_cache_museum(scenario: &str, file: &str) -> std::sync::Arc<Cache> {
     ensure_init();
-    let path = testenv_path(root_usda);
+    let path = asset_path(&openusd_test_path::pxr_pcp_museum(scenario, file));
     let id = LayerStackIdentifier::new(path.as_str());
     Cache::new(id, true)
 }
@@ -55,7 +55,7 @@ fn root_children_arcs(cache: &Cache, prim_path: &str) -> Vec<(ArcType, String)> 
 
 #[test]
 fn museum_basic_reference_layer_stack() {
-    let cache = make_cache("museum/BasicReference/root.usda");
+    let cache = make_cache_museum("BasicReference", "root.usda");
 
     // Layer stack should have: root.usda + sublayer.usda (session is separate)
     let id = cache.layer_stack_identifier();
@@ -72,7 +72,7 @@ fn museum_basic_reference_layer_stack() {
 
 #[test]
 fn museum_basic_reference_prim_with_references() {
-    let cache = make_cache("museum/BasicReference/root.usda");
+    let cache = make_cache_museum("BasicReference", "root.usda");
 
     // /PrimWithReferences has references to ref.usda</PrimA> and ref2.usda</PrimB>
     let (idx, errors) = cache.compute_prim_index(&p("/PrimWithReferences"));
@@ -112,7 +112,7 @@ fn museum_basic_reference_prim_with_references() {
 
 #[test]
 fn museum_basic_reference_internal_reference() {
-    let cache = make_cache("museum/BasicReference/root.usda");
+    let cache = make_cache_museum("BasicReference", "root.usda");
 
     // /PrimWithInternalReference references </InternalReference> and </InternalReference2>
     let (_idx, errors) = cache.compute_prim_index(&p("/PrimWithInternalReference"));
@@ -136,7 +136,7 @@ fn museum_basic_reference_internal_reference() {
 
 #[test]
 fn museum_basic_reference_default_prim() {
-    let cache = make_cache("museum/BasicReference/root.usda");
+    let cache = make_cache_museum("BasicReference", "root.usda");
 
     // /PrimWithDefaultReferenceTarget references @./defaultRef.usda@ (no target path)
     // defaultRef.usda has defaultPrim = "Default", so target is </Default>
@@ -155,7 +155,7 @@ fn museum_basic_reference_default_prim() {
 
 #[test]
 fn museum_basic_reference_subroot_reference() {
-    let cache = make_cache("museum/BasicReference/root.usda");
+    let cache = make_cache_museum("BasicReference", "root.usda");
 
     // /PrimWithSubrootReference references ref.usda</PrimA/PrimA_Child>
     // and ref.usda</PrimA/PrimC_Child>
@@ -171,7 +171,7 @@ fn museum_basic_reference_subroot_reference() {
 
 #[test]
 fn museum_basic_reference_self_reference() {
-    let cache = make_cache("museum/BasicReference/root.usda");
+    let cache = make_cache_museum("BasicReference", "root.usda");
 
     // /PrimWithSelfReference references root.usda</InternalReference>
     // and sublayer.usda</InternalSublayerReference>
@@ -187,7 +187,7 @@ fn museum_basic_reference_self_reference() {
 
 #[test]
 fn museum_basic_reference_variant_refs() {
-    let cache = make_cache("museum/BasicReference/root.usda");
+    let cache = make_cache_museum("BasicReference", "root.usda");
 
     // /PrimWithReferencesInVariants has variant "v" = "ref" with internal refs
     let (idx, errors) = cache.compute_prim_index(&p("/PrimWithReferencesInVariants"));
@@ -206,7 +206,7 @@ fn museum_basic_reference_variant_refs() {
 
 #[test]
 fn museum_basic_inherits_group() {
-    let cache = make_cache("museum/BasicInherits/root.usda");
+    let cache = make_cache_museum("BasicInherits", "root.usda");
 
     // /Group references group.usda</Group>
     let (idx, errors) = cache.compute_prim_index(&p("/Group"));
@@ -229,7 +229,7 @@ fn museum_basic_inherits_group() {
 
 #[test]
 fn museum_basic_inherits_model_instance() {
-    let cache = make_cache("museum/BasicInherits/root.usda");
+    let cache = make_cache_museum("BasicInherits", "root.usda");
 
     // /Group/Model_1 references model.usda</Model> which inherits </_class_Model>
     // The inherit should be propagated through the reference chain.
@@ -252,7 +252,7 @@ fn museum_basic_inherits_model_instance() {
 
 #[test]
 fn museum_basic_inherits_order() {
-    let cache = make_cache("museum/BasicInherits/root.usda");
+    let cache = make_cache_museum("BasicInherits", "root.usda");
 
     // /InheritsOrder1 inherits [</RootClass>, </ParentClass/SubrootClass>]
     let (idx, errors) = cache.compute_prim_index(&p("/InheritsOrder1"));
@@ -278,11 +278,14 @@ fn museum_basic_inherits_order() {
 
 #[test]
 fn museum_basic_payload_simple() {
-    let _cache = make_cache("museum/BasicPayload/root.usda");
+    let _cache = make_cache_museum("BasicPayload", "root.usda");
 
     // By default, payloads are NOT loaded unless explicitly included
     // Create cache with all payloads included
-    let path = testenv_path("museum/BasicPayload/root.usda");
+    let path = asset_path(&openusd_test_path::pxr_pcp_museum(
+        "BasicPayload",
+        "root.usda",
+    ));
     let id = LayerStackIdentifier::new(path.as_str());
     let cache_with_payloads = Cache::new(id, true);
 
@@ -313,7 +316,7 @@ fn museum_basic_payload_simple() {
 
 #[test]
 fn museum_basic_payload_not_loaded() {
-    let cache = make_cache("museum/BasicPayload/root.usda");
+    let cache = make_cache_museum("BasicPayload", "root.usda");
 
     // Without requesting payloads, /SimplePayload should have no payload arc
     let (idx, errors) = cache.compute_prim_index(&p("/SimplePayload"));
@@ -340,7 +343,7 @@ fn museum_basic_payload_not_loaded() {
 
 #[test]
 fn museum_basic_time_offset() {
-    let cache = make_cache("museum/BasicTimeOffset/root.usda");
+    let cache = make_cache_museum("BasicTimeOffset", "root.usda");
 
     // /Root references A.usda</Model> with offset=10
     // A.usda sublayers B.usda with offset=20
@@ -376,7 +379,7 @@ fn museum_basic_time_offset() {
 
 #[test]
 fn museum_basic_nested_variants() {
-    let cache = make_cache("museum/BasicNestedVariants/root.usda");
+    let cache = make_cache_museum("BasicNestedVariants", "root.usda");
 
     // /Foo has variant "which" = "A", and inside that /Foo/A/Number has variant "count" = "one"
     let (idx, errors) = cache.compute_prim_index(&p("/Foo"));
@@ -407,7 +410,7 @@ fn museum_basic_nested_variants() {
 
 #[test]
 fn museum_nested_variant_child() {
-    let cache = make_cache("museum/BasicNestedVariants/root.usda");
+    let cache = make_cache_museum("BasicNestedVariants", "root.usda");
 
     let (idx, errors) = cache.compute_prim_index(&p("/Foo/A/Number"));
     assert!(errors.is_empty(), "errors: {:?}", errors);
@@ -434,7 +437,7 @@ fn museum_nested_variant_child() {
 
 #[test]
 fn museum_basic_reference_diamond() {
-    let cache = make_cache("museum/BasicReferenceDiamond/root.usda");
+    let cache = make_cache_museum("BasicReferenceDiamond", "root.usda");
 
     // Diamond pattern: A refs B and C, both B and C ref D
     // /A should compose correctly despite diamond
@@ -454,7 +457,7 @@ fn museum_basic_reference_diamond() {
 
 #[test]
 fn museum_basic_reference_and_class() {
-    let cache = make_cache("museum/BasicReferenceAndClass/root.usda");
+    let cache = make_cache_museum("BasicReferenceAndClass", "root.usda");
 
     let (idx, errors) = cache.compute_prim_index(&p("/Model"));
     assert!(errors.is_empty(), "errors: {:?}", errors);
@@ -474,7 +477,7 @@ fn museum_basic_reference_and_class() {
 
 #[test]
 fn museum_subroot_reference_and_variants() {
-    let cache = make_cache("museum/SubrootReferenceAndVariants/root.usda");
+    let cache = make_cache_museum("SubrootReferenceAndVariants", "root.usda");
 
     // /SubrootRef references group.usda</Group/Model> (subroot ref)
     let (idx, errors) = cache.compute_prim_index(&p("/SubrootRef"));
@@ -510,7 +513,7 @@ fn museum_subroot_reference_and_variants() {
 
 #[test]
 fn museum_relative_path_references() {
-    let cache = make_cache("museum/RelativePathReferences/root.usda");
+    let cache = make_cache_museum("RelativePathReferences", "root.usda");
 
     // /Model gets opinions from sub1/sub1.usda and sub2/sub2.usda sublayers,
     // each with relative-path references to different ref.usda files
@@ -540,7 +543,7 @@ fn museum_relative_path_references() {
 
 #[test]
 fn museum_error_arc_cycle() {
-    let cache = make_cache("museum/ErrorArcCycle/root.usda");
+    let cache = make_cache_museum("ErrorArcCycle", "root.usda");
 
     // /GroupRoot references A.usda which references B.usda which references A.usda
     let (idx, errors) = cache.compute_prim_index(&p("/GroupRoot"));
@@ -553,7 +556,7 @@ fn museum_error_arc_cycle() {
 
 #[test]
 fn museum_error_inherit_cycle() {
-    let cache = make_cache("museum/ErrorArcCycle/root.usda");
+    let cache = make_cache_museum("ErrorArcCycle", "root.usda");
 
     // /Parent/Child1 inherits /Parent/Child2, /Parent/Child2 inherits /Parent/Child1
     let (idx, errors) = cache.compute_prim_index(&p("/Parent/Child1"));
@@ -566,7 +569,7 @@ fn museum_error_inherit_cycle() {
 
 #[test]
 fn museum_error_inherit_of_child_cycle() {
-    let cache = make_cache("museum/ErrorArcCycle/root.usda");
+    let cache = make_cache_museum("ErrorArcCycle", "root.usda");
 
     let (idx, errors) = cache.compute_prim_index(&p("/InheritOfChild"));
     assert!(
@@ -587,7 +590,10 @@ fn museum_error_inherit_of_child_cycle() {
 #[test]
 fn museum_basic_specializes() {
     ensure_init();
-    let path = testenv_path("museum/BasicSpecializes/root.usda");
+    let path = asset_path(&openusd_test_path::pxr_pcp_museum(
+        "BasicSpecializes",
+        "root.usda",
+    ));
     let id = LayerStackIdentifier::new(path.as_str());
     let cache = Cache::new(id, true);
 

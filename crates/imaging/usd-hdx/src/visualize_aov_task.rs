@@ -1,4 +1,3 @@
-
 //! Visualize AOV task - Visualize AOV (Arbitrary Output Variable) buffers.
 //!
 //! Records deferred visualization requests for AOV debugging and inspection.

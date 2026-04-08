@@ -1,4 +1,3 @@
-
 //! HdUnitTestHelper - Unit test driver for core engine.
 //!
 //! Corresponds to pxr/imaging/hd/unitTestHelper.h.

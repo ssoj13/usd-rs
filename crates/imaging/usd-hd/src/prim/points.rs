@@ -1,4 +1,3 @@
-
 //! HdPoints - Point cloud primitive.
 //!
 //! Represents a point cloud in Hydra. Each point can have:

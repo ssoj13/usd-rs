@@ -1,4 +1,3 @@
-
 //! Generative procedural base trait and types.
 
 use std::collections::HashMap;

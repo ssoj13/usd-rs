@@ -1,4 +1,3 @@
-
 //! HdUnitTestNullRenderDelegate - Null render delegate for unit tests.
 //!
 //! Corresponds to pxr/imaging/hd/unitTestNullRenderDelegate.h.

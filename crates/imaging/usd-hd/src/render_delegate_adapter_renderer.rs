@@ -1,4 +1,3 @@
-
 //! HdRenderDelegateAdapterRenderer - Renderer that populates legacy render delegate.
 //!
 //! Corresponds to pxr/imaging/hd/renderDelegateAdapterRenderer.h.

@@ -3,28 +3,26 @@
 //! Mirrors the `patchBasis.h` / `patchBasisTypes.h` headers from OpenSubdiv
 //! 3.7.0.  All functions operate on `f32` arrays and are pure (no allocation).
 
-pub mod patch_param;
-pub mod linear;
-pub mod bspline;
 pub mod bezier;
-pub mod gregory;
 pub mod box_spline_tri;
+pub mod bspline;
+pub mod gregory;
+pub mod linear;
+pub mod patch_param;
 
-pub use patch_param::{OsdPatchParam, patch_type};
-pub use linear::{eval_basis_linear, eval_basis_linear_tri};
-pub use bspline::{
-    eval_bspline_curve, adjust_bspline_boundary_weights,
-    bound_basis_bspline, eval_basis_bspline,
-};
 pub use bezier::{
-    eval_bezier_curve, eval_bezier_tri_deriv_weights,
-    eval_basis_bezier, eval_basis_bezier_tri,
+    eval_basis_bezier, eval_basis_bezier_tri, eval_bezier_curve, eval_bezier_tri_deriv_weights,
+};
+pub use box_spline_tri::{
+    adjust_box_spline_tri_boundary_weights, bound_basis_box_spline_tri, eval_basis_box_spline_tri,
+    eval_box_spline_tri_deriv_weights,
+};
+pub use bspline::{
+    adjust_bspline_boundary_weights, bound_basis_bspline, eval_basis_bspline, eval_bspline_curve,
 };
 pub use gregory::{eval_basis_gregory, eval_basis_gregory_tri};
-pub use box_spline_tri::{
-    eval_box_spline_tri_deriv_weights, adjust_box_spline_tri_boundary_weights,
-    bound_basis_box_spline_tri, eval_basis_box_spline_tri,
-};
+pub use linear::{eval_basis_linear, eval_basis_linear_tri};
+pub use patch_param::{OsdPatchParam, patch_type};
 
 // ---------------------------------------------------------------------------
 // Internal helpers: turn an Option<&mut [f32]> into a fixed-size array ref
@@ -79,27 +77,39 @@ fn reborrow3<'a>(o: &'a mut Option<&mut [f32]>) -> Option<&'a mut [f32; 3]> {
 // Helper to cast a mutable slice into a fixed-size array ref.
 #[inline]
 fn slice_to_arr16(s: &mut [f32]) -> &mut [f32; 16] {
-    (&mut s[..16]).try_into().expect("wp too small for 16 weights")
+    (&mut s[..16])
+        .try_into()
+        .expect("wp too small for 16 weights")
 }
 #[inline]
 fn slice_to_arr20(s: &mut [f32]) -> &mut [f32; 20] {
-    (&mut s[..20]).try_into().expect("wp too small for 20 weights")
+    (&mut s[..20])
+        .try_into()
+        .expect("wp too small for 20 weights")
 }
 #[inline]
 fn slice_to_arr18(s: &mut [f32]) -> &mut [f32; 18] {
-    (&mut s[..18]).try_into().expect("wp too small for 18 weights")
+    (&mut s[..18])
+        .try_into()
+        .expect("wp too small for 18 weights")
 }
 #[inline]
 fn slice_to_arr12(s: &mut [f32]) -> &mut [f32; 12] {
-    (&mut s[..12]).try_into().expect("wp too small for 12 weights")
+    (&mut s[..12])
+        .try_into()
+        .expect("wp too small for 12 weights")
 }
 #[inline]
 fn slice_to_arr4(s: &mut [f32]) -> &mut [f32; 4] {
-    (&mut s[..4]).try_into().expect("wp too small for 4 weights")
+    (&mut s[..4])
+        .try_into()
+        .expect("wp too small for 4 weights")
 }
 #[inline]
 fn slice_to_arr3(s: &mut [f32]) -> &mut [f32; 3] {
-    (&mut s[..3]).try_into().expect("wp too small for 3 weights")
+    (&mut s[..3])
+        .try_into()
+        .expect("wp too small for 3 weights")
 }
 
 /// Evaluate patch basis weights for a given patch type, with (s,t) already
@@ -123,55 +133,93 @@ pub fn evaluate_patch_basis_normalized(
 
     if patch_type_id == patch_type::REGULAR {
         let npts = eval_basis_bspline(
-            s, t, Some(slice_to_arr16(wp)),
-            reborrow16(&mut wds), reborrow16(&mut wdt),
-            reborrow16(&mut wdss), reborrow16(&mut wdst), reborrow16(&mut wdtt),
+            s,
+            t,
+            Some(slice_to_arr16(wp)),
+            reborrow16(&mut wds),
+            reborrow16(&mut wdt),
+            reborrow16(&mut wdss),
+            reborrow16(&mut wdst),
+            reborrow16(&mut wdtt),
         );
         if boundary != 0 {
             bound_basis_bspline(
-                boundary, Some(slice_to_arr16(wp)),
-                reborrow16(&mut wds), reborrow16(&mut wdt),
-                reborrow16(&mut wdss), reborrow16(&mut wdst), reborrow16(&mut wdtt),
+                boundary,
+                Some(slice_to_arr16(wp)),
+                reborrow16(&mut wds),
+                reborrow16(&mut wdt),
+                reborrow16(&mut wdss),
+                reborrow16(&mut wdst),
+                reborrow16(&mut wdtt),
             );
         }
         npts
     } else if patch_type_id == patch_type::LOOP {
         let npts = eval_basis_box_spline_tri(
-            s, t, Some(slice_to_arr12(wp)),
-            reborrow12(&mut wds), reborrow12(&mut wdt),
-            reborrow12(&mut wdss), reborrow12(&mut wdst), reborrow12(&mut wdtt),
+            s,
+            t,
+            Some(slice_to_arr12(wp)),
+            reborrow12(&mut wds),
+            reborrow12(&mut wdt),
+            reborrow12(&mut wdss),
+            reborrow12(&mut wdst),
+            reborrow12(&mut wdtt),
         );
         if boundary != 0 {
             bound_basis_box_spline_tri(
-                boundary, Some(slice_to_arr12(wp)),
-                reborrow12(&mut wds), reborrow12(&mut wdt),
-                reborrow12(&mut wdss), reborrow12(&mut wdst), reborrow12(&mut wdtt),
+                boundary,
+                Some(slice_to_arr12(wp)),
+                reborrow12(&mut wds),
+                reborrow12(&mut wdt),
+                reborrow12(&mut wdss),
+                reborrow12(&mut wdst),
+                reborrow12(&mut wdtt),
             );
         }
         npts
     } else if patch_type_id == patch_type::GREGORY_BASIS {
         eval_basis_gregory(
-            s, t, Some(slice_to_arr20(wp)),
-            reborrow20(&mut wds), reborrow20(&mut wdt),
-            reborrow20(&mut wdss), reborrow20(&mut wdst), reborrow20(&mut wdtt),
+            s,
+            t,
+            Some(slice_to_arr20(wp)),
+            reborrow20(&mut wds),
+            reborrow20(&mut wdt),
+            reborrow20(&mut wdss),
+            reborrow20(&mut wdst),
+            reborrow20(&mut wdtt),
         )
     } else if patch_type_id == patch_type::GREGORY_TRIANGLE {
         eval_basis_gregory_tri(
-            s, t, Some(slice_to_arr18(wp)),
-            reborrow18(&mut wds), reborrow18(&mut wdt),
-            reborrow18(&mut wdss), reborrow18(&mut wdst), reborrow18(&mut wdtt),
+            s,
+            t,
+            Some(slice_to_arr18(wp)),
+            reborrow18(&mut wds),
+            reborrow18(&mut wdt),
+            reborrow18(&mut wdss),
+            reborrow18(&mut wdst),
+            reborrow18(&mut wdtt),
         )
     } else if patch_type_id == patch_type::QUADS {
         eval_basis_linear(
-            s, t, Some(slice_to_arr4(wp)),
-            reborrow4(&mut wds), reborrow4(&mut wdt),
-            reborrow4(&mut wdss), reborrow4(&mut wdst), reborrow4(&mut wdtt),
+            s,
+            t,
+            Some(slice_to_arr4(wp)),
+            reborrow4(&mut wds),
+            reborrow4(&mut wdt),
+            reborrow4(&mut wdss),
+            reborrow4(&mut wdst),
+            reborrow4(&mut wdtt),
         )
     } else if patch_type_id == patch_type::TRIANGLES {
         eval_basis_linear_tri(
-            s, t, Some(slice_to_arr3(wp)),
-            reborrow3(&mut wds), reborrow3(&mut wdt),
-            reborrow3(&mut wdss), reborrow3(&mut wdst), reborrow3(&mut wdtt),
+            s,
+            t,
+            Some(slice_to_arr3(wp)),
+            reborrow3(&mut wds),
+            reborrow3(&mut wdt),
+            reborrow3(&mut wdss),
+            reborrow3(&mut wdst),
+            reborrow3(&mut wdtt),
         )
     } else {
         0
@@ -210,7 +258,11 @@ pub fn evaluate_patch_basis(
     };
 
     let npts = evaluate_patch_basis_normalized(
-        patch_type_id, param, ns, nt, wp,
+        patch_type_id,
+        param,
+        ns,
+        nt,
+        wp,
         wds.as_deref_mut(),
         wdt.as_deref_mut(),
         wdss.as_deref_mut(),
@@ -276,8 +328,16 @@ pub fn osd_evaluate_patch_basis_d1(
     wdt: &mut [f32],
 ) -> i32 {
     evaluate_patch_basis(
-        patch_type_id, param, s, t, wp,
-        Some(wds), Some(wdt), None, None, None,
+        patch_type_id,
+        param,
+        s,
+        t,
+        wp,
+        Some(wds),
+        Some(wdt),
+        None,
+        None,
+        None,
     )
 }
 
@@ -295,8 +355,16 @@ pub fn osd_evaluate_patch_basis_d2(
     wdtt: &mut [f32],
 ) -> i32 {
     evaluate_patch_basis(
-        patch_type_id, param, s, t, wp,
-        Some(wds), Some(wdt), Some(wdss), Some(wdst), Some(wdtt),
+        patch_type_id,
+        param,
+        s,
+        t,
+        wp,
+        Some(wds),
+        Some(wdt),
+        Some(wdss),
+        Some(wdst),
+        Some(wdtt),
     )
 }
 
@@ -314,8 +382,16 @@ mod tests {
         let param = simple_param();
         let mut wp = vec![0f32; 20];
         let n = evaluate_patch_basis_normalized(
-            patch_type::REGULAR, &param, 0.5, 0.5,
-            &mut wp, None, None, None, None, None,
+            patch_type::REGULAR,
+            &param,
+            0.5,
+            0.5,
+            &mut wp,
+            None,
+            None,
+            None,
+            None,
+            None,
         );
         assert_eq!(n, 16);
     }
@@ -325,8 +401,16 @@ mod tests {
         let param = simple_param();
         let mut wp = vec![0f32; 20];
         let n = evaluate_patch_basis_normalized(
-            patch_type::GREGORY_BASIS, &param, 0.3, 0.4,
-            &mut wp, None, None, None, None, None,
+            patch_type::GREGORY_BASIS,
+            &param,
+            0.3,
+            0.4,
+            &mut wp,
+            None,
+            None,
+            None,
+            None,
+            None,
         );
         assert_eq!(n, 20);
     }
@@ -336,8 +420,16 @@ mod tests {
         let param = simple_param();
         let mut wp = vec![0f32; 20];
         let n = evaluate_patch_basis_normalized(
-            patch_type::LOOP, &param, 0.2, 0.3,
-            &mut wp, None, None, None, None, None,
+            patch_type::LOOP,
+            &param,
+            0.2,
+            0.3,
+            &mut wp,
+            None,
+            None,
+            None,
+            None,
+            None,
         );
         assert_eq!(n, 12);
     }
@@ -347,8 +439,16 @@ mod tests {
         let param = simple_param();
         let mut wp = vec![0f32; 20];
         let n = evaluate_patch_basis_normalized(
-            patch_type::QUADS, &param, 0.5, 0.5,
-            &mut wp, None, None, None, None, None,
+            patch_type::QUADS,
+            &param,
+            0.5,
+            0.5,
+            &mut wp,
+            None,
+            None,
+            None,
+            None,
+            None,
         );
         assert_eq!(n, 4);
     }
@@ -358,11 +458,23 @@ mod tests {
         let param = simple_param();
         let mut wp = vec![0f32; 20];
         let n = evaluate_patch_basis(
-            patch_type::REGULAR, &param, 0.25, 0.25,
-            &mut wp, None, None, None, None, None,
+            patch_type::REGULAR,
+            &param,
+            0.25,
+            0.25,
+            &mut wp,
+            None,
+            None,
+            None,
+            None,
+            None,
         );
         assert_eq!(n, 16);
         let sum: f32 = wp[..16].iter().sum();
-        assert!((sum - 1.0).abs() < 1e-5, "partition of unity failed: sum={}", sum);
+        assert!(
+            (sum - 1.0).abs() < 1e-5,
+            "partition of unity failed: sum={}",
+            sum
+        );
     }
 }

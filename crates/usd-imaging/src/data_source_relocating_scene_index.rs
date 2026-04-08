@@ -22,7 +22,7 @@ use usd_hd::scene_index::observer::{
 use usd_hd::scene_index::{
     FilteringObserverTarget, HdContainerDataSourceHandle, HdSceneIndexBase, HdSceneIndexHandle,
     HdSceneIndexObserverHandle, HdSceneIndexPrim, HdSingleInputFilteringSceneIndexBase,
-    SdfPathVector, wire_filter_to_input, si_ref,
+    SdfPathVector, si_ref, wire_filter_to_input,
 };
 use usd_sdf::Path as SdfPath;
 

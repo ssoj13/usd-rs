@@ -6,13 +6,13 @@
 //! define the scope for skeletal bindings and manage the relationship
 //! between skeletons and skinned geometry.
 
+use super::BindingSchema;
 use crate::{
     data_source_prim::DataSourcePrim,
     data_source_stage_globals::DataSourceStageGlobalsHandle,
     prim_adapter::PrimAdapter,
     types::{PopulationMode, PropertyInvalidationType},
 };
-use super::BindingSchema;
 use std::sync::Arc;
 use usd_core::Prim;
 use usd_hd::data_source::HdRetainedTypedSampledDataSource;

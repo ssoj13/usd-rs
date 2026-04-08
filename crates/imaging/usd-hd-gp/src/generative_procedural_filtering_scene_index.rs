@@ -1,4 +1,3 @@
-
 //! Scene index that filters prims based on generative procedural type.
 //!
 //! Unlike the resolving scene index which evaluates procedurals, this scene index
@@ -11,12 +10,13 @@
 //! Port of pxr/imaging/hdGp/generativeProceduralFilteringSceneIndex.h/cpp
 
 use super::generative_procedural::tokens;
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::scene_index::{
     HdSceneIndexBase, HdSceneIndexHandle, HdSceneIndexPrim, HdSingleInputFilteringSceneIndexBase,
-    SdfPathVector, si_ref,
+    SdfPathVector,
     observer::{AddedPrimEntry, DirtiedPrimEntry, HdSceneIndexObserverHandle, RemovedPrimEntry},
+    si_ref,
 };
 use usd_hd::schema::HdPrimvarsSchema;
 use usd_sdf::Path as SdfPath;

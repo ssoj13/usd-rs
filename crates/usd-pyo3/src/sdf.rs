@@ -11,14 +11,14 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
 
-use usd_sdf::{
-    AttributeSpec, Layer, LayerOffset, ListOp, Path, PathExpression, PathListOp, Payload,
-    PayloadListOp, PrimSpec, PropertySpec, Reference, ReferenceListOp, RelationshipSpec, Specifier,
-    SpecType,
-};
 use usd_sdf::path as sdf_path_fns;
 use usd_sdf::path_expression_eval::PathExpressionEval;
 use usd_sdf::variable_expression::VariableExpression;
+use usd_sdf::{
+    AttributeSpec, Layer, LayerOffset, ListOp, Path, PathExpression, PathListOp, Payload,
+    PayloadListOp, PrimSpec, PropertySpec, Reference, ReferenceListOp, RelationshipSpec, SpecType,
+    Specifier,
+};
 use usd_tf::Token;
 use usd_vt::{AssetPath, TimeCode};
 
@@ -44,7 +44,7 @@ fn extract_path(obj: &Bound<'_, PyAny>) -> PyResult<Path> {
 /// Path addressing a location in a USD scene graph.
 ///
 /// Wraps `usd_sdf::Path`. Mirrors C++ `SdfPath` as exposed by `wrapPath.cpp`.
-#[pyclass(from_py_object,name = "Path", module = "pxr_rs.Sdf")]
+#[pyclass(from_py_object, name = "Path", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
 pub struct PyPath {
     pub(crate) inner: Path,
@@ -71,7 +71,9 @@ impl PyPath {
     #[pyo3(signature = (path = ""))]
     fn new(path: &str) -> Self {
         if path.is_empty() {
-            return Self { inner: Path::empty() };
+            return Self {
+                inner: Path::empty(),
+            };
         }
         Self {
             inner: Path::from_string(path).unwrap_or_else(Path::empty),
@@ -83,52 +85,78 @@ impl PyPath {
     #[classattr]
     #[allow(non_snake_case)]
     fn absoluteRootPath() -> Self {
-        Self { inner: Path::absolute_root() }
+        Self {
+            inner: Path::absolute_root(),
+        }
     }
 
     #[classattr]
     #[allow(non_snake_case)]
     fn reflexiveRelativePath() -> Self {
-        Self { inner: Path::reflexive_relative() }
+        Self {
+            inner: Path::reflexive_relative(),
+        }
     }
 
     #[classattr]
     #[allow(non_snake_case)]
     fn emptyPath() -> Self {
-        Self { inner: Path::empty() }
+        Self {
+            inner: Path::empty(),
+        }
     }
 
     // Path token constants mirroring SdfPathTokens
     #[classattr]
     #[allow(non_snake_case)]
-    fn absoluteIndicator() -> &'static str { "/" }
+    fn absoluteIndicator() -> &'static str {
+        "/"
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn childDelimiter() -> &'static str { "/" }
+    fn childDelimiter() -> &'static str {
+        "/"
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn propertyDelimiter() -> &'static str { "." }
+    fn propertyDelimiter() -> &'static str {
+        "."
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn relationshipTargetStart() -> &'static str { "[" }
+    fn relationshipTargetStart() -> &'static str {
+        "["
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn relationshipTargetEnd() -> &'static str { "]" }
+    fn relationshipTargetEnd() -> &'static str {
+        "]"
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn parentPathElement() -> &'static str { ".." }
+    fn parentPathElement() -> &'static str {
+        ".."
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn mapperIndicator() -> &'static str { ".mapper" }
+    fn mapperIndicator() -> &'static str {
+        ".mapper"
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn expressionIndicator() -> &'static str { ".expression" }
+    fn expressionIndicator() -> &'static str {
+        ".expression"
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn mapperArgDelimiter() -> &'static str { "." }
+    fn mapperArgDelimiter() -> &'static str {
+        "."
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn namespaceDelimiter() -> &'static str { ":" }
+    fn namespaceDelimiter() -> &'static str {
+        ":"
+    }
 
     // --- Properties ----------------------------------------------------------
 
@@ -168,9 +196,12 @@ impl PyPath {
     #[getter]
     #[allow(non_snake_case)]
     fn targetPath(&self) -> Self {
-        self.inner.get_target_path()
+        self.inner
+            .get_target_path()
             .map(|p| Self { inner: p })
-            .unwrap_or_else(|| Self { inner: Path::empty() })
+            .unwrap_or_else(|| Self {
+                inner: Path::empty(),
+            })
     }
 
     // --- Path type predicates ------------------------------------------------
@@ -269,22 +300,30 @@ impl PyPath {
 
     #[allow(non_snake_case)]
     fn GetParentPath(&self) -> Self {
-        Self { inner: self.inner.get_parent_path() }
+        Self {
+            inner: self.inner.get_parent_path(),
+        }
     }
 
     #[allow(non_snake_case)]
     fn GetPrimPath(&self) -> Self {
-        Self { inner: self.inner.get_prim_path() }
+        Self {
+            inner: self.inner.get_prim_path(),
+        }
     }
 
     #[allow(non_snake_case)]
     fn GetPrimOrPrimVariantSelectionPath(&self) -> Self {
-        Self { inner: self.inner.get_prim_or_prim_variant_selection_path() }
+        Self {
+            inner: self.inner.get_prim_or_prim_variant_selection_path(),
+        }
     }
 
     #[allow(non_snake_case)]
     fn GetAbsoluteRootOrPrimPath(&self) -> Self {
-        Self { inner: self.inner.get_absolute_root_or_prim_path() }
+        Self {
+            inner: self.inner.get_absolute_root_or_prim_path(),
+        }
     }
 
     /// Returns all prefixes of this path from root to self (inclusive).
@@ -317,7 +356,8 @@ impl PyPath {
     /// Returns all target paths reachable from this path, recursively.
     #[allow(non_snake_case)]
     fn GetAllTargetPathsRecursively(&self) -> Vec<Self> {
-        self.inner.get_all_target_paths_recursively()
+        self.inner
+            .get_all_target_paths_recursively()
             .into_iter()
             .map(|p| Self { inner: p })
             .collect()
@@ -327,14 +367,16 @@ impl PyPath {
 
     #[allow(non_snake_case)]
     fn MakeAbsolutePath(&self, anchor: &PyPath) -> PyResult<Self> {
-        self.inner.make_absolute(&anchor.inner)
+        self.inner
+            .make_absolute(&anchor.inner)
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err("MakeAbsolutePath failed"))
     }
 
     #[allow(non_snake_case)]
     fn MakeRelativePath(&self, anchor: &PyPath) -> PyResult<Self> {
-        self.inner.make_relative(&anchor.inner)
+        self.inner
+            .make_relative(&anchor.inner)
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err("MakeRelativePath failed"))
     }
@@ -343,72 +385,84 @@ impl PyPath {
 
     #[allow(non_snake_case)]
     fn AppendPath(&self, suffix: &PyPath) -> PyResult<Self> {
-        self.inner.append_path(&suffix.inner)
+        self.inner
+            .append_path(&suffix.inner)
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err("AppendPath failed"))
     }
 
     #[allow(non_snake_case)]
     fn AppendChild(&self, child_name: &str) -> PyResult<Self> {
-        self.inner.append_child(child_name)
+        self.inner
+            .append_child(child_name)
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err(format!("AppendChild('{child_name}') failed")))
     }
 
     #[allow(non_snake_case)]
     fn AppendProperty(&self, prop_name: &str) -> PyResult<Self> {
-        self.inner.append_property(prop_name)
+        self.inner
+            .append_property(prop_name)
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err(format!("AppendProperty('{prop_name}') failed")))
     }
 
     #[allow(non_snake_case)]
     fn AppendVariantSelection(&self, variant_set: &str, variant: &str) -> PyResult<Self> {
-        self.inner.append_variant_selection(variant_set, variant)
+        self.inner
+            .append_variant_selection(variant_set, variant)
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err("AppendVariantSelection failed"))
     }
 
     #[allow(non_snake_case)]
     fn AppendTarget(&self, target: &PyPath) -> PyResult<Self> {
-        self.inner.append_target(&target.inner)
+        self.inner
+            .append_target(&target.inner)
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err("AppendTarget failed"))
     }
 
     #[allow(non_snake_case)]
     fn AppendRelationalAttribute(&self, attr_name: &str) -> PyResult<Self> {
-        self.inner.append_relational_attribute(attr_name)
+        self.inner
+            .append_relational_attribute(attr_name)
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err("AppendRelationalAttribute failed"))
     }
 
     #[allow(non_snake_case)]
     fn AppendMapper(&self, target: &PyPath) -> PyResult<Self> {
-        self.inner.append_mapper(&target.inner)
+        self.inner
+            .append_mapper(&target.inner)
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err("AppendMapper failed"))
     }
 
     #[allow(non_snake_case)]
     fn AppendMapperArg(&self, arg_name: &str) -> PyResult<Self> {
-        self.inner.append_mapper_arg(arg_name)
+        self.inner
+            .append_mapper_arg(arg_name)
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err("AppendMapperArg failed"))
     }
 
     #[allow(non_snake_case)]
     fn AppendExpression(&self) -> PyResult<Self> {
-        self.inner.append_expression()
+        self.inner
+            .append_expression()
             .map(|p| Self { inner: p })
             .ok_or_else(|| PyValueError::new_err("AppendExpression failed"))
     }
 
     #[allow(non_snake_case)]
     fn AppendElementString(&self, element: &str) -> PyResult<Self> {
-        self.inner.append_element_string(element)
+        self.inner
+            .append_element_string(element)
             .map(|p| Self { inner: p })
-            .ok_or_else(|| PyValueError::new_err(format!("AppendElementString('{element}') failed")))
+            .ok_or_else(|| {
+                PyValueError::new_err(format!("AppendElementString('{element}') failed"))
+            })
     }
 
     // --- Manipulation --------------------------------------------------------
@@ -422,27 +476,43 @@ impl PyPath {
         fix_target_paths: bool,
     ) -> Self {
         let result = if fix_target_paths {
-            self.inner.replace_prefix(&old_prefix.inner, &new_prefix.inner)
+            self.inner
+                .replace_prefix(&old_prefix.inner, &new_prefix.inner)
         } else {
-            self.inner.replace_prefix_with_fix(&old_prefix.inner, &new_prefix.inner, false)
+            self.inner
+                .replace_prefix_with_fix(&old_prefix.inner, &new_prefix.inner, false)
         };
-        Self { inner: result.unwrap_or_else(|| self.inner.clone()) }
+        Self {
+            inner: result.unwrap_or_else(|| self.inner.clone()),
+        }
     }
 
     #[allow(non_snake_case)]
     fn GetCommonPrefix(&self, other: &PyPath) -> Self {
-        Self { inner: self.inner.get_common_prefix(&other.inner) }
+        Self {
+            inner: self.inner.get_common_prefix(&other.inner),
+        }
     }
 
     /// Returns (pathA, pathB) with common suffix removed.
     #[allow(non_snake_case)]
     #[pyo3(signature = (other, stop_at_root_prim = false))]
-    fn RemoveCommonSuffix(&self, other: &PyPath, stop_at_root_prim: bool, py: Python<'_>) -> Py<PyAny> {
-        let (a, b) = self.inner.remove_common_suffix(&other.inner, stop_at_root_prim);
-        PyTuple::new(py, [
-            PyPath { inner: a }.into_pyobject(py).expect("ok"),
-            PyPath { inner: b }.into_pyobject(py).expect("ok"),
-        ])
+    fn RemoveCommonSuffix(
+        &self,
+        other: &PyPath,
+        stop_at_root_prim: bool,
+        py: Python<'_>,
+    ) -> Py<PyAny> {
+        let (a, b) = self
+            .inner
+            .remove_common_suffix(&other.inner, stop_at_root_prim);
+        PyTuple::new(
+            py,
+            [
+                PyPath { inner: a }.into_pyobject(py).expect("ok"),
+                PyPath { inner: b }.into_pyobject(py).expect("ok"),
+            ],
+        )
         .expect("tuple creation")
         .into_any()
         .unbind()
@@ -450,20 +520,29 @@ impl PyPath {
 
     #[allow(non_snake_case)]
     fn ReplaceName(&self, new_name: &str) -> Self {
-        Self { inner: self.inner.replace_name(new_name).unwrap_or_else(|| self.inner.clone()) }
+        Self {
+            inner: self
+                .inner
+                .replace_name(new_name)
+                .unwrap_or_else(|| self.inner.clone()),
+        }
     }
 
     #[allow(non_snake_case)]
     fn ReplaceTargetPath(&self, new_target: &PyPath) -> Self {
         Self {
-            inner: self.inner.replace_target_path(&new_target.inner)
+            inner: self
+                .inner
+                .replace_target_path(&new_target.inner)
                 .unwrap_or_else(|| self.inner.clone()),
         }
     }
 
     #[allow(non_snake_case)]
     fn StripAllVariantSelections(&self) -> Self {
-        Self { inner: self.inner.strip_all_variant_selections() }
+        Self {
+            inner: self.inner.strip_all_variant_selections(),
+        }
     }
 
     // --- Static methods ------------------------------------------------------
@@ -518,7 +597,12 @@ impl PyPath {
     fn StripPrefixNamespace(name: &str, prefix: &str, py: Python<'_>) -> Py<PyAny> {
         let (stripped, had_prefix) = Path::strip_prefix_namespace(name, prefix);
         let s_obj: Py<PyAny> = stripped.into_pyobject(py).expect("ok").into_any().unbind();
-        let b_obj: Py<PyAny> = had_prefix.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
+        let b_obj: Py<PyAny> = had_prefix
+            .into_pyobject(py)
+            .expect("ok")
+            .to_owned()
+            .into_any()
+            .unbind();
         PyTuple::new(py, [s_obj, b_obj])
             .expect("tuple")
             .into_any()
@@ -635,7 +719,9 @@ impl PyLayerOffset {
     #[new]
     #[pyo3(signature = (offset = 0.0, scale = 1.0))]
     fn new(offset: f64, scale: f64) -> Self {
-        Self { inner: LayerOffset::new(offset, scale) }
+        Self {
+            inner: LayerOffset::new(offset, scale),
+        }
     }
 
     #[getter]
@@ -665,11 +751,17 @@ impl PyLayerOffset {
 
     #[allow(non_snake_case)]
     fn GetInverse(&self) -> Self {
-        Self { inner: self.inner.inverse() }
+        Self {
+            inner: self.inner.inverse(),
+        }
     }
 
     fn __repr__(&self) -> String {
-        format!("Sdf.LayerOffset({}, {})", self.inner.offset(), self.inner.scale())
+        format!(
+            "Sdf.LayerOffset({}, {})",
+            self.inner.offset(),
+            self.inner.scale()
+        )
     }
 
     fn __eq__(&self, other: &PyLayerOffset) -> bool {
@@ -683,13 +775,23 @@ impl PyLayerOffset {
     fn __mul__(&self, other: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         let py = other.py();
         if let Ok(lo) = other.extract::<PyLayerOffset>() {
-            Ok(Self { inner: self.inner * lo.inner }
-                .into_pyobject(py).expect("ok").into_any().unbind())
+            Ok(Self {
+                inner: self.inner * lo.inner,
+            }
+            .into_pyobject(py)
+            .expect("ok")
+            .into_any()
+            .unbind())
         } else if let Ok(tc) = other.extract::<PyTimeCode>() {
             // LayerOffset * TimeCode = TimeCode (apply offset+scale)
             let result = self.inner.offset() + self.inner.scale() * tc.inner.value();
-            Ok(PyTimeCode { inner: TimeCode::new(result) }
-                .into_pyobject(py).expect("ok").into_any().unbind())
+            Ok(PyTimeCode {
+                inner: TimeCode::new(result),
+            }
+            .into_pyobject(py)
+            .expect("ok")
+            .into_any()
+            .unbind())
         } else {
             Err(PyTypeError::new_err("expected LayerOffset or TimeCode"))
         }
@@ -703,7 +805,7 @@ impl PyLayerOffset {
 /// Container for scene description (prims, properties, metadata).
 ///
 /// Wraps `Arc<usd_sdf::Layer>`. Mirrors C++ `SdfLayer` as exposed by `wrapLayer.cpp`.
-#[pyclass(from_py_object,name = "Layer", module = "pxr_rs.Sdf")]
+#[pyclass(from_py_object, name = "Layer", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
 pub struct PyLayer {
     inner: Arc<Layer>,
@@ -828,9 +930,9 @@ impl PyLayer {
         // Check if another layer with this identifier already exists
         if let Some(existing) = Layer::find(new_id) {
             if !Arc::ptr_eq(&self.inner, &existing) {
-                return Err(pyo3::exceptions::PyRuntimeError::new_err(
-                    format!("Layer already exists with identifier '{new_id}'"),
-                ));
+                return Err(pyo3::exceptions::PyRuntimeError::new_err(format!(
+                    "Layer already exists with identifier '{new_id}'"
+                )));
             }
         }
         // Layer.set_identifier requires &mut which we can't get through Arc.
@@ -863,7 +965,9 @@ impl PyLayer {
     #[getter]
     #[allow(non_snake_case)]
     fn pseudoRoot(&self) -> PyPrimSpec {
-        PyPrimSpec { inner: self.inner.get_pseudo_root() }
+        PyPrimSpec {
+            inner: self.inner.get_pseudo_root(),
+        }
     }
 
     #[getter]
@@ -889,7 +993,8 @@ impl PyLayer {
     #[getter]
     #[allow(non_snake_case)]
     fn subLayerOffsets(&self) -> Vec<PyLayerOffset> {
-        self.inner.get_sublayer_offsets()
+        self.inner
+            .get_sublayer_offsets()
             .into_iter()
             .map(|o| PyLayerOffset { inner: o })
             .collect()
@@ -995,9 +1100,13 @@ impl PyLayer {
         let p = extract_path(path)?;
         // Handle pseudo-root path "/" explicitly
         if p.is_absolute_root_path() {
-            return Ok(Some(PyPrimSpec { inner: self.inner.get_pseudo_root() }));
+            return Ok(Some(PyPrimSpec {
+                inner: self.inner.get_pseudo_root(),
+            }));
         }
-        Ok(self.inner.get_prim_at_path(&p)
+        Ok(self
+            .inner
+            .get_prim_at_path(&p)
             .map(|p| PyPrimSpec { inner: p }))
     }
 
@@ -1005,7 +1114,9 @@ impl PyLayer {
     #[allow(non_snake_case)]
     fn GetPropertyAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyAttributeSpec>> {
         let p = extract_path(path)?;
-        Ok(self.inner.get_attribute_at_path(&p)
+        Ok(self
+            .inner
+            .get_attribute_at_path(&p)
             .map(|a| PyAttributeSpec { inner: a }))
     }
 
@@ -1013,7 +1124,9 @@ impl PyLayer {
     #[allow(non_snake_case)]
     fn GetAttributeAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyAttributeSpec>> {
         let p = extract_path(path)?;
-        Ok(self.inner.get_attribute_at_path(&p)
+        Ok(self
+            .inner
+            .get_attribute_at_path(&p)
             .map(|a| PyAttributeSpec { inner: a }))
     }
 
@@ -1070,7 +1183,8 @@ impl PyLayer {
 
     #[allow(non_snake_case)]
     fn GetSubLayerOffset(&self, index: usize) -> Option<PyLayerOffset> {
-        self.inner.get_sublayer_offset(index)
+        self.inner
+            .get_sublayer_offset(index)
             .map(|o| PyLayerOffset { inner: o })
     }
 
@@ -1096,7 +1210,12 @@ impl PyLayer {
 
     /// Returns the value at `time` for the attribute at `path`, or None.
     #[allow(non_snake_case)]
-    fn QueryTimeSample(&self, path: &Bound<'_, PyAny>, time: f64, py: Python<'_>) -> PyResult<Py<PyAny>> {
+    fn QueryTimeSample(
+        &self,
+        path: &Bound<'_, PyAny>,
+        time: f64,
+        py: Python<'_>,
+    ) -> PyResult<Py<PyAny>> {
         let p = extract_path(path)?;
         Ok(match self.inner.query_time_sample(&p, time) {
             Some(val) => vt_value_to_pyobject(py, &val),
@@ -1106,7 +1225,13 @@ impl PyLayer {
 
     /// Sets the time sample at `time` for the attribute at `path`.
     #[allow(non_snake_case)]
-    fn SetTimeSample(&self, path: &Bound<'_, PyAny>, time: f64, value: Py<PyAny>, py: Python<'_>) -> PyResult<bool> {
+    fn SetTimeSample(
+        &self,
+        path: &Bound<'_, PyAny>,
+        time: f64,
+        value: Py<PyAny>,
+        py: Python<'_>,
+    ) -> PyResult<bool> {
         let p = extract_path(path)?;
         let val = pyobject_to_vt_value(py, &value);
         Ok(self.inner.set_time_sample(&p, time, val))
@@ -1128,26 +1253,40 @@ impl PyLayer {
         py: Python<'_>,
     ) -> PyResult<Py<PyAny>> {
         let p = extract_path(path)?;
-        Ok(match self.inner.get_bracketing_time_samples_for_path(&p, time) {
-            Some((lo, hi)) => {
-                let found: Py<PyAny> = true.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
-                let lo_obj: Py<PyAny> = lo.into_pyobject(py).expect("ok").into_any().unbind();
-                let hi_obj: Py<PyAny> = hi.into_pyobject(py).expect("ok").into_any().unbind();
-                PyTuple::new(py, [found, lo_obj, hi_obj])
-                    .expect("tuple")
-                    .into_any()
-                    .unbind()
-            }
-            None => {
-                let found: Py<PyAny> = false.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
-                let lo_obj: Py<PyAny> = 0.0_f64.into_pyobject(py).expect("ok").into_any().unbind();
-                let hi_obj: Py<PyAny> = 0.0_f64.into_pyobject(py).expect("ok").into_any().unbind();
-                PyTuple::new(py, [found, lo_obj, hi_obj])
-                    .expect("tuple")
-                    .into_any()
-                    .unbind()
-            }
-        })
+        Ok(
+            match self.inner.get_bracketing_time_samples_for_path(&p, time) {
+                Some((lo, hi)) => {
+                    let found: Py<PyAny> = true
+                        .into_pyobject(py)
+                        .expect("ok")
+                        .to_owned()
+                        .into_any()
+                        .unbind();
+                    let lo_obj: Py<PyAny> = lo.into_pyobject(py).expect("ok").into_any().unbind();
+                    let hi_obj: Py<PyAny> = hi.into_pyobject(py).expect("ok").into_any().unbind();
+                    PyTuple::new(py, [found, lo_obj, hi_obj])
+                        .expect("tuple")
+                        .into_any()
+                        .unbind()
+                }
+                None => {
+                    let found: Py<PyAny> = false
+                        .into_pyobject(py)
+                        .expect("ok")
+                        .to_owned()
+                        .into_any()
+                        .unbind();
+                    let lo_obj: Py<PyAny> =
+                        0.0_f64.into_pyobject(py).expect("ok").into_any().unbind();
+                    let hi_obj: Py<PyAny> =
+                        0.0_f64.into_pyobject(py).expect("ok").into_any().unbind();
+                    PyTuple::new(py, [found, lo_obj, hi_obj])
+                        .expect("tuple")
+                        .into_any()
+                        .unbind()
+                }
+            },
+        )
     }
 
     // --- Muting -------------------------------------------------------------
@@ -1191,7 +1330,8 @@ impl PyLayer {
     /// Reloads this layer from disk.
     #[allow(non_snake_case)]
     fn Reload(&self) -> PyResult<bool> {
-        self.inner.reload()
+        self.inner
+            .reload()
             .map(|_| true)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
@@ -1207,23 +1347,31 @@ impl PyLayer {
     /// Saves this layer to disk.
     #[allow(non_snake_case)]
     fn Save(&self) -> PyResult<bool> {
-        self.inner.save()
+        self.inner
+            .save()
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 
     /// Exports this layer to `filename`.
     #[allow(non_snake_case)]
     #[pyo3(signature = (filename, comment = "", args = None))]
-    fn Export(&self, filename: &str, comment: &str, args: Option<&Bound<'_, PyDict>>) -> PyResult<bool> {
+    fn Export(
+        &self,
+        filename: &str,
+        comment: &str,
+        args: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<bool> {
         let _ = (comment, args);
-        self.inner.export(std::path::Path::new(filename))
+        self.inner
+            .export(std::path::Path::new(filename))
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 
     /// Returns the USDA text of this layer.
     #[allow(non_snake_case)]
     fn ExportToString(&self) -> PyResult<String> {
-        self.inner.export_to_string()
+        self.inner
+            .export_to_string()
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 
@@ -1255,8 +1403,7 @@ impl PyLayer {
     #[getter]
     fn documentation(&self) -> String {
         // Documentation stored as "documentation" field on pseudo-root
-        self.inner.get_pseudo_root()
-            .documentation()
+        self.inner.get_pseudo_root().documentation()
     }
 
     #[setter]
@@ -1317,7 +1464,8 @@ impl PyLayer {
 
     #[allow(non_snake_case)]
     fn Import(&self, layer_path: &str) -> PyResult<bool> {
-        self.inner.import(layer_path)
+        self.inner
+            .import(layer_path)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))
     }
 
@@ -1335,13 +1483,17 @@ impl PyLayer {
 
     #[allow(non_snake_case)]
     fn GetDefaultPrimAsPath(&self) -> PyPath {
-        PyPath { inner: self.inner.get_default_prim_as_path() }
+        PyPath {
+            inner: self.inner.get_default_prim_as_path(),
+        }
     }
 
     #[staticmethod]
     #[allow(non_snake_case)]
     fn ConvertDefaultPrimTokenToPath(default_prim: &str) -> PyPath {
-        PyPath { inner: Layer::convert_default_prim_token_to_path(&Token::new(default_prim)) }
+        PyPath {
+            inner: Layer::convert_default_prim_token_to_path(&Token::new(default_prim)),
+        }
     }
 
     #[staticmethod]
@@ -1412,32 +1564,65 @@ impl PyLayer {
 
     #[allow(non_snake_case)]
     fn GetFileFormat(&self) -> String {
-        self.inner.get_file_format().map(|f| f.format_id().to_string()).unwrap_or_default()
+        self.inner
+            .get_file_format()
+            .map(|f| f.format_id().to_string())
+            .unwrap_or_default()
     }
     #[allow(non_snake_case)]
     fn GetFileFormatArguments(&self) -> std::collections::HashMap<String, String> {
-        self.inner.get_file_format_arguments().iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+        self.inner
+            .get_file_format_arguments()
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
     }
     #[allow(non_snake_case)]
-    fn GetExternalReferences(&self) -> Vec<String> { self.inner.get_external_references().into_iter().collect() }
+    fn GetExternalReferences(&self) -> Vec<String> {
+        self.inner.get_external_references().into_iter().collect()
+    }
     #[allow(non_snake_case)]
-    fn GetCompositionAssetDependencies(&self) -> Vec<String> { self.inner.get_composition_asset_dependencies().into_iter().collect() }
+    fn GetCompositionAssetDependencies(&self) -> Vec<String> {
+        self.inner
+            .get_composition_asset_dependencies()
+            .into_iter()
+            .collect()
+    }
     #[allow(non_snake_case)]
-    fn GetExternalAssetDependencies(&self) -> Vec<String> { self.inner.get_external_asset_dependencies().into_iter().collect() }
+    fn GetExternalAssetDependencies(&self) -> Vec<String> {
+        self.inner
+            .get_external_asset_dependencies()
+            .into_iter()
+            .collect()
+    }
     #[allow(non_snake_case)]
-    fn ClearColorConfiguration(&self) { self.inner.clear_color_configuration(); }
+    fn ClearColorConfiguration(&self) {
+        self.inner.clear_color_configuration();
+    }
     #[allow(non_snake_case)]
-    fn ClearColorManagementSystem(&self) { self.inner.clear_color_management_system(); }
+    fn ClearColorManagementSystem(&self) {
+        self.inner.clear_color_management_system();
+    }
     #[allow(non_snake_case)]
-    fn ClearExpressionVariables(&self) { self.inner.clear_expression_variables(); }
+    fn ClearExpressionVariables(&self) {
+        self.inner.clear_expression_variables();
+    }
     #[allow(non_snake_case)]
-    fn ClearFramesPerSecond(&self) { self.inner.clear_frames_per_second(); }
+    fn ClearFramesPerSecond(&self) {
+        self.inner.clear_frames_per_second();
+    }
     #[allow(non_snake_case)]
-    fn ClearFramePrecision(&self) { self.inner.clear_frame_precision(); }
+    fn ClearFramePrecision(&self) {
+        self.inner.clear_frame_precision();
+    }
     #[allow(non_snake_case)]
-    fn ClearOwner(&self) { self.inner.clear_owner(); }
+    fn ClearOwner(&self) {
+        self.inner.clear_owner();
+    }
     #[allow(non_snake_case)]
-    fn ClearSessionOwner(&self) { self.inner.clear_session_owner(); }
+    fn ClearSessionOwner(&self) {
+        self.inner.clear_session_owner();
+    }
     #[allow(non_snake_case)]
     fn ApplyRootPrimOrder(&self, order: Vec<String>) -> Vec<String> {
         let mut tokens: Vec<usd_tf::Token> = order.iter().map(|s| usd_tf::Token::new(s)).collect();
@@ -1446,11 +1631,14 @@ impl PyLayer {
     }
     #[allow(non_snake_case)]
     fn UpdateCompositionAssetDependency(&self, old_path: &str, new_path: &str) {
-        self.inner.update_composition_asset_dependency(old_path, Some(new_path));
+        self.inner
+            .update_composition_asset_dependency(old_path, Some(new_path));
     }
     #[allow(non_snake_case)]
     fn GetBracketingTimeSamples(&self, time: f64) -> (f64, f64) {
-        self.inner.get_bracketing_time_samples(time).unwrap_or((time, time))
+        self.inner
+            .get_bracketing_time_samples(time)
+            .unwrap_or((time, time))
     }
 
     // --- Scene modification helpers -----------------------------------------
@@ -1494,10 +1682,13 @@ impl PyLayer {
         for (k, v) in &args {
             let _ = dict.set_item(k.as_str(), v.as_str());
         }
-        PyTuple::new(py, [
-            layer_path.into_pyobject(py).expect("ok").into_any(),
-            dict.into_any(),
-        ])
+        PyTuple::new(
+            py,
+            [
+                layer_path.into_pyobject(py).expect("ok").into_any(),
+                dict.into_any(),
+            ],
+        )
         .expect("tuple")
         .into_any()
         .unbind()
@@ -1575,7 +1766,7 @@ impl PyLayer {
 /// Scene description for a single prim in a layer.
 ///
 /// Wraps `usd_sdf::PrimSpec`. Mirrors C++ `SdfPrimSpec`.
-#[pyclass(skip_from_py_object,name = "PrimSpec", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "PrimSpec", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
 pub struct PyPrimSpec {
     inner: PrimSpec,
@@ -1650,7 +1841,9 @@ impl PyPrimSpec {
 
     #[getter]
     fn path(&self) -> PyPath {
-        PyPath { inner: self.inner.path() }
+        PyPath {
+            inner: self.inner.path(),
+        }
     }
 
     #[getter]
@@ -1661,7 +1854,9 @@ impl PyPrimSpec {
 
     #[getter]
     fn specifier(&self) -> PySpecifier {
-        PySpecifier { inner: self.inner.specifier() }
+        PySpecifier {
+            inner: self.inner.specifier(),
+        }
     }
 
     #[setter]
@@ -1746,13 +1941,17 @@ impl PyPrimSpec {
     #[getter]
     #[allow(non_snake_case)]
     fn nameChildren(&self) -> PyPrimSpecList {
-        PyPrimSpecList { items: self.inner.name_children() }
+        PyPrimSpecList {
+            items: self.inner.name_children(),
+        }
     }
 
     /// Returns the attributes on this prim (dict-like access by name).
     #[getter]
     fn attributes(&self) -> PyPropertySpecList {
-        let props = self.inner.attributes()
+        let props = self
+            .inner
+            .attributes()
             .into_iter()
             .map(|a| PropertySpec::new(a.into_spec()))
             .collect();
@@ -1777,7 +1976,9 @@ impl PyPrimSpec {
     #[allow(non_snake_case)]
     fn GetAttributeAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyAttributeSpec>> {
         let p = extract_path(path)?;
-        Ok(self.inner.get_attribute_at_path(&p)
+        Ok(self
+            .inner
+            .get_attribute_at_path(&p)
             .map(|a| PyAttributeSpec { inner: a }))
     }
 
@@ -1788,12 +1989,18 @@ impl PyPrimSpec {
         // Try as attribute first
         if let Some(a) = self.inner.get_attribute_at_path(&p) {
             return Ok(PyAttributeSpec { inner: a }
-                .into_pyobject(py).expect("ok").into_any().unbind());
+                .into_pyobject(py)
+                .expect("ok")
+                .into_any()
+                .unbind());
         }
         // Try as property
         if let Some(prop) = self.inner.get_property_at_path(&p) {
             return Ok(PyPropertySpec { inner: prop }
-                .into_pyobject(py).expect("ok").into_any().unbind());
+                .into_pyobject(py)
+                .expect("ok")
+                .into_any()
+                .unbind());
         }
         Ok(py.None())
     }
@@ -1803,25 +2010,33 @@ impl PyPrimSpec {
     #[getter]
     #[allow(non_snake_case)]
     fn referenceList(&self) -> PyReferenceListOp {
-        PyReferenceListOp { inner: self.inner.references_list() }
+        PyReferenceListOp {
+            inner: self.inner.references_list(),
+        }
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn payloadList(&self) -> PyPayloadListOp {
-        PyPayloadListOp { inner: self.inner.payloads_list() }
+        PyPayloadListOp {
+            inner: self.inner.payloads_list(),
+        }
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn inheritPathList(&self) -> PyPathListOp {
-        PyPathListOp { inner: self.inner.inherits_list() }
+        PyPathListOp {
+            inner: self.inner.inherits_list(),
+        }
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn specializesList(&self) -> PyPathListOp {
-        PyPathListOp { inner: self.inner.specializes_list() }
+        PyPathListOp {
+            inner: self.inner.specializes_list(),
+        }
     }
 
     #[getter]
@@ -1866,7 +2081,8 @@ impl PyPrimSpec {
 
     #[allow(non_snake_case)]
     fn ClearInfo(&mut self, key: &str) {
-        self.inner.set_info(&Token::new(key), usd_sdf::spec::VtValue::empty());
+        self.inner
+            .set_info(&Token::new(key), usd_sdf::spec::VtValue::empty());
     }
 
     // --- Variant set manipulation ---------------------------------------
@@ -1874,7 +2090,8 @@ impl PyPrimSpec {
     #[getter]
     #[allow(non_snake_case)]
     fn variantSets(&self) -> Vec<String> {
-        self.inner.variant_set_name_list()
+        self.inner
+            .variant_set_name_list()
             .into_iter()
             .map(|t| t.as_str().to_string())
             .collect()
@@ -1895,7 +2112,8 @@ impl PyPrimSpec {
             if list_op.is_explicit() {
                 let _ = result.set_explicit_items(tokens_to_strings(list_op.get_explicit_items()));
             } else {
-                let _ = result.set_prepended_items(tokens_to_strings(list_op.get_prepended_items()));
+                let _ =
+                    result.set_prepended_items(tokens_to_strings(list_op.get_prepended_items()));
                 let _ = result.set_appended_items(tokens_to_strings(list_op.get_appended_items()));
                 let _ = result.set_deleted_items(tokens_to_strings(list_op.get_deleted_items()));
                 result.set_added_items(tokens_to_strings(list_op.get_added_items()));
@@ -1903,7 +2121,9 @@ impl PyPrimSpec {
             }
             PyStringListOp { inner: result }
         } else {
-            PyStringListOp { inner: ListOp::new() }
+            PyStringListOp {
+                inner: ListOp::new(),
+            }
         }
     }
 
@@ -1943,7 +2163,7 @@ impl PyPrimSpec {
 /// Scene description for an attribute in a layer.
 ///
 /// Wraps `usd_sdf::AttributeSpec`. Mirrors C++ `SdfAttributeSpec`.
-#[pyclass(skip_from_py_object,name = "AttributeSpec", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "AttributeSpec", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
 pub struct PyAttributeSpec {
     inner: AttributeSpec,
@@ -1969,13 +2189,15 @@ impl PyAttributeSpec {
             .ok_or_else(|| PyRuntimeError::new_err("PrimSpec has no valid layer"))?;
 
         let prim_path = owner.inner.path();
-        let attr_path = prim_path.append_property(name)
-            .ok_or_else(|| PyRuntimeError::new_err(format!("Cannot create attribute with name '{name}'")))?;
+        let attr_path = prim_path.append_property(name).ok_or_else(|| {
+            PyRuntimeError::new_err(format!("Cannot create attribute with name '{name}'"))
+        })?;
 
         // Check if spec already exists
         if layer.has_spec(&attr_path) {
             return Err(PyRuntimeError::new_err(format!(
-                "Object already exists at path '{}'", attr_path.get_as_string()
+                "Object already exists at path '{}'",
+                attr_path.get_as_string()
             )));
         }
 
@@ -2002,10 +2224,8 @@ impl PyAttributeSpec {
             let ps = PropertySpec::new(attr.as_spec().clone());
             let _ = ps;
             // Set custom field on the spec
-            attr.as_spec_mut().set_field(
-                &Token::new("custom"),
-                usd_sdf::spec::VtValue::new(true),
-            );
+            attr.as_spec_mut()
+                .set_field(&Token::new("custom"), usd_sdf::spec::VtValue::new(true));
         }
 
         Ok(Self { inner: attr })
@@ -2021,7 +2241,8 @@ impl PyAttributeSpec {
         // Rename by creating new spec and removing old
         let old_path = self.inner.path();
         let prim_path = old_path.get_prim_path();
-        let new_path = prim_path.append_property(new_name)
+        let new_path = prim_path
+            .append_property(new_name)
             .ok_or_else(|| PyValueError::new_err(format!("Invalid name: '{new_name}'")))?;
 
         let layer_handle = self.inner.layer();
@@ -2031,7 +2252,8 @@ impl PyAttributeSpec {
 
         if layer.has_spec(&new_path) {
             return Err(PyRuntimeError::new_err(format!(
-                "Object already exists at path '{}'", new_path.get_as_string()
+                "Object already exists at path '{}'",
+                new_path.get_as_string()
             )));
         }
 
@@ -2047,7 +2269,9 @@ impl PyAttributeSpec {
 
     #[getter]
     fn path(&self) -> PyPath {
-        PyPath { inner: self.inner.path() }
+        PyPath {
+            inner: self.inner.path(),
+        }
     }
 
     #[getter]
@@ -2060,13 +2284,17 @@ impl PyAttributeSpec {
     fn owner(&self) -> Option<PyPrimSpec> {
         let prim_path = self.inner.path().get_prim_path();
         let layer = self.inner.layer().upgrade()?;
-        layer.get_prim_at_path(&prim_path).map(|p| PyPrimSpec { inner: p })
+        layer
+            .get_prim_at_path(&prim_path)
+            .map(|p| PyPrimSpec { inner: p })
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn typeName(&self) -> PyValueTypeName {
-        PyValueTypeName { name: self.inner.type_name() }
+        PyValueTypeName {
+            name: self.inner.type_name(),
+        }
     }
 
     #[setter]
@@ -2092,10 +2320,10 @@ impl PyAttributeSpec {
 
     #[setter]
     fn set_custom(&mut self, v: bool) {
-        let _ = self.inner.as_spec_mut().set_field(
-            &Token::new("custom"),
-            usd_sdf::spec::VtValue::new(v),
-        );
+        let _ = self
+            .inner
+            .as_spec_mut()
+            .set_field(&Token::new("custom"), usd_sdf::spec::VtValue::new(v));
     }
 
     #[getter]
@@ -2130,7 +2358,9 @@ impl PyAttributeSpec {
     #[getter]
     #[allow(non_snake_case)]
     fn connectionPathList(&self) -> PyPathListOp {
-        PyPathListOp { inner: self.inner.connection_paths_list() }
+        PyPathListOp {
+            inner: self.inner.connection_paths_list(),
+        }
     }
 
     #[getter]
@@ -2149,7 +2379,11 @@ impl PyAttributeSpec {
     #[allow(non_snake_case)]
     fn GetInfo(&self, key: &str, py: Python<'_>) -> Py<PyAny> {
         let val = self.inner.as_spec().get_field(&Token::new(key));
-        if val.is_empty() { py.None() } else { vt_value_to_pyobject(py, &val) }
+        if val.is_empty() {
+            py.None()
+        } else {
+            vt_value_to_pyobject(py, &val)
+        }
     }
 
     #[allow(non_snake_case)]
@@ -2160,7 +2394,10 @@ impl PyAttributeSpec {
 
     #[allow(non_snake_case)]
     fn ClearInfo(&mut self, key: &str) {
-        let _ = self.inner.as_spec_mut().set_field(&Token::new(key), usd_sdf::spec::VtValue::empty());
+        let _ = self
+            .inner
+            .as_spec_mut()
+            .set_field(&Token::new(key), usd_sdf::spec::VtValue::empty());
     }
 
     /// Check if spec is inert (has no non-default data).
@@ -2179,7 +2416,11 @@ impl PyAttributeSpec {
     /// Check if this attribute has an arraySizeConstraint.
     #[allow(non_snake_case)]
     fn HasArraySizeConstraint(&self) -> bool {
-        !self.inner.as_spec().get_field(&Token::new("arraySizeConstraint")).is_empty()
+        !self
+            .inner
+            .as_spec()
+            .get_field(&Token::new("arraySizeConstraint"))
+            .is_empty()
     }
 
     /// Clear arraySizeConstraint.
@@ -2195,12 +2436,18 @@ impl PyAttributeSpec {
     #[getter]
     #[allow(non_snake_case)]
     fn arraySizeConstraint(&self) -> i64 {
-        self.inner.as_spec().get_field(&Token::new("arraySizeConstraint"))
+        self.inner
+            .as_spec()
+            .get_field(&Token::new("arraySizeConstraint"))
             .get::<i64>()
             .copied()
-            .or_else(|| self.inner.as_spec().get_field(&Token::new("arraySizeConstraint"))
-                .get::<i32>()
-                .map(|v| *v as i64))
+            .or_else(|| {
+                self.inner
+                    .as_spec()
+                    .get_field(&Token::new("arraySizeConstraint"))
+                    .get::<i32>()
+                    .map(|v| *v as i64)
+            })
             .unwrap_or(0)
     }
 
@@ -2228,7 +2475,10 @@ impl PyAttributeSpec {
             }
         }
         let val = usd_sdf::spec::VtValue::new(dict);
-        let _ = self.inner.as_spec_mut().set_field(&Token::new("customData"), val);
+        let _ = self
+            .inner
+            .as_spec_mut()
+            .set_field(&Token::new("customData"), val);
     }
 
     fn IsValid(&self) -> bool {
@@ -2292,7 +2542,10 @@ impl PyPropertySpec {
     }
 
     fn __repr__(&self) -> String {
-        format!("Sdf.PropertySpec('{}')", self.inner.spec().path().get_as_string())
+        format!(
+            "Sdf.PropertySpec('{}')",
+            self.inner.spec().path().get_as_string()
+        )
     }
 
     fn __eq__(&self, other: &Self) -> bool {
@@ -2325,16 +2578,24 @@ impl PyPropertySpecList {
 
     fn __getitem__(&self, key: &Bound<'_, PyAny>) -> PyResult<PyAttributeSpec> {
         if let Ok(idx) = key.extract::<isize>() {
-            let idx = if idx < 0 { self.items.len() as isize + idx } else { idx } as usize;
+            let idx = if idx < 0 {
+                self.items.len() as isize + idx
+            } else {
+                idx
+            } as usize;
             self.items
                 .get(idx)
-                .map(|p| PyAttributeSpec { inner: AttributeSpec::new(p.spec().clone()) })
+                .map(|p| PyAttributeSpec {
+                    inner: AttributeSpec::new(p.spec().clone()),
+                })
                 .ok_or_else(|| PyValueError::new_err("index out of range"))
         } else if let Ok(name) = key.extract::<String>() {
             self.items
                 .iter()
                 .find(|p| p.name().as_str() == name)
-                .map(|p| PyAttributeSpec { inner: AttributeSpec::new(p.spec().clone()) })
+                .map(|p| PyAttributeSpec {
+                    inner: AttributeSpec::new(p.spec().clone()),
+                })
                 .ok_or_else(|| PyValueError::new_err(format!("no property '{name}'")))
         } else {
             Err(PyTypeError::new_err("index must be int or str"))
@@ -2405,12 +2666,18 @@ impl PyPrimSpecList {
 
     fn __getitem__(&self, key: &Bound<'_, PyAny>) -> PyResult<PyPrimSpec> {
         if let Ok(idx) = key.extract::<isize>() {
-            let idx = if idx < 0 { self.items.len() as isize + idx } else { idx } as usize;
-            self.items.get(idx)
+            let idx = if idx < 0 {
+                self.items.len() as isize + idx
+            } else {
+                idx
+            } as usize;
+            self.items
+                .get(idx)
                 .map(|p| PyPrimSpec { inner: p.clone() })
                 .ok_or_else(|| PyValueError::new_err("index out of range"))
         } else if let Ok(name) = key.extract::<String>() {
-            self.items.iter()
+            self.items
+                .iter()
                 .find(|p| p.name() == name)
                 .map(|p| PyPrimSpec { inner: p.clone() })
                 .ok_or_else(|| PyValueError::new_err(format!("no child prim '{name}'")))
@@ -2448,10 +2715,15 @@ impl PyPrimSpecList {
     }
 
     fn __iter__(&self) -> PyPrimSpecListIter {
-        PyPrimSpecListIter { items: self.items.clone(), index: 0 }
+        PyPrimSpecListIter {
+            items: self.items.clone(),
+            index: 0,
+        }
     }
 
-    fn __bool__(&self) -> bool { !self.items.is_empty() }
+    fn __bool__(&self) -> bool {
+        !self.items.is_empty()
+    }
 }
 
 #[pyclass(skip_from_py_object)]
@@ -2462,7 +2734,9 @@ struct PyPrimSpecListIter {
 
 #[pymethods]
 impl PyPrimSpecListIter {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> { slf }
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
 
     fn __next__(&mut self) -> Option<PyPrimSpec> {
         if self.index < self.items.len() {
@@ -2482,7 +2756,7 @@ impl PyPrimSpecListIter {
 /// Specifier for a prim: `Def`, `Over`, or `Class`.
 ///
 /// Wraps `usd_sdf::Specifier`. Mirrors C++ `SdfSpecifier`.
-#[pyclass(skip_from_py_object,name = "Specifier", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "Specifier", module = "pxr_rs.Sdf")]
 #[derive(Clone, Copy)]
 pub struct PySpecifier {
     inner: Specifier,
@@ -2493,19 +2767,25 @@ impl PySpecifier {
     #[classattr]
     #[allow(non_snake_case)]
     fn SpecifierDef() -> Self {
-        Self { inner: Specifier::Def }
+        Self {
+            inner: Specifier::Def,
+        }
     }
 
     #[classattr]
     #[allow(non_snake_case)]
     fn SpecifierOver() -> Self {
-        Self { inner: Specifier::Over }
+        Self {
+            inner: Specifier::Over,
+        }
     }
 
     #[classattr]
     #[allow(non_snake_case)]
     fn SpecifierClass() -> Self {
-        Self { inner: Specifier::Class }
+        Self {
+            inner: Specifier::Class,
+        }
     }
 
     fn __repr__(&self) -> &'static str {
@@ -2542,7 +2822,7 @@ impl PySpecifier {
 /// with Sdf.ChangeBlock():
 ///     # make many changes...
 /// ```
-#[pyclass(skip_from_py_object,name = "ChangeBlock", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "ChangeBlock", module = "pxr_rs.Sdf")]
 pub struct PyChangeBlock {
     // Held alive for the duration of the with-block; drop triggers flush.
     _block: usd_sdf::ChangeBlock,
@@ -2552,7 +2832,9 @@ pub struct PyChangeBlock {
 impl PyChangeBlock {
     #[new]
     fn new() -> Self {
-        Self { _block: usd_sdf::ChangeBlock::new() }
+        Self {
+            _block: usd_sdf::ChangeBlock::new(),
+        }
     }
 
     fn __enter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
@@ -2576,7 +2858,12 @@ impl PyChangeBlock {
 /// always get something usable rather than None.
 fn vt_value_to_pyobject(py: Python<'_>, val: &usd_vt::Value) -> Py<PyAny> {
     if let Some(b) = val.get::<bool>() {
-        return b.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
+        return b
+            .into_pyobject(py)
+            .expect("ok")
+            .to_owned()
+            .into_any()
+            .unbind();
     }
     if let Some(i) = val.get::<i32>() {
         return i.into_pyobject(py).expect("ok").into_any().unbind();
@@ -2585,16 +2872,30 @@ fn vt_value_to_pyobject(py: Python<'_>, val: &usd_vt::Value) -> Py<PyAny> {
         return i.into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(f) = val.get::<f32>() {
-        return (*f as f64).into_pyobject(py).expect("ok").into_any().unbind();
+        return (*f as f64)
+            .into_pyobject(py)
+            .expect("ok")
+            .into_any()
+            .unbind();
     }
     if let Some(f) = val.get::<f64>() {
         return f.into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(s) = val.get::<String>() {
-        return s.as_str().into_pyobject(py).expect("ok").into_any().unbind();
+        return s
+            .as_str()
+            .into_pyobject(py)
+            .expect("ok")
+            .into_any()
+            .unbind();
     }
     if let Some(t) = val.get::<Token>() {
-        return t.as_str().into_pyobject(py).expect("ok").into_any().unbind();
+        return t
+            .as_str()
+            .into_pyobject(py)
+            .expect("ok")
+            .into_any()
+            .unbind();
     }
     if let Some(v) = val.get::<Vec<f32>>() {
         let list = PyList::new(py, v.iter().map(|x| *x as f64)).expect("list");
@@ -2609,7 +2910,11 @@ fn vt_value_to_pyobject(py: Python<'_>, val: &usd_vt::Value) -> Py<PyAny> {
         return list.into_any().unbind();
     }
     // Fallback: debug string
-    format!("{val:?}").into_pyobject(py).expect("ok").into_any().unbind()
+    format!("{val:?}")
+        .into_pyobject(py)
+        .expect("ok")
+        .into_any()
+        .unbind()
 }
 
 /// Converts a Python object to a `usd_vt::Value`.
@@ -2690,7 +2995,12 @@ fn register_value_type_names(py: Python<'_>) -> PyResult<()> {
 
     // Helper closure to set a named attr
     let set = |name: &str, type_name: &str| -> PyResult<()> {
-        let obj = Py::new(py, PyValueTypeName { name: type_name.to_string() })?;
+        let obj = Py::new(
+            py,
+            PyValueTypeName {
+                name: type_name.to_string(),
+            },
+        )?;
         vtn.setattr(name, obj)
     };
 
@@ -2838,7 +3148,9 @@ impl PyPathExpression {
     #[new]
     #[pyo3(signature = (expr = ""))]
     fn new(expr: &str) -> Self {
-        Self { inner: PathExpression::parse(expr) }
+        Self {
+            inner: PathExpression::parse(expr),
+        }
     }
 
     /// Returns the canonical text representation of this expression.
@@ -2869,21 +3181,27 @@ impl PyPathExpression {
     #[staticmethod]
     #[allow(non_snake_case)]
     fn Nothing() -> Self {
-        Self { inner: PathExpression::new() }
+        Self {
+            inner: PathExpression::new(),
+        }
     }
 
     /// Return the expression that matches everything (`//`).
     #[staticmethod]
     #[allow(non_snake_case)]
     fn Everything() -> Self {
-        Self { inner: PathExpression::everything() }
+        Self {
+            inner: PathExpression::everything(),
+        }
     }
 
     /// Return the complement of the given expression.
     #[staticmethod]
     #[allow(non_snake_case)]
     fn MakeComplement(expr: &PyPathExpression) -> Self {
-        Self { inner: PathExpression::make_complement(expr.inner.clone()) }
+        Self {
+            inner: PathExpression::make_complement(expr.inner.clone()),
+        }
     }
 
     /// True if the expression contains a weaker expression reference (%_).
@@ -2895,19 +3213,27 @@ impl PyPathExpression {
     /// Make this expression absolute relative to `anchor`.
     #[allow(non_snake_case)]
     fn MakeAbsolute(&self, anchor: &PyPath) -> Self {
-        Self { inner: self.inner.make_absolute(&anchor.inner) }
+        Self {
+            inner: self.inner.make_absolute(&anchor.inner),
+        }
     }
 
     /// Replace path prefixes in this expression.
     #[allow(non_snake_case)]
     fn ReplacePrefix(&self, old_prefix: &PyPath, new_prefix: &PyPath) -> Self {
-        Self { inner: self.inner.replace_prefix(&old_prefix.inner, &new_prefix.inner) }
+        Self {
+            inner: self
+                .inner
+                .replace_prefix(&old_prefix.inner, &new_prefix.inner),
+        }
     }
 
     /// Compose this expression over a weaker expression.
     #[allow(non_snake_case)]
     fn ComposeOver(&self, weaker: &PyPathExpression) -> Self {
-        Self { inner: self.inner.compose_over(&weaker.inner) }
+        Self {
+            inner: self.inner.compose_over(&weaker.inner),
+        }
     }
 
     /// Resolve references in this expression with a provided callback is not supported;
@@ -2964,9 +3290,8 @@ impl PyBasicMatchEval {
         let p = if let Ok(py_path) = path.extract::<PyPath>() {
             py_path.inner.clone()
         } else if let Ok(s) = path.extract::<String>() {
-            Path::from_string(&s).ok_or_else(|| {
-                PyValueError::new_err(format!("Invalid SdfPath: '{s}'"))
-            })?
+            Path::from_string(&s)
+                .ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: '{s}'")))?
         } else {
             return Err(PyValueError::new_err(
                 "Match() argument must be a string or Sdf.Path",
@@ -2998,7 +3323,11 @@ fn make_basic_match_eval(pattern: &str) -> PyBasicMatchEval {
 // ============================================================================
 
 /// Wraps `usd_sdf::VariableExpression`.
-#[pyclass(skip_from_py_object, name = "VariableExpression", module = "pxr_rs.Sdf")]
+#[pyclass(
+    skip_from_py_object,
+    name = "VariableExpression",
+    module = "pxr_rs.Sdf"
+)]
 #[derive(Clone)]
 pub struct PyVariableExpression {
     inner: VariableExpression,
@@ -3099,7 +3428,9 @@ pub struct PyFunctionNode;
 
 #[pyclass(from_py_object, name = "AssetPath", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
-pub struct PyAssetPath { inner: AssetPath }
+pub struct PyAssetPath {
+    inner: AssetPath,
+}
 
 impl PyAssetPath {
     pub fn from_asset_path(ap: AssetPath) -> Self {
@@ -3112,49 +3443,140 @@ impl PyAssetPath {
 }
 
 fn has_control_chars(s: &str) -> bool {
-    s.chars().any(|c| { let code = c as u32; code <= 0x1F || code == 0x7F || (0x80..=0x9F).contains(&code) })
+    s.chars().any(|c| {
+        let code = c as u32;
+        code <= 0x1F || code == 0x7F || (0x80..=0x9F).contains(&code)
+    })
 }
 
 #[pymethods]
 impl PyAssetPath {
     #[new]
     #[pyo3(signature = (*args, authoredPath = None, evaluatedPath = None, resolvedPath = None))]
-    fn new(args: &Bound<'_, PyTuple>, authoredPath: Option<&str>, evaluatedPath: Option<&str>, resolvedPath: Option<&str>) -> PyResult<Self> {
-        if args.len() > 2 { return Err(PyTypeError::new_err("AssetPath() takes at most 2 positional arguments")); }
+    fn new(
+        args: &Bound<'_, PyTuple>,
+        authoredPath: Option<&str>,
+        evaluatedPath: Option<&str>,
+        resolvedPath: Option<&str>,
+    ) -> PyResult<Self> {
+        if args.len() > 2 {
+            return Err(PyTypeError::new_err(
+                "AssetPath() takes at most 2 positional arguments",
+            ));
+        }
         // Disallow mixing positional with conflicting keywords
         if args.len() >= 2 && (evaluatedPath.is_some() || resolvedPath.is_some()) {
-            return Err(PyTypeError::new_err("AssetPath() positional and keyword arguments conflict"));
+            return Err(PyTypeError::new_err(
+                "AssetPath() positional and keyword arguments conflict",
+            ));
         }
         if args.len() >= 1 && (evaluatedPath.is_some() && resolvedPath.is_some()) {
-            return Err(PyTypeError::new_err("AssetPath() positional and keyword arguments conflict"));
+            return Err(PyTypeError::new_err(
+                "AssetPath() positional and keyword arguments conflict",
+            ));
         }
-        if args.len() == 1 { if let Ok(other) = args.get_item(0)?.extract::<PyAssetPath>() { return Ok(Self { inner: other.inner }); } }
-        let authored = if let Some(a) = authoredPath { a.to_string() } else if !args.is_empty() { args.get_item(0)?.extract::<String>()? } else { String::new() };
-        if !authored.is_empty() && has_control_chars(&authored) { return Err(pyo3::exceptions::PyException::new_err("Asset path contains invalid control characters")); }
-        let resolved = if let Some(r) = resolvedPath { r.to_string() } else if args.len() >= 2 && evaluatedPath.is_none() { args.get_item(1)?.extract::<String>()? } else { String::new() };
-        if !resolved.is_empty() && has_control_chars(&resolved) { return Err(pyo3::exceptions::PyException::new_err("Resolved path contains invalid control characters")); }
+        if args.len() == 1 {
+            if let Ok(other) = args.get_item(0)?.extract::<PyAssetPath>() {
+                return Ok(Self { inner: other.inner });
+            }
+        }
+        let authored = if let Some(a) = authoredPath {
+            a.to_string()
+        } else if !args.is_empty() {
+            args.get_item(0)?.extract::<String>()?
+        } else {
+            String::new()
+        };
+        if !authored.is_empty() && has_control_chars(&authored) {
+            return Err(pyo3::exceptions::PyException::new_err(
+                "Asset path contains invalid control characters",
+            ));
+        }
+        let resolved = if let Some(r) = resolvedPath {
+            r.to_string()
+        } else if args.len() >= 2 && evaluatedPath.is_none() {
+            args.get_item(1)?.extract::<String>()?
+        } else {
+            String::new()
+        };
+        if !resolved.is_empty() && has_control_chars(&resolved) {
+            return Err(pyo3::exceptions::PyException::new_err(
+                "Resolved path contains invalid control characters",
+            ));
+        }
         let evaluated = evaluatedPath.unwrap_or("").to_string();
-        Ok(Self { inner: AssetPath::from_params(usd_vt::AssetPathParams::new().authored(authored).evaluated(evaluated).resolved(resolved)) })
+        Ok(Self {
+            inner: AssetPath::from_params(
+                usd_vt::AssetPathParams::new()
+                    .authored(authored)
+                    .evaluated(evaluated)
+                    .resolved(resolved),
+            ),
+        })
     }
-    #[getter] #[allow(non_snake_case)] fn authoredPath(&self) -> &str { self.inner.get_authored_path() }
-    #[getter] #[allow(non_snake_case)] fn evaluatedPath(&self) -> &str { self.inner.get_evaluated_path() }
-    #[getter] #[allow(non_snake_case)] fn resolvedPath(&self) -> &str { self.inner.get_resolved_path() }
-    #[getter] fn path(&self) -> &str { self.inner.get_asset_path() }
+    #[getter]
+    #[allow(non_snake_case)]
+    fn authoredPath(&self) -> &str {
+        self.inner.get_authored_path()
+    }
+    #[getter]
+    #[allow(non_snake_case)]
+    fn evaluatedPath(&self) -> &str {
+        self.inner.get_evaluated_path()
+    }
+    #[getter]
+    #[allow(non_snake_case)]
+    fn resolvedPath(&self) -> &str {
+        self.inner.get_resolved_path()
+    }
+    #[getter]
+    fn path(&self) -> &str {
+        self.inner.get_asset_path()
+    }
     fn __repr__(&self) -> String {
-        let (a, e, r) = (self.inner.get_authored_path(), self.inner.get_evaluated_path(), self.inner.get_resolved_path());
-        if !e.is_empty() { format!("Sdf.AssetPath(authoredPath='{}', evaluatedPath='{}', resolvedPath='{}')", a, e, r) }
-        else if !r.is_empty() { format!("Sdf.AssetPath('{}', '{}')", a, r) }
-        else { format!("Sdf.AssetPath('{}')", a) }
+        let (a, e, r) = (
+            self.inner.get_authored_path(),
+            self.inner.get_evaluated_path(),
+            self.inner.get_resolved_path(),
+        );
+        if !e.is_empty() {
+            format!(
+                "Sdf.AssetPath(authoredPath='{}', evaluatedPath='{}', resolvedPath='{}')",
+                a, e, r
+            )
+        } else if !r.is_empty() {
+            format!("Sdf.AssetPath('{}', '{}')", a, r)
+        } else {
+            format!("Sdf.AssetPath('{}')", a)
+        }
     }
-    fn __str__(&self) -> &str { self.inner.get_asset_path() }
-    fn __eq__(&self, other: &Self) -> bool { self.inner == other.inner }
-    fn __ne__(&self, other: &Self) -> bool { self.inner != other.inner }
-    fn __lt__(&self, other: &Self) -> bool { self.inner < other.inner }
-    fn __le__(&self, other: &Self) -> bool { self.inner <= other.inner }
-    fn __gt__(&self, other: &Self) -> bool { self.inner > other.inner }
-    fn __ge__(&self, other: &Self) -> bool { self.inner >= other.inner }
-    fn __hash__(&self) -> u64 { self.inner.get_hash() }
-    fn __bool__(&self) -> bool { !self.inner.is_empty() }
+    fn __str__(&self) -> &str {
+        self.inner.get_asset_path()
+    }
+    fn __eq__(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+    fn __ne__(&self, other: &Self) -> bool {
+        self.inner != other.inner
+    }
+    fn __lt__(&self, other: &Self) -> bool {
+        self.inner < other.inner
+    }
+    fn __le__(&self, other: &Self) -> bool {
+        self.inner <= other.inner
+    }
+    fn __gt__(&self, other: &Self) -> bool {
+        self.inner > other.inner
+    }
+    fn __ge__(&self, other: &Self) -> bool {
+        self.inner >= other.inner
+    }
+    fn __hash__(&self) -> u64 {
+        self.inner.get_hash()
+    }
+    fn __bool__(&self) -> bool {
+        !self.inner.is_empty()
+    }
 }
 
 // ============================================================================
@@ -3163,34 +3585,118 @@ impl PyAssetPath {
 
 #[pyclass(from_py_object, name = "TimeCode", module = "pxr_rs.Sdf")]
 #[derive(Clone, Copy)]
-pub struct PyTimeCode { inner: TimeCode }
+pub struct PyTimeCode {
+    inner: TimeCode,
+}
 
 #[pymethods]
 impl PyTimeCode {
-    #[new] #[pyo3(signature = (value = 0.0))]
-    fn new(value: f64) -> Self { Self { inner: TimeCode::new(value) } }
-    #[allow(non_snake_case)] fn GetValue(&self) -> f64 { self.inner.value() }
-    fn __repr__(&self) -> String { let v = self.inner.value(); if v == v.trunc() && v.is_finite() { format!("Sdf.TimeCode({})", v as i64) } else { format!("Sdf.TimeCode({})", v) } }
-    fn __str__(&self) -> String { let v = self.inner.value(); if v == v.trunc() && v.is_finite() { format!("{}", v as i64) } else { format!("{v}") } }
-    fn __float__(&self) -> f64 { self.inner.value() }
-    fn __bool__(&self) -> bool { self.inner.value() != 0.0 }
-    fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool { if let Ok(tc) = other.extract::<PyTimeCode>() { self.inner == tc.inner } else if let Ok(f) = other.extract::<f64>() { self.inner.value() == f } else { false } }
-    fn __ne__(&self, other: &Bound<'_, PyAny>) -> bool { !self.__eq__(other) }
-    fn __lt__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> { Ok(self.inner.value() < extract_tc(other)?) }
-    fn __le__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> { Ok(self.inner.value() <= extract_tc(other)?) }
-    fn __gt__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> { Ok(self.inner.value() > extract_tc(other)?) }
-    fn __ge__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> { Ok(self.inner.value() >= extract_tc(other)?) }
-    fn __add__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> { Ok(Self { inner: TimeCode::new(self.inner.value() + extract_tc(other)?) }) }
-    fn __radd__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> { self.__add__(other) }
-    fn __sub__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> { Ok(Self { inner: TimeCode::new(self.inner.value() - extract_tc(other)?) }) }
-    fn __rsub__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> { Ok(Self { inner: TimeCode::new(extract_tc(other)? - self.inner.value()) }) }
-    fn __mul__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> { Ok(Self { inner: TimeCode::new(self.inner.value() * extract_tc(other)?) }) }
-    fn __rmul__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> { self.__mul__(other) }
-    fn __truediv__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> { Ok(Self { inner: TimeCode::new(self.inner.value() / extract_tc(other)?) }) }
-    fn __rtruediv__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> { Ok(Self { inner: TimeCode::new(extract_tc(other)? / self.inner.value()) }) }
-    fn __hash__(&self) -> u64 { self.inner.get_hash() }
+    #[new]
+    #[pyo3(signature = (value = 0.0))]
+    fn new(value: f64) -> Self {
+        Self {
+            inner: TimeCode::new(value),
+        }
+    }
+    #[allow(non_snake_case)]
+    fn GetValue(&self) -> f64 {
+        self.inner.value()
+    }
+    fn __repr__(&self) -> String {
+        let v = self.inner.value();
+        if v == v.trunc() && v.is_finite() {
+            format!("Sdf.TimeCode({})", v as i64)
+        } else {
+            format!("Sdf.TimeCode({})", v)
+        }
+    }
+    fn __str__(&self) -> String {
+        let v = self.inner.value();
+        if v == v.trunc() && v.is_finite() {
+            format!("{}", v as i64)
+        } else {
+            format!("{v}")
+        }
+    }
+    fn __float__(&self) -> f64 {
+        self.inner.value()
+    }
+    fn __bool__(&self) -> bool {
+        self.inner.value() != 0.0
+    }
+    fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
+        if let Ok(tc) = other.extract::<PyTimeCode>() {
+            self.inner == tc.inner
+        } else if let Ok(f) = other.extract::<f64>() {
+            self.inner.value() == f
+        } else {
+            false
+        }
+    }
+    fn __ne__(&self, other: &Bound<'_, PyAny>) -> bool {
+        !self.__eq__(other)
+    }
+    fn __lt__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+        Ok(self.inner.value() < extract_tc(other)?)
+    }
+    fn __le__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+        Ok(self.inner.value() <= extract_tc(other)?)
+    }
+    fn __gt__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+        Ok(self.inner.value() > extract_tc(other)?)
+    }
+    fn __ge__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+        Ok(self.inner.value() >= extract_tc(other)?)
+    }
+    fn __add__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> {
+        Ok(Self {
+            inner: TimeCode::new(self.inner.value() + extract_tc(other)?),
+        })
+    }
+    fn __radd__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> {
+        self.__add__(other)
+    }
+    fn __sub__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> {
+        Ok(Self {
+            inner: TimeCode::new(self.inner.value() - extract_tc(other)?),
+        })
+    }
+    fn __rsub__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> {
+        Ok(Self {
+            inner: TimeCode::new(extract_tc(other)? - self.inner.value()),
+        })
+    }
+    fn __mul__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> {
+        Ok(Self {
+            inner: TimeCode::new(self.inner.value() * extract_tc(other)?),
+        })
+    }
+    fn __rmul__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> {
+        self.__mul__(other)
+    }
+    fn __truediv__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> {
+        Ok(Self {
+            inner: TimeCode::new(self.inner.value() / extract_tc(other)?),
+        })
+    }
+    fn __rtruediv__(&self, other: &Bound<'_, PyAny>) -> PyResult<Self> {
+        Ok(Self {
+            inner: TimeCode::new(extract_tc(other)? / self.inner.value()),
+        })
+    }
+    fn __hash__(&self) -> u64 {
+        self.inner.get_hash()
+    }
 }
-fn extract_tc(obj: &Bound<'_, PyAny>) -> PyResult<f64> { if let Ok(tc) = obj.extract::<PyTimeCode>() { Ok(tc.inner.value()) } else if let Ok(f) = obj.extract::<f64>() { Ok(f) } else { Err(PyTypeError::new_err("expected TimeCode or number")) } }
+fn extract_tc(obj: &Bound<'_, PyAny>) -> PyResult<f64> {
+    if let Ok(tc) = obj.extract::<PyTimeCode>() {
+        Ok(tc.inner.value())
+    } else if let Ok(f) = obj.extract::<f64>() {
+        Ok(f)
+    } else {
+        Err(PyTypeError::new_err("expected TimeCode or number"))
+    }
+}
 
 // ============================================================================
 // SdfPayload
@@ -3198,23 +3704,83 @@ fn extract_tc(obj: &Bound<'_, PyAny>) -> PyResult<f64> { if let Ok(tc) = obj.ext
 
 #[pyclass(from_py_object, name = "Payload", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
-pub struct PyPayload { inner: Payload }
+pub struct PyPayload {
+    inner: Payload,
+}
 #[pymethods]
 impl PyPayload {
-    #[new] #[pyo3(signature = (*args, assetPath = None, primPath = None, layerOffset = None))]
-    fn new(args: &Bound<'_, PyTuple>, assetPath: Option<&str>, primPath: Option<&Bound<'_, PyAny>>, layerOffset: Option<&PyLayerOffset>) -> PyResult<Self> {
-        if args.len() == 1 { if let Ok(o) = args.get_item(0)?.extract::<PyPayload>() { return Ok(Self { inner: o.inner }); } }
-        let asset = assetPath.map(String::from).or_else(|| args.get_item(0).ok().and_then(|a| a.extract::<String>().ok())).unwrap_or_default();
-        if has_control_chars(&asset) { return Err(pyo3::exceptions::PyException::new_err("invalid control characters")); }
-        let prim = if let Some(pp) = primPath { if let Ok(p) = pp.extract::<PyPath>() { p.inner.get_as_string() } else { pp.extract::<String>().unwrap_or_default() } }
-            else if args.len() >= 2 { let i = args.get_item(1)?; if let Ok(p) = i.extract::<PyPath>() { p.inner.get_as_string() } else { i.extract::<String>().unwrap_or_default() } }
-            else { String::new() };
-        let offset = layerOffset.map(|o| o.inner).or_else(|| args.get_item(2).ok().and_then(|a| a.extract::<PyRef<'_, PyLayerOffset>>().ok()).map(|o| o.inner)).unwrap_or_else(LayerOffset::identity);
-        Ok(Self { inner: Payload::with_layer_offset(asset, &prim, offset) })
+    #[new]
+    #[pyo3(signature = (*args, assetPath = None, primPath = None, layerOffset = None))]
+    fn new(
+        args: &Bound<'_, PyTuple>,
+        assetPath: Option<&str>,
+        primPath: Option<&Bound<'_, PyAny>>,
+        layerOffset: Option<&PyLayerOffset>,
+    ) -> PyResult<Self> {
+        if args.len() == 1 {
+            if let Ok(o) = args.get_item(0)?.extract::<PyPayload>() {
+                return Ok(Self { inner: o.inner });
+            }
+        }
+        let asset = assetPath
+            .map(String::from)
+            .or_else(|| {
+                args.get_item(0)
+                    .ok()
+                    .and_then(|a| a.extract::<String>().ok())
+            })
+            .unwrap_or_default();
+        if has_control_chars(&asset) {
+            return Err(pyo3::exceptions::PyException::new_err(
+                "invalid control characters",
+            ));
+        }
+        let prim = if let Some(pp) = primPath {
+            if let Ok(p) = pp.extract::<PyPath>() {
+                p.inner.get_as_string()
+            } else {
+                pp.extract::<String>().unwrap_or_default()
+            }
+        } else if args.len() >= 2 {
+            let i = args.get_item(1)?;
+            if let Ok(p) = i.extract::<PyPath>() {
+                p.inner.get_as_string()
+            } else {
+                i.extract::<String>().unwrap_or_default()
+            }
+        } else {
+            String::new()
+        };
+        let offset = layerOffset
+            .map(|o| o.inner)
+            .or_else(|| {
+                args.get_item(2)
+                    .ok()
+                    .and_then(|a| a.extract::<PyRef<'_, PyLayerOffset>>().ok())
+                    .map(|o| o.inner)
+            })
+            .unwrap_or_else(LayerOffset::identity);
+        Ok(Self {
+            inner: Payload::with_layer_offset(asset, &prim, offset),
+        })
     }
-    #[getter] #[allow(non_snake_case)] fn assetPath(&self) -> &str { self.inner.asset_path() }
-    #[getter] #[allow(non_snake_case)] fn primPath(&self) -> PyPath { PyPath::from_path(self.inner.prim_path().clone()) }
-    #[getter] #[allow(non_snake_case)] fn layerOffset(&self) -> PyLayerOffset { PyLayerOffset { inner: *self.inner.layer_offset() } }
+    #[getter]
+    #[allow(non_snake_case)]
+    fn assetPath(&self) -> &str {
+        self.inner.asset_path()
+    }
+    #[getter]
+    #[allow(non_snake_case)]
+    fn primPath(&self) -> PyPath {
+        PyPath::from_path(self.inner.prim_path().clone())
+    }
+    #[getter]
+    #[allow(non_snake_case)]
+    fn layerOffset(&self) -> PyLayerOffset {
+        PyLayerOffset {
+            inner: *self.inner.layer_offset(),
+        }
+    }
     fn __repr__(&self) -> String {
         let asset = self.inner.asset_path();
         let prim = self.inner.prim_path();
@@ -3236,7 +3802,11 @@ impl PyPayload {
                 parts.push(format!("primPath='{}'", prim.get_as_string()));
             }
             if has_offset {
-                parts.push(format!("layerOffset=Sdf.LayerOffset({}, {})", offset.offset(), offset.scale()));
+                parts.push(format!(
+                    "layerOffset=Sdf.LayerOffset({}, {})",
+                    offset.offset(),
+                    offset.scale()
+                ));
             }
             return format!("Sdf.Payload({})", parts.join(", "));
         }
@@ -3246,22 +3816,68 @@ impl PyPayload {
         parts.push(format!("'{}'", asset));
         if has_prim || has_offset {
             // Must include primPath (even empty) when layerOffset follows for positional compat
-            parts.push(format!("'{}'", if has_prim { prim.get_as_string() } else { String::new() }));
+            parts.push(format!(
+                "'{}'",
+                if has_prim {
+                    prim.get_as_string()
+                } else {
+                    String::new()
+                }
+            ));
         }
         if has_offset {
-            parts.push(format!("Sdf.LayerOffset({}, {})", offset.offset(), offset.scale()));
+            parts.push(format!(
+                "Sdf.LayerOffset({}, {})",
+                offset.offset(),
+                offset.scale()
+            ));
         }
         format!("Sdf.Payload({})", parts.join(", "))
     }
-    fn __eq__(&self, o: &Self) -> bool { self.inner.asset_path()==o.inner.asset_path() && self.inner.prim_path()==o.inner.prim_path() && self.inner.layer_offset()==o.inner.layer_offset() }
-    fn __ne__(&self, o: &Self) -> bool { !self.__eq__(o) }
-    fn __lt__(&self, o: &Self) -> bool { payload_cmp(&self.inner,&o.inner)==std::cmp::Ordering::Less }
-    fn __le__(&self, o: &Self) -> bool { payload_cmp(&self.inner,&o.inner)!=std::cmp::Ordering::Greater }
-    fn __gt__(&self, o: &Self) -> bool { payload_cmp(&self.inner,&o.inner)==std::cmp::Ordering::Greater }
-    fn __ge__(&self, o: &Self) -> bool { payload_cmp(&self.inner,&o.inner)!=std::cmp::Ordering::Less }
-    fn __hash__(&self) -> u64 { let mut h=std::collections::hash_map::DefaultHasher::new(); self.inner.asset_path().hash(&mut h); self.inner.prim_path().as_str().hash(&mut h); h.finish() }
+    fn __eq__(&self, o: &Self) -> bool {
+        self.inner.asset_path() == o.inner.asset_path()
+            && self.inner.prim_path() == o.inner.prim_path()
+            && self.inner.layer_offset() == o.inner.layer_offset()
+    }
+    fn __ne__(&self, o: &Self) -> bool {
+        !self.__eq__(o)
+    }
+    fn __lt__(&self, o: &Self) -> bool {
+        payload_cmp(&self.inner, &o.inner) == std::cmp::Ordering::Less
+    }
+    fn __le__(&self, o: &Self) -> bool {
+        payload_cmp(&self.inner, &o.inner) != std::cmp::Ordering::Greater
+    }
+    fn __gt__(&self, o: &Self) -> bool {
+        payload_cmp(&self.inner, &o.inner) == std::cmp::Ordering::Greater
+    }
+    fn __ge__(&self, o: &Self) -> bool {
+        payload_cmp(&self.inner, &o.inner) != std::cmp::Ordering::Less
+    }
+    fn __hash__(&self) -> u64 {
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        self.inner.asset_path().hash(&mut h);
+        self.inner.prim_path().as_str().hash(&mut h);
+        h.finish()
+    }
 }
-fn payload_cmp(a: &Payload, b: &Payload) -> std::cmp::Ordering { a.asset_path().cmp(b.asset_path()).then_with(|| a.prim_path().cmp(b.prim_path())).then_with(|| a.layer_offset().offset().partial_cmp(&b.layer_offset().offset()).unwrap_or(std::cmp::Ordering::Equal)).then_with(|| a.layer_offset().scale().partial_cmp(&b.layer_offset().scale()).unwrap_or(std::cmp::Ordering::Equal)) }
+fn payload_cmp(a: &Payload, b: &Payload) -> std::cmp::Ordering {
+    a.asset_path()
+        .cmp(b.asset_path())
+        .then_with(|| a.prim_path().cmp(b.prim_path()))
+        .then_with(|| {
+            a.layer_offset()
+                .offset()
+                .partial_cmp(&b.layer_offset().offset())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .then_with(|| {
+            a.layer_offset()
+                .scale()
+                .partial_cmp(&b.layer_offset().scale())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+}
 
 // ============================================================================
 // SdfReference
@@ -3269,7 +3885,9 @@ fn payload_cmp(a: &Payload, b: &Payload) -> std::cmp::Ordering { a.asset_path().
 
 #[pyclass(from_py_object, name = "Reference", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
-pub struct PyReference { inner: Reference }
+pub struct PyReference {
+    inner: Reference,
+}
 
 impl PyReference {
     pub fn to_reference(&self) -> Reference {
@@ -3279,39 +3897,157 @@ impl PyReference {
 
 #[pymethods]
 impl PyReference {
-    #[new] #[pyo3(signature = (*args, assetPath = None, primPath = None, layerOffset = None, customData = None))]
-    fn new(args: &Bound<'_, PyTuple>, assetPath: Option<&str>, primPath: Option<&str>, layerOffset: Option<&PyLayerOffset>, customData: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        if args.len() == 1 { if let Ok(o) = args.get_item(0)?.extract::<PyReference>() { return Ok(Self { inner: o.inner }); } }
-        let asset = assetPath.map(String::from).or_else(|| args.get_item(0).ok().and_then(|a| a.extract::<String>().ok())).unwrap_or_default();
-        if has_control_chars(&asset) { return Err(pyo3::exceptions::PyException::new_err("invalid control characters")); }
-        let prim = primPath.map(String::from).or_else(|| args.get_item(1).ok().and_then(|a| a.extract::<String>().ok())).unwrap_or_default();
-        let offset = layerOffset.map(|o| o.inner).unwrap_or_else(LayerOffset::identity);
-        let custom = if let Some(d) = customData { let mut m = HashMap::new(); for (k, v) in d.iter() { m.insert(k.extract::<String>().unwrap_or_default(), pyobject_to_vt_value(d.py(), &v.unbind())); } m } else { HashMap::new() };
-        Ok(Self { inner: Reference::with_metadata(asset, &prim, offset, custom) })
+    #[new]
+    #[pyo3(signature = (*args, assetPath = None, primPath = None, layerOffset = None, customData = None))]
+    fn new(
+        args: &Bound<'_, PyTuple>,
+        assetPath: Option<&str>,
+        primPath: Option<&str>,
+        layerOffset: Option<&PyLayerOffset>,
+        customData: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<Self> {
+        if args.len() == 1 {
+            if let Ok(o) = args.get_item(0)?.extract::<PyReference>() {
+                return Ok(Self { inner: o.inner });
+            }
+        }
+        let asset = assetPath
+            .map(String::from)
+            .or_else(|| {
+                args.get_item(0)
+                    .ok()
+                    .and_then(|a| a.extract::<String>().ok())
+            })
+            .unwrap_or_default();
+        if has_control_chars(&asset) {
+            return Err(pyo3::exceptions::PyException::new_err(
+                "invalid control characters",
+            ));
+        }
+        let prim = primPath
+            .map(String::from)
+            .or_else(|| {
+                args.get_item(1)
+                    .ok()
+                    .and_then(|a| a.extract::<String>().ok())
+            })
+            .unwrap_or_default();
+        let offset = layerOffset
+            .map(|o| o.inner)
+            .unwrap_or_else(LayerOffset::identity);
+        let custom = if let Some(d) = customData {
+            let mut m = HashMap::new();
+            for (k, v) in d.iter() {
+                m.insert(
+                    k.extract::<String>().unwrap_or_default(),
+                    pyobject_to_vt_value(d.py(), &v.unbind()),
+                );
+            }
+            m
+        } else {
+            HashMap::new()
+        };
+        Ok(Self {
+            inner: Reference::with_metadata(asset, &prim, offset, custom),
+        })
     }
-    #[getter] #[allow(non_snake_case)] fn assetPath(&self) -> &str { self.inner.asset_path() }
-    #[getter] #[allow(non_snake_case)] fn primPath(&self) -> String { self.inner.prim_path().get_as_string() }
-    #[getter] #[allow(non_snake_case)] fn layerOffset(&self) -> PyLayerOffset { PyLayerOffset { inner: *self.inner.layer_offset() } }
-    #[getter] #[allow(non_snake_case)]
-    fn customData(&self, py: Python<'_>) -> Py<PyAny> { let dict = PyDict::new(py); for (k, v) in self.inner.custom_data() { let _ = dict.set_item(k.as_str(), vt_value_to_pyobject(py, v)); } dict.into_any().unbind() }
-    #[allow(non_snake_case)] fn IsInternal(&self) -> bool { self.inner.is_internal() }
+    #[getter]
+    #[allow(non_snake_case)]
+    fn assetPath(&self) -> &str {
+        self.inner.asset_path()
+    }
+    #[getter]
+    #[allow(non_snake_case)]
+    fn primPath(&self) -> String {
+        self.inner.prim_path().get_as_string()
+    }
+    #[getter]
+    #[allow(non_snake_case)]
+    fn layerOffset(&self) -> PyLayerOffset {
+        PyLayerOffset {
+            inner: *self.inner.layer_offset(),
+        }
+    }
+    #[getter]
+    #[allow(non_snake_case)]
+    fn customData(&self, py: Python<'_>) -> Py<PyAny> {
+        let dict = PyDict::new(py);
+        for (k, v) in self.inner.custom_data() {
+            let _ = dict.set_item(k.as_str(), vt_value_to_pyobject(py, v));
+        }
+        dict.into_any().unbind()
+    }
+    #[allow(non_snake_case)]
+    fn IsInternal(&self) -> bool {
+        self.inner.is_internal()
+    }
     fn __repr__(&self, py: Python<'_>) -> String {
         let mut parts = Vec::new();
-        if !self.inner.asset_path().is_empty() { parts.push(format!("assetPath='{}'", self.inner.asset_path())); }
-        if !self.inner.prim_path().is_empty() { parts.push(format!("primPath='{}'", self.inner.prim_path().get_as_string())); }
-        if !self.inner.layer_offset().is_identity() { parts.push(format!("layerOffset=Sdf.LayerOffset({}, {})", self.inner.layer_offset().offset(), self.inner.layer_offset().scale())); }
-        if !self.inner.custom_data().is_empty() { let dict = PyDict::new(py); for (k, v) in self.inner.custom_data() { let _ = dict.set_item(k.as_str(), vt_value_to_pyobject(py, v)); } if let Ok(r) = dict.repr() { parts.push(format!("customData={r}")); } }
-        if parts.is_empty() { "Sdf.Reference()".into() } else { format!("Sdf.Reference({})", parts.join(", ")) }
+        if !self.inner.asset_path().is_empty() {
+            parts.push(format!("assetPath='{}'", self.inner.asset_path()));
+        }
+        if !self.inner.prim_path().is_empty() {
+            parts.push(format!(
+                "primPath='{}'",
+                self.inner.prim_path().get_as_string()
+            ));
+        }
+        if !self.inner.layer_offset().is_identity() {
+            parts.push(format!(
+                "layerOffset=Sdf.LayerOffset({}, {})",
+                self.inner.layer_offset().offset(),
+                self.inner.layer_offset().scale()
+            ));
+        }
+        if !self.inner.custom_data().is_empty() {
+            let dict = PyDict::new(py);
+            for (k, v) in self.inner.custom_data() {
+                let _ = dict.set_item(k.as_str(), vt_value_to_pyobject(py, v));
+            }
+            if let Ok(r) = dict.repr() {
+                parts.push(format!("customData={r}"));
+            }
+        }
+        if parts.is_empty() {
+            "Sdf.Reference()".into()
+        } else {
+            format!("Sdf.Reference({})", parts.join(", "))
+        }
     }
-    fn __eq__(&self, o: &Self) -> bool { ref_tuple(&self.inner)==ref_tuple(&o.inner) }
-    fn __ne__(&self, o: &Self) -> bool { !self.__eq__(o) }
-    fn __lt__(&self, o: &Self) -> bool { ref_tuple(&self.inner)<ref_tuple(&o.inner) }
-    fn __le__(&self, o: &Self) -> bool { ref_tuple(&self.inner)<=ref_tuple(&o.inner) }
-    fn __gt__(&self, o: &Self) -> bool { ref_tuple(&self.inner)>ref_tuple(&o.inner) }
-    fn __ge__(&self, o: &Self) -> bool { ref_tuple(&self.inner)>=ref_tuple(&o.inner) }
-    fn __hash__(&self) -> u64 { let mut h=std::collections::hash_map::DefaultHasher::new(); self.inner.asset_path().hash(&mut h); self.inner.prim_path().as_str().hash(&mut h); h.finish() }
+    fn __eq__(&self, o: &Self) -> bool {
+        ref_tuple(&self.inner) == ref_tuple(&o.inner)
+    }
+    fn __ne__(&self, o: &Self) -> bool {
+        !self.__eq__(o)
+    }
+    fn __lt__(&self, o: &Self) -> bool {
+        ref_tuple(&self.inner) < ref_tuple(&o.inner)
+    }
+    fn __le__(&self, o: &Self) -> bool {
+        ref_tuple(&self.inner) <= ref_tuple(&o.inner)
+    }
+    fn __gt__(&self, o: &Self) -> bool {
+        ref_tuple(&self.inner) > ref_tuple(&o.inner)
+    }
+    fn __ge__(&self, o: &Self) -> bool {
+        ref_tuple(&self.inner) >= ref_tuple(&o.inner)
+    }
+    fn __hash__(&self) -> u64 {
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        self.inner.asset_path().hash(&mut h);
+        self.inner.prim_path().as_str().hash(&mut h);
+        h.finish()
+    }
 }
-fn ref_tuple(r: &Reference) -> (String, String, i64, i64, usize) { (r.asset_path().to_string(), r.prim_path().get_as_string(), r.layer_offset().offset().to_bits() as i64, r.layer_offset().scale().to_bits() as i64, r.custom_data().len()) }
+fn ref_tuple(r: &Reference) -> (String, String, i64, i64, usize) {
+    (
+        r.asset_path().to_string(),
+        r.prim_path().get_as_string(),
+        r.layer_offset().offset().to_bits() as i64,
+        r.layer_offset().scale().to_bits() as i64,
+        r.custom_data().len(),
+    )
+}
 
 // ============================================================================
 // ListOp types
@@ -3321,49 +4057,178 @@ macro_rules! define_list_op {
     ($py_name:ident, $py_class_name:literal, $item_ty:ty) => {
         #[pyclass(skip_from_py_object, name = $py_class_name, module = "pxr_rs.Sdf")]
         #[derive(Clone)]
-        pub struct $py_name { inner: ListOp<$item_ty> }
+        pub struct $py_name {
+            inner: ListOp<$item_ty>,
+        }
         #[pymethods]
         impl $py_name {
-            #[new] fn new() -> Self { Self { inner: ListOp::new() } }
-            #[staticmethod] #[allow(non_snake_case)] #[pyo3(signature = (items = None))]
-            fn CreateExplicit(items: Option<Vec<$item_ty>>) -> Self { Self { inner: ListOp::create_explicit(items.unwrap_or_default()) } }
-            #[staticmethod] #[allow(non_snake_case)] #[pyo3(signature = (prependedItems = None, appendedItems = None, deletedItems = None))]
-            fn Create(prependedItems: Option<Vec<$item_ty>>, appendedItems: Option<Vec<$item_ty>>, deletedItems: Option<Vec<$item_ty>>) -> Self { Self { inner: ListOp::create(prependedItems.unwrap_or_default(), appendedItems.unwrap_or_default(), deletedItems.unwrap_or_default()) } }
-            #[getter] #[allow(non_snake_case)] fn isExplicit(&self) -> bool { self.inner.is_explicit() }
-            #[getter] #[allow(non_snake_case)] fn explicitItems(&self) -> Vec<$item_ty> { self.inner.get_explicit_items().to_vec() }
-            #[setter] #[allow(non_snake_case)] fn set_explicitItems(&mut self, items: Vec<$item_ty>) { let _ = self.inner.set_explicit_items(items); }
-            #[getter] #[allow(non_snake_case)] fn addedItems(&self) -> Vec<$item_ty> { self.inner.get_added_items().to_vec() }
-            #[setter] #[allow(non_snake_case)] fn set_addedItems(&mut self, items: Vec<$item_ty>) { self.inner.set_added_items(items); }
-            #[getter] #[allow(non_snake_case)] fn prependedItems(&self) -> Vec<$item_ty> { self.inner.get_prepended_items().to_vec() }
-            #[setter] #[allow(non_snake_case)] fn set_prependedItems(&mut self, items: Vec<$item_ty>) { let _ = self.inner.set_prepended_items(items); }
-            #[getter] #[allow(non_snake_case)] fn appendedItems(&self) -> Vec<$item_ty> { self.inner.get_appended_items().to_vec() }
-            #[setter] #[allow(non_snake_case)] fn set_appendedItems(&mut self, items: Vec<$item_ty>) { let _ = self.inner.set_appended_items(items); }
-            #[getter] #[allow(non_snake_case)] fn deletedItems(&self) -> Vec<$item_ty> { self.inner.get_deleted_items().to_vec() }
-            #[setter] #[allow(non_snake_case)] fn set_deletedItems(&mut self, items: Vec<$item_ty>) { let _ = self.inner.set_deleted_items(items); }
-            #[getter] #[allow(non_snake_case)] fn orderedItems(&self) -> Vec<$item_ty> { self.inner.get_ordered_items().to_vec() }
-            #[setter] #[allow(non_snake_case)] fn set_orderedItems(&mut self, items: Vec<$item_ty>) { self.inner.set_ordered_items(items); }
-            #[allow(non_snake_case)] fn HasItem(&self, item: $item_ty) -> bool { self.inner.has_item(&item) }
-            #[allow(non_snake_case)] fn GetAppliedItems(&self) -> Vec<$item_ty> { self.inner.get_applied_items() }
-            #[allow(non_snake_case)] fn ApplyOperations(&self, items: &pyo3::Bound<'_, pyo3::PyAny>) -> PyResult<Vec<$item_ty>> {
+            #[new]
+            fn new() -> Self {
+                Self {
+                    inner: ListOp::new(),
+                }
+            }
+            #[staticmethod]
+            #[allow(non_snake_case)]
+            #[pyo3(signature = (items = None))]
+            fn CreateExplicit(items: Option<Vec<$item_ty>>) -> Self {
+                Self {
+                    inner: ListOp::create_explicit(items.unwrap_or_default()),
+                }
+            }
+            #[staticmethod]
+            #[allow(non_snake_case)]
+            #[pyo3(signature = (prependedItems = None, appendedItems = None, deletedItems = None))]
+            fn Create(
+                prependedItems: Option<Vec<$item_ty>>,
+                appendedItems: Option<Vec<$item_ty>>,
+                deletedItems: Option<Vec<$item_ty>>,
+            ) -> Self {
+                Self {
+                    inner: ListOp::create(
+                        prependedItems.unwrap_or_default(),
+                        appendedItems.unwrap_or_default(),
+                        deletedItems.unwrap_or_default(),
+                    ),
+                }
+            }
+            #[getter]
+            #[allow(non_snake_case)]
+            fn isExplicit(&self) -> bool {
+                self.inner.is_explicit()
+            }
+            #[getter]
+            #[allow(non_snake_case)]
+            fn explicitItems(&self) -> Vec<$item_ty> {
+                self.inner.get_explicit_items().to_vec()
+            }
+            #[setter]
+            #[allow(non_snake_case)]
+            fn set_explicitItems(&mut self, items: Vec<$item_ty>) {
+                let _ = self.inner.set_explicit_items(items);
+            }
+            #[getter]
+            #[allow(non_snake_case)]
+            fn addedItems(&self) -> Vec<$item_ty> {
+                self.inner.get_added_items().to_vec()
+            }
+            #[setter]
+            #[allow(non_snake_case)]
+            fn set_addedItems(&mut self, items: Vec<$item_ty>) {
+                self.inner.set_added_items(items);
+            }
+            #[getter]
+            #[allow(non_snake_case)]
+            fn prependedItems(&self) -> Vec<$item_ty> {
+                self.inner.get_prepended_items().to_vec()
+            }
+            #[setter]
+            #[allow(non_snake_case)]
+            fn set_prependedItems(&mut self, items: Vec<$item_ty>) {
+                let _ = self.inner.set_prepended_items(items);
+            }
+            #[getter]
+            #[allow(non_snake_case)]
+            fn appendedItems(&self) -> Vec<$item_ty> {
+                self.inner.get_appended_items().to_vec()
+            }
+            #[setter]
+            #[allow(non_snake_case)]
+            fn set_appendedItems(&mut self, items: Vec<$item_ty>) {
+                let _ = self.inner.set_appended_items(items);
+            }
+            #[getter]
+            #[allow(non_snake_case)]
+            fn deletedItems(&self) -> Vec<$item_ty> {
+                self.inner.get_deleted_items().to_vec()
+            }
+            #[setter]
+            #[allow(non_snake_case)]
+            fn set_deletedItems(&mut self, items: Vec<$item_ty>) {
+                let _ = self.inner.set_deleted_items(items);
+            }
+            #[getter]
+            #[allow(non_snake_case)]
+            fn orderedItems(&self) -> Vec<$item_ty> {
+                self.inner.get_ordered_items().to_vec()
+            }
+            #[setter]
+            #[allow(non_snake_case)]
+            fn set_orderedItems(&mut self, items: Vec<$item_ty>) {
+                self.inner.set_ordered_items(items);
+            }
+            #[allow(non_snake_case)]
+            fn HasItem(&self, item: $item_ty) -> bool {
+                self.inner.has_item(&item)
+            }
+            #[allow(non_snake_case)]
+            fn GetAppliedItems(&self) -> Vec<$item_ty> {
+                self.inner.get_applied_items()
+            }
+            #[allow(non_snake_case)]
+            fn ApplyOperations(
+                &self,
+                items: &pyo3::Bound<'_, pyo3::PyAny>,
+            ) -> PyResult<Vec<$item_ty>> {
                 // Accept Vec<T> or another ListOp of same type
                 if let Ok(v) = items.extract::<Vec<$item_ty>>() {
                     let mut r = v;
-                    self.inner.apply_operations(&mut r, None::<fn(usd_sdf::ListOpType, &$item_ty) -> Option<$item_ty>>);
+                    self.inner.apply_operations(
+                        &mut r,
+                        None::<fn(usd_sdf::ListOpType, &$item_ty) -> Option<$item_ty>>,
+                    );
                     Ok(r)
                 } else if let Ok(other) = items.cast::<$py_name>() {
                     let borrowed = other.borrow();
                     let mut r = borrowed.inner.get_applied_items();
-                    self.inner.apply_operations(&mut r, None::<fn(usd_sdf::ListOpType, &$item_ty) -> Option<$item_ty>>);
+                    self.inner.apply_operations(
+                        &mut r,
+                        None::<fn(usd_sdf::ListOpType, &$item_ty) -> Option<$item_ty>>,
+                    );
                     Ok(r)
                 } else {
-                    Err(pyo3::exceptions::PyTypeError::new_err("expected list or ListOp"))
+                    Err(pyo3::exceptions::PyTypeError::new_err(
+                        "expected list or ListOp",
+                    ))
                 }
             }
-            fn __repr__(&self) -> String { if self.inner.is_explicit() { format!("{}(explicit={:?})", $py_class_name, self.inner.get_explicit_items()) } else { format!("{}(prepended={:?}, appended={:?}, deleted={:?})", $py_class_name, self.inner.get_prepended_items(), self.inner.get_appended_items(), self.inner.get_deleted_items()) } }
-            fn __str__(&self) -> String { self.__repr__() }
-            fn __eq__(&self, o: &Self) -> bool { self.inner.is_explicit()==o.inner.is_explicit() && self.inner.get_explicit_items()==o.inner.get_explicit_items() && self.inner.get_prepended_items()==o.inner.get_prepended_items() && self.inner.get_appended_items()==o.inner.get_appended_items() && self.inner.get_deleted_items()==o.inner.get_deleted_items() && self.inner.get_ordered_items()==o.inner.get_ordered_items() }
-            fn __ne__(&self, o: &Self) -> bool { !self.__eq__(o) }
-            fn __hash__(&self) -> u64 { let mut h=std::collections::hash_map::DefaultHasher::new(); self.inner.is_explicit().hash(&mut h); self.inner.get_explicit_items().len().hash(&mut h); h.finish() }
+            fn __repr__(&self) -> String {
+                if self.inner.is_explicit() {
+                    format!(
+                        "{}(explicit={:?})",
+                        $py_class_name,
+                        self.inner.get_explicit_items()
+                    )
+                } else {
+                    format!(
+                        "{}(prepended={:?}, appended={:?}, deleted={:?})",
+                        $py_class_name,
+                        self.inner.get_prepended_items(),
+                        self.inner.get_appended_items(),
+                        self.inner.get_deleted_items()
+                    )
+                }
+            }
+            fn __str__(&self) -> String {
+                self.__repr__()
+            }
+            fn __eq__(&self, o: &Self) -> bool {
+                self.inner.is_explicit() == o.inner.is_explicit()
+                    && self.inner.get_explicit_items() == o.inner.get_explicit_items()
+                    && self.inner.get_prepended_items() == o.inner.get_prepended_items()
+                    && self.inner.get_appended_items() == o.inner.get_appended_items()
+                    && self.inner.get_deleted_items() == o.inner.get_deleted_items()
+                    && self.inner.get_ordered_items() == o.inner.get_ordered_items()
+            }
+            fn __ne__(&self, o: &Self) -> bool {
+                !self.__eq__(o)
+            }
+            fn __hash__(&self) -> u64 {
+                let mut h = std::collections::hash_map::DefaultHasher::new();
+                self.inner.is_explicit().hash(&mut h);
+                self.inner.get_explicit_items().len().hash(&mut h);
+                h.finish()
+            }
         }
     };
 }
@@ -3388,47 +4253,75 @@ pub struct PyPathListOp {
 impl PyPathListOp {
     #[new]
     fn new() -> Self {
-        Self { inner: PathListOp::new() }
+        Self {
+            inner: PathListOp::new(),
+        }
     }
 
     #[getter]
     #[allow(non_snake_case)]
-    fn isExplicit(&self) -> bool { self.inner.is_explicit() }
+    fn isExplicit(&self) -> bool {
+        self.inner.is_explicit()
+    }
 
     #[getter]
     #[allow(non_snake_case)]
     fn explicitItems(&self) -> Vec<PyPath> {
-        self.inner.get_explicit_items().iter().map(|p| PyPath::from_path(p.clone())).collect()
+        self.inner
+            .get_explicit_items()
+            .iter()
+            .map(|p| PyPath::from_path(p.clone()))
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn prependedItems(&self) -> Vec<PyPath> {
-        self.inner.get_prepended_items().iter().map(|p| PyPath::from_path(p.clone())).collect()
+        self.inner
+            .get_prepended_items()
+            .iter()
+            .map(|p| PyPath::from_path(p.clone()))
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn appendedItems(&self) -> Vec<PyPath> {
-        self.inner.get_appended_items().iter().map(|p| PyPath::from_path(p.clone())).collect()
+        self.inner
+            .get_appended_items()
+            .iter()
+            .map(|p| PyPath::from_path(p.clone()))
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn deletedItems(&self) -> Vec<PyPath> {
-        self.inner.get_deleted_items().iter().map(|p| PyPath::from_path(p.clone())).collect()
+        self.inner
+            .get_deleted_items()
+            .iter()
+            .map(|p| PyPath::from_path(p.clone()))
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn addedItems(&self) -> Vec<PyPath> {
-        self.inner.get_added_items().iter().map(|p| PyPath::from_path(p.clone())).collect()
+        self.inner
+            .get_added_items()
+            .iter()
+            .map(|p| PyPath::from_path(p.clone()))
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn orderedItems(&self) -> Vec<PyPath> {
-        self.inner.get_ordered_items().iter().map(|p| PyPath::from_path(p.clone())).collect()
+        self.inner
+            .get_ordered_items()
+            .iter()
+            .map(|p| PyPath::from_path(p.clone()))
+            .collect()
     }
 
     fn __repr__(&self) -> String {
@@ -3450,35 +4343,55 @@ pub struct PyReferenceListOp {
 impl PyReferenceListOp {
     #[new]
     fn new() -> Self {
-        Self { inner: ReferenceListOp::new() }
+        Self {
+            inner: ReferenceListOp::new(),
+        }
     }
 
     #[getter]
     #[allow(non_snake_case)]
-    fn isExplicit(&self) -> bool { self.inner.is_explicit() }
+    fn isExplicit(&self) -> bool {
+        self.inner.is_explicit()
+    }
 
     #[getter]
     #[allow(non_snake_case)]
     fn explicitItems(&self) -> Vec<PyReference> {
-        self.inner.get_explicit_items().iter().map(|r| PyReference { inner: r.clone() }).collect()
+        self.inner
+            .get_explicit_items()
+            .iter()
+            .map(|r| PyReference { inner: r.clone() })
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn prependedItems(&self) -> Vec<PyReference> {
-        self.inner.get_prepended_items().iter().map(|r| PyReference { inner: r.clone() }).collect()
+        self.inner
+            .get_prepended_items()
+            .iter()
+            .map(|r| PyReference { inner: r.clone() })
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn appendedItems(&self) -> Vec<PyReference> {
-        self.inner.get_appended_items().iter().map(|r| PyReference { inner: r.clone() }).collect()
+        self.inner
+            .get_appended_items()
+            .iter()
+            .map(|r| PyReference { inner: r.clone() })
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn deletedItems(&self) -> Vec<PyReference> {
-        self.inner.get_deleted_items().iter().map(|r| PyReference { inner: r.clone() }).collect()
+        self.inner
+            .get_deleted_items()
+            .iter()
+            .map(|r| PyReference { inner: r.clone() })
+            .collect()
     }
 
     fn __repr__(&self) -> String {
@@ -3500,35 +4413,55 @@ pub struct PyPayloadListOp {
 impl PyPayloadListOp {
     #[new]
     fn new() -> Self {
-        Self { inner: PayloadListOp::new() }
+        Self {
+            inner: PayloadListOp::new(),
+        }
     }
 
     #[getter]
     #[allow(non_snake_case)]
-    fn isExplicit(&self) -> bool { self.inner.is_explicit() }
+    fn isExplicit(&self) -> bool {
+        self.inner.is_explicit()
+    }
 
     #[getter]
     #[allow(non_snake_case)]
     fn explicitItems(&self) -> Vec<PyPayload> {
-        self.inner.get_explicit_items().iter().map(|p| PyPayload { inner: p.clone() }).collect()
+        self.inner
+            .get_explicit_items()
+            .iter()
+            .map(|p| PyPayload { inner: p.clone() })
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn prependedItems(&self) -> Vec<PyPayload> {
-        self.inner.get_prepended_items().iter().map(|p| PyPayload { inner: p.clone() }).collect()
+        self.inner
+            .get_prepended_items()
+            .iter()
+            .map(|p| PyPayload { inner: p.clone() })
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn appendedItems(&self) -> Vec<PyPayload> {
-        self.inner.get_appended_items().iter().map(|p| PyPayload { inner: p.clone() }).collect()
+        self.inner
+            .get_appended_items()
+            .iter()
+            .map(|p| PyPayload { inner: p.clone() })
+            .collect()
     }
 
     #[getter]
     #[allow(non_snake_case)]
     fn deletedItems(&self) -> Vec<PyPayload> {
-        self.inner.get_deleted_items().iter().map(|p| PyPayload { inner: p.clone() }).collect()
+        self.inner
+            .get_deleted_items()
+            .iter()
+            .map(|p| PyPayload { inner: p.clone() })
+            .collect()
     }
 
     fn __repr__(&self) -> String {
@@ -3556,15 +4489,20 @@ impl PyRelationshipSpec {
         custom: bool,
         variability: Option<&str>,
     ) -> PyResult<Self> {
-        let layer = owner.inner.layer().upgrade()
+        let layer = owner
+            .inner
+            .layer()
+            .upgrade()
             .ok_or_else(|| PyRuntimeError::new_err("no valid layer"))?;
         let prim_path = owner.inner.path();
-        let rel_path = prim_path.append_property(name)
+        let rel_path = prim_path
+            .append_property(name)
             .ok_or_else(|| PyValueError::new_err(format!("Invalid relationship name: '{name}'")))?;
 
         if layer.has_spec(&rel_path) {
             return Err(PyRuntimeError::new_err(format!(
-                "Object already exists at path '{}'", rel_path.get_as_string()
+                "Object already exists at path '{}'",
+                rel_path.get_as_string()
             )));
         }
 
@@ -3572,10 +4510,9 @@ impl PyRelationshipSpec {
         let mut rel = RelationshipSpec::new(layer.get_handle(), rel_path);
 
         if custom {
-            let _ = rel.spec_mut().set_field(
-                &Token::new("custom"),
-                usd_sdf::spec::VtValue::new(true),
-            );
+            let _ = rel
+                .spec_mut()
+                .set_field(&Token::new("custom"), usd_sdf::spec::VtValue::new(true));
         }
 
         let _ = variability;
@@ -3583,42 +4520,96 @@ impl PyRelationshipSpec {
     }
 
     #[getter]
-    fn name(&self) -> String { self.inner.path().get_name().to_string() }
+    fn name(&self) -> String {
+        self.inner.path().get_name().to_string()
+    }
 
     #[getter]
-    fn path(&self) -> PyPath { PyPath::from_path(self.inner.path()) }
+    fn path(&self) -> PyPath {
+        PyPath::from_path(self.inner.path())
+    }
 
     #[getter]
     #[allow(non_snake_case)]
     fn targetPathList(&self) -> PyPathListOp {
-        PyPathListOp { inner: self.inner.target_path_list() }
+        PyPathListOp {
+            inner: self.inner.target_path_list(),
+        }
     }
 
     fn __repr__(&self) -> String {
-        format!("Sdf.RelationshipSpec('{}')", self.inner.path().get_as_string())
+        format!(
+            "Sdf.RelationshipSpec('{}')",
+            self.inner.path().get_as_string()
+        )
     }
 
-    fn __bool__(&self) -> bool { !self.inner.is_dormant() }
+    fn __bool__(&self) -> bool {
+        !self.inner.is_dormant()
+    }
 }
 
 // ============================================================================
 // _PathElemsToPrefixes
 // ============================================================================
 
-#[pyfunction] #[pyo3(name = "_PathElemsToPrefixes")] #[pyo3(signature = (absolute, elements, num_prefixes = 0))]
-fn path_elems_to_prefixes(absolute: bool, elements: Vec<String>, num_prefixes: usize) -> Vec<PyPath> {
+#[pyfunction]
+#[pyo3(name = "_PathElemsToPrefixes")]
+#[pyo3(signature = (absolute, elements, num_prefixes = 0))]
+fn path_elems_to_prefixes(
+    absolute: bool,
+    elements: Vec<String>,
+    num_prefixes: usize,
+) -> Vec<PyPath> {
     let mut prefixes = Vec::new();
-    let mut string = if absolute { "/".to_string() } else { String::new() };
+    let mut string = if absolute {
+        "/".to_string()
+    } else {
+        String::new()
+    };
     let mut last_was_dotdot = false;
     let mut did_first = false;
     for elem in &elements {
-        if elem == ".." { if did_first { string.push('/'); } else { did_first = true; } string.push_str(elem); prefixes.push(PyPath::new(&string)); last_was_dotdot = true; }
-        else if elem.starts_with('.') { if last_was_dotdot { string.push('/'); } string.push_str(elem); prefixes.push(PyPath::new(&string)); last_was_dotdot = false; }
-        else if elem.starts_with('[') { string.push_str(elem); prefixes.push(PyPath::new(&string)); last_was_dotdot = false; }
-        else { if did_first { string.push('/'); } else { did_first = true; } string.push_str(elem); prefixes.push(PyPath::new(&string)); last_was_dotdot = false; }
+        if elem == ".." {
+            if did_first {
+                string.push('/');
+            } else {
+                did_first = true;
+            }
+            string.push_str(elem);
+            prefixes.push(PyPath::new(&string));
+            last_was_dotdot = true;
+        } else if elem.starts_with('.') {
+            if last_was_dotdot {
+                string.push('/');
+            }
+            string.push_str(elem);
+            prefixes.push(PyPath::new(&string));
+            last_was_dotdot = false;
+        } else if elem.starts_with('[') {
+            string.push_str(elem);
+            prefixes.push(PyPath::new(&string));
+            last_was_dotdot = false;
+        } else {
+            if did_first {
+                string.push('/');
+            } else {
+                did_first = true;
+            }
+            string.push_str(elem);
+            prefixes.push(PyPath::new(&string));
+            last_was_dotdot = false;
+        }
     }
-    if string.is_empty() { return Vec::new(); }
-    if num_prefixes == 0 { prefixes } else { let s = prefixes.len().saturating_sub(num_prefixes); prefixes[s..].to_vec() }
+    if string.is_empty() {
+        return Vec::new();
+    }
+    if num_prefixes == 0 {
+        prefixes
+    } else {
+        let s = prefixes.len().saturating_sub(num_prefixes);
+        prefixes[s..].to_vec()
+    }
 }
 
 // ============================================================================
@@ -3639,7 +4630,9 @@ fn py_create_prim_in_layer(layer: &PyLayer, path: &str) -> PyResult<PyPrimSpec> 
 
     // Special case: "." returns pseudoRoot
     if path_str == "." {
-        return Ok(PyPrimSpec { inner: layer.layer().get_pseudo_root() });
+        return Ok(PyPrimSpec {
+            inner: layer.layer().get_pseudo_root(),
+        });
     }
 
     // ".." is invalid
@@ -3660,7 +4653,9 @@ fn py_create_prim_in_layer(layer: &PyLayer, path: &str) -> PyResult<PyPrimSpec> 
         .ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: {abs_path}")))?;
 
     if sdf_path.is_empty() || sdf_path.is_absolute_root_path() {
-        return Ok(PyPrimSpec { inner: layer.layer().get_pseudo_root() });
+        return Ok(PyPrimSpec {
+            inner: layer.layer().get_pseudo_root(),
+        });
     }
 
     // Collect all ancestors that need creation (from root down)
@@ -3675,7 +4670,11 @@ fn py_create_prim_in_layer(layer: &PyLayer, path: &str) -> PyResult<PyPrimSpec> 
         }
         let parent = anc.get_parent_path();
         // Last prefix is the target: Def; ancestors: Over
-        let spec = if i == prefixes.len() - 1 { Specifier::Def } else { Specifier::Over };
+        let spec = if i == prefixes.len() - 1 {
+            Specifier::Def
+        } else {
+            Specifier::Over
+        };
         if parent.as_str() == "/" || parent.is_absolute_root_path() {
             let handle = layer.layer().get_handle();
             let _ = PrimSpec::new_root(&handle, &name, spec, "");
@@ -3685,7 +4684,9 @@ fn py_create_prim_in_layer(layer: &PyLayer, path: &str) -> PyResult<PyPrimSpec> 
     }
 
     // Get the created prim spec
-    layer.layer().get_prim_at_path(&sdf_path)
+    layer
+        .layer()
+        .get_prim_at_path(&sdf_path)
         .map(|p| PyPrimSpec { inner: p })
         .ok_or_else(|| PyRuntimeError::new_err(format!("Failed to create prim at '{abs_path}'")))
 }
@@ -3697,7 +4698,9 @@ fn py_create_prim_in_layer(layer: &PyLayer, path: &str) -> PyResult<PyPrimSpec> 
 fn py_just_create_prim_in_layer(layer: &PyLayer, path: &str) -> PyResult<PyPrimSpec> {
     let path_str = path.trim();
     if path_str == "." {
-        return Ok(PyPrimSpec { inner: layer.layer().get_pseudo_root() });
+        return Ok(PyPrimSpec {
+            inner: layer.layer().get_pseudo_root(),
+        });
     }
     if path_str == ".." || path_str.starts_with("../") {
         return Err(PyRuntimeError::new_err(format!(
@@ -3715,7 +4718,9 @@ fn py_just_create_prim_in_layer(layer: &PyLayer, path: &str) -> PyResult<PyPrimS
         .ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: {abs_path}")))?;
 
     if sdf_path.is_empty() || sdf_path.is_absolute_root_path() {
-        return Ok(PyPrimSpec { inner: layer.layer().get_pseudo_root() });
+        return Ok(PyPrimSpec {
+            inner: layer.layer().get_pseudo_root(),
+        });
     }
 
     let prefixes = sdf_path.get_prefixes();
@@ -3736,7 +4741,9 @@ fn py_just_create_prim_in_layer(layer: &PyLayer, path: &str) -> PyResult<PyPrimS
         }
     }
 
-    layer.layer().get_prim_at_path(&sdf_path)
+    layer
+        .layer()
+        .get_prim_at_path(&sdf_path)
         .map(|p| PyPrimSpec { inner: p })
         .ok_or_else(|| PyRuntimeError::new_err(format!("Failed to create prim at '{abs_path}'")))
 }
@@ -3775,10 +4782,9 @@ fn py_create_prim_attribute_in_layer(
         attr.set_variability(var);
     }
     if isCustom {
-        let _ = attr.as_spec_mut().set_field(
-            &Token::new("custom"),
-            usd_sdf::spec::VtValue::new(true),
-        );
+        let _ = attr
+            .as_spec_mut()
+            .set_field(&Token::new("custom"), usd_sdf::spec::VtValue::new(true));
     }
     Ok(PyAttributeSpec { inner: attr })
 }
@@ -3809,11 +4815,14 @@ fn py_create_variant_in_layer(
     variant_name: &str,
 ) -> PyResult<PyPrimSpec> {
     let prim_path = extract_path(path)?;
-    let vs_path = prim_path.append_variant_selection(variant_set_name, variant_name)
+    let vs_path = prim_path
+        .append_variant_selection(variant_set_name, variant_name)
         .ok_or_else(|| PyValueError::new_err("Invalid variant selection"))?;
     usd_sdf::create_variant_in_layer(layer.layer(), &prim_path, variant_set_name, variant_name);
     // Get the variant prim spec from the layer
-    layer.layer().get_prim_at_path(&vs_path)
+    layer
+        .layer()
+        .get_prim_at_path(&vs_path)
         .map(|p| PyPrimSpec { inner: p })
         .ok_or_else(|| PyRuntimeError::new_err("Failed to create variant"))
 }
@@ -3829,9 +4838,24 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyChangeBlock>()?;
 
     // Top-level specifier constants matching C++ pxr.Sdf.SpecifierDef etc.
-    m.add("SpecifierDef", PySpecifier { inner: Specifier::Def })?;
-    m.add("SpecifierOver", PySpecifier { inner: Specifier::Over })?;
-    m.add("SpecifierClass", PySpecifier { inner: Specifier::Class })?;
+    m.add(
+        "SpecifierDef",
+        PySpecifier {
+            inner: Specifier::Def,
+        },
+    )?;
+    m.add(
+        "SpecifierOver",
+        PySpecifier {
+            inner: Specifier::Over,
+        },
+    )?;
+    m.add(
+        "SpecifierClass",
+        PySpecifier {
+            inner: Specifier::Class,
+        },
+    )?;
 
     // Variability constants
     m.add("VariabilityVarying", "Sdf.VariabilityVarying")?;

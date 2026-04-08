@@ -1,4 +1,3 @@
-
 //! HdRprimCollection - Named collection of rprims for render passes.
 //!
 //! Corresponds to pxr/imaging/hd/rprimCollection.h.

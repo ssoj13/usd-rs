@@ -1,4 +1,3 @@
-
 //! HdRenderDelegateInfo - Query result from render delegate.
 //!
 //! Corresponds to pxr/imaging/hd/renderDelegateInfo.h.

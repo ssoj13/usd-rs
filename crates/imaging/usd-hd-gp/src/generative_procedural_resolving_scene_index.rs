@@ -1,4 +1,3 @@
-
 //! Scene index that resolves generative procedural prims.
 //!
 //! Port of pxr/imaging/hdGp/generativeProceduralResolvingSceneIndex.h/cpp
@@ -7,15 +6,16 @@ use super::generative_procedural::{
     AsyncState, ChildPrimTypeMap, DependencyMap, HdGpGenerativeProcedural, tokens,
 };
 use super::generative_procedural_plugin_registry::HdGpGenerativeProceduralPluginRegistry;
+use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::{HdDataSourceBaseHandle, HdDataSourceLocator, HdDataSourceLocatorSet};
 use usd_hd::scene_index::{
     HdSceneIndexBase, HdSceneIndexHandle, HdSceneIndexPrim, HdSingleInputFilteringSceneIndexBase,
-    SdfPathVector, si_ref,
+    SdfPathVector,
     observer::{AddedPrimEntry, DirtiedPrimEntry, HdSceneIndexObserverHandle, RemovedPrimEntry},
+    si_ref,
 };
 use usd_hd::schema::HdPrimvarsSchema;
 use usd_sdf::Path as SdfPath;
@@ -1368,7 +1368,8 @@ impl HdSceneIndexBase for HdGpGenerativeProceduralResolvingSceneIndex {
                 if let Some(entry) = self.procedurals.get(proc_path) {
                     if let Some(ref proc) = entry.proc {
                         if let Some(input) = self.base.get_input_scene() {
-                            { let locked = input.read();
+                            {
+                                let locked = input.read();
                                 return proc.get_child_prim(&*locked, prim_path);
                             }
                         }
@@ -1379,7 +1380,8 @@ impl HdSceneIndexBase for HdGpGenerativeProceduralResolvingSceneIndex {
 
         // Fall through to input scene
         if let Some(input) = self.base.get_input_scene() {
-            { let locked = input.read();
+            {
+                let locked = input.read();
                 let prim = locked.get_prim(prim_path);
                 if prim.prim_type == self.target_prim_type_name {
                     // Re-type to resolved to prevent double-evaluation downstream

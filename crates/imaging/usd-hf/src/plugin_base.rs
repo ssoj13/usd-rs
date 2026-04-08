@@ -1,4 +1,3 @@
-
 //! HfPluginBase - Base trait for all Hydra plugin classes.
 //!
 //! This trait provides the polymorphic interface for the plugin registry.

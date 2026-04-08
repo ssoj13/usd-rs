@@ -46,8 +46,8 @@ pub type Weight = f32;
 pub trait MaskInterface {
     // -- count accessors -------------------------------------------------------
     fn num_vertex_weights(&self) -> usize;
-    fn num_edge_weights(&self)   -> usize;
-    fn num_face_weights(&self)   -> usize;
+    fn num_edge_weights(&self) -> usize;
+    fn num_face_weights(&self) -> usize;
 
     fn set_num_vertex_weights(&mut self, n: usize);
     fn set_num_edge_weights(&mut self, n: usize);
@@ -55,13 +55,13 @@ pub trait MaskInterface {
 
     // -- weight accessors (immutable) ------------------------------------------
     fn vertex_weight(&self, i: usize) -> Weight;
-    fn edge_weight(&self,   i: usize) -> Weight;
-    fn face_weight(&self,   i: usize) -> Weight;
+    fn edge_weight(&self, i: usize) -> Weight;
+    fn face_weight(&self, i: usize) -> Weight;
 
     // -- weight accessors (mutable) --------------------------------------------
     fn set_vertex_weight(&mut self, i: usize, w: Weight);
-    fn set_edge_weight(&mut self,   i: usize, w: Weight);
-    fn set_face_weight(&mut self,   i: usize, w: Weight);
+    fn set_edge_weight(&mut self, i: usize, w: Weight);
+    fn set_face_weight(&mut self, i: usize, w: Weight);
 
     // -- face-weight interpretation flag --------------------------------------
     /// True when face weights represent face-centre points (Catmark); false
@@ -126,8 +126,8 @@ pub trait VertexNeighborhood {
 pub trait SchemeKernel {
     // Static trait info
     fn topological_split_type() -> super::types::Split;
-    fn regular_face_size()       -> i32;
-    fn regular_vertex_valence()  -> i32;
+    fn regular_face_size() -> i32;
+    fn regular_vertex_valence() -> i32;
     fn local_neighborhood_size() -> i32;
 
     // ── Optional full-override hooks ─────────────────────────────────────────
@@ -148,7 +148,11 @@ pub trait SchemeKernel {
     /// and sharpness entirely.  This hook replicates that behaviour.
     #[inline]
     fn override_compute_edge_vertex_mask<E: EdgeNeighborhood, M: MaskInterface>(
-        _options: &Options, _edge: &E, _mask: &mut M, _p_rule: Rule, _c_rule: Rule,
+        _options: &Options,
+        _edge: &E,
+        _mask: &mut M,
+        _p_rule: Rule,
+        _c_rule: Rule,
     ) -> bool {
         false
     }
@@ -160,50 +164,82 @@ pub trait SchemeKernel {
     /// complexity.  This hook replicates that behaviour.
     #[inline]
     fn override_compute_vertex_vertex_mask<V: VertexNeighborhood, M: MaskInterface>(
-        _options: &Options, _vertex: &V, _mask: &mut M, _p_rule: Rule, _c_rule: Rule,
+        _options: &Options,
+        _vertex: &V,
+        _mask: &mut M,
+        _p_rule: Rule,
+        _c_rule: Rule,
     ) -> bool {
         false
     }
 
     // Edge-vertex masks
     fn assign_crease_mask_for_edge<E: EdgeNeighborhood, M: MaskInterface>(
-        options: &Options, edge: &E, mask: &mut M,
+        options: &Options,
+        edge: &E,
+        mask: &mut M,
     );
     fn assign_smooth_mask_for_edge<E: EdgeNeighborhood, M: MaskInterface>(
-        options: &Options, edge: &E, mask: &mut M,
+        options: &Options,
+        edge: &E,
+        mask: &mut M,
     );
 
     // Vertex-vertex masks
     fn assign_corner_mask_for_vertex<V: VertexNeighborhood, M: MaskInterface>(
-        options: &Options, vertex: &V, mask: &mut M,
+        options: &Options,
+        vertex: &V,
+        mask: &mut M,
     );
     fn assign_crease_mask_for_vertex<V: VertexNeighborhood, M: MaskInterface>(
-        options: &Options, vertex: &V, mask: &mut M, crease_ends: [usize; 2],
+        options: &Options,
+        vertex: &V,
+        mask: &mut M,
+        crease_ends: [usize; 2],
     );
     fn assign_smooth_mask_for_vertex<V: VertexNeighborhood, M: MaskInterface>(
-        options: &Options, vertex: &V, mask: &mut M,
+        options: &Options,
+        vertex: &V,
+        mask: &mut M,
     );
 
     // Limit masks -- position
     fn assign_corner_limit_mask<V: VertexNeighborhood, M: MaskInterface>(
-        options: &Options, vertex: &V, mask: &mut M,
+        options: &Options,
+        vertex: &V,
+        mask: &mut M,
     );
     fn assign_crease_limit_mask<V: VertexNeighborhood, M: MaskInterface>(
-        options: &Options, vertex: &V, mask: &mut M, crease_ends: [usize; 2],
+        options: &Options,
+        vertex: &V,
+        mask: &mut M,
+        crease_ends: [usize; 2],
     );
     fn assign_smooth_limit_mask<V: VertexNeighborhood, M: MaskInterface>(
-        options: &Options, vertex: &V, mask: &mut M,
+        options: &Options,
+        vertex: &V,
+        mask: &mut M,
     );
 
     // Limit masks -- tangents
     fn assign_corner_limit_tangent_masks<V: VertexNeighborhood, M: MaskInterface>(
-        options: &Options, vertex: &V, tan1: &mut M, tan2: &mut M,
+        options: &Options,
+        vertex: &V,
+        tan1: &mut M,
+        tan2: &mut M,
     );
     fn assign_crease_limit_tangent_masks<V: VertexNeighborhood, M: MaskInterface>(
-        options: &Options, vertex: &V, tan1: &mut M, tan2: &mut M, crease_ends: [usize; 2],
+        options: &Options,
+        vertex: &V,
+        tan1: &mut M,
+        tan2: &mut M,
+        crease_ends: [usize; 2],
     );
     fn assign_smooth_limit_tangent_masks<V: VertexNeighborhood, M: MaskInterface>(
-        options: &Options, vertex: &V, tan1: &mut M, tan2: &mut M,
+        options: &Options,
+        vertex: &V,
+        tan1: &mut M,
+        tan2: &mut M,
     );
 }
 
@@ -218,12 +254,12 @@ pub trait SchemeKernel {
 /// `LOCAL_MASK_INLINE` inline capacity so the common case (valence ≤ 20) never
 /// touches the heap, matching C++'s stack-allocation strategy.
 struct LocalMask {
-    v_weights:             SmallVec<[Weight; 1]>,
-    e_weights:             SmallVec<[Weight; LOCAL_MASK_INLINE]>,
-    f_weights:             SmallVec<[Weight; LOCAL_MASK_INLINE]>,
-    v_count:               usize,
-    e_count:               usize,
-    f_count:               usize,
+    v_weights: SmallVec<[Weight; 1]>,
+    e_weights: SmallVec<[Weight; LOCAL_MASK_INLINE]>,
+    f_weights: SmallVec<[Weight; LOCAL_MASK_INLINE]>,
+    v_count: usize,
+    e_count: usize,
+    f_count: usize,
     f_weights_for_centers: bool,
 }
 
@@ -234,12 +270,12 @@ impl LocalMask {
         let mut f = SmallVec::new();
         f.resize(valence, 0.0);
         Self {
-            v_weights:             smallvec::smallvec![0.0; 1],
-            e_weights:             e,
-            f_weights:             f,
-            v_count:               0,
-            e_count:               0,
-            f_count:               0,
+            v_weights: smallvec::smallvec![0.0; 1],
+            e_weights: e,
+            f_weights: f,
+            v_count: 0,
+            e_count: 0,
+            f_count: 0,
             f_weights_for_centers: false,
         }
     }
@@ -248,12 +284,7 @@ impl LocalMask {
     ///   dst = this_coeff * self + dst_coeff * dst
     ///
     /// Mirrors C++ `LocalMask::CombineVertexVertexMasks`.
-    fn combine_into<M: MaskInterface>(
-        &self,
-        this_coeff: Weight,
-        dst_coeff:  Weight,
-        dst:        &mut M,
-    ) {
+    fn combine_into<M: MaskInterface>(&self, this_coeff: Weight, dst_coeff: Weight, dst: &mut M) {
         // Vertex weight (always exactly 1 for vertex-vertex masks)
         let v = dst_coeff * dst.vertex_weight(0) + this_coeff * self.v_weights[0];
         dst.set_vertex_weight(0, v);
@@ -285,7 +316,10 @@ impl LocalMask {
                 }
             } else {
                 // Both have face weights -- their interpretation must agree
-                debug_assert_eq!(self.f_weights_for_centers, dst.face_weights_for_face_centers());
+                debug_assert_eq!(
+                    self.f_weights_for_centers,
+                    dst.face_weights_for_face_centers()
+                );
                 for i in 0..face_count {
                     let w = dst_coeff * dst.face_weight(i) + this_coeff * self.f_weights[i];
                     dst.set_face_weight(i, w);
@@ -296,20 +330,48 @@ impl LocalMask {
 }
 
 impl MaskInterface for LocalMask {
-    fn num_vertex_weights(&self)  -> usize { self.v_count }
-    fn num_edge_weights(&self)    -> usize { self.e_count }
-    fn num_face_weights(&self)    -> usize { self.f_count }
-    fn set_num_vertex_weights(&mut self, n: usize) { self.v_count = n; }
-    fn set_num_edge_weights(&mut self,   n: usize) { self.e_count = n; }
-    fn set_num_face_weights(&mut self,   n: usize) { self.f_count = n; }
-    fn vertex_weight(&self, i: usize) -> Weight { self.v_weights[i] }
-    fn edge_weight(&self,   i: usize) -> Weight { self.e_weights[i] }
-    fn face_weight(&self,   i: usize) -> Weight { self.f_weights[i] }
-    fn set_vertex_weight(&mut self, i: usize, w: Weight) { self.v_weights[i] = w; }
-    fn set_edge_weight(&mut self,   i: usize, w: Weight) { self.e_weights[i] = w; }
-    fn set_face_weight(&mut self,   i: usize, w: Weight) { self.f_weights[i] = w; }
-    fn face_weights_for_face_centers(&self)        -> bool { self.f_weights_for_centers }
-    fn set_face_weights_for_face_centers(&mut self, v: bool) { self.f_weights_for_centers = v; }
+    fn num_vertex_weights(&self) -> usize {
+        self.v_count
+    }
+    fn num_edge_weights(&self) -> usize {
+        self.e_count
+    }
+    fn num_face_weights(&self) -> usize {
+        self.f_count
+    }
+    fn set_num_vertex_weights(&mut self, n: usize) {
+        self.v_count = n;
+    }
+    fn set_num_edge_weights(&mut self, n: usize) {
+        self.e_count = n;
+    }
+    fn set_num_face_weights(&mut self, n: usize) {
+        self.f_count = n;
+    }
+    fn vertex_weight(&self, i: usize) -> Weight {
+        self.v_weights[i]
+    }
+    fn edge_weight(&self, i: usize) -> Weight {
+        self.e_weights[i]
+    }
+    fn face_weight(&self, i: usize) -> Weight {
+        self.f_weights[i]
+    }
+    fn set_vertex_weight(&mut self, i: usize, w: Weight) {
+        self.v_weights[i] = w;
+    }
+    fn set_edge_weight(&mut self, i: usize, w: Weight) {
+        self.e_weights[i] = w;
+    }
+    fn set_face_weight(&mut self, i: usize, w: Weight) {
+        self.f_weights[i] = w;
+    }
+    fn face_weights_for_face_centers(&self) -> bool {
+        self.f_weights_for_centers
+    }
+    fn set_face_weights_for_face_centers(&mut self, v: bool) {
+        self.f_weights_for_centers = v;
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -326,20 +388,38 @@ pub struct Scheme<K: SchemeKernel> {
 
 impl<K: SchemeKernel> Scheme<K> {
     pub fn new() -> Self {
-        Self { options: Options::default(), _kernel: std::marker::PhantomData }
+        Self {
+            options: Options::default(),
+            _kernel: std::marker::PhantomData,
+        }
     }
     pub fn with_options(options: Options) -> Self {
-        Self { options, _kernel: std::marker::PhantomData }
+        Self {
+            options,
+            _kernel: std::marker::PhantomData,
+        }
     }
 
-    pub fn options(&self)                  -> Options  { self.options }
-    pub fn set_options(&mut self, o: Options)          { self.options = o; }
+    pub fn options(&self) -> Options {
+        self.options
+    }
+    pub fn set_options(&mut self, o: Options) {
+        self.options = o;
+    }
 
     // Static trait queries (forwarded to kernel)
-    pub fn topological_split_type() -> super::types::Split { K::topological_split_type() }
-    pub fn regular_face_size()       -> i32                { K::regular_face_size() }
-    pub fn regular_vertex_valence()  -> i32                { K::regular_vertex_valence() }
-    pub fn local_neighborhood_size() -> i32                { K::local_neighborhood_size() }
+    pub fn topological_split_type() -> super::types::Split {
+        K::topological_split_type()
+    }
+    pub fn regular_face_size() -> i32 {
+        K::regular_face_size()
+    }
+    pub fn regular_vertex_valence() -> i32 {
+        K::regular_vertex_valence()
+    }
+    pub fn local_neighborhood_size() -> i32 {
+        K::local_neighborhood_size()
+    }
 
     // ── Face-vertex mask ──────────────────────────────────────────────────────
 
@@ -375,25 +455,24 @@ impl<K: SchemeKernel> Scheme<K> {
     /// Bilinear scheme, which directly assigns the crease midpoint mask.
     pub fn compute_edge_vertex_mask<E, M>(
         &self,
-        edge:        &E,
-        mask:        &mut M,
+        edge: &E,
+        mask: &mut M,
         parent_rule: Rule,
-        child_rule:  Rule,
-    )
-    where
+        child_rule: Rule,
+    ) where
         E: EdgeNeighborhood,
         M: MaskInterface,
     {
         // S2 fix: allow scheme to bypass all crease/sharpness logic entirely.
         // Bilinear overrides this to assign the crease midpoint mask directly,
         // matching C++ `Scheme<SCHEME_BILINEAR>::ComputeEdgeVertexMask`.
-        if K::override_compute_edge_vertex_mask(&self.options, edge, mask, parent_rule, child_rule) {
+        if K::override_compute_edge_vertex_mask(&self.options, edge, mask, parent_rule, child_rule)
+        {
             return;
         }
 
         // ── Smooth parent: return smooth mask immediately ──────────────────
-        if parent_rule == Rule::Smooth
-            || (parent_rule == Rule::Unknown && edge.sharpness() <= 0.0)
+        if parent_rule == Rule::Smooth || (parent_rule == Rule::Unknown && edge.sharpness() <= 0.0)
         {
             K::assign_smooth_mask_for_edge(&self.options, edge, mask);
             return;
@@ -468,12 +547,11 @@ impl<K: SchemeKernel> Scheme<K> {
     /// directly assigns the corner (identity) mask.
     pub fn compute_vertex_vertex_mask<V, M>(
         &self,
-        vertex:      &V,
-        mask:        &mut M,
-        p_rule:      Rule,
-        c_rule:      Rule,
-    )
-    where
+        vertex: &V,
+        mask: &mut M,
+        p_rule: Rule,
+        c_rule: Rule,
+    ) where
         V: VertexNeighborhood,
         M: MaskInterface,
     {
@@ -491,12 +569,11 @@ impl<K: SchemeKernel> Scheme<K> {
     /// Separated so bilinear's override hook can skip it entirely.
     fn compute_vertex_vertex_mask_generic<V, M>(
         &self,
-        vertex:      &V,
-        mask:        &mut M,
-        mut p_rule:  Rule,
-        mut c_rule:  Rule,
-    )
-    where
+        vertex: &V,
+        mask: &mut M,
+        mut p_rule: Rule,
+        mut c_rule: Rule,
+    ) where
         V: VertexNeighborhood,
         M: MaskInterface,
     {
@@ -515,37 +592,37 @@ impl<K: SchemeKernel> Scheme<K> {
         let p_vertex_sharpness;
 
         // Determine whether we need parent sharpness
-        let need_parent = p_rule == Rule::Unknown
-            || p_rule == Rule::Crease
-            || p_rule != c_rule;
+        let need_parent = p_rule == Rule::Unknown || p_rule == Rule::Crease || p_rule != c_rule;
 
         let p_edge_sharpness: &[f32];
 
         if need_parent {
             p_vertex_sharpness = vertex.sharpness();
-            p_edge_sharpness   = vertex.sharpness_per_edge(&mut p_edge_buf);
+            p_edge_sharpness = vertex.sharpness_per_edge(&mut p_edge_buf);
             if p_rule == Rule::Unknown {
                 p_rule = Crease::with_options(self.options)
                     .determine_vertex_vertex_rule(p_vertex_sharpness, p_edge_sharpness);
             }
         } else {
             p_vertex_sharpness = 0.0;
-            p_edge_sharpness   = &p_edge_buf;
+            p_edge_sharpness = &p_edge_buf;
         }
 
         if p_rule == Rule::Smooth || p_rule == Rule::Dart {
             K::assign_smooth_mask_for_vertex(&self.options, vertex, mask);
             return;
         } else if p_rule == Rule::Crease {
-            let crease_ends = Crease::with_options(self.options)
-                .get_sharp_edge_pair_of_crease(p_edge_sharpness);
+            let crease_ends =
+                Crease::with_options(self.options).get_sharp_edge_pair_of_crease(p_edge_sharpness);
             K::assign_crease_mask_for_vertex(&self.options, vertex, mask, crease_ends);
         } else {
             // Corner
             K::assign_corner_mask_for_vertex(&self.options, vertex, mask);
         }
 
-        if c_rule == p_rule { return; }
+        if c_rule == p_rule {
+            return;
+        }
 
         // ── Transition: compute child mask and blend ───────────────────────
         let crease = Crease::with_options(self.options);
@@ -555,7 +632,9 @@ impl<K: SchemeKernel> Scheme<K> {
 
         if c_rule == Rule::Unknown {
             c_rule = crease.determine_vertex_vertex_rule(c_vertex_sharpness, c_edge_sharpness);
-            if c_rule == p_rule { return; }
+            if c_rule == p_rule {
+                return;
+            }
         }
 
         // Build local child mask
@@ -590,12 +669,7 @@ impl<K: SchemeKernel> Scheme<K> {
     ///
     /// C++ name: `Scheme::ComputeVertexLimitMask` (position-only overload).
     #[doc(alias = "ComputeVertexLimitMask")]
-    pub fn compute_vertex_limit_mask<V, M>(
-        &self,
-        vertex: &V,
-        mask:   &mut M,
-        rule:   Rule,
-    )
+    pub fn compute_vertex_limit_mask<V, M>(&self, vertex: &V, mask: &mut M, rule: Rule)
     where
         V: VertexNeighborhood,
         M: MaskInterface,
@@ -619,13 +693,12 @@ impl<K: SchemeKernel> Scheme<K> {
     #[doc(alias = "ComputeVertexLimitMask")]
     pub fn compute_vertex_limit_mask_with_tangents<V, M>(
         &self,
-        vertex:   &V,
+        vertex: &V,
         pos_mask: &mut M,
-        tan1:     &mut M,
-        tan2:     &mut M,
-        rule:     Rule,
-    )
-    where
+        tan1: &mut M,
+        tan2: &mut M,
+        rule: Rule,
+    ) where
         V: VertexNeighborhood,
         M: MaskInterface,
     {
@@ -646,7 +719,9 @@ impl<K: SchemeKernel> Scheme<K> {
 }
 
 impl<K: SchemeKernel> Default for Scheme<K> {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -684,20 +759,48 @@ impl WeightMask {
 }
 
 impl MaskInterface for WeightMask {
-    fn num_vertex_weights(&self)  -> usize { self.v_count }
-    fn num_edge_weights(&self)    -> usize { self.e_count }
-    fn num_face_weights(&self)    -> usize { self.f_count }
-    fn set_num_vertex_weights(&mut self, n: usize) { self.v_count = n; }
-    fn set_num_edge_weights(&mut self,   n: usize) { self.e_count = n; }
-    fn set_num_face_weights(&mut self,   n: usize) { self.f_count = n; }
-    fn vertex_weight(&self, i: usize) -> Weight { self.v[i] }
-    fn edge_weight(&self,   i: usize) -> Weight { self.e[i] }
-    fn face_weight(&self,   i: usize) -> Weight { self.f[i] }
-    fn set_vertex_weight(&mut self, i: usize, w: Weight) { self.v[i] = w; }
-    fn set_edge_weight(&mut self,   i: usize, w: Weight) { self.e[i] = w; }
-    fn set_face_weight(&mut self,   i: usize, w: Weight) { self.f[i] = w; }
-    fn face_weights_for_face_centers(&self)         -> bool { self.f_for_centers }
-    fn set_face_weights_for_face_centers(&mut self, v: bool) { self.f_for_centers = v; }
+    fn num_vertex_weights(&self) -> usize {
+        self.v_count
+    }
+    fn num_edge_weights(&self) -> usize {
+        self.e_count
+    }
+    fn num_face_weights(&self) -> usize {
+        self.f_count
+    }
+    fn set_num_vertex_weights(&mut self, n: usize) {
+        self.v_count = n;
+    }
+    fn set_num_edge_weights(&mut self, n: usize) {
+        self.e_count = n;
+    }
+    fn set_num_face_weights(&mut self, n: usize) {
+        self.f_count = n;
+    }
+    fn vertex_weight(&self, i: usize) -> Weight {
+        self.v[i]
+    }
+    fn edge_weight(&self, i: usize) -> Weight {
+        self.e[i]
+    }
+    fn face_weight(&self, i: usize) -> Weight {
+        self.f[i]
+    }
+    fn set_vertex_weight(&mut self, i: usize, w: Weight) {
+        self.v[i] = w;
+    }
+    fn set_edge_weight(&mut self, i: usize, w: Weight) {
+        self.e[i] = w;
+    }
+    fn set_face_weight(&mut self, i: usize, w: Weight) {
+        self.f[i] = w;
+    }
+    fn face_weights_for_face_centers(&self) -> bool {
+        self.f_for_centers
+    }
+    fn set_face_weights_for_face_centers(&mut self, v: bool) {
+        self.f_for_centers = v;
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -707,7 +810,8 @@ impl MaskInterface for WeightMask {
 /// Assign the crease mask for an edge-vertex: midpoint (0.5, 0.5).
 /// Same for all schemes -- mirrors `Scheme<SCHEME>::assignCreaseMaskForEdge`.
 pub fn assign_crease_mask_for_edge_common<E: EdgeNeighborhood, M: MaskInterface>(
-    _edge: &E, mask: &mut M,
+    _edge: &E,
+    mask: &mut M,
 ) {
     mask.set_num_vertex_weights(2);
     mask.set_num_edge_weights(0);
@@ -720,7 +824,8 @@ pub fn assign_crease_mask_for_edge_common<E: EdgeNeighborhood, M: MaskInterface>
 /// Assign the corner mask for a vertex-vertex: identity weight 1.0.
 /// Same for all schemes -- mirrors `Scheme<SCHEME>::assignCornerMaskForVertex`.
 pub fn assign_corner_mask_for_vertex_common<V: VertexNeighborhood, M: MaskInterface>(
-    _vertex: &V, mask: &mut M,
+    _vertex: &V,
+    mask: &mut M,
 ) {
     mask.set_num_vertex_weights(1);
     mask.set_num_edge_weights(0);
@@ -736,21 +841,27 @@ mod tests {
     // Simple face with N vertices
     struct SimpleFace(usize);
     impl FaceNeighborhood for SimpleFace {
-        fn num_vertices(&self) -> usize { self.0 }
+        fn num_vertices(&self) -> usize {
+            self.0
+        }
     }
 
     #[test]
     fn face_vertex_mask_quad() {
         use crate::sdc::bilinear_scheme::BilinearKernel;
         let scheme = Scheme::<BilinearKernel>::new();
-        let face   = SimpleFace(4);
+        let face = SimpleFace(4);
         let mut mask = WeightMask::new(4, 0, 0);
         scheme.compute_face_vertex_mask(&face, &mut mask);
 
         assert_eq!(mask.num_vertex_weights(), 4);
         for i in 0..4 {
-            assert!((mask.vertex_weight(i) - 0.25).abs() < 1e-6,
-                "weight[{}] = {}", i, mask.vertex_weight(i));
+            assert!(
+                (mask.vertex_weight(i) - 0.25).abs() < 1e-6,
+                "weight[{}] = {}",
+                i,
+                mask.vertex_weight(i)
+            );
         }
     }
 
@@ -758,7 +869,7 @@ mod tests {
     fn face_vertex_mask_tri() {
         use crate::sdc::loop_scheme::LoopKernel;
         let scheme = Scheme::<LoopKernel>::new();
-        let face   = SimpleFace(3);
+        let face = SimpleFace(3);
         let mut mask = WeightMask::new(3, 0, 0);
         scheme.compute_face_vertex_mask(&face, &mut mask);
 

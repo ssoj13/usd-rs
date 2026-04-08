@@ -4,9 +4,9 @@
 //!
 //! Provides imaging support for geometry subsets used for material binding.
 
-use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::data_source_attribute::DataSourceAttribute;
 use super::data_source_prim::DataSourcePrim;
+use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::prim_adapter::PrimAdapter;
 use super::types::{PopulationMode, PropertyInvalidationType};
 use std::sync::Arc;
@@ -14,8 +14,8 @@ use usd_core::Prim;
 use usd_geom::subset::Subset;
 use usd_hd::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
-    HdDataSourceLocator, HdDataSourceLocatorSet, HdOverlayContainerDataSource,
-    HdSampledDataSource, HdSampledDataSourceTime, HdTypedSampledDataSource,
+    HdDataSourceLocator, HdDataSourceLocatorSet, HdOverlayContainerDataSource, HdSampledDataSource,
+    HdSampledDataSourceTime, HdTypedSampledDataSource,
 };
 use usd_sdf::Path;
 use usd_tf::Token;
@@ -137,7 +137,6 @@ impl DataSourceGeomSubset {
             stage_globals,
         })
     }
-
 }
 
 impl HdDataSourceBase for DataSourceGeomSubset {
@@ -162,13 +161,11 @@ impl HdContainerDataSource for DataSourceGeomSubset {
     fn get(&self, name: &Token) -> Option<HdDataSourceBaseHandle> {
         if *name == *tokens::INDICES {
             let attr = self.subset.get_indices_attr();
-            return Some(
-                DataSourceAttribute::<Array<i32>>::new(
-                    attr,
-                    self.stage_globals.clone(),
-                    self.scene_index_path.clone(),
-                ) as HdDataSourceBaseHandle,
-            );
+            return Some(DataSourceAttribute::<Array<i32>>::new(
+                attr,
+                self.stage_globals.clone(),
+                self.scene_index_path.clone(),
+            ) as HdDataSourceBaseHandle);
         }
         if *name == *tokens::ELEMENT_TYPE {
             let attr = self.subset.get_element_type_attr();
@@ -208,8 +205,7 @@ impl DataSourceGeomSubsetPrim {
         prim: Prim,
         stage_globals: DataSourceStageGlobalsHandle,
     ) -> Arc<Self> {
-        let subset_ds =
-            DataSourceGeomSubset::new(scene_index_path.clone(), prim, stage_globals);
+        let subset_ds = DataSourceGeomSubset::new(scene_index_path.clone(), prim, stage_globals);
         Arc::new(Self {
             scene_index_path,
             subset_ds,
@@ -332,10 +328,10 @@ impl PrimAdapter for GeomSubsetAdapter {
             prim.get_path().clone(),
             stage_globals.clone(),
         )) as HdContainerDataSourceHandle;
-        Some(HdOverlayContainerDataSource::new_2(
-            subset_container,
-            prim_container,
-        ) as HdContainerDataSourceHandle)
+        Some(
+            HdOverlayContainerDataSource::new_2(subset_container, prim_container)
+                as HdContainerDataSourceHandle,
+        )
     }
 
     fn invalidate_imaging_subprim(

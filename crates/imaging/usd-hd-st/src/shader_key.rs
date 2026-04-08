@@ -1,4 +1,3 @@
-
 //! HdStShaderKey - Shader key for cache lookup.
 //!
 //! Provides a key structure for identifying and caching compiled shaders.

@@ -1,4 +1,3 @@
-
 //! HdStCommandBuffer - Command recording for Storm rendering.
 //!
 //! CommandBuffers record rendering commands that are later submitted
@@ -35,24 +34,18 @@ fn make_draw_batch_group_key(item: &HdStDrawItemSharedPtr) -> DrawBatchGroupKey 
     let vertex_bar = item.get_vertex_bar();
     let has_uv = vertex_bar
         .as_ref()
-        .and_then(|bar| bar.as_any().downcast_ref::<crate::buffer_resource::HdStBufferArrayRange>())
+        .and_then(|bar| {
+            bar.as_any()
+                .downcast_ref::<crate::buffer_resource::HdStBufferArrayRange>()
+        })
         .map(|bar| bar.get_uvs_byte_size() > 0)
         .unwrap_or(false);
     let material_tag = item.get_material_tag().map(|t| t.as_str().to_owned());
     let material_params = item.get_material_network_shader();
-    let material_uniform_bytes =
-        crate::wgsl_code_gen::material_params_to_bytes(&material_params);
+    let material_uniform_bytes = crate::wgsl_code_gen::material_params_to_bytes(&material_params);
     let texture_handles = item.get_texture_handles();
-    let texture_ids = texture_handles
-        .textures
-        .iter()
-        .map(|h| h.id())
-        .collect();
-    let sampler_ids = texture_handles
-        .samplers
-        .iter()
-        .map(|h| h.id())
-        .collect();
+    let texture_ids = texture_handles.textures.iter().map(|h| h.id()).collect();
+    let sampler_ids = texture_handles.samplers.iter().map(|h| h.id()).collect();
 
     DrawBatchGroupKey {
         primitive_kind: item.get_primitive_kind(),

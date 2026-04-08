@@ -1,4 +1,3 @@
-
 //! Free camera scene delegate — provides a camera prim for viewport rendering.
 //!
 //! Manages a "free" camera that is not part of the USD stage, allowing

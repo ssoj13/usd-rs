@@ -1,4 +1,3 @@
-
 //! HdStDrawBatch - Batching system for draw items.
 //!
 //! DrawBatches group compatible draw items together for efficient rendering.
@@ -13,15 +12,15 @@
 //!   builds dispatch buffer, issues wgpu draws (immediate or indirect)
 //! - `HdStDrawBatch`: legacy flat batch (retained for backward compat)
 
-use crate::binding::slots;
 use crate::basis_curves_shader_key::{BasisCurvesShaderKey, CurveDrawStyle};
+use crate::binding::slots;
 use crate::buffer_resource::HdStBufferArrayRange;
 use crate::draw_item::{
     DrawPrimitiveKind, HdBufferArrayRangeSharedPtr, HdStDrawItem, HdStDrawItemSharedPtr,
     MaterialTextureHandles,
 };
 use crate::draw_program_key::{
-    BasisCurvesProgramKey, DrawProgramKey, PointsProgramKey, BASIS_CURVES_DEFAULT_NORMAL_STYLE,
+    BASIS_CURVES_DEFAULT_NORMAL_STYLE, BasisCurvesProgramKey, DrawProgramKey, PointsProgramKey,
 };
 use crate::lighting;
 use crate::mesh_shader_key::{MeshShaderKey, PrimvarInterp, ShadingModel};
@@ -1333,10 +1332,7 @@ impl IndirectDrawBatch {
     /// 3. Compute pass: test frustum, write instance_count=0 for culled items
     /// 4. Draw pass reads from the same dispatch buffer (no readback)
     #[cfg(feature = "gpu-culling")]
-    fn execute_frustum_cull(
-        &mut self,
-        state: &HdStRenderPassState,
-    ) {
+    fn execute_frustum_cull(&mut self, state: &HdStRenderPassState) {
         use crate::frustum_cull::{FrustumCullState, GpuItemData};
 
         if !self.allow_gpu_frustum_culling || self.draw_items.is_empty() {
@@ -1960,7 +1956,10 @@ impl HdStDrawBatch {
     pub fn add_draw_item(&mut self, item: HdStDrawItemSharedPtr) {
         if self.program_key.is_none() {
             let is_instanced = item.get_instance_bar().is_some();
-            self.program_key = Some(infer_program_key_from_draw_item(item.as_ref(), is_instanced));
+            self.program_key = Some(infer_program_key_from_draw_item(
+                item.as_ref(),
+                is_instanced,
+            ));
         }
         self.draw_items.push(item);
         self.needs_validation = true;
@@ -2065,7 +2064,10 @@ impl HdStDrawBatch {
         log::info!(
             "[draw_batch] execute_draw: {} items, program_key={}",
             self.draw_items.len(),
-            self.program_key.as_ref().map(|k| k.debug_label()).unwrap_or("none")
+            self.program_key
+                .as_ref()
+                .map(|k| k.debug_label())
+                .unwrap_or("none")
         );
 
         // Resolve the program key from the cached value (set by add_draw_item)
@@ -2169,7 +2171,9 @@ impl HdStDrawBatch {
                     idx_base_add,
                     ibuf_size,
                     ibuf_pool_offset,
-                    extract_buffer(item.get_vertex_bar()).map(|(_, s, _)| s).unwrap_or(0),
+                    extract_buffer(item.get_vertex_bar())
+                        .map(|(_, s, _)| s)
+                        .unwrap_or(0),
                 );
             }
             gfx_cmds.draw_indexed(
@@ -2189,7 +2193,10 @@ impl HdStDrawBatch {
             drawn,
             skipped,
             self.draw_items.len(),
-            self.program_key.as_ref().map(|k| k.debug_label()).unwrap_or("none")
+            self.program_key
+                .as_ref()
+                .map(|k| k.debug_label())
+                .unwrap_or("none")
         );
     }
 }
@@ -2358,16 +2365,12 @@ fn infer_mesh_shader_key_from_draw_item(
     }
 }
 
-fn infer_program_key_from_draw_item(
-    item: &HdStDrawItem,
-    use_instancing: bool,
-) -> DrawProgramKey {
+fn infer_program_key_from_draw_item(item: &HdStDrawItem, use_instancing: bool) -> DrawProgramKey {
     let vertex_bar = vertex_bar_from_draw_item(item);
     match item.get_primitive_kind() {
-        DrawPrimitiveKind::Mesh => DrawProgramKey::Mesh(infer_mesh_shader_key_from_draw_item(
-            item,
-            use_instancing,
-        )),
+        DrawPrimitiveKind::Mesh => {
+            DrawProgramKey::Mesh(infer_mesh_shader_key_from_draw_item(item, use_instancing))
+        }
         DrawPrimitiveKind::Points => {
             let has_color = vertex_bar
                 .as_ref()
@@ -2721,15 +2724,15 @@ fn bind_packed_vertex_buffers(
     batch_label: &str,
 ) -> Option<(HgiBufferHandle, HgiBufferHandle)> {
     match program_key {
-        DrawProgramKey::Mesh(shader_key) => bind_mesh_vertex_buffers(
-            gfx_cmds, item, shader_key, item_idx, batch_label,
-        ),
-        DrawProgramKey::Points(points_key) => bind_points_vertex_buffers(
-            gfx_cmds, item, points_key, item_idx, batch_label,
-        ),
-        DrawProgramKey::BasisCurves(curves_key) => bind_basis_curves_vertex_buffers(
-            gfx_cmds, item, curves_key, item_idx, batch_label,
-        ),
+        DrawProgramKey::Mesh(shader_key) => {
+            bind_mesh_vertex_buffers(gfx_cmds, item, shader_key, item_idx, batch_label)
+        }
+        DrawProgramKey::Points(points_key) => {
+            bind_points_vertex_buffers(gfx_cmds, item, points_key, item_idx, batch_label)
+        }
+        DrawProgramKey::BasisCurves(curves_key) => {
+            bind_basis_curves_vertex_buffers(gfx_cmds, item, curves_key, item_idx, batch_label)
+        }
     }
 }
 
@@ -2755,11 +2758,7 @@ fn bind_mesh_vertex_buffers(
             let vc = st_bar
                 .map(|b| {
                     let pb = b.get_positions_byte_size();
-                    if pb > 0 {
-                        pb / 12
-                    } else {
-                        0
-                    }
+                    if pb > 0 { pb / 12 } else { 0 }
                 })
                 .unwrap_or(0);
             if vc > 0 {
@@ -3894,8 +3893,8 @@ mod tests {
     /// Helper: create a valid HdStBufferResource with a real (mock) HGI handle.
     fn make_valid_buffer(total_size: usize) -> Arc<crate::buffer_resource::HdStBufferResource> {
         use usd_hgi::{
-            buffer::{HgiBuffer, HgiBufferDesc},
             HgiHandle,
+            buffer::{HgiBuffer, HgiBufferDesc},
         };
 
         struct MockBuffer(HgiBufferDesc);
@@ -3982,11 +3981,7 @@ mod tests {
         let vbase = bar.get_offset() as u64;
         let positions_size = {
             let raw = bar.get_positions_byte_size();
-            if raw > 0 {
-                raw
-            } else {
-                vbuf_size / 2
-            }
+            if raw > 0 { raw } else { vbuf_size / 2 }
         };
         let normals_offset = (positions_size + 3) & !3;
         let offsets = [vbase, vbase + normals_offset as u64];
@@ -4043,7 +4038,10 @@ mod tests {
             HdStBufferArrayRange::with_positions_size(shared_buf.clone(), 576, 6000, 3000),
         );
 
-        for (i, bar) in [bar0.clone(), bar1.clone(), bar2.clone()].iter().enumerate() {
+        for (i, bar) in [bar0.clone(), bar1.clone(), bar2.clone()]
+            .iter()
+            .enumerate()
+        {
             let (_, size, offset) = extract_buffer(Some(bar.clone())).unwrap();
             let st_bar = bar.as_any().downcast_ref::<HdStBufferArrayRange>().unwrap();
             let pos_size = st_bar.get_positions_byte_size();

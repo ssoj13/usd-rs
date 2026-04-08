@@ -1,4 +1,3 @@
-
 //! MaterialX conversion utilities — full implementation mirroring hdMtlx.cpp.
 
 use std::collections::{HashMap, HashSet};

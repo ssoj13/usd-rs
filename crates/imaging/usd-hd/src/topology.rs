@@ -1,4 +1,3 @@
-
 //! HdTopology - Base trait for topology types.
 //!
 //! Corresponds to pxr/imaging/hd/topology.h.

@@ -55,9 +55,7 @@ pub fn get_sdr_property_type_and_array_size(sdf_type_name: &str) -> (String, usi
             ("string".to_string(), 0)
         }
         // Float
-        "float" | "float[]" | "double" | "double[]" | "half" | "half[]" => {
-            ("float".to_string(), 0)
-        }
+        "float" | "float[]" | "double" | "double[]" | "half" | "half[]" => ("float".to_string(), 0),
         "float2" | "float2[]" | "double2" | "double2[]" | "half2" | "half2[]" => {
             ("float".to_string(), 2)
         }

@@ -1,4 +1,3 @@
-
 //! Buffer array range for sub-allocation within buffer arrays.
 
 use super::{

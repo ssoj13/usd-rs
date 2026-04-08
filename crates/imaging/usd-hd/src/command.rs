@@ -1,4 +1,3 @@
-
 //! Command API for render delegates.
 //!
 //! Corresponds to pxr/imaging/hd/command.h.

@@ -1,4 +1,3 @@
-
 //! Minimal HdMaterialNetworkInterface trait for usd-hd-mtlx.
 //!
 //! Mirrors the relevant subset of pxr/imaging/hd/materialNetworkInterface.h

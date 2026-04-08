@@ -5,9 +5,9 @@
 //! Provides caching for resolved attribute values to avoid redundant queries
 //! and value resolution when accessing prim attributes at specific time codes.
 
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use parking_lot::RwLock;
 use usd_core::time_code::TimeCode;
 use usd_sdf::Path;
 use usd_tf::Token;

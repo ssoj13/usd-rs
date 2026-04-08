@@ -1,4 +1,3 @@
-
 //! HdLensDistortionSchema - Lens distortion schema.
 //!
 //! Corresponds to pxr/imaging/hd/lensDistortionSchema.h.

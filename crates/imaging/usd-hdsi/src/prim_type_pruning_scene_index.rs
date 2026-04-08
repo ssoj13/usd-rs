@@ -1,4 +1,3 @@
-
 //! Prim type pruning scene index.
 //!
 //! Port of pxr/imaging/hdsi/primTypePruningSceneIndex.
@@ -10,9 +9,9 @@
 //!
 //! Use `HdsiSceneMaterialPruningSceneIndex` or `HdsiPrimTypeAndPathPruningSceneIndex` instead.
 
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
 };
@@ -190,7 +189,9 @@ impl HdsiPrimTypePruningSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }
@@ -222,7 +223,9 @@ impl HdsiPrimTypePruningSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

@@ -17,8 +17,9 @@ fn setup() {
 }
 
 fn testenv_dir() -> String {
-    let manifest = env!("CARGO_MANIFEST_DIR");
-    format!("{}/testenv/testUsdLuxLightListAPI", manifest)
+    openusd_test_path::pxr_usd_module_testenv("usdLux", "testUsdLuxLightListAPI")
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 /// Skip test if fixture is LFS pointer or missing.
@@ -42,7 +43,9 @@ fn require_fixture(name: &str) -> Option<String> {
 #[test]
 fn test_light_list_api() {
     setup();
-    let Some(root_path) = require_fixture("root_with_instances.usda") else { return };
+    let Some(root_path) = require_fixture("root_with_instances.usda") else {
+        return;
+    };
     let stage = match Stage::open(&root_path, InitialLoadSet::LoadNone) {
         Ok(s) => s,
         Err(_) => return,
@@ -61,19 +64,28 @@ fn test_light_list_api() {
     let torch2_light = Path::from("/World/Geo/torch_2/light");
 
     // No cache initially (ref line 26)
-    let targets = list_api.get_light_list_rel()
+    let targets = list_api
+        .get_light_list_rel()
         .map(|rel| rel.get_targets())
         .unwrap_or_default();
     assert_eq!(targets.len(), 0);
 
     // Compute w/o cache: 1 light outside payload (ref line 28-30)
     let computed = list_api.compute_light_list(ignore);
-    assert_eq!(computed.len(), 1, "IgnoreCache should find 1 light: {computed:?}");
+    assert_eq!(
+        computed.len(),
+        1,
+        "IgnoreCache should find 1 light: {computed:?}"
+    );
     assert!(computed.contains(&sky_light));
 
     // Compute w/ cache: 2 lights (1 extra from payload cache) (ref line 33-36)
     let computed = list_api.compute_light_list(consult);
-    assert_eq!(computed.len(), 2, "ConsultCache should find 2 lights: {computed:?}");
+    assert_eq!(
+        computed.len(),
+        2,
+        "ConsultCache should find 2 lights: {computed:?}"
+    );
     assert!(computed.contains(&sky_light));
     assert!(computed.contains(&torch2_light));
 
@@ -82,13 +94,21 @@ fn test_light_list_api() {
 
     // Consult cache still 2 (ref line 42-45)
     let computed = list_api.compute_light_list(consult);
-    assert_eq!(computed.len(), 2, "After Load, consult should still be 2: {computed:?}");
+    assert_eq!(
+        computed.len(),
+        2,
+        "After Load, consult should still be 2: {computed:?}"
+    );
     assert!(computed.contains(&sky_light));
     assert!(computed.contains(&torch2_light));
 
     // Ignore cache now sees 3 (ref line 47-51)
     let computed = list_api.compute_light_list(ignore);
-    assert_eq!(computed.len(), 3, "After Load, ignore should find 3: {computed:?}");
+    assert_eq!(
+        computed.len(),
+        3,
+        "After Load, ignore should find 3: {computed:?}"
+    );
     assert!(computed.contains(&sky_light));
     assert!(computed.contains(&torch1_light));
     assert!(computed.contains(&torch2_light));
@@ -98,13 +118,18 @@ fn test_light_list_api() {
 
     // Now cache should return everything (ref line 57-61)
     let computed = list_api.compute_light_list(consult);
-    assert_eq!(computed.len(), 3, "After store, consult should find 3: {computed:?}");
+    assert_eq!(
+        computed.len(),
+        3,
+        "After store, consult should find 3: {computed:?}"
+    );
     assert!(computed.contains(&sky_light));
     assert!(computed.contains(&torch1_light));
     assert!(computed.contains(&torch2_light));
 
     // Deactivate 1 torch model (ref line 64-65)
-    let torch_1 = stage.get_prim_at_path(&torch1_light.get_parent_path())
+    let torch_1 = stage
+        .get_prim_at_path(&torch1_light.get_parent_path())
         .expect("torch_1 prim");
     torch_1.set_active(false);
 
@@ -123,7 +148,8 @@ fn test_light_list_api() {
 
     // Add untyped prim + apply LightAPI (ref line 82-86)
     assert_eq!(list_api.compute_light_list(ignore).len(), 3);
-    let prim = stage.define_prim("/World/Lights/PrimWithLightAPI", "")
+    let prim = stage
+        .define_prim("/World/Lights/PrimWithLightAPI", "")
         .expect("define prim");
     assert_eq!(list_api.compute_light_list(ignore).len(), 3);
     LightAPI::apply(&prim);

@@ -1,4 +1,3 @@
-
 //! Present task - Blit final image to screen.
 //!
 //! Records deferred presentation intent for the application-facing engine.

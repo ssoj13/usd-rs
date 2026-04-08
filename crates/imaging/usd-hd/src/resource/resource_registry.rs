@@ -1,4 +1,3 @@
-
 //! Resource registry for GPU resource management.
 
 use super::{

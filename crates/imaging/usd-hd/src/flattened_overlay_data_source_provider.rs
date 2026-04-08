@@ -1,4 +1,3 @@
-
 //! HdFlattenedOverlayDataSourceProvider - overlay semantics for data source flattening.
 //!
 //! A flattened data source provider that composes a prim's own data source

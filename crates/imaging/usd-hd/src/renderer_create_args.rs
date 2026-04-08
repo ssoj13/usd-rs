@@ -1,4 +1,3 @@
-
 //! Renderer creation arguments.
 //!
 //! Corresponds to pxr/imaging/hd/rendererCreateArgs.h.

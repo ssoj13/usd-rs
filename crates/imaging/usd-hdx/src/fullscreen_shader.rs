@@ -17,8 +17,8 @@
 //!
 //! Port of pxr/imaging/hdx/fullscreenShader.h/cpp
 
-use std::sync::{Arc, LazyLock};
 use parking_lot::RwLock;
+use std::sync::{Arc, LazyLock};
 use usd_gf::{Vec4f, Vec4i};
 use usd_hgi::Hgi;
 use usd_hgi::{

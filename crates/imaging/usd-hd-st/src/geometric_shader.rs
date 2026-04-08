@@ -1,4 +1,3 @@
-
 //! HdStGeometricShader - Geometric shader for primitives.
 //!
 //! Port of C++ `HdSt_GeometricShader`.  Wraps a parsed GLSLFX string, carries

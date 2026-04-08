@@ -12,8 +12,8 @@
 #[inline]
 pub fn eval_bspline_curve(
     t: f32,
-    wp:   &mut [f32; 4],
-    wdp:  Option<&mut [f32; 4]>,
+    wp: &mut [f32; 4],
+    wdp: Option<&mut [f32; 4]>,
     wdp2: Option<&mut [f32; 4]>,
 ) {
     let one6th = 1.0_f32 / 6.0;
@@ -27,15 +27,15 @@ pub fn eval_bspline_curve(
 
     if let Some(d) = wdp {
         d[0] = -0.5 * t2 + t - 0.5;
-        d[1] =  1.5 * t2 - 2.0 * t;
+        d[1] = 1.5 * t2 - 2.0 * t;
         d[2] = -1.5 * t2 + t + 0.5;
-        d[3] =  0.5 * t2;
+        d[3] = 0.5 * t2;
     }
     if let Some(d) = wdp2 {
         d[0] = -t + 1.0;
-        d[1] =  3.0 * t - 2.0;
+        d[1] = 3.0 * t - 2.0;
         d[2] = -3.0 * t + 1.0;
-        d[3] =  t;
+        d[3] = t;
     }
 }
 
@@ -48,28 +48,28 @@ pub fn adjust_bspline_boundary_weights(boundary: i32, w: &mut [f32; 16]) {
         for i in 0..4 {
             w[i + 8] -= w[i];
             w[i + 4] += w[i] * 2.0;
-            w[i]      = 0.0;
+            w[i] = 0.0;
         }
     }
     if (boundary & 2) != 0 {
         for i in (0..16).step_by(4) {
             w[i + 1] -= w[i + 3];
             w[i + 2] += w[i + 3] * 2.0;
-            w[i + 3]  = 0.0;
+            w[i + 3] = 0.0;
         }
     }
     if (boundary & 4) != 0 {
         for i in 0..4 {
-            w[i + 4]  -= w[i + 12];
-            w[i + 8]  += w[i + 12] * 2.0;
-            w[i + 12]  = 0.0;
+            w[i + 4] -= w[i + 12];
+            w[i + 8] += w[i + 12] * 2.0;
+            w[i + 12] = 0.0;
         }
     }
     if (boundary & 8) != 0 {
         for i in (0..16).step_by(4) {
             w[i + 2] -= w[i];
             w[i + 1] += w[i] * 2.0;
-            w[i]      = 0.0;
+            w[i] = 0.0;
         }
     }
 }
@@ -77,9 +77,9 @@ pub fn adjust_bspline_boundary_weights(boundary: i32, w: &mut [f32; 16]) {
 /// Apply boundary adjustments to all weight arrays (position + derivatives).
 pub fn bound_basis_bspline(
     boundary: i32,
-    wp:   Option<&mut [f32; 16]>,
-    wds:  Option<&mut [f32; 16]>,
-    wdt:  Option<&mut [f32; 16]>,
+    wp: Option<&mut [f32; 16]>,
+    wds: Option<&mut [f32; 16]>,
+    wdt: Option<&mut [f32; 16]>,
     wdss: Option<&mut [f32; 16]>,
     wdst: Option<&mut [f32; 16]>,
     wdtt: Option<&mut [f32; 16]>,
@@ -102,10 +102,11 @@ pub fn bound_basis_bspline(
 /// Evaluate cubic B-Spline patch (tensor product, 4x4 = 16 control points).
 /// Returns 16.
 pub fn eval_basis_bspline(
-    s: f32, t: f32,
-    wp:   Option<&mut [f32; 16]>,
-    wds:  Option<&mut [f32; 16]>,
-    wdt:  Option<&mut [f32; 16]>,
+    s: f32,
+    t: f32,
+    wp: Option<&mut [f32; 16]>,
+    wds: Option<&mut [f32; 16]>,
+    wdt: Option<&mut [f32; 16]>,
     wdss: Option<&mut [f32; 16]>,
     wdst: Option<&mut [f32; 16]>,
     wdtt: Option<&mut [f32; 16]>,
@@ -117,15 +118,21 @@ pub fn eval_basis_bspline(
     let mut dssw = [0f32; 4];
     let mut dttw = [0f32; 4];
 
-    let need_d1  = wds.is_some() || wdt.is_some();
-    let need_d2  = wdss.is_some() || wdst.is_some() || wdtt.is_some();
+    let need_d1 = wds.is_some() || wdt.is_some();
+    let need_d2 = wdss.is_some() || wdst.is_some() || wdtt.is_some();
 
-    eval_bspline_curve(s, &mut sw,
-        if need_d1 { Some(&mut dsw)  } else { None },
-        if need_d2 { Some(&mut dssw) } else { None });
-    eval_bspline_curve(t, &mut tw,
-        if need_d1 { Some(&mut dtw)  } else { None },
-        if need_d2 { Some(&mut dttw) } else { None });
+    eval_bspline_curve(
+        s,
+        &mut sw,
+        if need_d1 { Some(&mut dsw) } else { None },
+        if need_d2 { Some(&mut dssw) } else { None },
+    );
+    eval_bspline_curve(
+        t,
+        &mut tw,
+        if need_d1 { Some(&mut dtw) } else { None },
+        if need_d2 { Some(&mut dttw) } else { None },
+    );
 
     if let Some(w) = wp {
         for i in 0..4 {
@@ -138,15 +145,15 @@ pub fn eval_basis_bspline(
         for i in 0..4 {
             for j in 0..4 {
                 ds[4 * i + j] = dsw[j] * tw[i];
-                dt[4 * i + j] =  sw[j] * dtw[i];
+                dt[4 * i + j] = sw[j] * dtw[i];
             }
         }
         if let (Some(dss), Some(dst), Some(dtt)) = (wdss, wdst, wdtt) {
             for i in 0..4 {
                 for j in 0..4 {
                     dss[4 * i + j] = dssw[j] * tw[i];
-                    dst[4 * i + j] =  dsw[j] * dtw[i];
-                    dtt[4 * i + j] =   sw[j] * dttw[i];
+                    dst[4 * i + j] = dsw[j] * dtw[i];
+                    dtt[4 * i + j] = sw[j] * dttw[i];
                 }
             }
         }
@@ -162,8 +169,11 @@ mod tests {
     fn bspline_curve_partition_of_unity() {
         let mut w = [0f32; 4];
         eval_bspline_curve(0.5, &mut w, None, None);
-        assert!((w.iter().sum::<f32>() - 1.0).abs() < 1e-6,
-            "sum={}", w.iter().sum::<f32>());
+        assert!(
+            (w.iter().sum::<f32>() - 1.0).abs() < 1e-6,
+            "sum={}",
+            w.iter().sum::<f32>()
+        );
     }
 
     #[test]
@@ -177,18 +187,28 @@ mod tests {
     fn bspline_patch_partition_of_unity() {
         let mut wp = [0f32; 16];
         eval_basis_bspline(0.4, 0.6, Some(&mut wp), None, None, None, None, None);
-        assert!((wp.iter().sum::<f32>() - 1.0).abs() < 1e-5,
-            "sum={}", wp.iter().sum::<f32>());
+        assert!(
+            (wp.iter().sum::<f32>() - 1.0).abs() < 1e-5,
+            "sum={}",
+            wp.iter().sum::<f32>()
+        );
     }
 
     #[test]
     fn bspline_derivs_non_zero_at_centre() {
-        let mut wp  = [0f32; 16];
+        let mut wp = [0f32; 16];
         let mut wds = [0f32; 16];
         let mut wdt = [0f32; 16];
-        eval_basis_bspline(0.5, 0.5,
-            Some(&mut wp), Some(&mut wds), Some(&mut wdt),
-            None, None, None);
+        eval_basis_bspline(
+            0.5,
+            0.5,
+            Some(&mut wp),
+            Some(&mut wds),
+            Some(&mut wdt),
+            None,
+            None,
+            None,
+        );
         // derivatives should sum to zero (partition of unity property)
         assert!(wds.iter().sum::<f32>().abs() < 1e-5);
         assert!(wdt.iter().sum::<f32>().abs() < 1e-5);

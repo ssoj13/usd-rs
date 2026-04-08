@@ -433,7 +433,9 @@ impl XformOp {
     ///
     /// Matches C++ `IsXformOp(const TfToken &attrName)`.
     pub fn is_xform_op(attr_name: &Token) -> bool {
-        attr_name.as_str().starts_with(tokens::XFORM_OP_PREFIX.as_str())
+        attr_name
+            .as_str()
+            .starts_with(tokens::XFORM_OP_PREFIX.as_str())
     }
 
     /// Returns the TfToken used to encode the given opType.

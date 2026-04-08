@@ -1,4 +1,3 @@
-
 //! Dependencies schema for Hydra.
 //!
 //! Port of pxr/imaging/hd/dependenciesSchema.

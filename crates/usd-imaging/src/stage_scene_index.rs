@@ -8,19 +8,19 @@ use super::data_source_stage::DataSourceStage;
 use super::data_source_stage_globals::DataSourceStageGlobals;
 use super::tokens::UsdImagingTokens;
 use super::types::{PopulationMode, PropertyInvalidationType};
+use parking_lot::RwLock;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_core::{Prim, Stage, TimeCode};
 use usd_hd::data_source::{
     HdContainerDataSourceHandle, HdRetainedContainerDataSource, HdRetainedTypedSampledDataSource,
     HdTypedSampledDataSource,
 };
+use usd_hd::flo_debug::{flo_debug_enabled, summarize_dirtied_entries};
 use usd_hd::{
     AddedPrimEntry, DirtiedPrimEntry, HdDataSourceLocator, HdDataSourceLocatorSet,
     HdSceneIndexBase, HdSceneIndexObserver, HdSceneIndexPrim, RemovedPrimEntry,
 };
-use usd_hd::flo_debug::{flo_debug_enabled, summarize_dirtied_entries};
 use usd_sdf::Path;
 use usd_tf::Token;
 
@@ -210,7 +210,6 @@ pub struct StageSceneIndex {
     pending_resyncs: Arc<Mutex<HashSet<Path>>>,
     /// Legacy pending changes (kept for backwards compat)
     pending_changes: Arc<Mutex<HashMap<Path, Vec<Token>>>>,
-
 }
 
 impl StageSceneIndex {
@@ -226,9 +225,7 @@ impl StageSceneIndex {
     /// interior mutability for all mutable state. An outer RwLock would cause
     /// recursive read-lock deadlocks in parking_lot when notification cascades
     /// (populate -> notify -> observer -> get_prim) re-enter this scene index.
-    pub fn new_with_input_args(
-        input_args: Option<HdContainerDataSourceHandle>,
-    ) -> Arc<Self> {
+    pub fn new_with_input_args(input_args: Option<HdContainerDataSourceHandle>) -> Arc<Self> {
         let include_unloaded_prims = get_include_unloaded_prims(input_args.as_ref());
         Arc::new(Self::new_with_flags(include_unloaded_prims))
     }
@@ -1059,8 +1056,7 @@ impl StageGlobalsImpl {
             for (path, locators) in time_varying.iter() {
                 eprintln!(
                     "[stage_globals] tracked path={} locators={:?}",
-                    path,
-                    locators
+                    path, locators
                 );
             }
         }
@@ -1132,8 +1128,7 @@ impl DataSourceStageGlobals for StageGlobalsImpl {
         if std::env::var_os("USD_RS_DEBUG_TIME_DIRTY").is_some() {
             eprintln!(
                 "[stage_globals] flag path={} locator={:?}",
-                hydra_path,
-                locator
+                hydra_path, locator
             );
         }
         let mut time_varying = self.time_varying.write();

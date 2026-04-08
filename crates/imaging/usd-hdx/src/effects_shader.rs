@@ -1,4 +1,3 @@
-
 //! Base class for effects shaders in Hydra extensions
 //!
 //! Provides functionality to create and manage a single HgiGraphicsPipeline
@@ -7,8 +6,8 @@
 //!
 //! Port of pxr/imaging/hdx/effectsShader.h/.cpp
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_gf::Vec4i;
 use usd_hgi::{Hgi, HgiBufferBindDesc};
 use usd_hgi::{

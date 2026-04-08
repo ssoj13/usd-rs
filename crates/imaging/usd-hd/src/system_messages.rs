@@ -1,4 +1,3 @@
-
 //! System message tokens for asynchronous processing.
 //!
 //! Corresponds to pxr/imaging/hd/systemMessages.h.

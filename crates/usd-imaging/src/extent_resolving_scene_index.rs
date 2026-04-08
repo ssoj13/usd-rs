@@ -7,9 +7,9 @@
 //! render, proxy by default). When multiple purposes are configured, the per-
 //! purpose extents are unioned into a single bounding box.
 
+use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_gf::Vec3d;
 use usd_hd::data_source::{
     HdDataSourceBaseHandle, HdDataSourceLocator, HdDataSourceLocatorSet,
@@ -257,8 +257,9 @@ impl HdSceneIndexBase for ExtentResolvingSceneIndex {
             let input_locked = input.read();
             let mut prim = input_locked.get_prim(prim_path);
             if let Some(ref ds) = prim.data_source {
-                prim.data_source = Some(PrimSource::new(ds.clone(), self.info.clone())
-                    as HdContainerDataSourceHandle);
+                prim.data_source =
+                    Some(PrimSource::new(ds.clone(), self.info.clone())
+                        as HdContainerDataSourceHandle);
             }
             return prim;
         }

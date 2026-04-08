@@ -13,9 +13,9 @@ use crate::data_source_hermite_curves as canonical_hermite_curves_data_source;
 use crate::data_source_nurbs_curves as canonical_nurbs_curves_data_source;
 use crate::data_source_nurbs_patch as canonical_nurbs_patch_data_source;
 
+use super::data_source_attribute::DataSourceAttribute;
 use super::data_source_gprim::DataSourceGprim;
 use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
-use super::data_source_attribute::DataSourceAttribute;
 use super::prim_adapter::PrimAdapter;
 use super::types::PropertyInvalidationType;
 use std::sync::Arc;

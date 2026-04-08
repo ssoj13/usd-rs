@@ -1,4 +1,3 @@
-
 //! Compute scene index diff utilities.
 //!
 //! Port of pxr/imaging/hdsi/computeSceneIndexDiff.

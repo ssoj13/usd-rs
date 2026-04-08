@@ -1,4 +1,3 @@
-
 //! Render settings filtering scene index.
 //!
 //! A filtering scene index that manages render settings prims: filters
@@ -6,9 +5,9 @@
 //! and registers dependencies. Matches C++ HdsiRenderSettingsFilteringSceneIndex.
 
 use crate::tokens as hdsi_tokens;
+use parking_lot::RwLock;
 use std::fmt;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_gf::Vec2d;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
@@ -556,7 +555,9 @@ impl HdsiRenderSettingsFilteringSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

@@ -1,4 +1,3 @@
-
 //! HdPrimTypeIndex - Manage prims by type for render index.
 //!
 //! Corresponds to pxr/imaging/hd/primTypeIndex.h.

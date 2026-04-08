@@ -7,8 +7,8 @@
 //! - CPU helper functions: `compute_ibl_cpu`, `upload_cubemap_texture`, `upload_2d_texture`,
 //!   `generate_procedural_sky`, `cross`, `dot3`, `reflect_neg_v`.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 
 #[cfg(feature = "wgpu")]
 use usd_gf::Vec3i;
@@ -303,9 +303,7 @@ impl Engine {
                                     let resolved = self
                                         .scene_indices
                                         .as_ref()
-                                        .and_then(|indices| {
-                                            indices.stage_scene_index.get_stage()
-                                        })
+                                        .and_then(|indices| indices.stage_scene_index.get_stage())
                                         .and_then(|s| resolve_tex_path(up, &s))
                                         .unwrap_or_else(|| up.to_string());
                                     found_path = Some(resolved);

@@ -1227,7 +1227,6 @@ pub struct SelectionDataModel {
     pub diff_added: HashSet<Path>,
     /// Prim paths removed since last get_diff() call.
     pub diff_removed: HashSet<Path>,
-
 }
 
 impl Default for SelectionDataModel {
@@ -1925,11 +1924,7 @@ impl DataModel {
         let api = usd_shade::MaterialBindingAPI::new(prim.clone());
         let mut binding_rel = None;
         let mat = api.compute_bound_material(material_purpose, &mut binding_rel, false);
-        if mat.is_valid() {
-            Some(mat)
-        } else {
-            None
-        }
+        if mat.is_valid() { Some(mat) } else { None }
     }
 
     /// Clear all caches. Called on stage change/reload.

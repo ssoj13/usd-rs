@@ -1,4 +1,3 @@
-
 //! HdSceneIndexAdapterSceneDelegate - Scene delegate backed by scene index.
 //!
 //! Corresponds to pxr/imaging/hd/sceneIndexAdapterSceneDelegate.h/cpp.
@@ -45,10 +44,9 @@ use crate::schema::{
     HdExtComputationPrimvarsSchema, HdExtComputationSchema, HdExtentSchema,
     HdInstanceCategoriesSchema, HdInstancedBySchema, HdInstancerTopologySchema,
     HdLegacyDisplayStyleSchema, HdLegacyTaskSchema, HdLightSchema, HdMaterialBindingsSchema,
-    HdMaterialSchema, HdMeshSchema, HdPrimvarsSchema,
-    HdPurposeSchema, HdRenderBufferSchema, HdSubdivisionTagsSchema, HdVisibilitySchema,
-    HdVolumeFieldBindingSchema, HdXformSchema, INDEXED_PRIMVAR_VALUE, PRIMVAR_INDICES,
-    PRIMVAR_VALUE,
+    HdMaterialSchema, HdMeshSchema, HdPrimvarsSchema, HdPurposeSchema, HdRenderBufferSchema,
+    HdSubdivisionTagsSchema, HdVisibilitySchema, HdVolumeFieldBindingSchema, HdXformSchema,
+    INDEXED_PRIMVAR_VALUE, PRIMVAR_INDICES, PRIMVAR_VALUE,
 };
 use crate::tokens;
 use crate::types::HdDirtyBits;
@@ -109,7 +107,8 @@ pub fn read_debug_transform_stats() -> DebugTransformStats {
         get_transform_calls: DEBUG_GET_TRANSFORM_CALLS.load(Ordering::Relaxed),
         get_transform_cache_hits: DEBUG_GET_TRANSFORM_CACHE_HITS.load(Ordering::Relaxed),
         get_transform_matrix_ds_hits: DEBUG_GET_TRANSFORM_MATRIX_DS_HITS.load(Ordering::Relaxed),
-        get_transform_matrix_ds_misses: DEBUG_GET_TRANSFORM_MATRIX_DS_MISSES.load(Ordering::Relaxed),
+        get_transform_matrix_ds_misses: DEBUG_GET_TRANSFORM_MATRIX_DS_MISSES
+            .load(Ordering::Relaxed),
         get_prim_ds_hits: DEBUG_GET_PRIM_DS_HITS.load(Ordering::Relaxed),
         get_prim_ds_misses: DEBUG_GET_PRIM_DS_MISSES.load(Ordering::Relaxed),
         get_input_prim_calls: DEBUG_GET_INPUT_PRIM_CALLS.load(Ordering::Relaxed),
@@ -316,9 +315,13 @@ fn compute_primvar_descriptors(
 
         let interp_token = {
             let start = std::time::Instant::now();
-            let token = if let Some(interpolation_ds) = primvar_container.get(&interpolation_token) {
+            let token = if let Some(interpolation_ds) = primvar_container.get(&interpolation_token)
+            {
                 if let Some(interpolation_sampled) = interpolation_ds.as_sampled() {
-                    interpolation_sampled.get_value(0.0).get::<TfToken>().cloned()
+                    interpolation_sampled
+                        .get_value(0.0)
+                        .get::<TfToken>()
+                        .cloned()
                 } else {
                     None
                 }
@@ -528,7 +531,8 @@ impl HdSceneIndexAdapterSceneDelegate {
     }
 
     fn clear_input_prim_cache(&self) {
-        self.input_prim_cache_generation.fetch_add(1, Ordering::Relaxed);
+        self.input_prim_cache_generation
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Mark the cached underlying legacy delegates as invalid.
@@ -2451,11 +2455,10 @@ impl HdSceneIndexObserver for HdSceneIndexAdapterSceneDelegate {
                     let kind = classify_prim_type(&entry.prim_type, Some(ri));
                     match kind {
                         PrimKind::Rprim => {
-                            let dirty_bits =
-                                HdDirtyBitsTranslator::rprim_locator_set_to_dirty_bits(
-                                    &entry.prim_type,
-                                    &all_dirty,
-                                );
+                            let dirty_bits = HdDirtyBitsTranslator::rprim_locator_set_to_dirty_bits(
+                                &entry.prim_type,
+                                &all_dirty,
+                            );
                             if dirty_bits != 0 {
                                 mark_rprim_dirty_from_notice(ri, &entry.prim_path, dirty_bits);
                             }
@@ -2613,8 +2616,7 @@ impl HdSceneIndexObserver for HdSceneIndexAdapterSceneDelegate {
             if std::env::var_os("USD_RS_DEBUG_TIME_DIRTY").is_some() {
                 eprintln!(
                     "[scene_delegate] dirtied path={} locators={:?}",
-                    entry.prim_path,
-                    entry.dirty_locators
+                    entry.prim_path, entry.dirty_locators
                 );
             }
             if let Some(cache_entry) = cache.get_mut(&entry.prim_path) {
@@ -2674,9 +2676,7 @@ impl HdSceneIndexObserver for HdSceneIndexAdapterSceneDelegate {
                     if std::env::var_os("USD_RS_DEBUG_TIME_DIRTY").is_some() {
                         eprintln!(
                             "[scene_delegate] kind={:?} prim={} bits=0x{:x}",
-                            kind,
-                            entry.prim_path,
-                            dirty_bits
+                            kind, entry.prim_path, dirty_bits
                         );
                     }
 
@@ -2737,7 +2737,9 @@ impl HdSceneIndexObserver for HdSceneIndexAdapterSceneDelegate {
     /// Match OpenUSD directly: decompose renames into removed + added notices.
     fn prims_renamed(&self, sender: &dyn HdSceneIndexBase, entries: &[RenamedPrimEntry]) {
         let (removed, added) =
-            crate::scene_index::observer::convert_prims_renamed_to_removed_and_added(sender, entries);
+            crate::scene_index::observer::convert_prims_renamed_to_removed_and_added(
+                sender, entries,
+            );
 
         if !removed.is_empty() {
             self.prims_removed(sender, &removed);
@@ -3242,10 +3244,10 @@ fn convert_basis_curves_topology(
 #[cfg(test)]
 mod tests {
     use super::compute_primvar_descriptors;
-    use crate::data_source::{HdRetainedContainerDataSource, HdRetainedTypedSampledDataSource};
-    use crate::schema::{HdPrimvarSchema, HdPrimvarsSchema};
-    use crate::scene_delegate::HdPrimvarDescriptor;
     use crate::HdInterpolation;
+    use crate::data_source::{HdRetainedContainerDataSource, HdRetainedTypedSampledDataSource};
+    use crate::scene_delegate::HdPrimvarDescriptor;
+    use crate::schema::{HdPrimvarSchema, HdPrimvarsSchema};
     use usd_sdf::Path as SdfPath;
     use usd_tf::Token;
 
@@ -3255,7 +3257,9 @@ mod tests {
             None,
             None,
             None,
-            Some(HdRetainedTypedSampledDataSource::new(Token::new("faceVarying"))),
+            Some(HdRetainedTypedSampledDataSource::new(Token::new(
+                "faceVarying",
+            ))),
             Some(HdRetainedTypedSampledDataSource::new(Token::new("normal"))),
             None,
             None,
@@ -3273,7 +3277,9 @@ mod tests {
             None,
             None,
             None,
-            Some(HdRetainedTypedSampledDataSource::new(Token::new("constant"))),
+            Some(HdRetainedTypedSampledDataSource::new(Token::new(
+                "constant",
+            ))),
             None,
             None,
             None,

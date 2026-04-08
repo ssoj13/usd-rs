@@ -5,12 +5,12 @@
 //! This module provides the adapter for UsdSkel::BlendShape prims,
 //! enabling corrective shape deformations commonly used for facial animation.
 
+use super::DataSourceBlendShapePrim;
 use crate::{
     data_source_stage_globals::DataSourceStageGlobalsHandle,
     prim_adapter::PrimAdapter,
     types::{PopulationMode, PropertyInvalidationType},
 };
-use super::DataSourceBlendShapePrim;
 use usd_core::Prim;
 use usd_hd::{HdContainerDataSourceHandle, HdDataSourceLocatorSet};
 use usd_tf::Token;
@@ -38,7 +38,6 @@ impl BlendShapeAdapter {
     pub fn new() -> Self {
         Self
     }
-
 }
 
 impl Default for BlendShapeAdapter {

@@ -1,4 +1,3 @@
-
 //! Asset resolution system schema for Hydra scene indices.
 //!
 //! Provides HdarSystemSchema which wraps asset resolver context data

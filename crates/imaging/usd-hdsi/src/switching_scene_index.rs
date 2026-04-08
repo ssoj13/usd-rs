@@ -1,4 +1,3 @@
-
 //! Switching scene index.
 //!
 //! Port of pxr/imaging/hdsi/switchingSceneIndex.
@@ -7,8 +6,8 @@
 //! computes diff and sends appropriate notices to observers.
 
 use crate::compute_scene_index_diff::ComputeSceneIndexDiffFn;
-use std::sync::{Arc, Weak};
 use parking_lot::RwLock;
+use std::sync::{Arc, Weak};
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::scene_index::base::{HdSceneIndexBaseImpl, SceneIndexDelegate};
 use usd_hd::scene_index::filtering::HdFilteringSceneIndexBase;

@@ -1,4 +1,3 @@
-
 //! HdUnitTestDelegate - Simple scene delegate for unit tests.
 //!
 //! Corresponds to pxr/imaging/hd/unitTestDelegate.h.

@@ -239,11 +239,13 @@ impl PrimAdapter for PointsAdapter {
             // The older adapter-local datasource tree was a forked
             // compatibility path and had already drifted from
             // `UsdImagingDataSourcePointsPrim`.
-            Some(Arc::new(canonical_points_data_source::DataSourcePointsPrim::new(
-                prim.path().clone(),
-                prim.clone(),
-                stage_globals.clone(),
-            )))
+            Some(Arc::new(
+                canonical_points_data_source::DataSourcePointsPrim::new(
+                    prim.path().clone(),
+                    prim.clone(),
+                    stage_globals.clone(),
+                ),
+            ))
         } else {
             None
         }

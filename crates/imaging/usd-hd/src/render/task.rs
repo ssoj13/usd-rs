@@ -1,4 +1,3 @@
-
 //! HdTask - Unit of work in Hydra's rendering pipeline.
 //!
 //! Tasks represent discrete rendering operations that can be composed into

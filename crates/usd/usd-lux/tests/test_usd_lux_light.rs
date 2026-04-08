@@ -49,9 +49,7 @@ fn test_blackbody_spectrum() {
 }
 
 fn is_close_vec3f(a: &Vec3f, b: &Vec3f, tolerance: f32) -> bool {
-    (a.x - b.x).abs() < tolerance
-        && (a.y - b.y).abs() < tolerance
-        && (a.z - b.z).abs() < tolerance
+    (a.x - b.x).abs() < tolerance && (a.y - b.y).abs() < tolerance && (a.z - b.z).abs() < tolerance
 }
 
 // =============================================================================
@@ -81,7 +79,10 @@ fn test_basic_connectable_lights() {
     assert!(light_api.is_valid());
 
     let connectable = light_api.connectable_api();
-    assert!(connectable.is_valid(), "LightAPI.ConnectableAPI() should be valid");
+    assert!(
+        connectable.is_valid(),
+        "LightAPI.ConnectableAPI() should be valid"
+    );
 
     // Rect light has the following built-in input attribute names.
     let input_names = vec![
@@ -124,11 +125,7 @@ fn test_basic_connectable_lights() {
     // Verify each input's attribute is prefixed with "inputs:"
     for name in &input_names {
         let input = light_api.get_input(&Token::new(name));
-        assert!(
-            input.is_some(),
-            "GetInput('{}') should return Some",
-            name
-        );
+        assert!(input.is_some(), "GetInput('{}') should return Some", name);
         let input = input.unwrap();
         let expected_attr_name = format!("inputs:{}", name);
         assert_eq!(
@@ -180,11 +177,17 @@ fn test_basic_connectable_lights() {
     );
     // GetInput('newInput') should match
     let retrieved_input = light_api.get_input(&Token::new("newInput"));
-    assert!(retrieved_input.is_some(), "GetInput('newInput') should return Some");
+    assert!(
+        retrieved_input.is_some(),
+        "GetInput('newInput') should return Some"
+    );
     assert_eq!(retrieved_input.unwrap(), light_input);
     // Input attr should match prim attribute "inputs:newInput"
     let prim_attr = light_api.get_prim().get_attribute("inputs:newInput");
-    assert!(prim_attr.is_some(), "Prim should have inputs:newInput attribute");
+    assert!(
+        prim_attr.is_some(),
+        "Prim should have inputs:newInput attribute"
+    );
     assert_eq!(
         light_input.get_attr().path(),
         prim_attr.unwrap().path(),
@@ -213,11 +216,17 @@ fn test_basic_connectable_lights() {
     let all_outputs = light_api.get_outputs(false);
     assert_eq!(all_outputs, vec![light_output.clone()]);
     let retrieved_output = light_api.get_output(&Token::new("newOutput"));
-    assert!(retrieved_output.is_some(), "GetOutput('newOutput') should return Some");
+    assert!(
+        retrieved_output.is_some(),
+        "GetOutput('newOutput') should return Some"
+    );
     assert_eq!(retrieved_output.unwrap(), light_output);
     // Output attr should match prim attribute "outputs:newOutput"
     let prim_attr = light_api.get_prim().get_attribute("outputs:newOutput");
-    assert!(prim_attr.is_some(), "Prim should have outputs:newOutput attribute");
+    assert!(
+        prim_attr.is_some(),
+        "Prim should have outputs:newOutput attribute"
+    );
     assert_eq!(
         light_output.get_attr().unwrap().path(),
         prim_attr.unwrap().path(),
@@ -267,10 +276,7 @@ fn test_basic_connectable_lights() {
         .create_output(&Token::new("newOutput"), &float_type)
         .expect("CreateOutput on filter should succeed");
     assert_eq!(light_filter.get_outputs(true), vec![filter_output.clone()]);
-    assert_eq!(
-        light_filter.get_outputs(false),
-        vec![filter_output.clone()]
-    );
+    assert_eq!(light_filter.get_outputs(false), vec![filter_output.clone()]);
     let retrieved = light_filter.get_output(&Token::new("newOutput"));
     assert!(retrieved.is_some());
     assert_eq!(retrieved.unwrap(), filter_output);
@@ -287,7 +293,10 @@ fn test_basic_connectable_lights() {
 
     // Create a connectable prim with an output under the light.
     let light_graph = NodeGraph::define(&stage, &Path::from("/RectLight/Prim"));
-    assert!(light_graph.is_valid(), "NodeGraph under RectLight should be valid");
+    assert!(
+        light_graph.is_valid(),
+        "NodeGraph under RectLight should be valid"
+    );
     let light_graph_output = light_graph.create_output(&Token::new("graphOut"), &float_type);
     assert!(
         light_graph_output.is_defined(),
@@ -296,7 +305,10 @@ fn test_basic_connectable_lights() {
 
     // Create a connectable prim with an output under the light filter.
     let filter_graph = NodeGraph::define(&stage, &Path::from("/LightFilter/Prim"));
-    assert!(filter_graph.is_valid(), "NodeGraph under LightFilter should be valid");
+    assert!(
+        filter_graph.is_valid(),
+        "NodeGraph under LightFilter should be valid"
+    );
     let filter_graph_output = filter_graph.create_output(&Token::new("graphOut"), &float_type);
     assert!(
         filter_graph_output.is_defined(),
@@ -368,7 +380,10 @@ fn test_basic_connectable_lights() {
 
     // Verify input attributes match the getter API attributes.
     let shaping_cone_input = shaping_api.get_input(&Token::new("shaping:cone:angle"));
-    assert!(shaping_cone_input.is_some(), "GetInput('shaping:cone:angle') should exist");
+    assert!(
+        shaping_cone_input.is_some(),
+        "GetInput('shaping:cone:angle') should exist"
+    );
     let shaping_cone_attr = shaping_api.get_shaping_cone_angle_attr();
     assert!(shaping_cone_attr.is_some());
     assert_eq!(
@@ -378,7 +393,10 @@ fn test_basic_connectable_lights() {
     );
 
     let shaping_focus_input = shaping_api.get_input(&Token::new("shaping:focus"));
-    assert!(shaping_focus_input.is_some(), "GetInput('shaping:focus') should exist");
+    assert!(
+        shaping_focus_input.is_some(),
+        "GetInput('shaping:focus') should exist"
+    );
     let shaping_focus_attr = shaping_api.get_shaping_focus_attr();
     assert!(shaping_focus_attr.is_some());
     assert_eq!(
@@ -418,7 +436,10 @@ fn test_basic_connectable_lights() {
 
     // Verify input attributes match the getter API attributes.
     let shadow_color_input = shadow_api.get_input(&Token::new("shadow:color"));
-    assert!(shadow_color_input.is_some(), "GetInput('shadow:color') should exist");
+    assert!(
+        shadow_color_input.is_some(),
+        "GetInput('shadow:color') should exist"
+    );
     let shadow_color_attr = shadow_api.get_shadow_color_attr();
     assert!(shadow_color_attr.is_some());
     assert_eq!(
@@ -621,10 +642,7 @@ fn test_shader_ids_light(light: &LightAPI, shader_id_attr_name: &str) {
     // No new attributes were created.
     let default_attr2 = light.get_shader_id_attr_for_render_context(&Token::new(""));
     assert!(default_attr2.is_some());
-    assert_eq!(
-        default_attr2.unwrap().name().as_str(),
-        shader_id_attr_name
-    );
+    assert_eq!(default_attr2.unwrap().name().as_str(), shader_id_attr_name);
     assert!(
         light
             .get_shader_id_attr_for_render_context(&Token::new("ri"))
@@ -676,10 +694,7 @@ fn test_shader_ids_light(light: &LightAPI, shader_id_attr_name: &str) {
     // The shaderId attr for "ri" now exists.
     let default_attr3 = light.get_shader_id_attr_for_render_context(&Token::new(""));
     assert!(default_attr3.is_some());
-    assert_eq!(
-        default_attr3.unwrap().name().as_str(),
-        shader_id_attr_name
-    );
+    assert_eq!(default_attr3.unwrap().name().as_str(), shader_id_attr_name);
     let ri_attr3 = light.get_shader_id_attr_for_render_context(&Token::new("ri"));
     assert!(ri_attr3.is_some(), "ri shaderId attr should now exist");
     assert_eq!(
@@ -721,10 +736,7 @@ fn test_shader_ids_light_filter(light_filter: &LightFilter, shader_id_attr_name:
         default_attr.is_some(),
         "Default render context filter shaderId attr should exist"
     );
-    assert_eq!(
-        default_attr.unwrap().name().as_str(),
-        shader_id_attr_name
-    );
+    assert_eq!(default_attr.unwrap().name().as_str(), shader_id_attr_name);
 
     // These attributes do not yet exist for other contexts.
     assert!(
@@ -761,10 +773,7 @@ fn test_shader_ids_light_filter(light_filter: &LightFilter, shader_id_attr_name:
     // No new attributes were created.
     let default_attr2 = light_filter.get_shader_id_attr_for_render_context(&Token::new(""));
     assert!(default_attr2.is_some());
-    assert_eq!(
-        default_attr2.unwrap().name().as_str(),
-        shader_id_attr_name
-    );
+    assert_eq!(default_attr2.unwrap().name().as_str(), shader_id_attr_name);
     assert!(
         light_filter
             .get_shader_id_attr_for_render_context(&Token::new("ri"))
@@ -824,9 +833,7 @@ fn test_shader_ids_light_filter(light_filter: &LightFilter, shader_id_attr_name:
         "SphereLight"
     );
     assert_eq!(
-        light_filter
-            .get_shader_id(&[Token::new("other")])
-            .as_str(),
+        light_filter.get_shader_id(&[Token::new("other")]).as_str(),
         "DefaultLight"
     );
 }
@@ -839,8 +846,8 @@ fn test_shader_ids_light_filter(light_filter: &LightFilter, shader_id_attr_name:
 #[test]
 fn test_light_extent_and_bbox() {
     setup();
-    use usd_geom::boundable_compute_extent::compute_extent_from_plugins;
     use usd_geom::Boundable;
+    use usd_geom::boundable_compute_extent::compute_extent_from_plugins;
 
     let time = TimeCode::default();
 
@@ -908,13 +915,8 @@ fn test_light_extent_and_bbox() {
             // Python: light.ComputeLocalBound(time, "default")
             // which maps to Imageable::compute_local_bound
             let imageable = usd_geom::Imageable::new(prim.clone());
-            let bbox = imageable.compute_local_bound(
-                time,
-                Some(&Token::new("default")),
-                None,
-                None,
-                None,
-            );
+            let bbox =
+                imageable.compute_local_bound(time, Some(&Token::new("default")), None, None, None);
             let range = bbox.range();
             let bbox_min = range.min();
             let bbox_max = range.max();
@@ -948,7 +950,8 @@ fn test_light_extent_and_bbox() {
             let bbox_matrix = bbox.matrix();
             let identity = usd_gf::Matrix4d::identity();
             assert_eq!(
-                bbox_matrix, &identity,
+                bbox_matrix,
+                &identity,
                 "BBox matrix should be identity for {}",
                 prim.path()
             );
@@ -958,21 +961,9 @@ fn test_light_extent_and_bbox() {
     // fallback attribute values.
     verify_extent_and_bbox(rect_light.get_prim(), (-0.5, -0.5, 0.0), (0.5, 0.5, 0.0));
     verify_extent_and_bbox(disk_light.get_prim(), (-0.5, -0.5, 0.0), (0.5, 0.5, 0.0));
-    verify_extent_and_bbox(
-        cyl_light.get_prim(),
-        (-0.5, -0.5, -0.5),
-        (0.5, 0.5, 0.5),
-    );
-    verify_extent_and_bbox(
-        sphere_light.get_prim(),
-        (-0.5, -0.5, -0.5),
-        (0.5, 0.5, 0.5),
-    );
-    verify_extent_and_bbox(
-        portal_light.prim(),
-        (-0.5, -0.5, 0.0),
-        (0.5, 0.5, 0.0),
-    );
+    verify_extent_and_bbox(cyl_light.get_prim(), (-0.5, -0.5, -0.5), (0.5, 0.5, 0.5));
+    verify_extent_and_bbox(sphere_light.get_prim(), (-0.5, -0.5, -0.5), (0.5, 0.5, 0.5));
+    verify_extent_and_bbox(portal_light.prim(), (-0.5, -0.5, 0.0), (0.5, 0.5, 0.0));
 
     // Change the size related attribute of each light and verify the extents
     // and bounding boxes are updated.
@@ -989,19 +980,11 @@ fn test_light_extent_and_bbox() {
     // CylinderLight: radius=4, length=10
     cyl_light.create_radius_attr().set(4.0f32, time);
     cyl_light.create_length_attr().set(10.0f32, time);
-    verify_extent_and_bbox(
-        cyl_light.get_prim(),
-        (-5.0, -4.0, -4.0),
-        (5.0, 4.0, 4.0),
-    );
+    verify_extent_and_bbox(cyl_light.get_prim(), (-5.0, -4.0, -4.0), (5.0, 4.0, 4.0));
 
     // SphereLight: radius=3
     sphere_light.create_radius_attr().set(3.0f32, time);
-    verify_extent_and_bbox(
-        sphere_light.get_prim(),
-        (-3.0, -3.0, -3.0),
-        (3.0, 3.0, 3.0),
-    );
+    verify_extent_and_bbox(sphere_light.get_prim(), (-3.0, -3.0, -3.0), (3.0, 3.0, 3.0));
 
     // PortalLight: width=4, height=6
     portal_light
@@ -1120,12 +1103,7 @@ fn test_sdr_shader_nodes_for_lights() {
             "{}: identifier",
             light_name
         );
-        assert_eq!(
-            node.get_name(),
-            *light_name,
-            "{}: name",
-            light_name
-        );
+        assert_eq!(node.get_name(), *light_name, "{}: name", light_name);
         assert_eq!(
             node.get_implementation_name(),
             *light_name,
@@ -1226,12 +1204,7 @@ fn test_sdr_shader_nodes_for_lights() {
         );
         // Pages should be [''] (single empty string page)
         let pages = node.get_pages();
-        assert_eq!(
-            pages.len(),
-            1,
-            "{}: pages should have 1 entry",
-            light_name
-        );
+        assert_eq!(pages.len(), 1, "{}: pages should have 1 entry", light_name);
         assert_eq!(
             pages[0].as_str(),
             "",
@@ -1270,8 +1243,8 @@ fn test_sdr_shader_nodes_for_lights() {
         //
         // We need a prim with the light type and APIs applied to get the input properties.
         // Create a temporary stage + prim for this.
-        let temp_stage = Stage::create_in_memory(InitialLoadSet::LoadAll)
-            .expect("failed to create temp stage");
+        let temp_stage =
+            Stage::create_in_memory(InitialLoadSet::LoadAll).expect("failed to create temp stage");
         let temp_prim = temp_stage
             .define_prim("/TestPrim", *light_name)
             .expect("failed to define prim");
@@ -1333,8 +1306,7 @@ fn test_sdr_shader_nodes_for_lights() {
 
             // If the USD property type is an Asset, it will be listed in the
             // node's asset identifier inputs.
-            let asset_type =
-                ValueTypeRegistry::instance().find_type_by_token(&Token::new("asset"));
+            let asset_type = ValueTypeRegistry::instance().find_type_by_token(&Token::new("asset"));
             if prim_type_name == asset_type {
                 let asset_inputs = node.get_asset_identifier_input_names();
                 assert!(
@@ -1342,10 +1314,7 @@ fn test_sdr_shader_nodes_for_lights() {
                     "{}: Asset input '{}' should be in asset identifier inputs. Got: {:?}",
                     light_name,
                     input_name,
-                    asset_inputs
-                        .iter()
-                        .map(|t| t.as_str())
-                        .collect::<Vec<_>>()
+                    asset_inputs.iter().map(|t| t.as_str()).collect::<Vec<_>>()
                 );
             }
         }

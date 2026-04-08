@@ -1,4 +1,3 @@
-
 //! HF performance logging and memory tagging macros.
 //!
 //! In the C++ version, these macros inject malloc tags for memory profiling.

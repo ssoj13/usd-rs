@@ -31,15 +31,12 @@ fn authored_attribute_factory(
     if !attr.has_authored_value() {
         return None;
     }
-    Some(
-        DataSourceAttribute::<Value>::new_with_locator(
-            attr,
-            stage_globals,
-            scene_index_path,
-            locator,
-        )
-            as HdDataSourceBaseHandle,
-    )
+    Some(DataSourceAttribute::<Value>::new_with_locator(
+        attr,
+        stage_globals,
+        scene_index_path,
+        locator,
+    ) as HdDataSourceBaseHandle)
 }
 
 fn authored_path_relationship_factory(
@@ -51,10 +48,9 @@ fn authored_path_relationship_factory(
     if !rel.has_authored_targets() {
         return None;
     }
-    rel.get_forwarded_targets()
-        .into_iter()
-        .next()
-        .map(|path| usd_hd::HdRetainedTypedSampledDataSource::<Path>::new(path) as HdDataSourceBaseHandle)
+    rel.get_forwarded_targets().into_iter().next().map(|path| {
+        usd_hd::HdRetainedTypedSampledDataSource::<Path>::new(path) as HdDataSourceBaseHandle
+    })
 }
 
 fn get_binding_property_mappings() -> PropertyMappings {

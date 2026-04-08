@@ -1,4 +1,3 @@
-
 //! Prefixing scene index - adds a path prefix to all scene data.
 //!
 //! Port of pxr/imaging/hd/prefixingSceneIndex.{h,cpp}

@@ -4391,10 +4391,8 @@ impl Interpreter {
                             // Look up field index from the struct's StructSpec
                             let sid = ir.symbols[args[1] as usize].typespec.structure_id();
                             if let Some(spec) = crate::typespec::get_struct(sid as i32) {
-                                let field_idx = spec
-                                    .fields
-                                    .iter()
-                                    .position(|f| f.name == field_name);
+                                let field_idx =
+                                    spec.fields.iter().position(|f| f.name == field_name);
                                 if let Some(idx) = field_idx {
                                     fields.get(idx).cloned().unwrap_or(Value::Float(0.0))
                                 } else {
@@ -4424,10 +4422,8 @@ impl Interpreter {
                         Value::Struct(mut fields) => {
                             let sid = ir.symbols[struct_idx as usize].typespec.structure_id();
                             if let Some(spec) = crate::typespec::get_struct(sid as i32) {
-                                if let Some(idx) = spec
-                                    .fields
-                                    .iter()
-                                    .position(|f| f.name == field_name)
+                                if let Some(idx) =
+                                    spec.fields.iter().position(|f| f.name == field_name)
                                 {
                                     if idx < fields.len() {
                                         fields[idx] = val;

@@ -7,11 +7,11 @@ use crate::types::PropertyInvalidationType;
 use std::sync::Arc;
 use usd_core::Prim;
 use usd_geom::TetMesh;
+use usd_hd::schema::HdTetMeshSchema;
 use usd_hd::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdDataSourceLocatorSet,
 };
-use usd_hd::schema::HdTetMeshSchema;
 use usd_sdf::Path;
 use usd_tf::Token;
 
@@ -286,8 +286,8 @@ pub fn create_data_source_tet_mesh_prim(
 mod tests {
     use super::*;
     use crate::data_source_stage_globals::NoOpStageGlobals;
-    use usd_core::common::InitialLoadSet;
     use usd_core::Stage;
+    use usd_core::common::InitialLoadSet;
     use usd_hd::HdValueExtract;
     use usd_vt::Value;
 

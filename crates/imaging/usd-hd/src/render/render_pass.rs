@@ -1,4 +1,3 @@
-
 //! HdRenderPass - Execute rendering for a set of prims.
 //!
 //! Represents a single render iteration over a collection of prims with

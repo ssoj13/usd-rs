@@ -1,4 +1,3 @@
-
 //! HdSt_MeshTopologySceneIndex - mesh topology processing for Storm.
 //!
 //! Filtering scene index that processes mesh topology, handling:
@@ -14,8 +13,8 @@
 //! carries metadata about what processing is needed (triangulate/quadrangulate).
 //! The actual computation is done by `HdStMeshTopology` during Rprim sync.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdDataSourceLocator, HdDataSourceLocatorSet, HdOverlayContainerDataSource,
@@ -268,7 +267,8 @@ impl HdStMeshTopologySceneIndex {
 impl HdSceneIndexBase for HdStMeshTopologySceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 let prim = input_lock.get_prim(prim_path);
 
                 // Only process mesh prims with a data source
@@ -288,7 +288,8 @@ impl HdSceneIndexBase for HdStMeshTopologySceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_child_prim_paths(prim_path);
             }
         }

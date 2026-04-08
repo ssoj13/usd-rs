@@ -160,7 +160,9 @@ impl HdXformSchema {
             }
             return Some(matrix_ds);
         }
-        let result = Self::new(container.clone()).schema.get_typed_retained::<Matrix4d>(&MATRIX);
+        let result = Self::new(container.clone())
+            .schema
+            .get_typed_retained::<Matrix4d>(&MATRIX);
         if debug_stats {
             if result.is_some() {
                 DEBUG_GET_MATRIX_FALLBACK_HITS.fetch_add(1, Ordering::Relaxed);

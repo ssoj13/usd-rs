@@ -4,12 +4,17 @@ use std::sync::{Arc, LazyLock};
 
 use crate::api_schema_adapter::APISchemaAdapter;
 use crate::data_source_attribute::DataSourceAttribute;
-use crate::data_source_mapped::{AttributeMapping, DataSourceMapped, PropertyMapping, PropertyMappings};
+use crate::data_source_mapped::{
+    AttributeMapping, DataSourceMapped, PropertyMapping, PropertyMappings,
+};
 use crate::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use crate::types::PropertyInvalidationType;
 use usd_core::{Attribute, Prim, SchemaRegistry};
 use usd_hd::schema::HdCameraSchema;
-use usd_hd::{HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdDataSourceLocator, HdDataSourceLocatorSet, HdRetainedContainerDataSource};
+use usd_hd::{
+    HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdDataSourceLocator,
+    HdDataSourceLocatorSet, HdRetainedContainerDataSource,
+};
 use usd_tf::Token;
 use usd_vt::Value;
 
@@ -29,15 +34,12 @@ fn authored_attribute_factory(
     scene_index_path: usd_sdf::Path,
     locator: HdDataSourceLocator,
 ) -> Option<HdDataSourceBaseHandle> {
-    Some(
-        DataSourceAttribute::<Value>::new_with_locator(
-            attr,
-            stage_globals,
-            scene_index_path,
-            locator,
-        )
-            as HdDataSourceBaseHandle,
-    )
+    Some(DataSourceAttribute::<Value>::new_with_locator(
+        attr,
+        stage_globals,
+        scene_index_path,
+        locator,
+    ) as HdDataSourceBaseHandle)
 }
 
 fn get_mappings() -> &'static PropertyMappings {
@@ -54,14 +56,19 @@ fn get_mappings() -> &'static PropertyMappings {
                 let Some((ns, prop_name)) = split_namespace(usd_name) else {
                     continue;
                 };
-                mappings.push(PropertyMapping::Attribute(AttributeMapping::new_with_factory(
-                    usd_name.clone(),
-                    HdDataSourceLocator::new(&[ns, prop_name]),
-                    authored_attribute_factory,
-                )));
+                mappings.push(PropertyMapping::Attribute(
+                    AttributeMapping::new_with_factory(
+                        usd_name.clone(),
+                        HdDataSourceLocator::new(&[ns, prop_name]),
+                        authored_attribute_factory,
+                    ),
+                ));
             }
         }
-        PropertyMappings::new(mappings, HdCameraSchema::get_namespaced_properties_locator())
+        PropertyMappings::new(
+            mappings,
+            HdCameraSchema::get_namespaced_properties_locator(),
+        )
     });
     &MAPPINGS
 }

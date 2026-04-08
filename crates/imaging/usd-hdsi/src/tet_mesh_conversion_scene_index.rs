@@ -1,11 +1,10 @@
-
 //! Tetrahedral mesh conversion scene index.
 //!
 //! Converts tetrahedral mesh prims to triangle meshes for rendering.
 //! Port of pxr/imaging/hdsi/tetMeshConversionSceneIndex.cpp.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_gf::Vec3i;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,

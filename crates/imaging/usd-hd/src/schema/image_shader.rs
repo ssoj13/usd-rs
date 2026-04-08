@@ -1,4 +1,3 @@
-
 //! HdImageShaderSchema - Image shader prim schema.
 //!
 //! Corresponds to pxr/imaging/hd/imageShaderSchema.h

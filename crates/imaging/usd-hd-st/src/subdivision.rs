@@ -1,4 +1,3 @@
-
 //! HdSt Subdivision - OpenSubdiv refiner wrapper for Storm.
 //!
 //! Provides subdivision surface refinement using stencil tables and patch tables.

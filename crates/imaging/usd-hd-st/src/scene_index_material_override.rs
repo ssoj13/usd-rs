@@ -1,13 +1,12 @@
-
 //! HdSt_MaterialOverrideSceneIndex - material parameter overrides for Storm.
 //!
 //! Filtering scene index that applies material parameter overrides.
 //! Allows render settings or per-prim overrides to modify material
 //! parameters without changing the underlying material network.
 
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::scene_index::{
     AddedPrimEntry, DirtiedPrimEntry, FilteringObserverTarget, HdSceneIndexBase,
@@ -76,7 +75,8 @@ impl HdStMaterialOverrideSceneIndex {
 impl HdSceneIndexBase for HdStMaterialOverrideSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 let prim = input_lock.get_prim(prim_path);
                 // In full implementation: if overrides exist for this material,
                 // wrap the data source to intercept material parameter queries.
@@ -88,7 +88,8 @@ impl HdSceneIndexBase for HdStMaterialOverrideSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_child_prim_paths(prim_path);
             }
         }

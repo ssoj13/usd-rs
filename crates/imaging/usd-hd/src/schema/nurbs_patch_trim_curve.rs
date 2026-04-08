@@ -1,4 +1,3 @@
-
 //! HdNurbsPatchTrimCurveSchema - NURBS patch trim curve.
 //!
 //! Corresponds to pxr/imaging/hd/nurbsPatchTrimCurveSchema.h

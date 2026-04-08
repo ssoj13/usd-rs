@@ -1,12 +1,11 @@
-
 //! HdSt_BasisCurvesTopologySceneIndex - topology processing for basis curves.
 //!
 //! Filtering scene index that processes basis curves topology for Storm.
 //! Handles index buffer generation for different curve basis types
 //! (bezier, bspline, catmullRom) and wrap modes (nonperiodic, periodic, pinned).
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{HdDataSourceBaseHandle, HdDataSourceLocator};
 use usd_hd::scene_index::{
     AddedPrimEntry, DirtiedPrimEntry, FilteringObserverTarget, HdSceneIndexBase,
@@ -58,7 +57,8 @@ impl HdStBasisCurvesTopologySceneIndex {
 impl HdSceneIndexBase for HdStBasisCurvesTopologySceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 let prim = input_lock.get_prim(prim_path);
                 return self.process_prim(prim);
             }
@@ -68,7 +68,8 @@ impl HdSceneIndexBase for HdStBasisCurvesTopologySceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_child_prim_paths(prim_path);
             }
         }

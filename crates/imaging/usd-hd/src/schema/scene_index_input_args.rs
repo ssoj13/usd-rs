@@ -1,4 +1,3 @@
-
 //! HdSceneIndexInputArgsSchema - Scene index input args from HdRendererPlugin.
 //!
 //! Corresponds to pxr/imaging/hd/sceneIndexInputArgsSchema.h.

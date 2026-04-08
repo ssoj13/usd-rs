@@ -14,7 +14,11 @@ use usd_vt::{Dictionary, Value};
 // Re-export Stage from stage module
 pub use super::stage::Stage;
 
-fn applied_api_schema_has_property(schema_type: &Token, instance_name: &Token, prop_name: &str) -> bool {
+fn applied_api_schema_has_property(
+    schema_type: &Token,
+    instance_name: &Token,
+    prop_name: &str,
+) -> bool {
     if super::schema_registry::schema_instance_has_property(schema_type, instance_name, prop_name) {
         return true;
     }
@@ -24,9 +28,7 @@ fn applied_api_schema_has_property(schema_type: &Token, instance_name: &Token, p
         if prop_name == format!("collection:{collection_name}") {
             return true;
         }
-        if let Some(base_name) =
-            prop_name.strip_prefix(&format!("collection:{collection_name}:"))
-        {
+        if let Some(base_name) = prop_name.strip_prefix(&format!("collection:{collection_name}:")) {
             return matches!(
                 base_name,
                 "expansionRule" | "includeRoot" | "membershipExpression" | "includes" | "excludes"

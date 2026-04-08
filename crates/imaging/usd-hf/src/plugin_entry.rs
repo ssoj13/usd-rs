@@ -1,4 +1,3 @@
-
 //! Internal plugin entry management.
 //!
 //! Manages individual plugin instances with ref counting and lazy instantiation.

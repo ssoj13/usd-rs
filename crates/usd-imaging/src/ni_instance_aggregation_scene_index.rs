@@ -1,4 +1,3 @@
-
 //! Native instance aggregation scene index.
 //!
 //! Aggregates multiple instances of the same prototype for efficient batch rendering.
@@ -32,8 +31,8 @@
 
 use crate::data_source_relocating_scene_index::UsdImagingDataSourceRelocatingSceneIndex;
 use crate::ni_instance_observer::InstanceObserver;
-use std::sync::{Arc, Weak};
 use parking_lot::RwLock;
+use std::sync::{Arc, Weak};
 use usd_hd::HdDataSourceBaseHandle;
 use usd_hd::data_source::HdDataSourceLocator;
 use usd_hd::scene_index::base::HdSceneIndexBaseImpl;
@@ -286,9 +285,8 @@ impl UsdImagingNiInstanceAggregationSceneIndex {
         );
         retained.read().add_observer(retained_observer);
 
-        let observer_handle: HdSceneIndexObserverHandle = Arc::new(
-            InstanceObserverForwarder(Arc::clone(&instance_observer)),
-        );
+        let observer_handle: HdSceneIndexObserverHandle =
+            Arc::new(InstanceObserverForwarder(Arc::clone(&instance_observer)));
         input_scene.read().add_observer(observer_handle);
 
         scene_index
@@ -327,39 +325,25 @@ impl UsdImagingNiInstanceAggregationSceneIndex {
 
     /// Get input scene indices (C++ GetInputScenes).
     pub fn get_input_scenes(&self) -> Vec<HdSceneIndexHandle> {
-        vec![
-            self.instance_observer
-                .read()
-                .get_input_scene()
-                .clone(),
-        ]
+        vec![self.instance_observer.read().get_input_scene().clone()]
     }
 
     /// Get encapsulated scene indices (C++ GetEncapsulatedScenes).
     pub fn get_encapsulated_scenes(&self) -> Vec<HdSceneIndexHandle> {
-        let retained = self
-            .instance_observer
-            .read()
-            .get_retained_scene_index();
+        let retained = self.instance_observer.read().get_retained_scene_index();
         vec![scene_index_to_handle(Arc::clone(&retained))]
     }
 }
 
 impl HdSceneIndexBase for UsdImagingNiInstanceAggregationSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
-        let retained = self
-            .instance_observer
-            .read()
-            .get_retained_scene_index();
+        let retained = self.instance_observer.read().get_retained_scene_index();
         let inner = unsafe { &*retained.data_ptr() };
         inner.get_prim(prim_path)
     }
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
-        let retained = self
-            .instance_observer
-            .read()
-            .get_retained_scene_index();
+        let retained = self.instance_observer.read().get_retained_scene_index();
         let inner = unsafe { &*retained.data_ptr() };
         inner.get_child_prim_paths(prim_path)
     }

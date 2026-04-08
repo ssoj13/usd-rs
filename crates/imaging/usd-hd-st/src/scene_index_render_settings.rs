@@ -1,4 +1,3 @@
-
 //! HdSt_RenderSettingsSceneIndex - render settings propagation for Storm.
 //!
 //! Filtering scene index that propagates render settings to prims.
@@ -9,8 +8,8 @@
 //! - Lighting mode
 //! - Render products/vars
 
-use std::sync::{Arc, Mutex};
 use parking_lot::RwLock;
+use std::sync::{Arc, Mutex};
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::scene_index::{
     AddedPrimEntry, DirtiedPrimEntry, FilteringObserverTarget, HdSceneIndexBase,
@@ -57,17 +56,15 @@ impl HdStRenderSettingsSceneIndex {
 
     /// Set the active render settings path.
     pub fn set_active_render_settings(&mut self, path: Option<SdfPath>) {
-        *self
-            .active_render_settings
-            .lock()
-            .expect("Lock poisoned") = path;
+        *self.active_render_settings.lock().expect("Lock poisoned") = path;
     }
 }
 
 impl HdSceneIndexBase for HdStRenderSettingsSceneIndex {
     fn get_prim(&self, prim_path: &SdfPath) -> HdSceneIndexPrim {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_prim(prim_path);
             }
         }
@@ -76,7 +73,8 @@ impl HdSceneIndexBase for HdStRenderSettingsSceneIndex {
 
     fn get_child_prim_paths(&self, prim_path: &SdfPath) -> SdfPathVector {
         if let Some(input) = self.base.get_input_scene() {
-            { let input_lock = input.read();
+            {
+                let input_lock = input.read();
                 return input_lock.get_child_prim_paths(prim_path);
             }
         }
@@ -105,10 +103,7 @@ impl HdSceneIndexBase for HdStRenderSettingsSceneIndex {
 impl FilteringObserverTarget for HdStRenderSettingsSceneIndex {
     fn on_prims_added(&self, _sender: &dyn HdSceneIndexBase, entries: &[AddedPrimEntry]) {
         // Track render settings prims; auto-activate first one found
-        let mut active_render_settings = self
-            .active_render_settings
-            .lock()
-            .expect("Lock poisoned");
+        let mut active_render_settings = self.active_render_settings.lock().expect("Lock poisoned");
         for entry in entries {
             if Self::is_render_settings(&entry.prim_type) && active_render_settings.is_none() {
                 *active_render_settings = Some(entry.prim_path.clone());
@@ -124,10 +119,7 @@ impl FilteringObserverTarget for HdStRenderSettingsSceneIndex {
 
     fn on_prims_removed(&self, _sender: &dyn HdSceneIndexBase, entries: &[RemovedPrimEntry]) {
         // Clear active render settings if removed
-        let mut active_render_settings = self
-            .active_render_settings
-            .lock()
-            .expect("Lock poisoned");
+        let mut active_render_settings = self.active_render_settings.lock().expect("Lock poisoned");
         if let Some(ref active) = *active_render_settings {
             for entry in entries {
                 if active.has_prefix(&entry.prim_path) {

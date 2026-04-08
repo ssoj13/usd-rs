@@ -1,4 +1,3 @@
-
 //! HdDataSourceLegacyTaskPrim - Task prim data source for legacy emulation.
 //!
 //! Corresponds to pxr/imaging/hd/dataSourceLegacyTaskPrim.h and

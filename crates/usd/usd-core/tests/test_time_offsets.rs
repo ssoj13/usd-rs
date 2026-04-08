@@ -406,8 +406,10 @@ fn to_offsets_authoring() {
         .expect("payload node for /Baz");
 
     // Author via EditTarget into ref_layer
-    let ref_target =
-        usd_core::EditTarget::for_layer_with_map_function(Arc::clone(&ref_layer), ref_node.map_to_root().evaluate());
+    let ref_target = usd_core::EditTarget::for_layer_with_map_function(
+        Arc::clone(&ref_layer),
+        ref_node.map_to_root().evaluate(),
+    );
     assert_eq!(ref_target.map_to_spec_path(&p("/Foo.attr")), p("/Bar.attr"));
     {
         let _ctx = usd_core::EditContext::new_with_target(Arc::clone(&stage), ref_target.clone());
@@ -417,7 +419,11 @@ fn to_offsets_authoring() {
             .expect("create /Foo.attr via ref edit target");
         attr.set(1.0_f64, TimeCode::new(2.0));
         let authored_times = ref_layer.list_time_samples_for_path(&p("/Bar.attr"));
-        assert_eq!(authored_times.len(), 1, "expected one authored sample in ref layer");
+        assert_eq!(
+            authored_times.len(),
+            1,
+            "expected one authored sample in ref layer"
+        );
         assert!(
             (authored_times[0] - ref_offset.inverse().apply(2.0)).abs() < 1e-8,
             "expected authored ref time {}, got {}",
@@ -472,7 +478,9 @@ fn to_offsets_authoring() {
     let sub_target = stage.get_edit_target_for_local_layer(&sub_layer);
     {
         let _ctx = usd_core::EditContext::new_with_target(Arc::clone(&stage), sub_target);
-        let attr = foo.get_attribute("attr").expect("get /Foo.attr for sublayer");
+        let attr = foo
+            .get_attribute("attr")
+            .expect("get /Foo.attr for sublayer");
         attr.set(1.0_f64, TimeCode::new(2.0));
         let val = *attr
             .get(TimeCode::new(2.0))

@@ -6497,12 +6497,11 @@ def "Model" (
     /// name are expected to succeed.
     #[test]
     fn test_parse_ref_usda_files() {
-        let test_dir = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/testenv/testSdfParsing.testenv"
-        );
-        if !std::path::Path::new(test_dir).exists() {
-            eprintln!("SKIP: OpenUSD submodule not available at {test_dir}");
+        let test_dir = openusd_test_path::pxr_usd_module_testenv("sdf", "testSdfParsing.testenv");
+        if !test_dir.exists() {
+            eprintln!(
+                "SKIP: set OPENUSD_SRC_ROOT or missing pxr/usd/sdf/testenv/testSdfParsing.testenv"
+            );
             return;
         }
 
@@ -6895,8 +6894,7 @@ def MfScope "RightLeg" (
     /// Verifies roundtrip consistency: the second parse must also succeed.
     #[test]
     fn test_parse_valid_usda_files() {
-        let testenv = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("testenv/testSdfParsing.testenv");
+        let testenv = openusd_test_path::pxr_usd_module_testenv("sdf", "testSdfParsing.testenv");
 
         // Files known to fail -- tracked as bugs, excluded until fixed:
         //   31_attribute_values.usda  -- first parse fails: "AnimationBlock" sentinel
@@ -6983,8 +6981,7 @@ def MfScope "RightLeg" (
     /// We do not require it to return false — only that it doesn't crash.
     #[test]
     fn test_parse_bad_usda_files() {
-        let testenv = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("testenv/testSdfParsing.testenv");
+        let testenv = openusd_test_path::pxr_usd_module_testenv("sdf", "testSdfParsing.testenv");
 
         let bad_files = [
             "03_bad_file.usda",

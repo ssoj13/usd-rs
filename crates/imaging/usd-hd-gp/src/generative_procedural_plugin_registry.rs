@@ -1,12 +1,11 @@
-
 //! Registry for generative procedural plugins.
 
 use super::generative_procedural::HdGpGenerativeProceduralHandle;
 use super::generative_procedural_plugin::HdGpGenerativeProceduralPlugin;
 use once_cell::sync::Lazy;
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_hf::{HfPluginDesc, HfPluginDescVector, HfPluginRegistry, HfPluginRegistryImpl};
 use usd_sdf::Path as SdfPath;
 use usd_tf::Token as TfToken;

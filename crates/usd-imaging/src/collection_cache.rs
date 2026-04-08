@@ -6,9 +6,9 @@
 //! redundant computation when querying whether a prim is a member of
 //! a collection at specific time codes.
 
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use parking_lot::RwLock;
 use usd_core::time_code::TimeCode;
 use usd_sdf::Path;
 

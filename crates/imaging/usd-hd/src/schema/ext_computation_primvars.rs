@@ -1,4 +1,3 @@
-
 //! HdExtComputationPrimvarsSchema - Container of ext computation primvars.
 //!
 //! Port of pxr/imaging/hd/extComputationPrimvarsSchema.h

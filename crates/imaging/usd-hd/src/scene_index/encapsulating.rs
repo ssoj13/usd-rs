@@ -1,4 +1,3 @@
-
 //! HdEncapsulatingSceneIndex - Pass-through wrapper for scene debugger introspection.
 //!
 //! Port of pxr/imaging/hd/sceneIndexUtil.h HdMakeEncapsulatingSceneIndex.

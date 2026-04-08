@@ -8,8 +8,8 @@
 //! non-default draw mode is active, the prim and all its descendants are
 //! replaced by stand-in geometry (bounds wireframe box, cards, origin axes).
 
-use std::collections::BTreeMap;
 use parking_lot::RwLock;
+use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use usd_hd::data_source::HdDataSourceBaseHandle;
 use usd_hd::data_source::HdDataSourceLocator;
@@ -19,8 +19,8 @@ use usd_hd::scene_index::observer::{
 };
 use usd_hd::scene_index::{
     FilteringObserverTarget, HdContainerDataSourceHandle, HdSceneIndexBase, HdSceneIndexHandle,
-    HdSceneIndexPrim, HdSingleInputFilteringSceneIndexBase, SdfPathVector, wire_filter_to_input,
-    si_ref,
+    HdSceneIndexPrim, HdSingleInputFilteringSceneIndexBase, SdfPathVector, si_ref,
+    wire_filter_to_input,
 };
 use usd_sdf::Path;
 use usd_tf::Token;
@@ -196,7 +196,10 @@ impl DrawModeSceneIndex {
 
     /// Find standin for a prim or its ancestor.
     /// Port of C++ `_FindStandinForPrimOrAncestor`.
-    fn find_standin_for_prim_or_ancestor(&self, path: &Path) -> Option<(DrawModeStandinHandle, bool)> {
+    fn find_standin_for_prim_or_ancestor(
+        &self,
+        path: &Path,
+    ) -> Option<(DrawModeStandinHandle, bool)> {
         let prims = self.prims.lock().expect("Lock poisoned");
         if let Some((key, standin)) = find_prefix_of_path(&prims, path) {
             let is_descendant = path.get_path_element_count() > key.get_path_element_count();

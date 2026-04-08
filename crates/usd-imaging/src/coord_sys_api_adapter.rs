@@ -57,7 +57,8 @@ impl APISchemaAdapter for CoordSysAPIAdapter {
             return None;
         }
 
-        let binding = CoordSysAPI::new(prim.clone(), applied_instance_name.clone()).get_local_binding();
+        let binding =
+            CoordSysAPI::new(prim.clone(), applied_instance_name.clone()).get_local_binding();
         if binding.name.is_empty() {
             return None;
         }

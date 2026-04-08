@@ -1,4 +1,3 @@
-
 //! HDX tokens - Standard identifiers for Hydra extensions
 
 use std::sync::LazyLock;

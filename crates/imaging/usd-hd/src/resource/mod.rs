@@ -1,4 +1,3 @@
-
 //! GPU resource management for Hydra.
 //!
 //! This module provides abstractions for managing GPU resources including:

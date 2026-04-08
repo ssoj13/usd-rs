@@ -1,4 +1,3 @@
-
 //! HdStDrawItem - A single drawable item for Storm.
 //!
 //! DrawItems represent atomic drawable units. They contain buffer ranges,

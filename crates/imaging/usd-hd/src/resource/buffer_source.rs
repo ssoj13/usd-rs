@@ -1,4 +1,3 @@
-
 //! Buffer sources for transient data upload to GPU.
 
 use super::buffer_spec::HdBufferSpecVector;

@@ -1,4 +1,3 @@
-
 //! Legacy material network types and v2 material network structs.
 //!
 //! Port of pxr/imaging/hd/material.h (struct types only).

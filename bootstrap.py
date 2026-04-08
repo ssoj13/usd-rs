@@ -115,6 +115,31 @@ def has_maturin() -> bool:
 	return shutil.which("maturin") is not None
 
 
+def _openusd_src_root_candidates() -> list[Path]:
+	return [(ROOT.parent / "usd-refs" / "OpenUSD").resolve()]
+
+
+def _is_valid_openusd_root(p: Path) -> bool:
+	return p.is_dir() and (p / "pxr").is_dir()
+
+
+def ensure_openusd_src_root_env() -> None:
+	# Unset / invalid: try sibling usd-refs/OpenUSD; only this process (children inherit).
+	key = "OPENUSD_SRC_ROOT"
+	cur = os.environ.get(key, "").strip()
+	if cur:
+		path = Path(cur)
+		if _is_valid_openusd_root(path):
+			return
+		warn(f"{key} is set but not a valid OpenUSD tree (missing pxr/): {cur}")
+		os.environ.pop(key, None)
+	for cand in _openusd_src_root_candidates():
+		if _is_valid_openusd_root(cand):
+			os.environ[key] = str(cand)
+			step(f"{key} -> {cand} (auto)")
+			return
+
+
 # ============================================================
 # BUILD COMMANDS
 # ============================================================
@@ -186,6 +211,7 @@ def build_python(debug: bool) -> int:
 def run_tests(debug: bool, target: str | None = None) -> int:
 	"""Run tests."""
 	header("TEST")
+	ensure_openusd_src_root_env()
 	if target == "python":
 		step("Running Python binding tests...")
 		manifest = ROOT / PYO3_MANIFEST

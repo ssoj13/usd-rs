@@ -1,4 +1,3 @@
-
 //! Draw target task - Renders to offscreen draw targets.
 //!
 //! Manages rendering to offscreen FBO targets for effects like reflections,

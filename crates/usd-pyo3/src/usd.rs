@@ -3,22 +3,15 @@
 //! Drop-in replacement for the C++ OpenUSD `pxr.Usd` Python module.
 //! Wraps usd-core Rust types with PyO3.
 
-use pyo3::prelude::*;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
 use std::sync::Arc;
 
 use usd_core::{
-    stage::Stage,
-    prim::Prim,
-    attribute::Attribute,
-    relationship::Relationship,
-    edit_target::EditTarget,
-    edit_context::EditContext,
-    population_mask::StagePopulationMask,
-    common::InitialLoadSet,
-    time_code::TimeCode,
-    schema_registry::SchemaRegistry,
+    attribute::Attribute, common::InitialLoadSet, edit_context::EditContext,
+    edit_target::EditTarget, population_mask::StagePopulationMask, prim::Prim,
+    relationship::Relationship, schema_registry::SchemaRegistry, stage::Stage, time_code::TimeCode,
 };
 use usd_sdf::Path;
 use usd_tf::Token;
@@ -55,7 +48,12 @@ fn extract_path_str(obj: &Bound<'_, PyAny>) -> PyResult<String> {
 fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
     // Try common types; fall back to string repr
     if let Some(v) = val.downcast_clone::<bool>() {
-        return v.into_pyobject(py).expect("ok").to_owned().into_any().unbind();
+        return v
+            .into_pyobject(py)
+            .expect("ok")
+            .to_owned()
+            .into_any()
+            .unbind();
     }
     if let Some(v) = val.downcast_clone::<i32>() {
         return v.into_pyobject(py).expect("ok").into_any().unbind();
@@ -71,22 +69,41 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
         return v.into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(v) = val.downcast_clone::<String>() {
-        return v.as_str().into_pyobject(py).expect("ok").into_any().unbind();
+        return v
+            .as_str()
+            .into_pyobject(py)
+            .expect("ok")
+            .into_any()
+            .unbind();
     }
     if let Some(v) = val.downcast_clone::<Token>() {
-        return v.as_str().to_string().into_pyobject(py).expect("ok").into_any().unbind();
+        return v
+            .as_str()
+            .to_string()
+            .into_pyobject(py)
+            .expect("ok")
+            .into_any()
+            .unbind();
     }
     if let Some(v) = val.downcast_clone::<Vec<f32>>() {
-        return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
+        return PyList::new(py, v)
+            .map(|l| l.into_any().unbind())
+            .unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<Vec<f64>>() {
-        return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
+        return PyList::new(py, v)
+            .map(|l| l.into_any().unbind())
+            .unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<Vec<i32>>() {
-        return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
+        return PyList::new(py, v)
+            .map(|l| l.into_any().unbind())
+            .unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<Vec<i64>>() {
-        return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
+        return PyList::new(py, v)
+            .map(|l| l.into_any().unbind())
+            .unwrap_or_else(|_| py.None());
     }
     if let Some(v) = val.downcast_clone::<Array<i64>>() {
         return Py::new(py, crate::vt::PyInt64Array { inner: v })
@@ -94,7 +111,9 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
             .unwrap_or_else(|_| py.None().into_bound(py).unbind());
     }
     if let Some(v) = val.downcast_clone::<Vec<String>>() {
-        return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
+        return PyList::new(py, v)
+            .map(|l| l.into_any().unbind())
+            .unwrap_or_else(|_| py.None());
     }
     // GfVec types → PyVec (proper Gf.Vec3d etc.)
     if let Some(v) = val.downcast_clone::<usd_gf::Vec3d>() {
@@ -134,9 +153,14 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
             .unwrap_or_else(|_| py.None().into_bound(py).unbind());
     }
     if let Some(v) = val.downcast_clone::<Vec<usd_gf::Vec4f>>() {
-        return Py::new(py, crate::vt::PyVec4fArray { inner: Array::from(v) })
-            .map(|p| p.into_any())
-            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+        return Py::new(
+            py,
+            crate::vt::PyVec4fArray {
+                inner: Array::from(v),
+            },
+        )
+        .map(|p| p.into_any())
+        .unwrap_or_else(|_| py.None().into_bound(py).unbind());
     }
     // Legacy glam types (fallback)
     if let Some(v) = val.downcast_clone::<glam::Vec3>() {
@@ -153,7 +177,11 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
         return py.None();
     }
     // Fallback: debug string
-    format!("{val:?}").into_pyobject(py).expect("ok").into_any().unbind()
+    format!("{val:?}")
+        .into_pyobject(py)
+        .expect("ok")
+        .into_any()
+        .unbind()
 }
 
 fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
@@ -167,7 +195,7 @@ fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
 /// Represents a USD time code value.
 ///
 /// Matches C++ `UsdTimeCode`.
-#[pyclass(skip_from_py_object,name = "TimeCode", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "TimeCode", module = "pxr_rs.Usd")]
 #[derive(Clone)]
 pub struct PyTimeCode {
     inner: TimeCode,
@@ -178,21 +206,27 @@ impl PyTimeCode {
     #[new]
     #[pyo3(signature = (t = 0.0))]
     fn new(t: f64) -> Self {
-        Self { inner: TimeCode::new(t) }
+        Self {
+            inner: TimeCode::new(t),
+        }
     }
 
     /// UsdTimeCode representing the default time.
     #[staticmethod]
     #[allow(non_snake_case)]
     fn Default() -> Self {
-        Self { inner: TimeCode::default() }
+        Self {
+            inner: TimeCode::default(),
+        }
     }
 
     /// UsdTimeCode representing the earliest possible time.
     #[staticmethod]
     #[allow(non_snake_case)]
     fn EarliestTime() -> Self {
-        Self { inner: TimeCode::earliest_time() }
+        Self {
+            inner: TimeCode::earliest_time(),
+        }
     }
 
     /// UsdTimeCode representing the pre-time sentinel.
@@ -203,7 +237,9 @@ impl PyTimeCode {
     #[allow(non_snake_case)]
     fn PreTime(_args: &Bound<'_, PyTuple>) -> Self {
         // Pre-time is just before the earliest time — use a very small value
-        Self { inner: TimeCode::new(f64::MIN) }
+        Self {
+            inner: TimeCode::new(f64::MIN),
+        }
     }
 
     /// Returns a safe step value to advance time codes.
@@ -244,11 +280,19 @@ impl PyTimeCode {
 
     #[allow(non_snake_case)]
     fn GetValue(&self) -> f64 {
-        if self.inner.is_default() { f64::NAN } else { self.inner.value() }
+        if self.inner.is_default() {
+            f64::NAN
+        } else {
+            self.inner.value()
+        }
     }
 
     fn __float__(&self) -> f64 {
-        if self.inner.is_default() { f64::NAN } else { self.inner.value() }
+        if self.inner.is_default() {
+            f64::NAN
+        } else {
+            self.inner.value()
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -299,22 +343,30 @@ impl PyTimeCode {
     fn __add__(&self, rhs: f64) -> Self {
         // Use __float__ conversion for raw numeric value
         let v = self.__float__();
-        Self { inner: TimeCode::new(v + rhs) }
+        Self {
+            inner: TimeCode::new(v + rhs),
+        }
     }
 
     fn __radd__(&self, lhs: f64) -> Self {
         let v = self.__float__();
-        Self { inner: TimeCode::new(lhs + v) }
+        Self {
+            inner: TimeCode::new(lhs + v),
+        }
     }
 
     fn __sub__(&self, rhs: f64) -> Self {
         let v = self.__float__();
-        Self { inner: TimeCode::new(v - rhs) }
+        Self {
+            inner: TimeCode::new(v - rhs),
+        }
     }
 
     fn __mul__(&self, rhs: f64) -> Self {
         let v = self.__float__();
-        Self { inner: TimeCode::new(v * rhs) }
+        Self {
+            inner: TimeCode::new(v * rhs),
+        }
     }
 
     fn __truediv__(&self, rhs: f64) -> PyResult<Self> {
@@ -322,7 +374,9 @@ impl PyTimeCode {
             return Err(PyValueError::new_err("division by zero"));
         }
         let v = self.__float__();
-        Ok(Self { inner: TimeCode::new(v / rhs) })
+        Ok(Self {
+            inner: TimeCode::new(v / rhs),
+        })
     }
 }
 
@@ -366,7 +420,11 @@ pub(crate) fn tc_from_py_sdf(obj: &Bound<'_, PyAny>) -> PyResult<usd_sdf::TimeCo
 /// Controls which prims are populated on a stage.
 ///
 /// Matches C++ `UsdStagePopulationMask`.
-#[pyclass(skip_from_py_object,name = "StagePopulationMask", module = "pxr_rs.Usd")]
+#[pyclass(
+    skip_from_py_object,
+    name = "StagePopulationMask",
+    module = "pxr_rs.Usd"
+)]
 #[derive(Clone)]
 pub struct PyStagePopulationMask {
     inner: StagePopulationMask,
@@ -398,7 +456,9 @@ impl PyStagePopulationMask {
     #[staticmethod]
     #[allow(non_snake_case)]
     fn All() -> Self {
-        Self { inner: StagePopulationMask::all() }
+        Self {
+            inner: StagePopulationMask::all(),
+        }
     }
 
     #[allow(non_snake_case)]
@@ -421,7 +481,11 @@ impl PyStagePopulationMask {
 
     #[allow(non_snake_case)]
     fn GetPaths(&self) -> Vec<String> {
-        self.inner.get_paths().iter().map(|p| p.as_str().to_string()).collect()
+        self.inner
+            .get_paths()
+            .iter()
+            .map(|p| p.as_str().to_string())
+            .collect()
     }
 
     /// Returns the union of two masks.
@@ -437,8 +501,12 @@ impl PyStagePopulationMask {
     /// Returns the intersection of two masks.
     #[allow(non_snake_case)]
     fn Intersection(&self, other: &PyStagePopulationMask) -> Self {
-        let my_paths: std::collections::HashSet<String> =
-            self.inner.get_paths().iter().map(|p| p.as_str().to_string()).collect();
+        let my_paths: std::collections::HashSet<String> = self
+            .inner
+            .get_paths()
+            .iter()
+            .map(|p| p.as_str().to_string())
+            .collect();
         let mut result = StagePopulationMask::new();
         for path in other.inner.get_paths() {
             if my_paths.contains(path.as_str()) {
@@ -459,7 +527,12 @@ impl PyStagePopulationMask {
     }
 
     fn __repr__(&self) -> String {
-        let paths: Vec<_> = self.inner.get_paths().iter().map(|p| p.as_str().to_string()).collect();
+        let paths: Vec<_> = self
+            .inner
+            .get_paths()
+            .iter()
+            .map(|p| p.as_str().to_string())
+            .collect();
         format!("Usd.StagePopulationMask([{}])", paths.join(", "))
     }
 
@@ -479,7 +552,7 @@ impl PyStagePopulationMask {
 /// Specifies which layer should receive edits on a stage.
 ///
 /// Matches C++ `UsdEditTarget`.
-#[pyclass(skip_from_py_object,name = "EditTarget", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "EditTarget", module = "pxr_rs.Usd")]
 #[derive(Clone)]
 pub struct PyEditTarget {
     inner: EditTarget,
@@ -489,7 +562,9 @@ pub struct PyEditTarget {
 impl PyEditTarget {
     #[new]
     fn new() -> Self {
-        Self { inner: EditTarget::invalid() }
+        Self {
+            inner: EditTarget::invalid(),
+        }
     }
 
     #[allow(non_snake_case)]
@@ -500,13 +575,18 @@ impl PyEditTarget {
     /// Return the layer this edit target directs edits to.
     #[allow(non_snake_case)]
     fn GetLayer(&self) -> Option<crate::sdf::PyLayer> {
-        self.inner.layer().map(|l| crate::sdf::PyLayer::from_layer_arc(l.clone()))
+        self.inner
+            .layer()
+            .map(|l| crate::sdf::PyLayer::from_layer_arc(l.clone()))
     }
 
     /// Create an edit target for a specific variant.
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn ForLocalDirectVariant(layer: &crate::sdf::PyLayer, path: &Bound<'_, PyAny>) -> PyResult<Self> {
+    fn ForLocalDirectVariant(
+        layer: &crate::sdf::PyLayer,
+        path: &Bound<'_, PyAny>,
+    ) -> PyResult<Self> {
         let s = extract_path_str(path)?;
         let p = path_from_str(&s)?;
         let handle = usd_sdf::LayerHandle::from_layer(layer.layer());
@@ -516,7 +596,9 @@ impl PyEditTarget {
     }
 
     #[allow(non_snake_case)]
-    fn IsNull(&self) -> bool { !self.inner.is_valid() }
+    fn IsNull(&self) -> bool {
+        !self.inner.is_valid()
+    }
 
     #[allow(non_snake_case)]
     fn MapToSpecPath(&self, scene_path: &Bound<'_, PyAny>) -> PyResult<crate::sdf::PyPath> {
@@ -528,7 +610,9 @@ impl PyEditTarget {
 
     #[allow(non_snake_case)]
     fn ComposeOver(&self, weaker: &PyEditTarget) -> Self {
-        Self { inner: self.inner.compose_over(&weaker.inner) }
+        Self {
+            inner: self.inner.compose_over(&weaker.inner),
+        }
     }
 
     fn __eq__(&self, other: &PyEditTarget) -> bool {
@@ -542,7 +626,10 @@ impl PyEditTarget {
         if self.inner.is_valid() {
             format!(
                 "Usd.EditTarget(layer='{}')",
-                self.inner.layer().map(|l| l.identifier().to_string()).unwrap_or_default()
+                self.inner
+                    .layer()
+                    .map(|l| l.identifier().to_string())
+                    .unwrap_or_default()
             )
         } else {
             "Usd.EditTarget()".to_string()
@@ -561,7 +648,7 @@ impl PyEditTarget {
 /// RAII helper that temporarily changes a stage's edit target.
 ///
 /// Matches C++ `UsdEditContext`. Use as `with Usd.EditContext(stage, target):`.
-#[pyclass(skip_from_py_object,name = "EditContext", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "EditContext", module = "pxr_rs.Usd")]
 pub struct PyEditContext {
     inner: Option<EditContext>,
 }
@@ -597,7 +684,7 @@ impl PyEditContext {
 /// Iterator over a range of prims on a stage.
 ///
 /// Matches C++ `UsdPrimRange`.
-#[pyclass(skip_from_py_object,name = "PrimRange", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "PrimRange", module = "pxr_rs.Usd")]
 pub struct PyPrimRange {
     prims: Vec<Py<PyAny>>,
     index: usize,
@@ -633,7 +720,10 @@ impl PyPrimRange {
                 py_prim.into_pyobject(py).expect("ok").into_any().unbind()
             })
             .collect();
-        Self { prims: objs, index: 0 }
+        Self {
+            prims: objs,
+            index: 0,
+        }
     }
 }
 
@@ -644,7 +734,8 @@ impl PyPrimRange {
 fn prim_get_metadata(py: Python<'_>, prim: &Prim, key: &str) -> PyResult<Py<PyAny>> {
     let token = Token::new(key);
     // Route through stage for proper composition, returning raw VtValue.
-    let val_opt = prim.stage()
+    let val_opt = prim
+        .stage()
         .and_then(|s| s.get_metadata_for_object(prim.path(), &token));
     match val_opt {
         Some(v) => Ok(value_to_py(py, &v)),
@@ -673,7 +764,7 @@ fn attr_get_metadata(py: Python<'_>, attr: &Attribute, key: &str) -> PyResult<Py
 /// A composed prim on a stage.
 ///
 /// Matches C++ `UsdPrim`.
-#[pyclass(skip_from_py_object,name = "Prim", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Prim", module = "pxr_rs.Usd")]
 #[derive(Clone)]
 pub struct PyPrim {
     pub(crate) inner: Prim,
@@ -683,17 +774,25 @@ pub struct PyPrim {
 
 impl PyPrim {
     pub(crate) fn from_prim(prim: Prim, stage: Arc<Stage>) -> Self {
-        Self { inner: prim, _stage: stage }
+        Self {
+            inner: prim,
+            _stage: stage,
+        }
     }
     /// Construct from a prim when stage handle is not available (geom wrappers).
     /// Uses a shared dummy stage to avoid creating one per call.
     pub(crate) fn from_prim_auto(prim: Prim) -> Self {
         static DUMMY: std::sync::OnceLock<Arc<Stage>> = std::sync::OnceLock::new();
-        let stage = DUMMY.get_or_init(|| {
-            Stage::create_new("__dummy__", InitialLoadSet::LoadNone)
-                .expect("dummy stage creation")
-        }).clone();
-        Self { inner: prim, _stage: stage }
+        let stage = DUMMY
+            .get_or_init(|| {
+                Stage::create_new("__dummy__", InitialLoadSet::LoadNone)
+                    .expect("dummy stage creation")
+            })
+            .clone();
+        Self {
+            inner: prim,
+            _stage: stage,
+        }
     }
 }
 
@@ -795,9 +894,16 @@ impl PyPrim {
     #[allow(non_snake_case)]
     #[pyo3(signature = (api_name, _instance_name=None))]
     fn CanApplyAPI(&self, api_name: &Bound<'_, PyAny>, _instance_name: Option<&str>) -> bool {
-        let name = if let Ok(s) = api_name.extract::<String>() { s }
-            else if let Ok(n) = api_name.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
-            else { return false; };
+        let name = if let Ok(s) = api_name.extract::<String>() {
+            s
+        } else if let Ok(n) = api_name
+            .getattr("__name__")
+            .and_then(|n| n.extract::<String>())
+        {
+            n
+        } else {
+            return false;
+        };
         !self.inner.has_api(&usd_tf::Token::new(&name))
     }
 
@@ -910,7 +1016,8 @@ impl PyPrim {
             Some(s) => s,
             None => return Ok(None),
         };
-        Ok(stage.get_prim_at_path(&child_path)
+        Ok(stage
+            .get_prim_at_path(&child_path)
             .map(|prim| PyPrim::from_prim(prim, self._stage.clone())))
     }
 
@@ -942,13 +1049,19 @@ impl PyPrim {
     fn GetProperties(&self, py: Python<'_>) -> Vec<Py<PyAny>> {
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for attr in self.inner.get_attributes() {
-            let py_attr = PyAttribute { inner: attr, _stage: self._stage.clone() };
+            let py_attr = PyAttribute {
+                inner: attr,
+                _stage: self._stage.clone(),
+            };
             if let Ok(obj) = py_attr.into_pyobject(py) {
                 result.push(obj.into_any().unbind());
             }
         }
         for rel in self.inner.get_relationships() {
-            let py_rel = PyRelationship { inner: rel, _stage: self._stage.clone() };
+            let py_rel = PyRelationship {
+                inner: rel,
+                _stage: self._stage.clone(),
+            };
             if let Ok(obj) = py_rel.into_pyobject(py) {
                 result.push(obj.into_any().unbind());
             }
@@ -962,7 +1075,10 @@ impl PyPrim {
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for attr in self.inner.get_attributes() {
             if attr.has_authored_value() || attr.as_property().is_authored() {
-                let py_attr = PyAttribute { inner: attr, _stage: self._stage.clone() };
+                let py_attr = PyAttribute {
+                    inner: attr,
+                    _stage: self._stage.clone(),
+                };
                 if let Ok(obj) = py_attr.into_pyobject(py) {
                     result.push(obj.into_any().unbind());
                 }
@@ -970,7 +1086,10 @@ impl PyPrim {
         }
         for rel in self.inner.get_relationships() {
             if rel.as_property().is_authored() {
-                let py_rel = PyRelationship { inner: rel, _stage: self._stage.clone() };
+                let py_rel = PyRelationship {
+                    inner: rel,
+                    _stage: self._stage.clone(),
+                };
                 if let Ok(obj) = py_rel.into_pyobject(py) {
                     result.push(obj.into_any().unbind());
                 }
@@ -1011,7 +1130,10 @@ impl PyPrim {
     #[allow(non_snake_case)]
     fn GetAttribute(&self, name: &str) -> Option<PyAttribute> {
         let attr = self.inner.get_attribute(name)?;
-        Some(PyAttribute { inner: attr, _stage: self._stage.clone() })
+        Some(PyAttribute {
+            inner: attr,
+            _stage: self._stage.clone(),
+        })
     }
 
     #[allow(non_snake_case)]
@@ -1019,7 +1141,10 @@ impl PyPrim {
         self.inner
             .get_attributes()
             .into_iter()
-            .map(|a| PyAttribute { inner: a, _stage: self._stage.clone() })
+            .map(|a| PyAttribute {
+                inner: a,
+                _stage: self._stage.clone(),
+            })
             .collect()
     }
 
@@ -1031,7 +1156,10 @@ impl PyPrim {
     #[allow(non_snake_case)]
     fn GetRelationship(&self, name: &str) -> Option<PyRelationship> {
         let rel = self.inner.get_relationship(name)?;
-        Some(PyRelationship { inner: rel, _stage: self._stage.clone() })
+        Some(PyRelationship {
+            inner: rel,
+            _stage: self._stage.clone(),
+        })
     }
 
     #[allow(non_snake_case)]
@@ -1039,7 +1167,10 @@ impl PyPrim {
         self.inner
             .get_relationships()
             .into_iter()
-            .map(|r| PyRelationship { inner: r, _stage: self._stage.clone() })
+            .map(|r| PyRelationship {
+                inner: r,
+                _stage: self._stage.clone(),
+            })
             .collect()
     }
 
@@ -1066,8 +1197,13 @@ impl PyPrim {
             "uniform" | "Uniform" => Some(usd_core::attribute::Variability::Uniform),
             _ => Some(usd_core::attribute::Variability::Varying),
         };
-        Ok(self.inner.create_attribute(name, &type_name.inner(), custom, var)
-            .map(|a| PyAttribute { inner: a, _stage: self._stage.clone() }))
+        Ok(self
+            .inner
+            .create_attribute(name, &type_name.inner(), custom, var)
+            .map(|a| PyAttribute {
+                inner: a,
+                _stage: self._stage.clone(),
+            }))
     }
 
     /// Create a relationship on this prim.
@@ -1076,8 +1212,12 @@ impl PyPrim {
     #[pyo3(signature = (name, custom = true))]
     #[allow(non_snake_case)]
     fn CreateRelationship(&self, name: &str, custom: bool) -> Option<PyRelationship> {
-        self.inner.create_relationship(name, custom)
-            .map(|r| PyRelationship { inner: r, _stage: self._stage.clone() })
+        self.inner
+            .create_relationship(name, custom)
+            .map(|r| PyRelationship {
+                inner: r,
+                _stage: self._stage.clone(),
+            })
     }
 
     // -- Composition arcs --------------------------------------------------
@@ -1130,7 +1270,8 @@ impl PyPrim {
 
     #[allow(non_snake_case)]
     fn HasAuthoredInherits(&self) -> bool {
-        self.inner.has_authored_metadata(&Token::new("inheritPaths"))
+        self.inner
+            .has_authored_metadata(&Token::new("inheritPaths"))
     }
 
     #[allow(non_snake_case)]
@@ -1150,8 +1291,11 @@ impl PyPrim {
 
     #[allow(non_snake_case)]
     fn IsInstanceable(&self) -> bool {
-        self.inner.has_authored_metadata(&Token::new("instanceable"))
-            && self.inner.get_metadata::<bool>(&Token::new("instanceable"))
+        self.inner
+            .has_authored_metadata(&Token::new("instanceable"))
+            && self
+                .inner
+                .get_metadata::<bool>(&Token::new("instanceable"))
                 .unwrap_or(false)
     }
 
@@ -1162,7 +1306,8 @@ impl PyPrim {
 
     #[allow(non_snake_case)]
     fn HasAuthoredInstanceable(&self) -> bool {
-        self.inner.has_authored_metadata(&Token::new("instanceable"))
+        self.inner
+            .has_authored_metadata(&Token::new("instanceable"))
     }
 
     /// Set custom data dictionary on this prim.
@@ -1214,7 +1359,11 @@ impl PyPrim {
             "def" | "Def" => usd_sdf::Specifier::Def,
             "over" | "Over" => usd_sdf::Specifier::Over,
             "class" | "Class" => usd_sdf::Specifier::Class,
-            _ => return Err(PyValueError::new_err(format!("Unknown specifier: {specifier}"))),
+            _ => {
+                return Err(PyValueError::new_err(format!(
+                    "Unknown specifier: {specifier}"
+                )));
+            }
         };
         Ok(self.inner.set_specifier(spec))
     }
@@ -1224,7 +1373,8 @@ impl PyPrim {
     #[allow(non_snake_case)]
     fn GetKind(&self) -> String {
         let key = Token::new("kind");
-        self.inner.stage()
+        self.inner
+            .stage()
             .and_then(|s| s.get_metadata_for_object(self.inner.path(), &key))
             .and_then(|v| v.downcast_clone::<Token>())
             .map(|t| t.as_str().to_string())
@@ -1233,7 +1383,8 @@ impl PyPrim {
 
     #[allow(non_snake_case)]
     fn SetKind(&self, kind: &str) -> bool {
-        self.inner.set_metadata(&Token::new("kind"), Value::from(Token::new(kind)))
+        self.inner
+            .set_metadata(&Token::new("kind"), Value::from(Token::new(kind)))
     }
 
     // -- Variant sets ------------------------------------------------------
@@ -1278,7 +1429,8 @@ impl PyPrim {
     #[allow(non_snake_case)]
     fn HasMetadata(&self, key: &str) -> bool {
         let token = Token::new(key);
-        self.inner.stage()
+        self.inner
+            .stage()
             .and_then(|s| s.get_metadata_for_object(self.inner.path(), &token))
             .is_some()
     }
@@ -1294,13 +1446,27 @@ impl PyPrim {
         // C++ enumerates registered fields; we approximate with common authored fields.
         let dict = PyDict::new(py);
         let common_keys = [
-            "kind", "active", "instanceable", "hidden", "apiSchemas",
-            "assetInfo", "customData", "doc", "comment", "typeName",
-            "clips", "payload", "references", "inherits", "specializes",
+            "kind",
+            "active",
+            "instanceable",
+            "hidden",
+            "apiSchemas",
+            "assetInfo",
+            "customData",
+            "doc",
+            "comment",
+            "typeName",
+            "clips",
+            "payload",
+            "references",
+            "inherits",
+            "specializes",
         ];
         for key_str in common_keys {
             let key = Token::new(key_str);
-            if let Some(val) = self.inner.stage()
+            if let Some(val) = self
+                .inner
+                .stage()
                 .and_then(|s| s.get_metadata_for_object(self.inner.path(), &key))
             {
                 dict.set_item(key_str, value_to_py(py, &val))?;
@@ -1318,7 +1484,9 @@ impl PyPrim {
 
     #[allow(non_snake_case)]
     fn GetStage(&self) -> PyStage {
-        PyStage { inner: self._stage.clone() }
+        PyStage {
+            inner: self._stage.clone(),
+        }
     }
 
     // -- Description -------------------------------------------------------
@@ -1336,7 +1504,8 @@ impl PyPrim {
     /// Return the prim stack (list of prim specs from all layers).
     #[allow(non_snake_case)]
     fn GetPrimStack(&self) -> Vec<crate::sdf::PyPrimSpec> {
-        self.inner.get_prim_stack()
+        self.inner
+            .get_prim_stack()
             .into_iter()
             .map(|spec| crate::sdf::PyPrimSpec::from_spec(spec))
             .collect()
@@ -1344,47 +1513,83 @@ impl PyPrim {
 
     #[allow(non_snake_case)]
     fn GetPrimIndex(&self) -> Option<crate::pcp::PyPrimIndex> {
-        self.inner.prim_index().map(|idx| crate::pcp::PyPrimIndex::from_index(idx))
+        self.inner
+            .prim_index()
+            .map(|idx| crate::pcp::PyPrimIndex::from_index(idx))
     }
 
     #[allow(non_snake_case)]
-    fn IsPseudoRoot(&self) -> bool { self.inner.is_pseudo_root() }
+    fn IsPseudoRoot(&self) -> bool {
+        self.inner.is_pseudo_root()
+    }
     #[allow(non_snake_case)]
-    fn IsComponent(&self) -> bool { self.inner.is_component() }
+    fn IsComponent(&self) -> bool {
+        self.inner.is_component()
+    }
     #[allow(non_snake_case)]
-    fn IsSubComponent(&self) -> bool { self.inner.is_subcomponent() }
+    fn IsSubComponent(&self) -> bool {
+        self.inner.is_subcomponent()
+    }
     #[allow(non_snake_case)]
-    fn HasDefiningSpecifier(&self) -> bool { self.inner.has_defining_specifier() }
+    fn HasDefiningSpecifier(&self) -> bool {
+        self.inner.has_defining_specifier()
+    }
     #[allow(non_snake_case)]
-    fn HasAuthoredActive(&self) -> bool { self.inner.has_authored_active() }
+    fn HasAuthoredActive(&self) -> bool {
+        self.inner.has_authored_active()
+    }
     #[allow(non_snake_case)]
-    fn ClearActive(&self) -> bool { self.inner.clear_active() }
+    fn ClearActive(&self) -> bool {
+        self.inner.clear_active()
+    }
     #[allow(non_snake_case)]
-    fn HasProperty(&self, name: &str) -> bool { self.inner.get_property_names().iter().any(|t| t.as_str() == name) }
+    fn HasProperty(&self, name: &str) -> bool {
+        self.inner
+            .get_property_names()
+            .iter()
+            .any(|t| t.as_str() == name)
+    }
     #[allow(non_snake_case)]
-    fn RemoveProperty(&self, name: &str) -> bool { self.inner.remove_property(name) }
+    fn RemoveProperty(&self, name: &str) -> bool {
+        self.inner.remove_property(name)
+    }
     #[allow(non_snake_case)]
     fn GetProperty(&self, name: &str) -> Option<PyAttribute> {
         let attr = self.inner.get_attribute(name);
-        attr.map(|a| PyAttribute { inner: a, _stage: self._stage.clone() })
+        attr.map(|a| PyAttribute {
+            inner: a,
+            _stage: self._stage.clone(),
+        })
     }
     #[allow(non_snake_case)]
     fn GetAuthoredAttributes(&self) -> Vec<PyAttribute> {
-        self.inner.get_attributes()
+        self.inner
+            .get_attributes()
             .into_iter()
-            .map(|a| PyAttribute { inner: a, _stage: self._stage.clone() })
+            .map(|a| PyAttribute {
+                inner: a,
+                _stage: self._stage.clone(),
+            })
             .collect()
     }
     #[allow(non_snake_case)]
     fn GetAuthoredRelationships(&self) -> Vec<PyRelationship> {
-        self.inner.get_relationships()
+        self.inner
+            .get_relationships()
             .into_iter()
-            .map(|r| PyRelationship { inner: r, _stage: self._stage.clone() })
+            .map(|r| PyRelationship {
+                inner: r,
+                _stage: self._stage.clone(),
+            })
             .collect()
     }
     #[allow(non_snake_case)]
     fn GetPropertyOrder(&self) -> Vec<String> {
-        self.inner.get_property_order().iter().map(|t| t.as_str().to_string()).collect()
+        self.inner
+            .get_property_order()
+            .iter()
+            .map(|t| t.as_str().to_string())
+            .collect()
     }
     #[allow(non_snake_case)]
     fn SetPropertyOrder(&self, order: Vec<String>) {
@@ -1392,7 +1597,9 @@ impl PyPrim {
         self.inner.set_property_order(tokens);
     }
     #[allow(non_snake_case)]
-    fn ClearPropertyOrder(&self) { self.inner.clear_property_order(); }
+    fn ClearPropertyOrder(&self) {
+        self.inner.clear_property_order();
+    }
     #[allow(non_snake_case)]
     fn Load(&self) -> PyPrim {
         self._stage.load(&self.inner.get_path(), None);
@@ -1405,24 +1612,34 @@ impl PyPrim {
     #[allow(non_snake_case)]
     fn GetFilteredChildren(&self, _predicate: &Bound<'_, PyAny>) -> Vec<PyPrim> {
         // TODO: proper predicate support — for now return all children
-        self.inner.get_children()
+        self.inner
+            .get_children()
             .into_iter()
             .map(|p| PyPrim::from_prim(p, self._stage.clone()))
             .collect()
     }
     #[allow(non_snake_case)]
     fn GetFilteredChildrenNames(&self, _predicate: &Bound<'_, PyAny>) -> Vec<String> {
-        self.inner.get_children().iter().map(|p| p.get_name().as_str().to_string()).collect()
+        self.inner
+            .get_children()
+            .iter()
+            .map(|p| p.get_name().as_str().to_string())
+            .collect()
     }
     #[allow(non_snake_case)]
     fn GetPrimAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyPrim>> {
         let s = extract_path_str(path)?;
         let rel_path = usd_sdf::Path::from_string(&s);
         if let Some(p) = rel_path {
-            let abs = if p.is_absolute_path() { p } else {
+            let abs = if p.is_absolute_path() {
+                p
+            } else {
                 self.inner.get_path().append_path(&p).unwrap_or(p)
             };
-            Ok(self._stage.get_prim_at_path(&abs).map(|prim| PyPrim::from_prim(prim, self._stage.clone())))
+            Ok(self
+                ._stage
+                .get_prim_at_path(&abs)
+                .map(|prim| PyPrim::from_prim(prim, self._stage.clone())))
         } else {
             Ok(None)
         }
@@ -1442,7 +1659,10 @@ impl PyPrim {
             return self.inner.get_type_name().as_str() == name
                 || self.inner.is_a(&usd_tf::Token::new(&name));
         }
-        if let Ok(name) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) {
+        if let Ok(name) = schema_type
+            .getattr("__name__")
+            .and_then(|n| n.extract::<String>())
+        {
             return self.inner.is_a(&usd_tf::Token::new(&name));
         }
         false
@@ -1457,25 +1677,46 @@ impl PyPrim {
             }
             return false;
         }
-        let name = if let Ok(s) = schema_type.extract::<String>() { s }
-            else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
-            else { return false; };
+        let name = if let Ok(s) = schema_type.extract::<String>() {
+            s
+        } else if let Ok(n) = schema_type
+            .getattr("__name__")
+            .and_then(|n| n.extract::<String>())
+        {
+            n
+        } else {
+            return false;
+        };
         self.inner.has_api(&usd_tf::Token::new(&name))
     }
     #[allow(non_snake_case)]
     #[pyo3(signature = (schema_type, _instance_name=None))]
     fn ApplyAPI(&self, schema_type: &Bound<'_, PyAny>, _instance_name: Option<&str>) -> bool {
-        let name = if let Ok(s) = schema_type.extract::<String>() { s }
-            else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
-            else { return false; };
+        let name = if let Ok(s) = schema_type.extract::<String>() {
+            s
+        } else if let Ok(n) = schema_type
+            .getattr("__name__")
+            .and_then(|n| n.extract::<String>())
+        {
+            n
+        } else {
+            return false;
+        };
         self.inner.apply_api(&usd_tf::Token::new(&name))
     }
     #[allow(non_snake_case)]
     #[pyo3(signature = (schema_type, _instance_name=None))]
     fn RemoveAPI(&self, schema_type: &Bound<'_, PyAny>, _instance_name: Option<&str>) -> bool {
-        let name = if let Ok(s) = schema_type.extract::<String>() { s }
-            else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
-            else { return false; };
+        let name = if let Ok(s) = schema_type.extract::<String>() {
+            s
+        } else if let Ok(n) = schema_type
+            .getattr("__name__")
+            .and_then(|n| n.extract::<String>())
+        {
+            n
+        } else {
+            return false;
+        };
         self.inner.remove_api(&usd_tf::Token::new(&name))
     }
 
@@ -1515,7 +1756,7 @@ impl PyPrim {
 // UsdVariantSets (lightweight helper returned by prim.GetVariantSets())
 // ============================================================================
 
-#[pyclass(skip_from_py_object,name = "VariantSets", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "VariantSets", module = "pxr_rs.Usd")]
 pub struct PyVariantSets {
     prim: Prim,
     _stage: Arc<Stage>,
@@ -1530,7 +1771,11 @@ impl PyVariantSets {
 
     #[allow(non_snake_case)]
     fn HasVariantSet(&self, name: &str) -> bool {
-        self.prim.get_variant_sets().get_names().iter().any(|n| n == name)
+        self.prim
+            .get_variant_sets()
+            .get_names()
+            .iter()
+            .any(|n| n == name)
     }
 
     #[allow(non_snake_case)]
@@ -1544,7 +1789,9 @@ impl PyVariantSets {
 
     #[allow(non_snake_case)]
     fn GetVariantSelection(&self, variant_set_name: &str) -> String {
-        self.prim.get_variant_sets().get_variant_selection(variant_set_name)
+        self.prim
+            .get_variant_sets()
+            .get_variant_selection(variant_set_name)
     }
 
     /// Add a new variant set to this prim.
@@ -1564,12 +1811,14 @@ impl PyVariantSets {
 
     #[allow(non_snake_case)]
     fn SetSelection(&self, variant_set_name: &str, variant_name: &str) -> bool {
-        self.prim.get_variant_sets().get_variant_set(variant_set_name)
+        self.prim
+            .get_variant_sets()
+            .get_variant_set(variant_set_name)
             .set_variant_selection(variant_name)
     }
 }
 
-#[pyclass(skip_from_py_object,name = "VariantSet", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "VariantSet", module = "pxr_rs.Usd")]
 pub struct PyVariantSet {
     prim: Prim,
     name: String,
@@ -1580,22 +1829,34 @@ pub struct PyVariantSet {
 impl PyVariantSet {
     #[allow(non_snake_case)]
     fn GetVariantNames(&self) -> Vec<String> {
-        self.prim.get_variant_sets().get_variant_set(&self.name).get_variant_names()
+        self.prim
+            .get_variant_sets()
+            .get_variant_set(&self.name)
+            .get_variant_names()
     }
 
     #[allow(non_snake_case)]
     fn GetVariantSelection(&self) -> String {
-        self.prim.get_variant_sets().get_variant_set(&self.name).get_variant_selection()
+        self.prim
+            .get_variant_sets()
+            .get_variant_set(&self.name)
+            .get_variant_selection()
     }
 
     #[allow(non_snake_case)]
     fn SetVariantSelection(&self, variant: &str) -> bool {
-        self.prim.get_variant_sets().get_variant_set(&self.name).set_variant_selection(variant)
+        self.prim
+            .get_variant_sets()
+            .get_variant_set(&self.name)
+            .set_variant_selection(variant)
     }
 
     #[allow(non_snake_case)]
     fn ClearVariantSelection(&self) -> bool {
-        self.prim.get_variant_sets().get_variant_set(&self.name).clear_variant_selection()
+        self.prim
+            .get_variant_sets()
+            .get_variant_set(&self.name)
+            .clear_variant_selection()
     }
 
     /// Add a variant name to this variant set.
@@ -1605,7 +1866,10 @@ impl PyVariantSet {
     #[allow(non_snake_case)]
     fn AddVariant(&self, variant_name: &str, position: &str) -> bool {
         let pos = parse_list_position(position);
-        self.prim.get_variant_sets().get_variant_set(&self.name).add_variant(variant_name, pos)
+        self.prim
+            .get_variant_sets()
+            .get_variant_set(&self.name)
+            .add_variant(variant_name, pos)
     }
 
     /// Get the name of this variant set.
@@ -1632,11 +1896,17 @@ impl PyVariantSet {
     #[allow(non_snake_case)]
     fn GetVariantEditTarget(&self) -> PyEditTarget {
         let vs = self.prim.get_variant_sets().get_variant_set(&self.name);
-        PyEditTarget { inner: vs.get_variant_edit_target() }
+        PyEditTarget {
+            inner: vs.get_variant_edit_target(),
+        }
     }
 
     fn __repr__(&self) -> String {
-        format!("Usd.VariantSet('{}' on {})", self.name, self.prim.get_path().as_str())
+        format!(
+            "Usd.VariantSet('{}' on {})",
+            self.name,
+            self.prim.get_path().as_str()
+        )
     }
 
     fn __bool__(&self) -> bool {
@@ -1651,7 +1921,11 @@ impl PyVariantSet {
 /// Context manager that temporarily sets the edit target to a variant.
 ///
 /// Matches C++ `UsdVariantSet::GetVariantEditContext` return value.
-#[pyclass(skip_from_py_object, name = "VariantEditContext", module = "pxr_rs.Usd")]
+#[pyclass(
+    skip_from_py_object,
+    name = "VariantEditContext",
+    module = "pxr_rs.Usd"
+)]
 pub struct PyVariantEditContext {
     stage: Arc<Stage>,
     edit_target: EditTarget,
@@ -1755,7 +2029,8 @@ impl PyReferences {
         kwargs: Option<&Bound<'_, PyDict>>,
     ) -> PyResult<bool> {
         let refs = self.prim.get_references();
-        let pos_str = kwargs.and_then(|kw| kw.get_item("position").ok().flatten())
+        let pos_str = kwargs
+            .and_then(|kw| kw.get_item("position").ok().flatten())
             .and_then(|v| v.extract::<String>().ok())
             .unwrap_or_else(|| "BackOfPrependList".to_string());
         let pos = parse_list_position(&pos_str);
@@ -1772,7 +2047,8 @@ impl PyReferences {
         let asset_path: String = if !args.is_empty() {
             args.get_item(0)?.extract().unwrap_or_default()
         } else {
-            kwargs.and_then(|kw| kw.get_item("assetPath").ok().flatten())
+            kwargs
+                .and_then(|kw| kw.get_item("assetPath").ok().flatten())
                 .and_then(|v| v.extract::<String>().ok())
                 .unwrap_or_default()
         };
@@ -1780,18 +2056,24 @@ impl PyReferences {
         let prim_path: String = if args.len() >= 2 {
             extract_path_str(&args.get_item(1)?).unwrap_or_default()
         } else {
-            kwargs.and_then(|kw| kw.get_item("primPath").ok().flatten())
+            kwargs
+                .and_then(|kw| kw.get_item("primPath").ok().flatten())
                 .and_then(|v| extract_path_str(&v).ok())
                 .unwrap_or_default()
         };
 
         let layer_offset = if args.len() >= 3 {
-            args.get_item(2)?.extract::<crate::sdf::PyLayerOffset>().ok()
+            args.get_item(2)?
+                .extract::<crate::sdf::PyLayerOffset>()
+                .ok()
         } else {
-            kwargs.and_then(|kw| kw.get_item("layerOffset").ok().flatten())
+            kwargs
+                .and_then(|kw| kw.get_item("layerOffset").ok().flatten())
                 .and_then(|v| v.extract::<crate::sdf::PyLayerOffset>().ok())
         };
-        let offset = layer_offset.map(|lo| lo.to_layer_offset()).unwrap_or_default();
+        let offset = layer_offset
+            .map(|lo| lo.to_layer_offset())
+            .unwrap_or_default();
 
         if args.len() >= 4 {
             // 4th positional = position
@@ -1800,7 +2082,11 @@ impl PyReferences {
                 if prim_path.is_empty() && !asset_path.is_empty() {
                     return Ok(refs.add_reference_to_default_prim(&asset_path, offset, pos));
                 }
-                let p = if prim_path.is_empty() { Path::empty() } else { path_from_str(&prim_path)? };
+                let p = if prim_path.is_empty() {
+                    Path::empty()
+                } else {
+                    path_from_str(&prim_path)?
+                };
                 return Ok(refs.add_reference_with_path(&asset_path, &p, offset, pos));
             }
         }
@@ -1808,7 +2094,11 @@ impl PyReferences {
         if prim_path.is_empty() && !asset_path.is_empty() {
             Ok(refs.add_reference_to_default_prim(&asset_path, offset, pos))
         } else if !asset_path.is_empty() || !prim_path.is_empty() {
-            let p = if prim_path.is_empty() { Path::empty() } else { path_from_str(&prim_path)? };
+            let p = if prim_path.is_empty() {
+                Path::empty()
+            } else {
+                path_from_str(&prim_path)?
+            };
             Ok(refs.add_reference_with_path(&asset_path, &p, offset, pos))
         } else {
             let reference = usd_sdf::Reference::default();
@@ -1828,7 +2118,9 @@ impl PyReferences {
         let prim_path_str = extract_path_str(prim_path)?;
         let refs = self.prim.get_references();
         let pos = parse_list_position(position);
-        let offset = layer_offset.map(|lo| lo.to_layer_offset()).unwrap_or_default();
+        let offset = layer_offset
+            .map(|lo| lo.to_layer_offset())
+            .unwrap_or_default();
         let p = path_from_str(&prim_path_str)?;
         Ok(refs.add_internal_reference(&p, offset, pos))
     }
@@ -1881,7 +2173,9 @@ impl PyPayloads {
     ) -> PyResult<bool> {
         let payloads = self.prim.get_payloads();
         let pos = parse_list_position(position);
-        let offset = layer_offset.map(|lo| lo.to_layer_offset()).unwrap_or_default();
+        let offset = layer_offset
+            .map(|lo| lo.to_layer_offset())
+            .unwrap_or_default();
 
         if prim_path.is_empty() && !asset_path.is_empty() {
             Ok(payloads.add_payload_to_default_prim(asset_path, offset, pos))
@@ -1908,7 +2202,9 @@ impl PyPayloads {
     ) -> PyResult<bool> {
         let payloads = self.prim.get_payloads();
         let pos = parse_list_position(position);
-        let offset = layer_offset.map(|lo| lo.to_layer_offset()).unwrap_or_default();
+        let offset = layer_offset
+            .map(|lo| lo.to_layer_offset())
+            .unwrap_or_default();
         let p = path_from_str(prim_path)?;
         Ok(payloads.add_internal_payload(&p, offset, pos))
     }
@@ -1978,7 +2274,8 @@ impl PyInherits {
 
     #[allow(non_snake_case)]
     fn GetAllDirectInherits(&self) -> Vec<String> {
-        self.prim.get_inherits()
+        self.prim
+            .get_inherits()
             .get_all_direct_inherits()
             .iter()
             .map(|p| p.as_str().to_string())
@@ -2095,7 +2392,7 @@ impl PyResolveInfo {
 /// A typed, time-varying attribute on a prim.
 ///
 /// Matches C++ `UsdAttribute`.
-#[pyclass(skip_from_py_object,name = "Attribute", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Attribute", module = "pxr_rs.Usd")]
 #[derive(Clone)]
 pub struct PyAttribute {
     pub(crate) inner: Attribute,
@@ -2106,11 +2403,16 @@ impl PyAttribute {
     /// Construct from a bare Attribute (geom wrappers).
     pub(crate) fn from_attr(attr: Attribute) -> Self {
         static DUMMY: std::sync::OnceLock<Arc<Stage>> = std::sync::OnceLock::new();
-        let stage = DUMMY.get_or_init(|| {
-            Stage::create_new("__dummy_attr__", InitialLoadSet::LoadNone)
-                .expect("dummy stage creation")
-        }).clone();
-        Self { inner: attr, _stage: stage }
+        let stage = DUMMY
+            .get_or_init(|| {
+                Stage::create_new("__dummy_attr__", InitialLoadSet::LoadNone)
+                    .expect("dummy stage creation")
+            })
+            .clone();
+        Self {
+            inner: attr,
+            _stage: stage,
+        }
     }
 }
 
@@ -2151,7 +2453,12 @@ impl PyAttribute {
 
     #[allow(non_snake_case)]
     fn SplitName(&self) -> Vec<String> {
-        self.inner.as_property().split_name().iter().map(|t| t.as_str().to_string()).collect()
+        self.inner
+            .as_property()
+            .split_name()
+            .iter()
+            .map(|t| t.as_str().to_string())
+            .collect()
     }
 
     #[allow(non_snake_case)]
@@ -2279,19 +2586,36 @@ impl PyAttribute {
         let (lo, hi) = if args.len() == 1 {
             // Gf.Interval object: extract min/max
             let interval = args.get_item(0)?;
-            let lo = interval.getattr("min")
+            let lo = interval
+                .getattr("min")
                 .and_then(|v| v.extract::<f64>())
-                .or_else(|_| interval.getattr("GetMin").and_then(|f| f.call0()).and_then(|v| v.extract::<f64>()))
+                .or_else(|_| {
+                    interval
+                        .getattr("GetMin")
+                        .and_then(|f| f.call0())
+                        .and_then(|v| v.extract::<f64>())
+                })
                 .unwrap_or(f64::NEG_INFINITY);
-            let hi = interval.getattr("max")
+            let hi = interval
+                .getattr("max")
                 .and_then(|v| v.extract::<f64>())
-                .or_else(|_| interval.getattr("GetMax").and_then(|f| f.call0()).and_then(|v| v.extract::<f64>()))
+                .or_else(|_| {
+                    interval
+                        .getattr("GetMax")
+                        .and_then(|f| f.call0())
+                        .and_then(|v| v.extract::<f64>())
+                })
                 .unwrap_or(f64::INFINITY);
             (lo, hi)
         } else if args.len() == 2 {
-            (args.get_item(0)?.extract::<f64>()?, args.get_item(1)?.extract::<f64>()?)
+            (
+                args.get_item(0)?.extract::<f64>()?,
+                args.get_item(1)?.extract::<f64>()?,
+            )
         } else {
-            return Err(PyValueError::new_err("GetTimeSamplesInInterval expects 1 or 2 arguments"));
+            return Err(PyValueError::new_err(
+                "GetTimeSamplesInInterval expects 1 or 2 arguments",
+            ));
         };
         Ok(self.inner.get_time_samples_in_interval(lo, hi))
     }
@@ -2488,7 +2812,8 @@ impl PyAttribute {
         };
         dict.set_item("variability", variability_py)?;
         dict.set_item("custom", self.inner.as_property().is_custom())?;
-        if self.inner.path().get_name() == "visibility" && dict.get_item("allowedTokens").ok().flatten().is_none()
+        if self.inner.path().get_name() == "visibility"
+            && dict.get_item("allowedTokens").ok().flatten().is_none()
         {
             let toks = usd_vt::Array::<String>::from(vec![
                 "inherited".to_string(),
@@ -2511,7 +2836,8 @@ impl PyAttribute {
 
     #[allow(non_snake_case)]
     fn SetDisplayGroup(&self, group: &str) -> bool {
-        self.inner.set_metadata(&Token::new("displayGroup"), Value::from(group.to_string()))
+        self.inner
+            .set_metadata(&Token::new("displayGroup"), Value::from(group.to_string()))
     }
 
     #[allow(non_snake_case)]
@@ -2524,7 +2850,8 @@ impl PyAttribute {
 
     #[allow(non_snake_case)]
     fn SetDisplayName(&self, name: &str) -> bool {
-        self.inner.set_metadata(&Token::new("displayName"), Value::from(name.to_string()))
+        self.inner
+            .set_metadata(&Token::new("displayName"), Value::from(name.to_string()))
     }
 
     // -- Authoring status --------------------------------------------------
@@ -2570,11 +2897,17 @@ impl PyAttribute {
     // -- Missing Attribute methods from C++ reference -----------------------
 
     #[allow(non_snake_case)]
-    fn BlockAnimation(&self) { self.inner.block_animation(); }
+    fn BlockAnimation(&self) {
+        self.inner.block_animation();
+    }
     #[allow(non_snake_case)]
-    fn HasAuthoredConnections(&self) -> bool { self.inner.has_authored_connections() }
+    fn HasAuthoredConnections(&self) -> bool {
+        self.inner.has_authored_connections()
+    }
     #[allow(non_snake_case)]
-    fn HasAuthoredValueOpinion(&self) -> bool { self.inner.has_authored_value() }
+    fn HasAuthoredValueOpinion(&self) -> bool {
+        self.inner.has_authored_value()
+    }
     #[allow(non_snake_case)]
     fn GetFallbackValue(&self) -> Option<String> {
         self.inner.get_fallback_value().map(|v| format!("{:?}", v))
@@ -2582,7 +2915,9 @@ impl PyAttribute {
     #[allow(non_snake_case)]
     fn SetVariability(&self, variability: &str) -> bool {
         let var = match variability {
-            "uniform" | "Uniform" | "SdfVariabilityUniform" => usd_core::attribute::Variability::Uniform,
+            "uniform" | "Uniform" | "SdfVariabilityUniform" => {
+                usd_core::attribute::Variability::Uniform
+            }
             _ => usd_core::attribute::Variability::Varying,
         };
         self.inner.set_variability(var)
@@ -2615,7 +2950,7 @@ impl PyAttribute {
 /// A property that holds paths to other prims/properties.
 ///
 /// Matches C++ `UsdRelationship`.
-#[pyclass(skip_from_py_object,name = "Relationship", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Relationship", module = "pxr_rs.Usd")]
 #[derive(Clone)]
 pub struct PyRelationship {
     inner: Relationship,
@@ -2677,12 +3012,20 @@ impl PyRelationship {
 
     #[allow(non_snake_case)]
     fn GetTargets(&self) -> Vec<String> {
-        self.inner.get_targets().iter().map(|p| p.as_str().to_string()).collect()
+        self.inner
+            .get_targets()
+            .iter()
+            .map(|p| p.as_str().to_string())
+            .collect()
     }
 
     #[allow(non_snake_case)]
     fn GetForwardedTargets(&self) -> Vec<String> {
-        self.inner.get_forwarded_targets().iter().map(|p| p.as_str().to_string()).collect()
+        self.inner
+            .get_forwarded_targets()
+            .iter()
+            .map(|p| p.as_str().to_string())
+            .collect()
     }
 
     #[pyo3(signature = (target, position = "BackOfPrependList"))]
@@ -2784,7 +3127,10 @@ impl PyRelationship {
 
     #[allow(non_snake_case)]
     fn HasMetadata(&self, key: &str) -> bool {
-        self.inner.as_property().get_metadata(&Token::new(key)).is_some()
+        self.inner
+            .as_property()
+            .get_metadata(&Token::new(key))
+            .is_some()
     }
 
     #[allow(non_snake_case)]
@@ -2796,7 +3142,8 @@ impl PyRelationship {
 
     #[allow(non_snake_case)]
     fn GetDisplayGroup(&self) -> String {
-        self.inner.as_property()
+        self.inner
+            .as_property()
             .get_metadata(&Token::new("displayGroup"))
             .and_then(|v| v.downcast_clone::<String>())
             .unwrap_or_default()
@@ -2804,10 +3151,9 @@ impl PyRelationship {
 
     #[allow(non_snake_case)]
     fn SetDisplayGroup(&self, group: &str) -> bool {
-        self.inner.as_property().set_metadata(
-            &Token::new("displayGroup"),
-            Value::from(group.to_string()),
-        )
+        self.inner
+            .as_property()
+            .set_metadata(&Token::new("displayGroup"), Value::from(group.to_string()))
     }
 
     // -- Repr --------------------------------------------------------------
@@ -2839,7 +3185,7 @@ impl PyRelationship {
 /// Base class for all USD schema wrappers.
 ///
 /// Matches C++ `UsdSchemaBase`.
-#[pyclass(skip_from_py_object,name = "SchemaBase", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "SchemaBase", module = "pxr_rs.Usd")]
 pub struct PySchemaBase {
     prim: Prim,
     _stage: Arc<Stage>,
@@ -2870,7 +3216,7 @@ impl PySchemaBase {
 /// The outermost container for scene description.
 ///
 /// Matches C++ `UsdStage`.
-#[pyclass(skip_from_py_object,name = "Stage", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Stage", module = "pxr_rs.Usd")]
 pub struct PyStage {
     pub(crate) inner: Arc<Stage>,
 }
@@ -2946,9 +3292,7 @@ impl PyStage {
         let load_set = parse_load(&load_str)?;
 
         let stage = match (identifier.as_deref(), session_layer) {
-            (Some(id), Some(sess)) => {
-                Stage::create_in_memory_with_session(id, sess, load_set)
-            }
+            (Some(id), Some(sess)) => Stage::create_in_memory_with_session(id, sess, load_set),
             (Some(id), None) => Stage::create_in_memory_with_identifier(id, load_set),
             (None, _) => Stage::create_in_memory(load_set),
         }
@@ -2963,12 +3307,11 @@ impl PyStage {
     #[staticmethod]
     #[pyo3(signature = (*args, **kwargs))]
     #[allow(non_snake_case)]
-    fn Open(
-        args: &Bound<'_, PyTuple>,
-        kwargs: Option<&Bound<'_, PyDict>>,
-    ) -> PyResult<Self> {
+    fn Open(args: &Bound<'_, PyTuple>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
         if args.is_empty() {
-            return Err(PyValueError::new_err("Stage.Open() requires at least 1 argument"));
+            return Err(PyValueError::new_err(
+                "Stage.Open() requires at least 1 argument",
+            ));
         }
 
         let file_path = args.get_item(0)?;
@@ -3060,11 +3403,15 @@ impl PyStage {
 
     #[classattr]
     #[allow(non_snake_case)]
-    fn LoadAll() -> &'static str { "LoadAll" }
+    fn LoadAll() -> &'static str {
+        "LoadAll"
+    }
 
     #[classattr]
     #[allow(non_snake_case)]
-    fn LoadNone() -> &'static str { "LoadNone" }
+    fn LoadNone() -> &'static str {
+        "LoadNone"
+    }
 
     // -- Prim access -------------------------------------------------------
 
@@ -3072,9 +3419,10 @@ impl PyStage {
     fn GetPrimAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyPrim>> {
         let s = extract_path_str(path)?;
         let p = path_from_str(&s)?;
-        Ok(self.inner.get_prim_at_path(&p).map(|prim| {
-            PyPrim::from_prim(prim, self.inner.clone())
-        }))
+        Ok(self
+            .inner
+            .get_prim_at_path(&p)
+            .map(|prim| PyPrim::from_prim(prim, self.inner.clone())))
     }
 
     #[allow(non_snake_case)]
@@ -3111,13 +3459,22 @@ impl PyStage {
 
     #[pyo3(signature = (path, type_name = "", **kwargs))]
     #[allow(non_snake_case)]
-    fn DefinePrim(&self, path: &Bound<'_, PyAny>, type_name: &str, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<PyPrim> {
+    fn DefinePrim(
+        &self,
+        path: &Bound<'_, PyAny>,
+        type_name: &str,
+        kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyPrim> {
         // Support both positional type_name and keyword typeName
         let type_name = if let Some(kw) = kwargs {
             if let Some(tn) = kw.get_item("typeName")? {
                 tn.extract::<String>()?
-            } else { type_name.to_owned() }
-        } else { type_name.to_owned() };
+            } else {
+                type_name.to_owned()
+            }
+        } else {
+            type_name.to_owned()
+        };
         let type_name = &type_name;
         let s = extract_path_str(path)?;
         self.inner
@@ -3174,23 +3531,32 @@ impl PyStage {
     #[allow(non_snake_case)]
     fn HasLocalLayer(&self, layer: &crate::sdf::PyLayer) -> bool {
         let target_id = layer.layer().identifier().to_string();
-        self.inner.layer_stack().iter().any(|l| l.identifier() == target_id)
+        self.inner
+            .layer_stack()
+            .iter()
+            .any(|l| l.identifier() == target_id)
     }
 
     #[allow(non_snake_case)]
     fn GetSessionLayer(&self) -> Option<crate::sdf::PyLayer> {
-        self.inner.get_session_layer().map(|l| crate::sdf::PyLayer::from_layer_arc(l))
+        self.inner
+            .get_session_layer()
+            .map(|l| crate::sdf::PyLayer::from_layer_arc(l))
     }
 
     #[pyo3(signature = (includeSessionLayers = true))]
     #[allow(non_snake_case)]
     fn GetLayerStack(&self, py: Python<'_>, includeSessionLayers: bool) -> Py<PyAny> {
-        let layers: Vec<crate::sdf::PyLayer> = self.inner.layer_stack()
+        let layers: Vec<crate::sdf::PyLayer> = self
+            .inner
+            .layer_stack()
             .iter()
             .filter(|l| includeSessionLayers || !l.is_anonymous())
             .map(|l| crate::sdf::PyLayer::from_layer_arc(l.clone()))
             .collect();
-        PyList::new(py, layers).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None())
+        PyList::new(py, layers)
+            .map(|l| l.into_any().unbind())
+            .unwrap_or_else(|_| py.None())
     }
 
     #[allow(non_snake_case)]
@@ -3217,7 +3583,9 @@ impl PyStage {
 
     #[allow(non_snake_case)]
     fn GetEditTarget(&self) -> PyEditTarget {
-        PyEditTarget { inner: self.inner.get_edit_target() }
+        PyEditTarget {
+            inner: self.inner.get_edit_target(),
+        }
     }
 
     /// Set the edit target. Accepts `EditTarget` or `Sdf.Layer`.
@@ -3229,7 +3597,9 @@ impl PyStage {
             let et = self.inner.get_edit_target_for_local_layer(layer.layer());
             self.inner.set_edit_target(et);
         } else {
-            return Err(PyValueError::new_err("SetEditTarget expects Usd.EditTarget or Sdf.Layer"));
+            return Err(PyValueError::new_err(
+                "SetEditTarget expects Usd.EditTarget or Sdf.Layer",
+            ));
         }
         Ok(())
     }
@@ -3288,14 +3658,18 @@ impl PyStage {
     #[pyo3(signature = (file_path, add_source_file_comment = true))]
     #[allow(non_snake_case)]
     fn Export(&self, file_path: &str, add_source_file_comment: bool) -> PyResult<bool> {
-        self.inner.export(file_path, add_source_file_comment).map_err(to_py_err)
+        self.inner
+            .export(file_path, add_source_file_comment)
+            .map_err(to_py_err)
     }
 
     /// Export the stage to a string.
     #[pyo3(signature = (add_source_file_comment = true))]
     #[allow(non_snake_case)]
     fn ExportToString(&self, add_source_file_comment: bool) -> PyResult<String> {
-        self.inner.export_to_string(add_source_file_comment).map_err(to_py_err)
+        self.inner
+            .export_to_string(add_source_file_comment)
+            .map_err(to_py_err)
     }
 
     /// Reload all layers in the layer stack from disk.
@@ -3348,7 +3722,9 @@ impl PyStage {
             }
             None => None,
         };
-        Ok(self.inner.find_loadable(p.as_ref())
+        Ok(self
+            .inner
+            .find_loadable(p.as_ref())
             .into_iter()
             .map(|path| path.as_str().to_string())
             .collect())
@@ -3357,7 +3733,8 @@ impl PyStage {
     /// Return the set of loaded paths.
     #[allow(non_snake_case)]
     fn GetLoadSet(&self) -> Vec<String> {
-        self.inner.get_load_set()
+        self.inner
+            .get_load_set()
             .into_iter()
             .map(|p| p.as_str().to_string())
             .collect()
@@ -3453,7 +3830,8 @@ impl PyStage {
     /// Return the color management system.
     #[allow(non_snake_case)]
     fn GetColorManagementSystem(&self) -> String {
-        self.inner.get_color_management_system()
+        self.inner
+            .get_color_management_system()
             .map(|t| t.as_str().to_string())
             .unwrap_or_default()
     }
@@ -3470,7 +3848,9 @@ impl PyStage {
     fn GetColorConfigFallbacks() -> (String, String) {
         let (asset, cms) = Stage::get_color_config_fallbacks();
         (
-            asset.map(|a| a.get_asset_path().to_string()).unwrap_or_default(),
+            asset
+                .map(|a| a.get_asset_path().to_string())
+                .unwrap_or_default(),
             cms.map(|t| t.as_str().to_string()).unwrap_or_default(),
         )
     }
@@ -3519,19 +3899,37 @@ impl PyStage {
         // If it's a property path, try attribute then relationship
         if p.is_property_path() {
             if let Some(a) = self.inner.get_attribute_at_path(&p) {
-                let py_attr = PyAttribute { inner: a, _stage: self.inner.clone() };
-                return Ok(py_attr.into_pyobject(py).map_err(to_py_err)?.into_any().unbind());
+                let py_attr = PyAttribute {
+                    inner: a,
+                    _stage: self.inner.clone(),
+                };
+                return Ok(py_attr
+                    .into_pyobject(py)
+                    .map_err(to_py_err)?
+                    .into_any()
+                    .unbind());
             }
             if let Some(r) = self.inner.get_relationship_at_path(&p) {
-                let py_rel = PyRelationship { inner: r, _stage: self.inner.clone() };
-                return Ok(py_rel.into_pyobject(py).map_err(to_py_err)?.into_any().unbind());
+                let py_rel = PyRelationship {
+                    inner: r,
+                    _stage: self.inner.clone(),
+                };
+                return Ok(py_rel
+                    .into_pyobject(py)
+                    .map_err(to_py_err)?
+                    .into_any()
+                    .unbind());
             }
         }
 
         // Otherwise try as prim
         if let Some(prim) = self.inner.get_prim_at_path(&p) {
             let py_prim = PyPrim::from_prim(prim, self.inner.clone());
-            return Ok(py_prim.into_pyobject(py).map_err(to_py_err)?.into_any().unbind());
+            return Ok(py_prim
+                .into_pyobject(py)
+                .map_err(to_py_err)?
+                .into_any()
+                .unbind());
         }
 
         Ok(py.None())
@@ -3543,12 +3941,26 @@ impl PyStage {
         let s = extract_path_str(path)?;
         let p = path_from_str(&s)?;
         if let Some(a) = self.inner.get_attribute_at_path(&p) {
-            let py_attr = PyAttribute { inner: a, _stage: self.inner.clone() };
-            return Ok(py_attr.into_pyobject(py).map_err(to_py_err)?.into_any().unbind());
+            let py_attr = PyAttribute {
+                inner: a,
+                _stage: self.inner.clone(),
+            };
+            return Ok(py_attr
+                .into_pyobject(py)
+                .map_err(to_py_err)?
+                .into_any()
+                .unbind());
         }
         if let Some(r) = self.inner.get_relationship_at_path(&p) {
-            let py_rel = PyRelationship { inner: r, _stage: self.inner.clone() };
-            return Ok(py_rel.into_pyobject(py).map_err(to_py_err)?.into_any().unbind());
+            let py_rel = PyRelationship {
+                inner: r,
+                _stage: self.inner.clone(),
+            };
+            return Ok(py_rel
+                .into_pyobject(py)
+                .map_err(to_py_err)?
+                .into_any()
+                .unbind());
         }
         Ok(py.None())
     }
@@ -3558,8 +3970,10 @@ impl PyStage {
     fn GetAttributeAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyAttribute>> {
         let s = extract_path_str(path)?;
         let p = path_from_str(&s)?;
-        Ok(self.inner.get_attribute_at_path(&p)
-            .map(|a| PyAttribute { inner: a, _stage: self.inner.clone() }))
+        Ok(self.inner.get_attribute_at_path(&p).map(|a| PyAttribute {
+            inner: a,
+            _stage: self.inner.clone(),
+        }))
     }
 
     /// Get a relationship by its full path.
@@ -3567,8 +3981,13 @@ impl PyStage {
     fn GetRelationshipAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyRelationship>> {
         let s = extract_path_str(path)?;
         let p = path_from_str(&s)?;
-        Ok(self.inner.get_relationship_at_path(&p)
-            .map(|r| PyRelationship { inner: r, _stage: self.inner.clone() }))
+        Ok(self
+            .inner
+            .get_relationship_at_path(&p)
+            .map(|r| PyRelationship {
+                inner: r,
+                _stage: self.inner.clone(),
+            }))
     }
 
     // -- GetUsedLayers ----------------------------------------------------
@@ -3597,7 +4016,8 @@ impl PyStage {
     /// Simultaneously mute and unmute layers.
     #[allow(non_snake_case)]
     fn MuteAndUnmuteLayers(&self, mute_layers: Vec<String>, unmute_layers: Vec<String>) {
-        self.inner.mute_and_unmute_layers(&mute_layers, &unmute_layers);
+        self.inner
+            .mute_and_unmute_layers(&mute_layers, &unmute_layers);
     }
 
     // -- GetEditTargetForLocalLayer ----------------------------------------
@@ -3614,7 +4034,10 @@ impl PyStage {
     #[allow(non_snake_case)]
     fn GetPopulationMask(&self) -> PyStagePopulationMask {
         PyStagePopulationMask {
-            inner: self.inner.get_population_mask().unwrap_or_else(StagePopulationMask::new),
+            inner: self
+                .inner
+                .get_population_mask()
+                .unwrap_or_else(StagePopulationMask::new),
         }
     }
 
@@ -3681,15 +4104,18 @@ impl PyStage {
         paths_to_unload: Vec<String>,
         policy: Option<&str>,
     ) {
-        let load_paths: Vec<usd_sdf::Path> = paths_to_load.iter()
+        let load_paths: Vec<usd_sdf::Path> = paths_to_load
+            .iter()
             .filter_map(|s| usd_sdf::Path::from_string(s))
             .collect();
-        let unload_paths: Vec<usd_sdf::Path> = paths_to_unload.iter()
+        let unload_paths: Vec<usd_sdf::Path> = paths_to_unload
+            .iter()
             .filter_map(|s| usd_sdf::Path::from_string(s))
             .collect();
         let _ = policy;
         let load_set: std::collections::HashSet<usd_sdf::Path> = load_paths.into_iter().collect();
-        let unload_set: std::collections::HashSet<usd_sdf::Path> = unload_paths.into_iter().collect();
+        let unload_set: std::collections::HashSet<usd_sdf::Path> =
+            unload_paths.into_iter().collect();
         self.inner.load_and_unload(&load_set, &unload_set, None);
     }
 
@@ -3703,7 +4129,8 @@ impl PyStage {
     #[pyo3(signature = (key, key_path=None))]
     fn GetMetadataByDictKey(&self, key: &str, key_path: Option<&str>) -> Option<String> {
         let _ = key_path;
-        self.inner.get_metadata(&usd_tf::Token::new(key))
+        self.inner
+            .get_metadata(&usd_tf::Token::new(key))
             .map(|v| format!("{:?}", v))
     }
 
@@ -3745,7 +4172,10 @@ impl PyStage {
     // -- Repr --------------------------------------------------------------
 
     fn __repr__(&self) -> String {
-        format!("Usd.Stage.Open('{}')", self.inner.get_root_layer().identifier())
+        format!(
+            "Usd.Stage.Open('{}')",
+            self.inner.get_root_layer().identifier()
+        )
     }
 
     fn __str__(&self) -> String {
@@ -3799,34 +4229,54 @@ impl PyPrimResyncType {
     // Enum values as class attributes — accessible as PrimResyncType.Delete etc.
     #[classattr]
     #[allow(non_snake_case)]
-    fn RenameSource() -> Self { Self { value: 0 } }
+    fn RenameSource() -> Self {
+        Self { value: 0 }
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn RenameDestination() -> Self { Self { value: 1 } }
+    fn RenameDestination() -> Self {
+        Self { value: 1 }
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn ReparentSource() -> Self { Self { value: 2 } }
+    fn ReparentSource() -> Self {
+        Self { value: 2 }
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn ReparentDestination() -> Self { Self { value: 3 } }
+    fn ReparentDestination() -> Self {
+        Self { value: 3 }
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn RenameAndReparentSource() -> Self { Self { value: 4 } }
+    fn RenameAndReparentSource() -> Self {
+        Self { value: 4 }
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn RenameAndReparentDestination() -> Self { Self { value: 5 } }
+    fn RenameAndReparentDestination() -> Self {
+        Self { value: 5 }
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn Delete() -> Self { Self { value: 6 } }
+    fn Delete() -> Self {
+        Self { value: 6 }
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn UnchangedPrimStack() -> Self { Self { value: 7 } }
+    fn UnchangedPrimStack() -> Self {
+        Self { value: 7 }
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn Other() -> Self { Self { value: 8 } }
+    fn Other() -> Self {
+        Self { value: 8 }
+    }
     #[classattr]
     #[allow(non_snake_case)]
-    fn Invalid() -> Self { Self { value: 9 } }
+    fn Invalid() -> Self {
+        Self { value: 9 }
+    }
 
     fn __repr__(&self) -> String {
         let name = match self.value {
@@ -3875,11 +4325,19 @@ impl PyObjectsChanged {
 // ============================================================================
 
 /// Stub for `UsdNotice::StageContentsChanged`.
-#[pyclass(skip_from_py_object, name = "StageContentsChanged", module = "pxr_rs.Usd")]
+#[pyclass(
+    skip_from_py_object,
+    name = "StageContentsChanged",
+    module = "pxr_rs.Usd"
+)]
 pub struct PyStageContentsChanged;
 
 /// Stub for `UsdNotice::StageEditTargetChanged`.
-#[pyclass(skip_from_py_object, name = "StageEditTargetChanged", module = "pxr_rs.Usd")]
+#[pyclass(
+    skip_from_py_object,
+    name = "StageEditTargetChanged",
+    module = "pxr_rs.Usd"
+)]
 pub struct PyStageEditTargetChanged;
 
 // ============================================================================
@@ -3930,27 +4388,49 @@ pub struct PyVersionPolicy {
 
 #[pymethods]
 impl PyVersionPolicy {
-    #[classattr] #[allow(non_snake_case)]
-    fn All() -> Self { Self { value: 0 } }
-    #[classattr] #[allow(non_snake_case)]
-    fn GreaterThan() -> Self { Self { value: 1 } }
-    #[classattr] #[allow(non_snake_case)]
-    fn GreaterThanOrEqual() -> Self { Self { value: 2 } }
-    #[classattr] #[allow(non_snake_case)]
-    fn LessThan() -> Self { Self { value: 3 } }
-    #[classattr] #[allow(non_snake_case)]
-    fn LessThanOrEqual() -> Self { Self { value: 4 } }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn All() -> Self {
+        Self { value: 0 }
+    }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn GreaterThan() -> Self {
+        Self { value: 1 }
+    }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn GreaterThanOrEqual() -> Self {
+        Self { value: 2 }
+    }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn LessThan() -> Self {
+        Self { value: 3 }
+    }
+    #[classattr]
+    #[allow(non_snake_case)]
+    fn LessThanOrEqual() -> Self {
+        Self { value: 4 }
+    }
 
     fn __repr__(&self) -> String {
         let name = match self.value {
-            0 => "All", 1 => "GreaterThan", 2 => "GreaterThanOrEqual",
-            3 => "LessThan", _ => "LessThanOrEqual",
+            0 => "All",
+            1 => "GreaterThan",
+            2 => "GreaterThanOrEqual",
+            3 => "LessThan",
+            _ => "LessThanOrEqual",
         };
         format!("Usd.SchemaRegistry.VersionPolicy.{name}")
     }
 
-    fn __eq__(&self, other: &Self) -> bool { self.value == other.value }
-    fn __hash__(&self) -> u64 { self.value as u64 }
+    fn __eq__(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+    fn __hash__(&self) -> u64 {
+        self.value as u64
+    }
 }
 
 /// Singleton registry of schema types and definitions.
@@ -3993,9 +4473,7 @@ impl PySchemaRegistry {
     /// Parse a schema family name and version from an identifier string.
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn ParseSchemaFamilyAndVersionFromIdentifier(
-        identifier: &str,
-    ) -> (String, u32) {
+    fn ParseSchemaFamilyAndVersionFromIdentifier(identifier: &str) -> (String, u32) {
         // Simple parsing: if ends with _N, split off N as version
         if let Some(idx) = identifier.rfind('_') {
             if let Ok(ver) = identifier[idx + 1..].parse::<u32>() {
@@ -4022,10 +4500,7 @@ impl PySchemaRegistry {
     /// Build a schema identifier from family + version.
     #[staticmethod]
     #[allow(non_snake_case)]
-    fn MakeSchemaIdentifierForFamilyAndVersion(
-        family: &str,
-        version: u32,
-    ) -> String {
+    fn MakeSchemaIdentifierForFamilyAndVersion(family: &str, version: u32) -> String {
         if version == 0 {
             family.to_string()
         } else {
@@ -4079,7 +4554,11 @@ pub struct PyNamespaceEditor {
 }
 
 /// Options for namespace editor behavior.
-#[pyclass(skip_from_py_object, name = "NamespaceEditorEditOptions", module = "pxr_rs.Usd")]
+#[pyclass(
+    skip_from_py_object,
+    name = "NamespaceEditorEditOptions",
+    module = "pxr_rs.Usd"
+)]
 #[derive(Clone)]
 pub struct PyNamespaceEditorEditOptions {
     inner: usd_core::namespace_editor::EditOptions,
@@ -4089,7 +4568,9 @@ pub struct PyNamespaceEditorEditOptions {
 impl PyNamespaceEditorEditOptions {
     #[new]
     fn new() -> Self {
-        Self { inner: usd_core::namespace_editor::EditOptions::default() }
+        Self {
+            inner: usd_core::namespace_editor::EditOptions::default(),
+        }
     }
 
     #[getter]
@@ -4137,7 +4618,11 @@ impl PyNamespaceEditor {
     }
 
     #[allow(non_snake_case)]
-    fn MovePrimAtPath(&mut self, path: &Bound<'_, PyAny>, new_path: &Bound<'_, PyAny>) -> PyResult<bool> {
+    fn MovePrimAtPath(
+        &mut self,
+        path: &Bound<'_, PyAny>,
+        new_path: &Bound<'_, PyAny>,
+    ) -> PyResult<bool> {
         let s1 = extract_path_str(path)?;
         let s2 = extract_path_str(new_path)?;
         let p1 = path_from_str(&s1)?;
@@ -4162,7 +4647,8 @@ impl PyNamespaceEditor {
 
     #[allow(non_snake_case)]
     fn ReparentPrimUnder(&mut self, prim: &PyPrim, new_parent: &PyPrim, new_name: &str) -> bool {
-        self.inner.reparent_prim_with_name(&prim.inner, &new_parent.inner, &Token::new(new_name))
+        self.inner
+            .reparent_prim_with_name(&prim.inner, &new_parent.inner, &Token::new(new_name))
     }
 
     // -- Property operations -----------------------------------------------
@@ -4175,7 +4661,11 @@ impl PyNamespaceEditor {
     }
 
     #[allow(non_snake_case)]
-    fn MovePropertyAtPath(&mut self, path: &Bound<'_, PyAny>, new_path: &Bound<'_, PyAny>) -> PyResult<bool> {
+    fn MovePropertyAtPath(
+        &mut self,
+        path: &Bound<'_, PyAny>,
+        new_path: &Bound<'_, PyAny>,
+    ) -> PyResult<bool> {
         let s1 = extract_path_str(path)?;
         let s2 = extract_path_str(new_path)?;
         let p1 = path_from_str(&s1)?;
@@ -4187,7 +4677,9 @@ impl PyNamespaceEditor {
     fn RenamePropertyAtPath(&mut self, path: &Bound<'_, PyAny>, new_name: &str) -> PyResult<bool> {
         let s = extract_path_str(path)?;
         let p = path_from_str(&s)?;
-        Ok(self.inner.rename_property_at_path(&p, &Token::new(new_name)))
+        Ok(self
+            .inner
+            .rename_property_at_path(&p, &Token::new(new_name)))
     }
 
     // -- Dependent stages --------------------------------------------------
@@ -4218,7 +4710,9 @@ impl PyNamespaceEditor {
     /// Get layers that need to be edited. Stub: returns layer stack of the stage.
     #[allow(non_snake_case)]
     fn GetLayersToEdit(&self) -> Vec<crate::sdf::PyLayer> {
-        self.inner.stage().layer_stack()
+        self.inner
+            .stage()
+            .layer_stack()
             .iter()
             .map(|l| crate::sdf::PyLayer::from_layer_arc(l.clone()))
             .collect()
@@ -4314,17 +4808,26 @@ impl PyAttributeQuery {
 
     #[allow(non_snake_case)]
     fn ValueMightBeTimeVarying(&self) -> bool {
-        self.attr.as_ref().is_some_and(|a| a.value_might_be_time_varying())
+        self.attr
+            .as_ref()
+            .is_some_and(|a| a.value_might_be_time_varying())
     }
 
     #[allow(non_snake_case)]
     fn GetTimeSamples(&self) -> Vec<f64> {
-        self.attr.as_ref().map(|a| a.get_time_samples()).unwrap_or_default()
+        self.attr
+            .as_ref()
+            .map(|a| a.get_time_samples())
+            .unwrap_or_default()
     }
 
     #[allow(non_snake_case)]
     fn GetBracketingTimeSamples(&self, desired: f64) -> (f64, f64, bool) {
-        match self.attr.as_ref().and_then(|a| a.get_bracketing_time_samples(desired)) {
+        match self
+            .attr
+            .as_ref()
+            .and_then(|a| a.get_bracketing_time_samples(desired))
+        {
             Some((lo, hi)) => (lo, hi, true),
             None => (0.0, 0.0, false),
         }
@@ -4332,7 +4835,10 @@ impl PyAttributeQuery {
 
     #[allow(non_snake_case)]
     fn GetNumTimeSamples(&self) -> usize {
-        self.attr.as_ref().map(|a| a.get_time_samples().len()).unwrap_or(0)
+        self.attr
+            .as_ref()
+            .map(|a| a.get_time_samples().len())
+            .unwrap_or(0)
     }
 
     #[allow(non_snake_case)]
@@ -4374,7 +4880,10 @@ impl PyModelAPI {
                 prim: Some(p.inner.clone()),
                 _stage: Some(p._stage.clone()),
             },
-            None => Self { prim: None, _stage: None },
+            None => Self {
+                prim: None,
+                _stage: None,
+            },
         }
     }
 
@@ -4390,20 +4899,23 @@ impl PyModelAPI {
 
     #[allow(non_snake_case)]
     fn GetKind(&self) -> String {
-        self.prim.as_ref().and_then(|p| {
-            p.stage().and_then(|s| {
-                s.get_metadata_for_object(p.path(), &Token::new("kind"))
-                    .and_then(|v| v.downcast_clone::<Token>())
-                    .map(|t| t.as_str().to_string())
+        self.prim
+            .as_ref()
+            .and_then(|p| {
+                p.stage().and_then(|s| {
+                    s.get_metadata_for_object(p.path(), &Token::new("kind"))
+                        .and_then(|v| v.downcast_clone::<Token>())
+                        .map(|t| t.as_str().to_string())
+                })
             })
-        }).unwrap_or_default()
+            .unwrap_or_default()
     }
 
     #[allow(non_snake_case)]
     fn SetKind(&self, kind: &str) -> bool {
-        self.prim.as_ref().is_some_and(|p| {
-            p.set_metadata(&Token::new("kind"), Value::from(Token::new(kind)))
-        })
+        self.prim
+            .as_ref()
+            .is_some_and(|p| p.set_metadata(&Token::new("kind"), Value::from(Token::new(kind))))
     }
 
     #[allow(non_snake_case)]
@@ -4467,7 +4979,10 @@ impl PyClipsAPI {
                 prim: Some(p.inner.clone()),
                 _stage: Some(p._stage.clone()),
             },
-            None => Self { prim: None, _stage: None },
+            None => Self {
+                prim: None,
+                _stage: None,
+            },
         }
     }
 
@@ -4515,11 +5030,12 @@ impl PyCollectionAPI {
     /// Construct from a prim and collection name.
     #[new]
     fn new(prim: &PyPrim, name: &str) -> Self {
-        let inner = usd_core::collection_api::CollectionAPI::new(
-            prim.inner.clone(),
-            Token::new(name),
-        );
-        Self { inner, _stage: prim._stage.clone() }
+        let inner =
+            usd_core::collection_api::CollectionAPI::new(prim.inner.clone(), Token::new(name));
+        Self {
+            inner,
+            _stage: prim._stage.clone(),
+        }
     }
 
     /// Apply CollectionAPI to a prim with the given name and return the schema object.
@@ -4528,11 +5044,11 @@ impl PyCollectionAPI {
     #[staticmethod]
     #[allow(non_snake_case)]
     fn Apply(prim: &PyPrim, name: &str) -> Self {
-        let inner = usd_core::collection_api::CollectionAPI::apply(
-            &prim.inner,
-            &Token::new(name),
-        );
-        Self { inner, _stage: prim._stage.clone() }
+        let inner = usd_core::collection_api::CollectionAPI::apply(&prim.inner, &Token::new(name));
+        Self {
+            inner,
+            _stage: prim._stage.clone(),
+        }
     }
 
     /// Get a CollectionAPI from stage and property path.
@@ -4543,7 +5059,10 @@ impl PyCollectionAPI {
     fn Get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = path_from_str(path)?;
         let inner = usd_core::collection_api::CollectionAPI::get(&stage.inner, &p);
-        Ok(Self { inner, _stage: stage.inner.clone() })
+        Ok(Self {
+            inner,
+            _stage: stage.inner.clone(),
+        })
     }
 
     /// Get all CollectionAPI instances on a prim.
@@ -4554,7 +5073,10 @@ impl PyCollectionAPI {
     fn GetAll(prim: &PyPrim) -> Vec<Self> {
         usd_core::collection_api::CollectionAPI::get_all(&prim.inner)
             .into_iter()
-            .map(|c| Self { inner: c, _stage: prim._stage.clone() })
+            .map(|c| Self {
+                inner: c,
+                _stage: prim._stage.clone(),
+            })
             .collect()
     }
 
@@ -4615,7 +5137,11 @@ impl PyCollectionAPI {
 }
 
 /// Opaque wrapper for CollectionMembershipQuery.
-#[pyclass(skip_from_py_object, name = "CollectionMembershipQuery", module = "pxr_rs.Usd")]
+#[pyclass(
+    skip_from_py_object,
+    name = "CollectionMembershipQuery",
+    module = "pxr_rs.Usd"
+)]
 pub struct PyMembershipQuery {
     inner: usd_core::collection_api::CollectionMembershipQuery,
 }
@@ -4652,7 +5178,9 @@ pub struct PyStageCache {
 impl PyStageCache {
     #[new]
     fn new() -> Self {
-        Self { inner: Arc::new(usd_core::stage_cache::StageCache::new()) }
+        Self {
+            inner: Arc::new(usd_core::stage_cache::StageCache::new()),
+        }
     }
 
     /// Insert a stage into the cache and return its ID as an integer.
@@ -4727,13 +5255,20 @@ impl PyStageCache {
 /// Base class for color space caching.
 ///
 /// Matches C++ `UsdColorSpaceHashCache`. Subclassable in Python.
-#[pyclass(subclass, skip_from_py_object, name = "ColorSpaceHashCache", module = "pxr_rs.Usd")]
+#[pyclass(
+    subclass,
+    skip_from_py_object,
+    name = "ColorSpaceHashCache",
+    module = "pxr_rs.Usd"
+)]
 pub struct PyColorSpaceHashCache;
 
 #[pymethods]
 impl PyColorSpaceHashCache {
     #[new]
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 
     /// Look up cached color space name for the given path.
     /// Returns None by default — override in Python subclass.

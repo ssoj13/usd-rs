@@ -268,8 +268,8 @@ mod tests {
     use super::*;
     use crate::data_source_stage_globals::NoOpStageGlobals;
     use crate::usd_render_settings_schema::UsdRenderSettingsSchema;
-    use usd_core::common::InitialLoadSet;
     use usd_core::Stage;
+    use usd_core::common::InitialLoadSet;
 
     fn create_test_globals() -> DataSourceStageGlobalsHandle {
         Arc::new(NoOpStageGlobals::default())

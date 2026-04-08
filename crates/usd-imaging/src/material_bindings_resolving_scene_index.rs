@@ -13,8 +13,8 @@
 //!   - Otherwise collection > direct at any namespace level
 //!   - Most local (last) binding without strongerThanDescendants wins
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdDataSourceBaseHandle, HdDataSourceLocator, HdDataSourceLocatorSet,
     HdRetainedContainerDataSource, HdRetainedTypedSampledDataSource, HdTypedSampledDataSource,
@@ -244,8 +244,7 @@ impl HdMaterialBindingsDataSource {
                     usd_hd::data_source::cast_to_container(&collections_ds)
                 {
                     if let Some(col_ds) = collections_container.get(collection_name) {
-                        if let Some(col_container) =
-                            usd_hd::data_source::cast_to_container(&col_ds)
+                        if let Some(col_container) = usd_hd::data_source::cast_to_container(&col_ds)
                         {
                             // Check membershipExpression or expandedPaths
                             return self.eval_collection_membership(&col_container);

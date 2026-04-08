@@ -1,4 +1,3 @@
-
 //! HdMesh - Polygonal mesh primitive.
 //!
 //! Represents a polygonal mesh (triangle/quad/n-gon mesh) in Hydra.

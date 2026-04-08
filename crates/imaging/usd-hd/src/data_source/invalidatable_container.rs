@@ -1,4 +1,3 @@
-
 //! HdInvalidatableContainerDataSource - Container with invalidation support.
 //!
 //! Corresponds to pxr/imaging/hd/invalidatableContainerDataSource.h.

@@ -1,12 +1,11 @@
-
 //! Material primvar transfer scene index.
 //!
 //! Transfers primvars from materials to bound geometry. Geometry primvars
 //! have stronger opinion. Port of pxr/imaging/hdsi/materialPrimvarTransferSceneIndex.
 
+use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdRetainedContainerDataSource, HdRetainedTypedSampledDataSource, cast_to_container,
@@ -330,7 +329,9 @@ impl HdsiMaterialPrimvarTransferSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

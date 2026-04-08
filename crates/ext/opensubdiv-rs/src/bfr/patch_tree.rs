@@ -3,7 +3,7 @@
 //! Mirrors `Bfr::PatchTree` from `patchTree.h/cpp`.
 //! Construction is exclusively through `PatchTreeBuilder` (not exposed here).
 
-use crate::far::{PatchType, PatchParam};
+use crate::far::{PatchParam, PatchType};
 
 // ---------------------------------------------------------------------------
 // TreeNode
@@ -16,16 +16,16 @@ use crate::far::{PatchType, PatchParam};
 pub struct TreeNode {
     /// Index of the patch at this node (-1 = none).
     pub patch_index: i32,
-    pub children:    [TreeChild; 4],
+    pub children: [TreeChild; 4],
 }
 
 /// A single child slot of a `TreeNode`.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct TreeChild {
-    pub is_set:  bool,
+    pub is_set: bool,
     pub is_leaf: bool,
     /// 28-bit index (patch index if leaf, node index otherwise).
-    pub index:   u32,
+    pub index: u32,
 }
 
 impl TreeChild {
@@ -41,7 +41,7 @@ impl Default for TreeNode {
     fn default() -> Self {
         TreeNode {
             patch_index: -1,
-            children:    [TreeChild::default(); 4],
+            children: [TreeChild::default(); 4],
         }
     }
 }
@@ -50,7 +50,7 @@ impl TreeNode {
     /// Point all four children at the same leaf patch.
     pub fn set_children(&mut self, index: i32) {
         for c in self.children.iter_mut() {
-            c.is_set  = true;
+            c.is_set = true;
             c.is_leaf = true;
             c.set_index(index);
         }
@@ -60,7 +60,7 @@ impl TreeNode {
     pub fn set_child(&mut self, quadrant: usize, index: i32, is_leaf: bool) {
         debug_assert!(!self.children[quadrant].is_set);
         let c = &mut self.children[quadrant];
-        c.is_set  = true;
+        c.is_set = true;
         c.is_leaf = is_leaf;
         c.set_index(index);
     }
@@ -83,22 +83,22 @@ impl TreeNode {
 #[derive(Debug)]
 pub struct PatchTree {
     // Configuration:
-    pub(crate) use_double_precision:     bool,
+    pub(crate) use_double_precision: bool,
     pub(crate) patches_include_non_leaf: bool,
-    pub(crate) patches_are_triangular:   bool,
+    pub(crate) patches_are_triangular: bool,
 
-    pub(crate) reg_patch_type:    PatchType,
-    pub(crate) irreg_patch_type:  PatchType,
-    pub(crate) reg_patch_size:    i32,
-    pub(crate) irreg_patch_size:  i32,
+    pub(crate) reg_patch_type: PatchType,
+    pub(crate) irreg_patch_type: PatchType,
+    pub(crate) reg_patch_size: i32,
+    pub(crate) irreg_patch_size: i32,
     pub(crate) patch_point_stride: i32,
 
     // Topology inventory:
-    pub(crate) num_sub_faces:       i32,
-    pub(crate) num_control_points:  i32,
-    pub(crate) num_refined_points:  i32,
+    pub(crate) num_sub_faces: i32,
+    pub(crate) num_control_points: i32,
+    pub(crate) num_refined_points: i32,
     pub(crate) num_sub_patch_points: i32,
-    pub(crate) num_irreg_patches:   i32,
+    pub(crate) num_irreg_patches: i32,
 
     // Patch data:
     pub(crate) patch_points: Vec<i32>,
@@ -117,21 +117,21 @@ impl PatchTree {
     /// Create a default, empty PatchTree (builder use only).
     pub(crate) fn new() -> Self {
         PatchTree {
-            use_double_precision:     false,
+            use_double_precision: false,
             patches_include_non_leaf: false,
-            patches_are_triangular:   false,
+            patches_are_triangular: false,
 
-            reg_patch_type:   PatchType::NonPatch,
+            reg_patch_type: PatchType::NonPatch,
             irreg_patch_type: PatchType::NonPatch,
-            reg_patch_size:   0,
+            reg_patch_size: 0,
             irreg_patch_size: 0,
             patch_point_stride: 0,
 
-            num_sub_faces:        0,
-            num_control_points:   0,
-            num_refined_points:   0,
+            num_sub_faces: 0,
+            num_control_points: 0,
+            num_refined_points: 0,
             num_sub_patch_points: 0,
-            num_irreg_patches:    0,
+            num_irreg_patches: 0,
 
             patch_points: Vec::new(),
             patch_params: Vec::new(),
@@ -148,18 +148,40 @@ impl PatchTree {
     // Simple accessors
     // -----------------------------------------------------------------------
 
-    #[inline] pub fn get_num_control_points(&self) -> i32  { self.num_control_points }
-    #[inline] pub fn get_num_sub_patch_points(&self) -> i32 { self.num_sub_patch_points }
-    #[inline] pub fn get_num_points_total(&self) -> i32 {
+    #[inline]
+    pub fn get_num_control_points(&self) -> i32 {
+        self.num_control_points
+    }
+    #[inline]
+    pub fn get_num_sub_patch_points(&self) -> i32 {
+        self.num_sub_patch_points
+    }
+    #[inline]
+    pub fn get_num_points_total(&self) -> i32 {
         self.num_control_points + self.num_sub_patch_points
     }
-    #[inline] pub fn get_depth(&self)       -> i32 { self.tree_depth }
-    #[inline] pub fn get_num_patches(&self) -> i32 { self.patch_params.len() as i32 }
+    #[inline]
+    pub fn get_depth(&self) -> i32 {
+        self.tree_depth
+    }
+    #[inline]
+    pub fn get_num_patches(&self) -> i32 {
+        self.patch_params.len() as i32
+    }
 
-    #[inline] pub fn has_sub_faces(&self)    -> bool { self.num_sub_faces > 0 }
-    #[inline] pub fn get_num_sub_faces(&self) -> i32 { self.num_sub_faces }
+    #[inline]
+    pub fn has_sub_faces(&self) -> bool {
+        self.num_sub_faces > 0
+    }
+    #[inline]
+    pub fn get_num_sub_faces(&self) -> i32 {
+        self.num_sub_faces
+    }
 
-    #[inline] pub fn uses_double_precision(&self) -> bool { self.use_double_precision }
+    #[inline]
+    pub fn uses_double_precision(&self) -> bool {
+        self.use_double_precision
+    }
 
     // -----------------------------------------------------------------------
     // Stencil matrix access
@@ -183,8 +205,8 @@ impl PatchTree {
     ///
     /// Mirrors `PatchTree::GetSubPatchPoints`.
     pub fn get_sub_patch_points(&self, patch_index: i32) -> &[i32] {
-        let pi  = patch_index as usize;
-        let sz  = if self.patch_params[pi].is_regular() {
+        let pi = patch_index as usize;
+        let sz = if self.patch_params[pi].is_regular() {
             self.reg_patch_size
         } else {
             self.irreg_patch_size
@@ -269,37 +291,45 @@ impl PatchTree {
     pub fn eval_sub_patch_basis_f32(
         &self,
         patch_index: i32,
-        u: f32, v: f32,
-        w:   Option<&mut [f32]>,
+        u: f32,
+        v: f32,
+        w: Option<&mut [f32]>,
         wdu: Option<&mut [f32]>,
         wdv: Option<&mut [f32]>,
         wduu: Option<&mut [f32]>,
         wduv: Option<&mut [f32]>,
         wdvv: Option<&mut [f32]>,
     ) -> i32 {
-        let param  = self.patch_params[patch_index as usize];
-        let ptype  = if param.is_regular() { self.reg_patch_type } else { self.irreg_patch_type };
+        let param = self.patch_params[patch_index as usize];
+        let ptype = if param.is_regular() {
+            self.reg_patch_type
+        } else {
+            self.irreg_patch_type
+        };
 
-        crate::far::evaluate_patch_basis(
-            ptype, param, u, v, w, wdu, wdv, wduu, wduv, wdvv)
+        crate::far::evaluate_patch_basis(ptype, param, u, v, w, wdu, wdv, wduu, wduv, wdvv)
     }
 
     pub fn eval_sub_patch_basis_f64(
         &self,
         patch_index: i32,
-        u: f64, v: f64,
-        w:   Option<&mut [f64]>,
+        u: f64,
+        v: f64,
+        w: Option<&mut [f64]>,
         wdu: Option<&mut [f64]>,
         wdv: Option<&mut [f64]>,
         wduu: Option<&mut [f64]>,
         wduv: Option<&mut [f64]>,
         wdvv: Option<&mut [f64]>,
     ) -> i32 {
-        let param  = self.patch_params[patch_index as usize];
-        let ptype  = if param.is_regular() { self.reg_patch_type } else { self.irreg_patch_type };
+        let param = self.patch_params[patch_index as usize];
+        let ptype = if param.is_regular() {
+            self.reg_patch_type
+        } else {
+            self.irreg_patch_type
+        };
 
-        crate::far::evaluate_patch_basis_f64(
-            ptype, param, u, v, w, wdu, wdv, wduu, wduv, wdvv)
+        crate::far::evaluate_patch_basis_f64(ptype, param, u, v, w, wdu, wdv, wduu, wduv, wdvv)
     }
 
     // -----------------------------------------------------------------------
@@ -313,10 +343,11 @@ impl PatchTree {
     pub fn eval_sub_patch_stencils_f32(
         &self,
         patch_index: i32,
-        u: f32, v: f32,
-        sp:   &mut [f32],
-        sdu:  Option<&mut [f32]>,
-        sdv:  Option<&mut [f32]>,
+        u: f32,
+        v: f32,
+        sp: &mut [f32],
+        sdu: Option<&mut [f32]>,
+        sdv: Option<&mut [f32]>,
         sduu: Option<&mut [f32]>,
         sduv: Option<&mut [f32]>,
         sdvv: Option<&mut [f32]>,
@@ -327,24 +358,54 @@ impl PatchTree {
         if param.get_depth() == 0 && param.is_regular() && param.get_boundary() == 0 {
             debug_assert_eq!(self.reg_patch_size, self.num_control_points);
             return crate::far::evaluate_patch_basis(
-                self.reg_patch_type, param, u, v,
-                Some(sp), sdu, sdv, sduu, sduv, sdvv);
+                self.reg_patch_type,
+                param,
+                u,
+                v,
+                Some(sp),
+                sdu,
+                sdv,
+                sduu,
+                sduv,
+                sdvv,
+            );
         }
 
         if self.use_double_precision {
-            self.eval_stencils_impl::<f64, f32>(patch_index, u as f64, v as f64, sp, sdu, sdv, sduu, sduv, sdvv)
+            self.eval_stencils_impl::<f64, f32>(
+                patch_index,
+                u as f64,
+                v as f64,
+                sp,
+                sdu,
+                sdv,
+                sduu,
+                sduv,
+                sdvv,
+            )
         } else {
-            self.eval_stencils_impl::<f32, f32>(patch_index, u as f64, v as f64, sp, sdu, sdv, sduu, sduv, sdvv)
+            self.eval_stencils_impl::<f32, f32>(
+                patch_index,
+                u as f64,
+                v as f64,
+                sp,
+                sdu,
+                sdv,
+                sduu,
+                sduv,
+                sdvv,
+            )
         }
     }
 
     pub fn eval_sub_patch_stencils_f64(
         &self,
         patch_index: i32,
-        u: f64, v: f64,
-        sp:   &mut [f64],
-        sdu:  Option<&mut [f64]>,
-        sdv:  Option<&mut [f64]>,
+        u: f64,
+        v: f64,
+        sp: &mut [f64],
+        sdu: Option<&mut [f64]>,
+        sdv: Option<&mut [f64]>,
         sduu: Option<&mut [f64]>,
         sduv: Option<&mut [f64]>,
         sdvv: Option<&mut [f64]>,
@@ -354,8 +415,17 @@ impl PatchTree {
         if param.get_depth() == 0 && param.is_regular() && param.get_boundary() == 0 {
             debug_assert_eq!(self.reg_patch_size, self.num_control_points);
             return crate::far::evaluate_patch_basis_f64(
-                self.reg_patch_type, param, u, v,
-                Some(sp), sdu, sdv, sduu, sduv, sdvv);
+                self.reg_patch_type,
+                param,
+                u,
+                v,
+                Some(sp),
+                sdu,
+                sdv,
+                sduu,
+                sduv,
+                sdvv,
+            );
         }
 
         if self.use_double_precision {
@@ -370,27 +440,31 @@ impl PatchTree {
     fn eval_stencils_impl<RealMatrix, RealOut>(
         &self,
         patch_index: i32,
-        u: f64, v: f64,
-        sp:       &mut [RealOut],
-        mut sdu:  Option<&mut [RealOut]>,
-        mut sdv:  Option<&mut [RealOut]>,
+        u: f64,
+        v: f64,
+        sp: &mut [RealOut],
+        mut sdu: Option<&mut [RealOut]>,
+        mut sdv: Option<&mut [RealOut]>,
         mut sduu: Option<&mut [RealOut]>,
         mut sduv: Option<&mut [RealOut]>,
         mut sdvv: Option<&mut [RealOut]>,
     ) -> i32
     where
         RealMatrix: num_traits::Float + 'static,
-        RealOut: num_traits::Float + num_traits::AsPrimitive<RealOut> + Copy
-               + std::ops::AddAssign + 'static,
+        RealOut: num_traits::Float
+            + num_traits::AsPrimitive<RealOut>
+            + Copy
+            + std::ops::AddAssign
+            + 'static,
         f64: num_traits::AsPrimitive<RealOut>,
         RealMatrix: num_traits::AsPrimitive<RealOut>,
     {
         let nc = self.num_control_points as usize;
 
         // Basis weights at patch level.
-        let mut wp   = vec![0.0f64; 20];
-        let mut wdu  = vec![0.0f64; 20];
-        let mut wdv  = vec![0.0f64; 20];
+        let mut wp = vec![0.0f64; 20];
+        let mut wdu = vec![0.0f64; 20];
+        let mut wdv = vec![0.0f64; 20];
         let mut wduu = vec![0.0f64; 20];
         let mut wduv = vec![0.0f64; 20];
         let mut wdvv = vec![0.0f64; 20];
@@ -399,10 +473,17 @@ impl PatchTree {
         let d2 = d1 && sduu.is_some() && sduv.is_some() && sdvv.is_some();
 
         let param = self.patch_params[patch_index as usize];
-        let ptype = if param.is_regular() { self.reg_patch_type } else { self.irreg_patch_type };
+        let ptype = if param.is_regular() {
+            self.reg_patch_type
+        } else {
+            self.irreg_patch_type
+        };
 
         crate::far::evaluate_patch_basis_f64(
-            ptype, param, u, v,
+            ptype,
+            param,
+            u,
+            v,
             Some(&mut wp),
             if d1 { Some(&mut wdu) } else { None },
             if d1 { Some(&mut wdv) } else { None },
@@ -414,20 +495,34 @@ impl PatchTree {
         let patch_pts = self.get_sub_patch_points(patch_index);
 
         // Zero output stencils.
-        for s in sp.iter_mut() { *s = RealOut::zero(); }
+        for s in sp.iter_mut() {
+            *s = RealOut::zero();
+        }
         if d1 {
             if let (Some(ref mut du), Some(ref mut dv)) = (sdu.as_deref_mut(), sdv.as_deref_mut()) {
-                for s in du.iter_mut() { *s = RealOut::zero(); }
-                for s in dv.iter_mut() { *s = RealOut::zero(); }
+                for s in du.iter_mut() {
+                    *s = RealOut::zero();
+                }
+                for s in dv.iter_mut() {
+                    *s = RealOut::zero();
+                }
             }
         }
         if d2 {
-            if let (Some(ref mut duu), Some(ref mut duv), Some(ref mut dvv)) =
-                (sduu.as_deref_mut(), sduv.as_deref_mut(), sdvv.as_deref_mut())
-            {
-                for s in duu.iter_mut() { *s = RealOut::zero(); }
-                for s in duv.iter_mut() { *s = RealOut::zero(); }
-                for s in dvv.iter_mut() { *s = RealOut::zero(); }
+            if let (Some(ref mut duu), Some(ref mut duv), Some(ref mut dvv)) = (
+                sduu.as_deref_mut(),
+                sduv.as_deref_mut(),
+                sdvv.as_deref_mut(),
+            ) {
+                for s in duu.iter_mut() {
+                    *s = RealOut::zero();
+                }
+                for s in duv.iter_mut() {
+                    *s = RealOut::zero();
+                }
+                for s in dvv.iter_mut() {
+                    *s = RealOut::zero();
+                }
             }
         }
 
@@ -444,15 +539,19 @@ impl PatchTree {
             if pi < nc {
                 sp[pi] = sp[pi] + num_traits::cast(wp[i]).unwrap_or(RealOut::zero());
                 if d1 {
-                    if let (Some(ref mut du), Some(ref mut dv)) = (sdu.as_deref_mut(), sdv.as_deref_mut()) {
+                    if let (Some(ref mut du), Some(ref mut dv)) =
+                        (sdu.as_deref_mut(), sdv.as_deref_mut())
+                    {
                         du[pi] = du[pi] + num_traits::cast(wdu[i]).unwrap_or(RealOut::zero());
                         dv[pi] = dv[pi] + num_traits::cast(wdv[i]).unwrap_or(RealOut::zero());
                     }
                 }
                 if d2 {
-                    if let (Some(ref mut duu), Some(ref mut duv), Some(ref mut dvv)) =
-                        (sduu.as_deref_mut(), sduv.as_deref_mut(), sdvv.as_deref_mut())
-                    {
+                    if let (Some(ref mut duu), Some(ref mut duv), Some(ref mut dvv)) = (
+                        sduu.as_deref_mut(),
+                        sduv.as_deref_mut(),
+                        sdvv.as_deref_mut(),
+                    ) {
                         duu[pi] = duu[pi] + num_traits::cast(wduu[i]).unwrap_or(RealOut::zero());
                         duv[pi] = duv[pi] + num_traits::cast(wduv[i]).unwrap_or(RealOut::zero());
                         dvv[pi] = dvv[pi] + num_traits::cast(wdvv[i]).unwrap_or(RealOut::zero());
@@ -471,9 +570,12 @@ impl PatchTree {
                     if d1 {
                         let wd_u: RealOut = num_traits::cast(wdu[i]).unwrap_or(RealOut::zero());
                         let wd_v: RealOut = num_traits::cast(wdv[i]).unwrap_or(RealOut::zero());
-                        if let (Some(ref mut du), Some(ref mut dv)) = (sdu.as_deref_mut(), sdv.as_deref_mut()) {
+                        if let (Some(ref mut du), Some(ref mut dv)) =
+                            (sdu.as_deref_mut(), sdv.as_deref_mut())
+                        {
                             for j in 0..nc {
-                                let rv: RealOut = num_traits::cast(row[j]).unwrap_or(RealOut::zero());
+                                let rv: RealOut =
+                                    num_traits::cast(row[j]).unwrap_or(RealOut::zero());
                                 du[j] = du[j] + wd_u * rv;
                                 dv[j] = dv[j] + wd_v * rv;
                             }
@@ -483,11 +585,14 @@ impl PatchTree {
                         let wd_uu: RealOut = num_traits::cast(wduu[i]).unwrap_or(RealOut::zero());
                         let wd_uv: RealOut = num_traits::cast(wduv[i]).unwrap_or(RealOut::zero());
                         let wd_vv: RealOut = num_traits::cast(wdvv[i]).unwrap_or(RealOut::zero());
-                        if let (Some(ref mut duu), Some(ref mut duv), Some(ref mut dvv)) =
-                            (sduu.as_deref_mut(), sduv.as_deref_mut(), sdvv.as_deref_mut())
-                        {
+                        if let (Some(ref mut duu), Some(ref mut duv), Some(ref mut dvv)) = (
+                            sduu.as_deref_mut(),
+                            sduv.as_deref_mut(),
+                            sdvv.as_deref_mut(),
+                        ) {
                             for j in 0..nc {
-                                let rv: RealOut = num_traits::cast(row[j]).unwrap_or(RealOut::zero());
+                                let rv: RealOut =
+                                    num_traits::cast(row[j]).unwrap_or(RealOut::zero());
                                 duu[j] = duu[j] + wd_uu * rv;
                                 duv[j] = duv[j] + wd_uv * rv;
                                 dvv[j] = dvv[j] + wd_vv * rv;
@@ -502,9 +607,12 @@ impl PatchTree {
                     if d1 {
                         let wd_u: RealOut = num_traits::cast(wdu[i]).unwrap_or(RealOut::zero());
                         let wd_v: RealOut = num_traits::cast(wdv[i]).unwrap_or(RealOut::zero());
-                        if let (Some(ref mut du), Some(ref mut dv)) = (sdu.as_deref_mut(), sdv.as_deref_mut()) {
+                        if let (Some(ref mut du), Some(ref mut dv)) =
+                            (sdu.as_deref_mut(), sdv.as_deref_mut())
+                        {
                             for j in 0..nc {
-                                let rv: RealOut = num_traits::cast(row[j]).unwrap_or(RealOut::zero());
+                                let rv: RealOut =
+                                    num_traits::cast(row[j]).unwrap_or(RealOut::zero());
                                 du[j] = du[j] + wd_u * rv;
                                 dv[j] = dv[j] + wd_v * rv;
                             }
@@ -514,11 +622,14 @@ impl PatchTree {
                         let wd_uu: RealOut = num_traits::cast(wduu[i]).unwrap_or(RealOut::zero());
                         let wd_uv: RealOut = num_traits::cast(wduv[i]).unwrap_or(RealOut::zero());
                         let wd_vv: RealOut = num_traits::cast(wdvv[i]).unwrap_or(RealOut::zero());
-                        if let (Some(ref mut duu), Some(ref mut duv), Some(ref mut dvv)) =
-                            (sduu.as_deref_mut(), sduv.as_deref_mut(), sdvv.as_deref_mut())
-                        {
+                        if let (Some(ref mut duu), Some(ref mut duv), Some(ref mut dvv)) = (
+                            sduu.as_deref_mut(),
+                            sduv.as_deref_mut(),
+                            sdvv.as_deref_mut(),
+                        ) {
                             for j in 0..nc {
-                                let rv: RealOut = num_traits::cast(row[j]).unwrap_or(RealOut::zero());
+                                let rv: RealOut =
+                                    num_traits::cast(row[j]).unwrap_or(RealOut::zero());
                                 duu[j] = duu[j] + wd_uu * rv;
                                 duv[j] = duv[j] + wd_uv * rv;
                                 dvv[j] = dvv[j] + wd_vv * rv;
@@ -543,16 +654,20 @@ impl PatchTree {
 
         self.tree_nodes.clear();
         self.tree_nodes.reserve(num_patches);
-        let root_count = if self.num_sub_faces > 0 { self.num_sub_faces as usize } else { 1 };
+        let root_count = if self.num_sub_faces > 0 {
+            self.num_sub_faces as usize
+        } else {
+            1
+        };
         self.tree_nodes.resize_with(root_count, TreeNode::default);
         self.tree_depth = 0;
 
         for patch_index in 0..num_patches {
             let param = self.patch_params[patch_index];
 
-            let depth      = param.get_depth();
+            let depth = param.get_depth();
             let root_depth = if param.non_quad_root() { 1 } else { 0 };
-            let sub_face   = param.get_face_id();
+            let sub_face = param.get_face_id();
 
             let _ = self.tree_nodes[sub_face as usize].patch_index; // ensure in range
 
@@ -571,29 +686,32 @@ impl PatchTree {
 
                 let mut node_idx = sub_face as usize;
                 for j in (root_depth + 1)..=depth {
-                    let shift    = depth - j;
-                    let u_bit    = (u >> shift) & 1;
-                    let v_bit    = (v >> shift) & 1;
+                    let shift = depth - j;
+                    let u_bit = (u >> shift) & 1;
+                    let v_bit = (v >> shift) & 1;
                     let quadrant = ((v_bit << 1) | u_bit) as usize;
-                    let is_leaf  = j == depth;
+                    let is_leaf = j == depth;
 
-                    node_idx = self.assign_leaf_or_child(node_idx, is_leaf, quadrant, patch_index as i32);
+                    node_idx =
+                        self.assign_leaf_or_child(node_idx, is_leaf, quadrant, patch_index as i32);
                 }
             } else {
                 let mut u = 0.25f64;
                 let mut v = 0.25f64;
                 param.unnormalize_triangle(&mut u, &mut v);
 
-                let mut median    = 0.5f64;
-                let mut rotated   = false;
-                let mut node_idx  = sub_face as usize;
+                let mut median = 0.5f64;
+                let mut rotated = false;
+                let mut node_idx = sub_face as usize;
 
                 for j in (root_depth + 1)..=depth {
-                    let quadrant = transform_uv_to_tri_quadrant(median, &mut u, &mut v, &mut rotated) as usize;
-                    let is_leaf  = j == depth;
+                    let quadrant =
+                        transform_uv_to_tri_quadrant(median, &mut u, &mut v, &mut rotated) as usize;
+                    let is_leaf = j == depth;
 
-                    node_idx = self.assign_leaf_or_child(node_idx, is_leaf, quadrant, patch_index as i32);
-                    median  *= 0.5;
+                    node_idx =
+                        self.assign_leaf_or_child(node_idx, is_leaf, quadrant, patch_index as i32);
+                    median *= 0.5;
                 }
             }
         }
@@ -603,7 +721,7 @@ impl PatchTree {
     fn assign_leaf_or_child(
         &mut self,
         node_idx: usize,
-        is_leaf:  bool,
+        is_leaf: bool,
         quadrant: usize,
         patch_idx: i32,
     ) -> usize {
@@ -647,31 +765,48 @@ impl PatchTree {
 #[inline]
 fn transform_uv_to_quad_quadrant(median: f64, u: &mut f64, v: &mut f64) -> i32 {
     let u_half = (*u >= median) as i32;
-    if u_half != 0 { *u -= median; }
+    if u_half != 0 {
+        *u -= median;
+    }
     let v_half = (*v >= median) as i32;
-    if v_half != 0 { *v -= median; }
+    if v_half != 0 {
+        *v -= median;
+    }
     (v_half << 1) | u_half
 }
 
 /// Map `(u,v)` to a triangular quadrant `[0,3]`.
 #[inline]
-fn transform_uv_to_tri_quadrant(
-    median: f64,
-    u: &mut f64,
-    v: &mut f64,
-    rotated: &mut bool,
-) -> i32 {
+fn transform_uv_to_tri_quadrant(median: f64, u: &mut f64, v: &mut f64, rotated: &mut bool) -> i32 {
     if !*rotated {
-        if *u >= median { *u -= median; return 1; }
-        if *v >= median { *v -= median; return 2; }
-        if *u + *v >= median { *rotated = true; return 3; }
+        if *u >= median {
+            *u -= median;
+            return 1;
+        }
+        if *v >= median {
+            *v -= median;
+            return 2;
+        }
+        if *u + *v >= median {
+            *rotated = true;
+            return 3;
+        }
         0
     } else {
-        if *u < median { *v -= median; return 1; }
-        if *v < median { *u -= median; return 2; }
+        if *u < median {
+            *v -= median;
+            return 1;
+        }
+        if *v < median {
+            *u -= median;
+            return 2;
+        }
         *u -= median;
         *v -= median;
-        if *u + *v < median { *rotated = true; return 3; }
+        if *u + *v < median {
+            *rotated = true;
+            return 3;
+        }
         0
     }
 }

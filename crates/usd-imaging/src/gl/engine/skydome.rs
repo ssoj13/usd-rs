@@ -190,10 +190,7 @@ fn fs_main(in: VertexOutput) -> FragOutput {
         self.skydome_pipeline = Some(pipeline);
         self.skydome_pipeline_color_format = Some(color_format);
         self.skydome_uniform_buf = Some(uniform_buf);
-        log::info!(
-            "[engine] Skydome pipeline created for {:?}",
-            color_format
-        );
+        log::info!("[engine] Skydome pipeline created for {:?}", color_format);
     }
 
     /// Get the inverse transform of the first dome light in the scene.

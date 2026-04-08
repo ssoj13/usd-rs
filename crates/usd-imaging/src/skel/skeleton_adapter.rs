@@ -5,12 +5,12 @@
 //! This module provides the adapter for converting UsdSkel::Skeleton prims
 //! into Hydra representations for rendering skeletal rigs.
 
+use super::DataSourceSkeletonPrim;
 use crate::{
     data_source_stage_globals::DataSourceStageGlobalsHandle,
     prim_adapter::PrimAdapter,
     types::{PopulationMode, PropertyInvalidationType},
 };
-use super::DataSourceSkeletonPrim;
 use std::sync::Arc;
 use usd_core::Prim;
 use usd_hd::{HdContainerDataSourceHandle, HdDataSourceLocatorSet};
@@ -54,7 +54,6 @@ impl SkeletonAdapter {
     pub fn skel_cache(&self) -> &Arc<SkelCache> {
         &self.skel_cache
     }
-
 }
 
 impl Default for SkeletonAdapter {

@@ -463,8 +463,6 @@ fn test_logic_and() {
 fn test_logic_randomized() {
     // Randomized cross-check between Bits and CompressedBits for 100 iterations
     // (C++ original ran for 2 seconds; we use a fixed iteration count).
-    
-    
 
     // Deterministic pseudo-random seed so test is reproducible.
     let mut rng_state: u64 = 0xdeadbeef_cafebabe;

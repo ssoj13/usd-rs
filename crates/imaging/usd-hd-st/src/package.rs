@@ -1,4 +1,3 @@
-
 //! Storm package/plugin registration (ported from package.h).
 //!
 //! Returns resource paths (tokens) for built-in shader files used by Storm.

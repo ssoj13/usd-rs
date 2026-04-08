@@ -2445,11 +2445,7 @@ shader test(float x = 0.0) {
 "#;
         let ast = parser::parse(src).unwrap().ast;
         let ir = generate(&ast);
-        assert!(
-            ir.opcodes
-                .iter()
-                .any(|op| op.op == "if" || op.op == "gt")
-        );
+        assert!(ir.opcodes.iter().any(|op| op.op == "if" || op.op == "gt"));
     }
 
     #[test]
@@ -2486,11 +2482,7 @@ shader test() {
         // Struct type constructor now emits direct field assigns (not construct opcode).
         // Check that assign opcodes are emitted for the temp sub-symbols.
         let ops: Vec<&str> = ir.opcodes.iter().map(|op| op.op.as_str()).collect();
-        let assign_count = ir
-            .opcodes
-            .iter()
-            .filter(|op| op.op == "assign")
-            .count();
+        let assign_count = ir.opcodes.iter().filter(|op| op.op == "assign").count();
         assert!(
             assign_count >= 2,
             "expected at least 2 assign ops for p.val and p.count, got ops={:?}",

@@ -1,4 +1,3 @@
-
 //! Port of pxr/imaging/hio/testenv/testHioImage.cpp
 //!
 //! Tests image write/read roundtrips for greyscale PNG, RGB PNG, RGB JPEG

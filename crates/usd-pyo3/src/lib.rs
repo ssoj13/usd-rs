@@ -11,22 +11,22 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_panics_doc)]
 
-mod tf;
-mod gf;
-mod vt;
-mod sdf;
-mod pcp;
 mod ar;
+mod cli;
+mod geom;
+mod gf;
+mod kind;
+mod lux;
+mod pcp;
 mod plug;
+mod sdf;
+mod shade;
+mod skel;
+mod tf;
 mod ts;
 mod usd;
+mod vt;
 mod xform_img_delegate;
-mod geom;
-mod shade;
-mod lux;
-mod skel;
-mod kind;
-mod cli;
 
 use pyo3::prelude::*;
 

@@ -2,8 +2,8 @@
 
 use super::object::{ObjType, Object, Stage};
 use std::sync::Weak;
-use usd_sdf::Path;
 use usd_pcp::{Site, TargetSpecType, build_prim_property_index, build_target_index};
+use usd_sdf::Path;
 use usd_tf::Token;
 use usd_vt::Value;
 
@@ -205,7 +205,10 @@ impl Property {
         };
 
         let mut components: Vec<&str> = Vec::new();
-        for component in prim_str.split('/').filter(|component| !component.is_empty()) {
+        for component in prim_str
+            .split('/')
+            .filter(|component| !component.is_empty())
+        {
             if component == ".." {
                 components.pop();
             } else {

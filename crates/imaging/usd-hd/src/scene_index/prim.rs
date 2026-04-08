@@ -1,4 +1,3 @@
-
 //! Scene index prim representation.
 
 use usd_tf::Token as TfToken;

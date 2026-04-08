@@ -1,4 +1,3 @@
-
 //! Performance logging for Hydra.
 //!
 //! Port of pxr/imaging/hd/perfLog.h/cpp

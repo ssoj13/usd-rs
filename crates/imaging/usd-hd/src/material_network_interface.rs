@@ -1,4 +1,3 @@
-
 //! Abstract interface for querying and mutating a material network.
 //!
 //! Port of pxr/imaging/hd/materialNetworkInterface.h

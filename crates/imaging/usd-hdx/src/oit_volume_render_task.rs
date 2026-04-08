@@ -1,4 +1,3 @@
-
 //! OIT volume render task - Volume rendering with transparency.
 //!
 //! Extends HdxOitRenderTask with a "volume" render tag filter so only

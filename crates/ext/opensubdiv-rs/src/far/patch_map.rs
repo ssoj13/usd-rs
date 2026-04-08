@@ -9,7 +9,7 @@
 //!
 //! Mirrors C++ `Far::PatchMap`.
 
-use super::patch_table::{PatchTable, PatchHandle};
+use super::patch_table::{PatchHandle, PatchTable};
 
 // ---------------------------------------------------------------------------
 // QuadNode — a node in the patch quadtree
@@ -18,9 +18,9 @@ use super::patch_table::{PatchTable, PatchHandle};
 /// Child slot in a [`QuadNode`].  Packed: 1 bit isSet, 1 bit isLeaf, 30 bits index.
 #[derive(Clone, Copy, Default)]
 struct Child {
-    is_set:  bool,
+    is_set: bool,
     is_leaf: bool,
-    index:   u32, // 30-bit index (node or handle)
+    index: u32, // 30-bit index (node or handle)
 }
 
 /// A node with 4 children in the patch quadtree.
@@ -33,18 +33,18 @@ impl QuadNode {
     /// Set all four children to the same leaf handle index.
     fn set_children(&mut self, index: u32) {
         for c in &mut self.children {
-            c.is_set  = true;
+            c.is_set = true;
             c.is_leaf = true;
-            c.index   = index;
+            c.index = index;
         }
     }
 
     /// Set a specific quadrant child.
     fn set_child(&mut self, quadrant: usize, index: u32, is_leaf: bool) {
         debug_assert!(!self.children[quadrant].is_set);
-        self.children[quadrant].is_set  = true;
+        self.children[quadrant].is_set = true;
         self.children[quadrant].is_leaf = is_leaf;
-        self.children[quadrant].index   = index;
+        self.children[quadrant].index = index;
     }
 }
 
@@ -59,8 +59,8 @@ pub struct PatchMap {
     patches_are_triangular: bool,
     min_patch_face: i32,
     max_patch_face: i32,
-    max_depth:      i32,
-    handles:  Vec<PatchHandle>,
+    max_depth: i32,
+    handles: Vec<PatchHandle>,
     quadtree: Vec<QuadNode>,
 }
 
@@ -70,15 +70,17 @@ impl PatchMap {
     /// Mirrors C++ `Far::PatchMap::PatchMap(PatchTable const &)`.
     #[doc(alias = "PatchMap")]
     pub fn new(patch_table: &PatchTable) -> Self {
-        let patches_are_triangular =
-            patch_table.get_varying_patch_descriptor().get_num_control_vertices() == 3;
+        let patches_are_triangular = patch_table
+            .get_varying_patch_descriptor()
+            .get_num_control_vertices()
+            == 3;
 
         let mut pm = Self {
             patches_are_triangular,
             min_patch_face: -1,
             max_patch_face: -1,
-            max_depth:      0,
-            handles:  Vec::new(),
+            max_depth: 0,
+            handles: Vec::new(),
             quadtree: Vec::new(),
         };
 
@@ -143,7 +145,9 @@ impl PatchMap {
 
     fn init_handles(&mut self, pt: &PatchTable) {
         let params = pt.get_patch_param_table();
-        if params.is_empty() { return; }
+        if params.is_empty() {
+            return;
+        }
 
         self.min_patch_face = params[0].get_face_id();
         self.max_patch_face = self.min_patch_face;
@@ -152,7 +156,8 @@ impl PatchMap {
         let mut handle_idx = 0u32;
 
         for p_array in 0..num_arrays {
-            let patch_size = pt.get_patch_array_descriptor(p_array)
+            let patch_size = pt
+                .get_patch_array_descriptor(p_array)
                 .get_num_control_vertices() as u32;
             let n = pt.get_num_patches(p_array);
 
@@ -164,7 +169,7 @@ impl PatchMap {
                 self.handles.push(PatchHandle {
                     array_index: p_array,
                     patch_index: handle_idx as i32,
-                    vert_index:  (j as u32 * patch_size) as i32,
+                    vert_index: (j as u32 * patch_size) as i32,
                 });
                 handle_idx += 1;
             }
@@ -182,7 +187,7 @@ impl PatchMap {
 
         for handle in 0..n_handles {
             let param = &params[handle];
-            let depth     = param.get_depth();
+            let depth = param.get_depth();
             let root_depth = if param.non_quad_root() { 1 } else { 0 };
 
             if depth > self.max_depth {
@@ -224,9 +229,8 @@ impl PatchMap {
                 let mut cur = node_idx;
 
                 for j in (root_depth + 1)..=depth {
-                    let quadrant = transform_uv_to_tri_quadrant(
-                        median, &mut u, &mut v, &mut tri_rotated,
-                    );
+                    let quadrant =
+                        transform_uv_to_tri_quadrant(median, &mut u, &mut v, &mut tri_rotated);
                     let is_leaf = j == depth;
                     cur = self.assign_leaf_or_child(cur, is_leaf, quadrant, handle as u32);
                     median *= 0.5;
@@ -243,9 +247,9 @@ impl PatchMap {
     fn assign_leaf_or_child(
         &mut self,
         node_idx: usize,
-        is_leaf:  bool,
+        is_leaf: bool,
         quadrant: usize,
-        handle:   u32,
+        handle: u32,
     ) -> usize {
         if is_leaf {
             self.quadtree[node_idx].set_child(quadrant, handle, true);
@@ -270,8 +274,18 @@ impl PatchMap {
 /// Transform (u,v) into the quad quadrant that contains them. Returns quadrant 0..3.
 #[inline]
 fn transform_uv_to_quad_quadrant(median: f64, u: &mut f64, v: &mut f64) -> usize {
-    let u_half = if *u >= median { *u -= median; 1 } else { 0 };
-    let v_half = if *v >= median { *v -= median; 1 } else { 0 };
+    let u_half = if *u >= median {
+        *u -= median;
+        1
+    } else {
+        0
+    };
+    let v_half = if *v >= median {
+        *v -= median;
+        1
+    } else {
+        0
+    };
     (v_half << 1) | u_half
 }
 
@@ -279,19 +293,40 @@ fn transform_uv_to_quad_quadrant(median: f64, u: &mut f64, v: &mut f64) -> usize
 /// Also tracks/updates the `rotated` state of the current triangle.
 #[inline]
 fn transform_uv_to_tri_quadrant(
-    median: f64, u: &mut f64, v: &mut f64, rotated: &mut bool,
+    median: f64,
+    u: &mut f64,
+    v: &mut f64,
+    rotated: &mut bool,
 ) -> usize {
     if !*rotated {
-        if *u >= median { *u -= median; return 1; }
-        if *v >= median { *v -= median; return 2; }
-        if (*u + *v) >= median { *rotated = true; return 3; }
+        if *u >= median {
+            *u -= median;
+            return 1;
+        }
+        if *v >= median {
+            *v -= median;
+            return 2;
+        }
+        if (*u + *v) >= median {
+            *rotated = true;
+            return 3;
+        }
         0
     } else {
-        if *u < median { *v -= median; return 1; }
-        if *v < median { *u -= median; return 2; }
+        if *u < median {
+            *v -= median;
+            return 1;
+        }
+        if *v < median {
+            *u -= median;
+            return 2;
+        }
         *u -= median;
         *v -= median;
-        if (*u + *v) < median { *rotated = false; return 3; }
+        if (*u + *v) < median {
+            *rotated = false;
+            return 3;
+        }
         0
     }
 }

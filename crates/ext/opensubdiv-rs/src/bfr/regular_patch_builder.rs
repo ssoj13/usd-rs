@@ -28,12 +28,12 @@ pub enum RegularPatchType {
 ///
 /// Mirrors `Bfr::RegularPatchBuilder`.
 pub struct RegularPatchBuilder<'a> {
-    surface:       &'a FaceSurface<'a>,
-    is_quad:       bool,
-    is_boundary:   bool,
+    surface: &'a FaceSurface<'a>,
+    is_quad: bool,
+    is_boundary: bool,
     boundary_mask: i32,
-    patch_size:    i32,
-    patch_type:    RegularPatchType,
+    patch_size: i32,
+    patch_type: RegularPatchType,
 }
 
 impl<'a> RegularPatchBuilder<'a> {
@@ -59,12 +59,10 @@ impl<'a> RegularPatchBuilder<'a> {
         } else {
             // Triangle: encode edge bits and vertex bits together.
             let c = surface.get_subsets();
-            let e_mask =
-                  (((c[0].is_boundary() && c[0].num_faces_before == 0) as i32) << 0)
+            let e_mask = (((c[0].is_boundary() && c[0].num_faces_before == 0) as i32) << 0)
                 | (((c[1].is_boundary() && c[1].num_faces_before == 0) as i32) << 1)
                 | (((c[2].is_boundary() && c[2].num_faces_before == 0) as i32) << 2);
-            let v_mask =
-                  ((c[0].is_boundary() as i32) << 0)
+            let v_mask = ((c[0].is_boundary() as i32) << 0)
                 | ((c[1].is_boundary() as i32) << 1)
                 | ((c[2].is_boundary() as i32) << 2);
             encode_tri_boundary_mask(e_mask, v_mask)
@@ -84,11 +82,21 @@ impl<'a> RegularPatchBuilder<'a> {
     //  Accessors
     // -----------------------------------------------------------------------
 
-    pub fn get_num_control_vertices(&self) -> i32 { self.patch_size }
-    pub fn is_quad_patch(&self)            -> bool { self.is_quad }
-    pub fn is_boundary_patch(&self)        -> bool { self.is_boundary }
-    pub fn get_patch_type(&self)           -> RegularPatchType { self.patch_type }
-    pub fn get_patch_param_boundary_mask(&self) -> i32 { self.boundary_mask }
+    pub fn get_num_control_vertices(&self) -> i32 {
+        self.patch_size
+    }
+    pub fn is_quad_patch(&self) -> bool {
+        self.is_quad
+    }
+    pub fn is_boundary_patch(&self) -> bool {
+        self.is_boundary
+    }
+    pub fn get_patch_type(&self) -> RegularPatchType {
+        self.patch_type
+    }
+    pub fn get_patch_param_boundary_mask(&self) -> i32 {
+        self.boundary_mask
+    }
 
     // -----------------------------------------------------------------------
     //  Static helpers
@@ -99,23 +107,27 @@ impl<'a> RegularPatchBuilder<'a> {
     }
 
     pub fn patch_type_for(reg_face_size: i32) -> RegularPatchType {
-        if reg_face_size == 4 { RegularPatchType::Regular } else { RegularPatchType::Loop }
+        if reg_face_size == 4 {
+            RegularPatchType::Regular
+        } else {
+            RegularPatchType::Loop
+        }
     }
 
     /// Compute boundary mask from the actual CV indices by checking for -1.
     pub fn boundary_mask_from_cvs(reg_face_size: i32, cvs: &[Index]) -> i32 {
         if reg_face_size == 4 {
-            ((cvs[1]  < 0) as i32) << 0
-                | ((cvs[7]  < 0) as i32) << 1
+            ((cvs[1] < 0) as i32) << 0
+                | ((cvs[7] < 0) as i32) << 1
                 | ((cvs[14] < 0) as i32) << 2
-                | ((cvs[8]  < 0) as i32) << 3
+                | ((cvs[8] < 0) as i32) << 3
         } else {
             let e_mask = ((cvs[1] < 0) as i32) << 0
-                       | ((cvs[9] < 0) as i32) << 1
-                       | ((cvs[7] < 0) as i32) << 2;
-            let v_mask = (((cvs[0] < 0) | (cvs[3]  < 0)) as i32) << 0
-                       | (((cvs[2] < 0) | (cvs[6]  < 0)) as i32) << 1
-                       | (((cvs[10] < 0) | (cvs[11] < 0)) as i32) << 2;
+                | ((cvs[9] < 0) as i32) << 1
+                | ((cvs[7] < 0) as i32) << 2;
+            let v_mask = (((cvs[0] < 0) | (cvs[3] < 0)) as i32) << 0
+                | (((cvs[2] < 0) | (cvs[6] < 0)) as i32) << 1
+                | (((cvs[10] < 0) | (cvs[11] < 0)) as i32) << 2;
             encode_tri_boundary_mask(e_mask, v_mask)
         }
     }
@@ -152,18 +164,18 @@ impl<'a> RegularPatchBuilder<'a> {
 
         let c0 = self.surface.get_corner_topology(0);
         let opp0 = fv_off + c0.get_face_index_offset(c0.get_face_after(2)) as usize;
-        p[5]  = indices[opp0 + 0];
-        p[4]  = indices[opp0 + 1];
-        p[0]  = indices[opp0 + 2];
-        p[1]  = indices[opp0 + 3];
+        p[5] = indices[opp0 + 0];
+        p[4] = indices[opp0 + 1];
+        p[0] = indices[opp0 + 2];
+        p[1] = indices[opp0 + 3];
         fv_off += c0.get_num_face_vertices() as usize;
 
         let c1 = self.surface.get_corner_topology(1);
         let opp1 = fv_off + c1.get_face_index_offset(c1.get_face_after(2)) as usize;
-        p[6]  = indices[opp1 + 0];
-        p[2]  = indices[opp1 + 1];
-        p[3]  = indices[opp1 + 2];
-        p[7]  = indices[opp1 + 3];
+        p[6] = indices[opp1 + 0];
+        p[2] = indices[opp1 + 1];
+        p[3] = indices[opp1 + 2];
+        p[7] = indices[opp1 + 3];
         fv_off += c1.get_num_face_vertices() as usize;
 
         let c2 = self.surface.get_corner_topology(2);
@@ -176,10 +188,10 @@ impl<'a> RegularPatchBuilder<'a> {
 
         let c3 = self.surface.get_corner_topology(3);
         let opp3 = fv_off + c3.get_face_index_offset(c3.get_face_after(2)) as usize;
-        p[9]  = indices[opp3 + 0];
+        p[9] = indices[opp3 + 0];
         p[13] = indices[opp3 + 1];
         p[12] = indices[opp3 + 2];
-        p[8]  = indices[opp3 + 3];
+        p[8] = indices[opp3 + 3];
     }
 
     // -----------------------------------------------------------------------
@@ -216,9 +228,17 @@ impl<'a> RegularPatchBuilder<'a> {
                         p[0] = indices[fv_other + 2];
                         p[1] = indices[fv_other + 3];
                     } else {
-                        p[4] = if c_sub.num_faces_after  > 0 { indices[fv_other + 3] } else { phantom };
+                        p[4] = if c_sub.num_faces_after > 0 {
+                            indices[fv_other + 3]
+                        } else {
+                            phantom
+                        };
                         p[0] = phantom;
-                        p[1] = if c_sub.num_faces_before > 0 { indices[fv_other + 1] } else { phantom };
+                        p[1] = if c_sub.num_faces_before > 0 {
+                            indices[fv_other + 1]
+                        } else {
+                            phantom
+                        };
                     }
                 }
                 1 => {
@@ -228,9 +248,17 @@ impl<'a> RegularPatchBuilder<'a> {
                         p[3] = indices[fv_other + 2];
                         p[7] = indices[fv_other + 3];
                     } else {
-                        p[2] = if c_sub.num_faces_after  > 0 { indices[fv_other + 3] } else { phantom };
+                        p[2] = if c_sub.num_faces_after > 0 {
+                            indices[fv_other + 3]
+                        } else {
+                            phantom
+                        };
                         p[3] = phantom;
-                        p[7] = if c_sub.num_faces_before > 0 { indices[fv_other + 1] } else { phantom };
+                        p[7] = if c_sub.num_faces_before > 0 {
+                            indices[fv_other + 1]
+                        } else {
+                            phantom
+                        };
                     }
                 }
                 2 => {
@@ -240,9 +268,17 @@ impl<'a> RegularPatchBuilder<'a> {
                         p[15] = indices[fv_other + 2];
                         p[14] = indices[fv_other + 3];
                     } else {
-                        p[11] = if c_sub.num_faces_after  > 0 { indices[fv_other + 3] } else { phantom };
+                        p[11] = if c_sub.num_faces_after > 0 {
+                            indices[fv_other + 3]
+                        } else {
+                            phantom
+                        };
                         p[15] = phantom;
-                        p[14] = if c_sub.num_faces_before > 0 { indices[fv_other + 1] } else { phantom };
+                        p[14] = if c_sub.num_faces_before > 0 {
+                            indices[fv_other + 1]
+                        } else {
+                            phantom
+                        };
                     }
                 }
                 3 => {
@@ -250,11 +286,19 @@ impl<'a> RegularPatchBuilder<'a> {
                     if !c_sub.is_boundary() {
                         p[13] = indices[fv_other + 1];
                         p[12] = indices[fv_other + 2];
-                        p[8]  = indices[fv_other + 3];
+                        p[8] = indices[fv_other + 3];
                     } else {
-                        p[13] = if c_sub.num_faces_after  > 0 { indices[fv_other + 3] } else { phantom };
+                        p[13] = if c_sub.num_faces_after > 0 {
+                            indices[fv_other + 3]
+                        } else {
+                            phantom
+                        };
                         p[12] = phantom;
-                        p[8]  = if c_sub.num_faces_before > 0 { indices[fv_other + 1] } else { phantom };
+                        p[8] = if c_sub.num_faces_before > 0 {
+                            indices[fv_other + 1]
+                        } else {
+                            phantom
+                        };
                     }
                 }
                 _ => unreachable!(),
@@ -292,8 +336,8 @@ impl<'a> RegularPatchBuilder<'a> {
         let c2 = self.surface.get_corner_topology(2);
         let n2_2 = fv_off + c2.get_face_index_offset(c2.get_face_after(2)) as usize;
         let n3_2 = fv_off + c2.get_face_index_offset(c2.get_face_after(3)) as usize;
-        p[8]  = indices[n2_2];
-        p[9]  = indices[n2_2 + 1];
+        p[8] = indices[n2_2];
+        p[9] = indices[n2_2 + 1];
         p[11] = indices[n2_2 + 2];
         p[10] = indices[n3_2 + 2];
     }
@@ -334,12 +378,25 @@ impl<'a> RegularPatchBuilder<'a> {
                     if !c_sub.is_boundary() {
                         p[7] = indices[fv_other + 1];
                         p[3] = indices[fv_other + 2];
-                        let nxt = fv_off + c_top.get_face_index_offset(c_top.get_face_next(face_other)) as usize;
+                        let nxt = fv_off
+                            + c_top.get_face_index_offset(c_top.get_face_next(face_other)) as usize;
                         p[0] = indices[nxt + 2];
                     } else {
-                        p[7] = if na > 0 { indices[fv_other + (3 - na)] } else { phantom };
-                        p[3] = if na == 2 { indices[fv_other + 2] } else { phantom };
-                        p[0] = if nb == 2 { indices[fv_other + 1] } else { phantom };
+                        p[7] = if na > 0 {
+                            indices[fv_other + (3 - na)]
+                        } else {
+                            phantom
+                        };
+                        p[3] = if na == 2 {
+                            indices[fv_other + 2]
+                        } else {
+                            phantom
+                        };
+                        p[0] = if nb == 2 {
+                            indices[fv_other + 1]
+                        } else {
+                            phantom
+                        };
                     }
                 }
                 1 => {
@@ -347,25 +404,51 @@ impl<'a> RegularPatchBuilder<'a> {
                     if !c_sub.is_boundary() {
                         p[1] = indices[fv_other + 1];
                         p[2] = indices[fv_other + 2];
-                        let nxt = fv_off + c_top.get_face_index_offset(c_top.get_face_next(face_other)) as usize;
+                        let nxt = fv_off
+                            + c_top.get_face_index_offset(c_top.get_face_next(face_other)) as usize;
                         p[6] = indices[nxt + 2];
                     } else {
-                        p[1] = if na > 0 { indices[fv_other + (3 - na)] } else { phantom };
-                        p[2] = if na == 2 { indices[fv_other + 2] } else { phantom };
-                        p[6] = if nb == 2 { indices[fv_other + 1] } else { phantom };
+                        p[1] = if na > 0 {
+                            indices[fv_other + (3 - na)]
+                        } else {
+                            phantom
+                        };
+                        p[2] = if na == 2 {
+                            indices[fv_other + 2]
+                        } else {
+                            phantom
+                        };
+                        p[6] = if nb == 2 {
+                            indices[fv_other + 1]
+                        } else {
+                            phantom
+                        };
                     }
                 }
                 2 => {
                     p[8] = indices[fv_other];
                     if !c_sub.is_boundary() {
-                        p[9]  = indices[fv_other + 1];
+                        p[9] = indices[fv_other + 1];
                         p[11] = indices[fv_other + 2];
-                        let nxt = fv_off + c_top.get_face_index_offset(c_top.get_face_next(face_other)) as usize;
+                        let nxt = fv_off
+                            + c_top.get_face_index_offset(c_top.get_face_next(face_other)) as usize;
                         p[10] = indices[nxt + 2];
                     } else {
-                        p[9]  = if na > 0 { indices[fv_other + (3 - na)] } else { phantom };
-                        p[11] = if na == 2 { indices[fv_other + 2] } else { phantom };
-                        p[10] = if nb == 2 { indices[fv_other + 1] } else { phantom };
+                        p[9] = if na > 0 {
+                            indices[fv_other + (3 - na)]
+                        } else {
+                            phantom
+                        };
+                        p[11] = if na == 2 {
+                            indices[fv_other + 2]
+                        } else {
+                            phantom
+                        };
+                        p[10] = if nb == 2 {
+                            indices[fv_other + 1]
+                        } else {
+                            phantom
+                        };
                     }
                 }
                 _ => unreachable!(),

@@ -1,4 +1,3 @@
-
 //! HdCamera - Camera state primitive.
 //!
 //! Full port of pxr/imaging/hd/camera.h + camera.cpp.

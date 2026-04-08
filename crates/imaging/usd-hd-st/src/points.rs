@@ -1,4 +1,3 @@
-
 //! HdStPoints - Storm points prim implementation.
 //!
 //! This file intentionally follows the same three-phase contract as the live
@@ -375,15 +374,16 @@ impl HdStPoints {
                 )) as HdBufferArrayRangeSharedPtr)
             });
 
-        let vertex_bar: HdBufferArrayRangeSharedPtr = Arc::new(HdStBufferArrayRange::with_stream_sizes(
-            vbuf,
-            vbuf_offset,
-            vbuf_size,
-            self.vertex_data.get_positions_byte_size(),
-            self.vertex_data.get_widths_byte_size(),
-            0,
-            self.vertex_data.get_colors_byte_size(),
-        ));
+        let vertex_bar: HdBufferArrayRangeSharedPtr =
+            Arc::new(HdStBufferArrayRange::with_stream_sizes(
+                vbuf,
+                vbuf_offset,
+                vbuf_size,
+                self.vertex_data.get_positions_byte_size(),
+                self.vertex_data.get_widths_byte_size(),
+                0,
+                self.vertex_data.get_colors_byte_size(),
+            ));
         let element_bar: HdBufferArrayRangeSharedPtr =
             Arc::new(HdStBufferArrayRange::new(ibuf, ibuf_offset, ibuf_size));
 

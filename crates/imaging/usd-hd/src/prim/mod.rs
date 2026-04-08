@@ -1,4 +1,3 @@
-
 //! Hydra primitive (prim) types.
 //!
 //! Prims are the fundamental scene objects in Hydra. There are three main categories:

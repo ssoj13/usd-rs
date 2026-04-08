@@ -1,4 +1,3 @@
-
 //! HdLegacyPrimSceneIndex - Retained scene index with legacy prim support.
 //!
 //! Extends HdRetainedSceneIndex to instantiate and dirty HdDataSourceLegacyPrim

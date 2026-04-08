@@ -30,10 +30,11 @@ struct TransformSampleInfo<T> {
 }
 
 fn extract_vec3f_array(value: &Value) -> Option<Vec<Vec3f>> {
-    value
-        .get::<Vec<Vec3f>>()
-        .cloned()
-        .or_else(|| value.get::<usd_vt::Array<Vec3f>>().map(|arr| arr.iter().cloned().collect()))
+    value.get::<Vec<Vec3f>>().cloned().or_else(|| {
+        value
+            .get::<usd_vt::Array<Vec3f>>()
+            .map(|arr| arr.iter().cloned().collect())
+    })
 }
 
 fn times_close(lhs: f64, rhs: f64) -> bool {
@@ -55,7 +56,9 @@ fn get_vec3f_transform_sample(
         });
     }
 
-    let value_time = if let Some((lower, upper)) = attr.get_bracketing_time_samples(base_time.value()) {
+    let value_time = if let Some((lower, upper)) =
+        attr.get_bracketing_time_samples(base_time.value())
+    {
         let value = attr.get(TimeCode::new(lower))?;
         let mut lower_time_value = lower;
         let mut upper_time_value = upper;

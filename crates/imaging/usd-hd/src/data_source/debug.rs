@@ -1,4 +1,3 @@
-
 //! Debug print for data sources.
 //!
 //! Port of HdDebugPrintDataSource from pxr/imaging/hd/dataSource.h/cpp

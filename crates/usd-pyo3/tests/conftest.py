@@ -1,11 +1,48 @@
 """pytest conftest for pxr_rs Python binding tests.
 
-Ported from OpenUSD testenv/ — adapted for pxr_rs package.
+Test data is **not** in this repository. Clone OpenUSD and set **OPENUSD_SRC_ROOT**
+to its root (directory containing ``pxr/``). Per-module data:
+``{OPENUSD_SRC_ROOT}/pxr/<path under tests/>/testenv/<stem>/`` or ``<stem>.testenv/``,
+matching upstream beside each ``test*.py``.
 """
 import os
 from pathlib import Path
 
 import pytest
+
+_TESTS_ROOT = Path(__file__).resolve().parent
+
+
+def pytest_configure(config):
+    root = os.environ.get("OPENUSD_SRC_ROOT")
+    if not root:
+        pytest.exit(
+            "OPENUSD_SRC_ROOT is required. Set it to your OpenUSD clone root "
+            "(the directory that contains `pxr`). Test assets are not bundled in usd-rs.",
+            returncode=2,
+        )
+    pxr = Path(root) / "pxr"
+    if not pxr.is_dir():
+        pytest.exit(
+            f"OPENUSD_SRC_ROOT is invalid: {pxr!s} does not exist or is not a directory.",
+            returncode=2,
+        )
+
+
+def _resolve_test_data_dir(module_path: Path) -> Path | None:
+    """Directory to chdir into for relative paths like ``./scene.usda``."""
+    root = os.environ["OPENUSD_SRC_ROOT"]
+    stem = module_path.stem
+    try:
+        rel = module_path.resolve().relative_to(_TESTS_ROOT)
+    except ValueError:
+        return None
+    sub = rel.parts[:-1]
+    base = Path(root).joinpath("pxr", *sub, "testenv")
+    for candidate in (base / stem, base / f"{stem}.testenv"):
+        if candidate.is_dir():
+            return candidate
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -25,31 +62,25 @@ def pytest_collectstart(collector):
     """
     if not hasattr(collector, "path"):
         return
-    module_path = collector.path
+    module_path = Path(collector.path)
     if module_path.suffix != ".py":
         return
-    stem = module_path.stem
-    test_dir = module_path.parent
-    for candidate in (test_dir / stem, test_dir / f"{stem}.testenv"):
-        if candidate.is_dir():
-            os.chdir(candidate)
-            return
+    resolved = _resolve_test_data_dir(module_path)
+    if resolved is not None:
+        os.chdir(resolved)
 
 
 @pytest.fixture(autouse=True)
 def _usd_test_chdir(request, tmp_path):
     """Per-test fixture: run in test data dir or tmpdir (never project root)."""
     test_file = Path(request.fspath)
-    stem = test_file.stem
-    test_dir = test_file.parent
     saved = os.getcwd()
-    # Try test-specific data dir first
-    for candidate in (test_dir / stem, test_dir / f"{stem}.testenv"):
-        if candidate.is_dir():
-            os.chdir(candidate)
-            yield
-            os.chdir(saved)
-            return
+    resolved = _resolve_test_data_dir(test_file)
+    if resolved is not None:
+        os.chdir(resolved)
+        yield
+        os.chdir(saved)
+        return
     # No data dir — use tmpdir so tests don't pollute project root
     os.chdir(tmp_path)
     yield

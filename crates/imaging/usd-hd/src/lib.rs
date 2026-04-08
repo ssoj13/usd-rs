@@ -1,4 +1,3 @@
-
 //! Hydra (Hd) - Rendering abstraction layer for USD.
 //!
 //! Hydra is USD's rendering architecture that provides:
@@ -81,7 +80,6 @@ pub mod ext_computation_context_internal;
 pub mod ext_computation_cpu_callback;
 pub mod ext_computation_utils;
 pub mod flat_normals;
-pub mod flo_debug;
 pub mod flattened_data_source_provider;
 pub mod flattened_data_source_providers;
 pub mod flattened_overlay_data_source_provider;
@@ -89,6 +87,7 @@ pub mod flattened_primvars_data_source_provider;
 pub mod flattened_purpose_data_source_provider;
 pub mod flattened_visibility_data_source_provider;
 pub mod flattened_xform_data_source_provider;
+pub mod flo_debug;
 pub mod geom_subset_struct;
 pub mod instance_registry;
 pub mod material_network;

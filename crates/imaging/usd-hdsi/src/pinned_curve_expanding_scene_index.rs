@@ -1,11 +1,10 @@
-
 //! Pinned curve expanding scene index.
 //!
 //! Expands pinned endpoint curves (bspline, catmullRom, centripetalCatmullRom)
 //! into nonperiodic curves by replicating first/last vertex values.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase, HdDataSourceBaseHandle,
     HdOverlayContainerDataSource, HdRetainedContainerDataSource, HdRetainedTypedSampledDataSource,
@@ -696,7 +695,9 @@ impl HdsiPinnedCurveExpandingSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

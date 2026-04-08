@@ -1,4 +1,3 @@
-
 //! Renderer plugin handle - RAII handle keeping plugin alive.
 //!
 //! Corresponds to pxr/imaging/hd/rendererPluginHandle.h.

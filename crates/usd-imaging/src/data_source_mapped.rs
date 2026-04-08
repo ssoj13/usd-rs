@@ -17,12 +17,18 @@ use usd_sdf::Path;
 use usd_tf::Token;
 use usd_vt::Value;
 
-pub type DataSourceAttributeFactoryFn =
-    fn(Attribute, DataSourceStageGlobalsHandle, Path, HdDataSourceLocator)
-        -> Option<HdDataSourceBaseHandle>;
-pub type DataSourceRelationshipFactoryFn =
-    fn(Relationship, DataSourceStageGlobalsHandle, Path, HdDataSourceLocator)
-        -> Option<HdDataSourceBaseHandle>;
+pub type DataSourceAttributeFactoryFn = fn(
+    Attribute,
+    DataSourceStageGlobalsHandle,
+    Path,
+    HdDataSourceLocator,
+) -> Option<HdDataSourceBaseHandle>;
+pub type DataSourceRelationshipFactoryFn = fn(
+    Relationship,
+    DataSourceStageGlobalsHandle,
+    Path,
+    HdDataSourceLocator,
+) -> Option<HdDataSourceBaseHandle>;
 
 fn default_attribute_factory(
     attr: Attribute,
@@ -30,15 +36,12 @@ fn default_attribute_factory(
     scene_index_path: Path,
     locator: HdDataSourceLocator,
 ) -> Option<HdDataSourceBaseHandle> {
-    Some(
-        DataSourceAttribute::<Value>::new_with_locator(
-            attr,
-            stage_globals,
-            scene_index_path,
-            locator,
-        )
-            as HdDataSourceBaseHandle,
-    )
+    Some(DataSourceAttribute::<Value>::new_with_locator(
+        attr,
+        stage_globals,
+        scene_index_path,
+        locator,
+    ) as HdDataSourceBaseHandle)
 }
 
 fn path_from_relationship_factory(

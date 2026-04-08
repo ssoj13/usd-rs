@@ -1,4 +1,3 @@
-
 //! Root overrides scene index - overlays xform and visibility on the root prim.
 //!
 //! Matches C++ UsdImagingRootOverridesSceneIndex: provides SetRootTransform /
@@ -19,7 +18,7 @@ use usd_hd::scene_index::observer::{
 };
 use usd_hd::scene_index::{
     FilteringObserverTarget, HdSceneIndexBase, HdSceneIndexHandle, HdSceneIndexPrim,
-    HdSingleInputFilteringSceneIndexBase, SdfPathVector, wire_filter_to_input, si_ref,
+    HdSingleInputFilteringSceneIndexBase, SdfPathVector, si_ref, wire_filter_to_input,
 };
 use usd_hd::schema::visibility as vis_schema;
 use usd_hd::schema::xform as xform_schema;

@@ -1,4 +1,3 @@
-
 //! HdStExtComputation - Storm specialization of HdExtComputation.
 //!
 //! Manages GPU resources (SSBO input range) for external computations.

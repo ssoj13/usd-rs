@@ -1,4 +1,3 @@
-
 //! HdStRenderPass - Storm render pass implementation.
 //!
 //! Implements the HdRenderPass trait for Storm rendering.
@@ -241,7 +240,12 @@ impl HdStRenderPass {
         // Compatibility key: (primitive_kind, material_tag, is_indexed, is_instanced)
         // primitive_kind separates mesh/points/curves into distinct batches
         // so each gets the correct shader/pipeline/binding contract.
-        type BatchKey = (crate::draw_item::DrawPrimitiveKind, Option<String>, bool, bool);
+        type BatchKey = (
+            crate::draw_item::DrawPrimitiveKind,
+            Option<String>,
+            bool,
+            bool,
+        );
         let mut batch_slots: Vec<(BatchKey, HdStDrawBatch)> = Vec::new();
         let mut batch_index: std::collections::HashMap<BatchKey, usize> =
             std::collections::HashMap::new();
@@ -565,12 +569,8 @@ impl HdStRenderPass {
         }
 
         let mut prepare_gfx_cmds = hgi.create_graphics_cmds(&HgiGraphicsCmdsDesc::new());
-        self.command_buffer.prepare_draw(
-            prepare_gfx_cmds.as_mut(),
-            hgi,
-            state,
-            resource_registry,
-        );
+        self.command_buffer
+            .prepare_draw(prepare_gfx_cmds.as_mut(), hgi, state, resource_registry);
         hgi.submit_cmds(prepare_gfx_cmds, HgiSubmitWaitType::NoWait);
 
         // --- ExecuteDraw phase ---
@@ -590,12 +590,8 @@ impl HdStRenderPass {
         // Execute all draw batches. Each batch internally:
         // 1. Runs GPU frustum culling (compute shader modifies dispatch buffer in-place)
         // 2. Issues draw_indexed_indirect from the same dispatch buffer
-        self.command_buffer.execute_draw(
-            gfx_cmds.as_mut(),
-            hgi,
-            state,
-            prim_ids_by_path,
-        );
+        self.command_buffer
+            .execute_draw(gfx_cmds.as_mut(), hgi, state, prim_ids_by_path);
 
         hgi.submit_cmds(gfx_cmds, submit_wait);
 

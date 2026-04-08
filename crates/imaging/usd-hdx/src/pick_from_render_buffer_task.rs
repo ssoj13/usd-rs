@@ -1,4 +1,3 @@
-
 //! Pick from render buffer task - GPU/deferred picking from AOV render buffers.
 //!
 //! Reads pick IDs from previously rendered AOV buffers (primId, instanceId, elementId,
@@ -9,9 +8,9 @@
 use std::collections::HashMap;
 
 use usd_camera_util::{ConformWindowPolicy, Framing};
-use usd_gf::{Matrix4d, Range2f, Rect2i, Vec2f, Vec2i, Vec2d, Vec3d};
-use usd_hd::prim::camera::{CameraUtilConformWindowPolicy as HdCameraWindowPolicy, HdCamera};
+use usd_gf::{Matrix4d, Range2f, Rect2i, Vec2d, Vec2f, Vec2i, Vec3d};
 use usd_hd::prim::HdSceneDelegate;
+use usd_hd::prim::camera::{CameraUtilConformWindowPolicy as HdCameraWindowPolicy, HdCamera};
 use usd_hd::render::render_index::SprimAdapter;
 use usd_hd::render::{HdRenderIndexTrait, HdTask, HdTaskContext, TfTokenVector};
 use usd_sdf::Path;
@@ -19,7 +18,7 @@ use usd_tf::Token;
 use usd_vt::Value;
 
 use super::pick_task::{
-    pick_tokens, HdxPickHit, HdxPickResult, HdxPickTask, HdxPickTaskContextParams,
+    HdxPickHit, HdxPickResult, HdxPickTask, HdxPickTaskContextParams, pick_tokens,
 };
 use super::render_setup_task::{CameraUtilConformWindowPolicy, CameraUtilFraming};
 
@@ -224,7 +223,10 @@ impl HdxPickFromRenderBufferTask {
         result
     }
 
-    fn compute_projection_matrix(camera: &HdCamera, params: &HdxPickFromRenderBufferTaskParams) -> Matrix4d {
+    fn compute_projection_matrix(
+        camera: &HdCamera,
+        params: &HdxPickFromRenderBufferTaskParams,
+    ) -> Matrix4d {
         let projection = camera.compute_projection_matrix();
         let effective_policy = params
             .override_window_policy
@@ -285,8 +287,14 @@ impl HdxPickFromRenderBufferTask {
         let corner0 = pick_to_render.transform(&Vec3d::new(-1.0, -1.0, -1.0));
         let corner1 = pick_to_render.transform(&Vec3d::new(1.0, 1.0, -1.0));
 
-        let pick_min = Vec2d::new(corner0[0].min(corner1[0]).floor(), corner0[1].min(corner1[1]).floor());
-        let pick_max = Vec2d::new(corner0[0].max(corner1[0]).ceil(), corner0[1].max(corner1[1]).ceil());
+        let pick_min = Vec2d::new(
+            corner0[0].min(corner1[0]).floor(),
+            corner0[1].min(corner1[1]).floor(),
+        );
+        let pick_max = Vec2d::new(
+            corner0[0].max(corner1[0]).ceil(),
+            corner0[1].max(corner1[1]).ceil(),
+        );
 
         [
             pick_min[0] as i32,
@@ -382,14 +390,22 @@ impl HdTask for HdxPickFromRenderBufferTask {
 
         let buffer_size = prim_texture
             .get()
-            .map(|texture| Vec2i::new(texture.descriptor().dimensions.x, texture.descriptor().dimensions.y))
+            .map(|texture| {
+                Vec2i::new(
+                    texture.descriptor().dimensions.x,
+                    texture.descriptor().dimensions.y,
+                )
+            })
             .unwrap_or_else(|| Vec2i::new(0, 0));
         if buffer_size.x <= 0 || buffer_size.y <= 0 {
             self.converged = false;
             return;
         }
 
-        let Some(depth_desc) = depth_texture.get().map(|texture| texture.descriptor().clone()) else {
+        let Some(depth_desc) = depth_texture
+            .get()
+            .map(|texture| texture.descriptor().clone())
+        else {
             self.converged = false;
             return;
         };
@@ -398,10 +414,10 @@ impl HdTask for HdxPickFromRenderBufferTask {
             return;
         }
 
-        let prim_ids = HdxPickTask::read_aov_i32(ctx, &hgi_driver, &Token::new("primId"))
-            .unwrap_or_default();
-        let depths = HdxPickTask::read_aov_f32(ctx, &hgi_driver, &Token::new("depth"))
-            .unwrap_or_default();
+        let prim_ids =
+            HdxPickTask::read_aov_i32(ctx, &hgi_driver, &Token::new("primId")).unwrap_or_default();
+        let depths =
+            HdxPickTask::read_aov_f32(ctx, &hgi_driver, &Token::new("depth")).unwrap_or_default();
         if prim_ids.is_empty() || depths.is_empty() || prim_ids.len() != depths.len() {
             self.converged = false;
             return;
@@ -410,7 +426,8 @@ impl HdTask for HdxPickFromRenderBufferTask {
         let instance_ids = if self.params.instance_id_buffer_path.is_empty() {
             Vec::new()
         } else {
-            HdxPickTask::read_aov_i32(ctx, &hgi_driver, &Token::new("instanceId")).unwrap_or_default()
+            HdxPickTask::read_aov_i32(ctx, &hgi_driver, &Token::new("instanceId"))
+                .unwrap_or_default()
         };
         if !instance_ids.is_empty() && instance_ids.len() != prim_ids.len() {
             self.converged = false;
@@ -419,7 +436,8 @@ impl HdTask for HdxPickFromRenderBufferTask {
         let element_ids = if self.params.element_id_buffer_path.is_empty() {
             Vec::new()
         } else {
-            HdxPickTask::read_aov_i32(ctx, &hgi_driver, &Token::new("elementId")).unwrap_or_default()
+            HdxPickTask::read_aov_i32(ctx, &hgi_driver, &Token::new("elementId"))
+                .unwrap_or_default()
         };
         if !element_ids.is_empty() && element_ids.len() != prim_ids.len() {
             self.converged = false;
@@ -437,8 +455,7 @@ impl HdTask for HdxPickFromRenderBufferTask {
         let point_ids = if self.params.point_id_buffer_path.is_empty() {
             Vec::new()
         } else {
-            HdxPickTask::read_aov_i32(ctx, &hgi_driver, &Token::new("pointId"))
-                .unwrap_or_default()
+            HdxPickTask::read_aov_i32(ctx, &hgi_driver, &Token::new("pointId")).unwrap_or_default()
         };
         if !point_ids.is_empty() && point_ids.len() != prim_ids.len() {
             self.converged = false;

@@ -14,8 +14,8 @@ use super::prim_definition::PrimDefinition;
 use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
-use usd_gf::vec2::Vec2f;
 use usd_gf::Vec4f;
+use usd_gf::vec2::Vec2f;
 use usd_sdf::{Layer, Path};
 use usd_tf::Token;
 use usd_vt::Value;
@@ -2341,7 +2341,10 @@ pub fn register_builtin_schemas() {
                 ("horizontalApertureOffset", Value::from(0.0_f32)),
                 ("verticalApertureOffset", Value::from(0.0_f32)),
                 ("focalLength", Value::from(50.0_f32)),
-                ("clippingRange", Value::from_no_hash(Vec2f::new(1.0, 1_000_000.0))),
+                (
+                    "clippingRange",
+                    Value::from_no_hash(Vec2f::new(1.0, 1_000_000.0)),
+                ),
                 ("clippingPlanes", Value::from(Vec::<Vec4f>::new())),
                 ("fStop", Value::from(0.0_f32)),
                 ("focusDistance", Value::from(0.0_f32)),
@@ -2378,29 +2381,47 @@ pub fn register_builtin_schemas() {
         {
             // Common properties shared by all light types
             let common_props: &[&str] = &[
-                "light:shaderId", "light:materialSyncMode",
-                "inputs:intensity", "inputs:exposure", "inputs:diffuse",
-                "inputs:specular", "inputs:normalize", "inputs:color",
-                "inputs:enableColorTemperature", "inputs:colorTemperature",
-                "inputs:shadow:enable", "inputs:shadow:color",
-                "inputs:shadow:distance", "inputs:shadow:falloff",
+                "light:shaderId",
+                "light:materialSyncMode",
+                "inputs:intensity",
+                "inputs:exposure",
+                "inputs:diffuse",
+                "inputs:specular",
+                "inputs:normalize",
+                "inputs:color",
+                "inputs:enableColorTemperature",
+                "inputs:colorTemperature",
+                "inputs:shadow:enable",
+                "inputs:shadow:color",
+                "inputs:shadow:distance",
+                "inputs:shadow:falloff",
                 "inputs:shadow:falloffGamma",
-                "inputs:shaping:focus", "inputs:shaping:focusTint",
-                "inputs:shaping:cone:angle", "inputs:shaping:cone:softness",
-                "inputs:shaping:ies:file", "inputs:shaping:ies:angleScale",
+                "inputs:shaping:focus",
+                "inputs:shaping:focusTint",
+                "inputs:shaping:cone:angle",
+                "inputs:shaping:cone:softness",
+                "inputs:shaping:ies:file",
+                "inputs:shaping:ies:angleScale",
                 "inputs:shaping:ies:normalize",
             ];
             let common_types: &[(&str, &str)] = &[
-                ("light:shaderId", "token"), ("light:materialSyncMode", "token"),
-                ("inputs:intensity", "float"), ("inputs:exposure", "float"),
-                ("inputs:diffuse", "float"), ("inputs:specular", "float"),
-                ("inputs:normalize", "bool"), ("inputs:color", "color3f"),
+                ("light:shaderId", "token"),
+                ("light:materialSyncMode", "token"),
+                ("inputs:intensity", "float"),
+                ("inputs:exposure", "float"),
+                ("inputs:diffuse", "float"),
+                ("inputs:specular", "float"),
+                ("inputs:normalize", "bool"),
+                ("inputs:color", "color3f"),
                 ("inputs:enableColorTemperature", "bool"),
                 ("inputs:colorTemperature", "float"),
-                ("inputs:shadow:enable", "bool"), ("inputs:shadow:color", "color3f"),
-                ("inputs:shadow:distance", "float"), ("inputs:shadow:falloff", "float"),
+                ("inputs:shadow:enable", "bool"),
+                ("inputs:shadow:color", "color3f"),
+                ("inputs:shadow:distance", "float"),
+                ("inputs:shadow:falloff", "float"),
                 ("inputs:shadow:falloffGamma", "float"),
-                ("inputs:shaping:focus", "float"), ("inputs:shaping:focusTint", "color3f"),
+                ("inputs:shaping:focus", "float"),
+                ("inputs:shaping:focusTint", "color3f"),
                 ("inputs:shaping:cone:angle", "float"),
                 ("inputs:shaping:cone:softness", "float"),
                 ("inputs:shaping:ies:file", "asset"),
@@ -2408,28 +2429,65 @@ pub fn register_builtin_schemas() {
                 ("inputs:shaping:ies:normalize", "bool"),
             ];
             let light_types: &[(&str, &[&str], &[(&str, &str)])] = &[
-                ("RectLight", &["inputs:width", "inputs:height", "inputs:texture:file"],
-                    &[("inputs:width", "float"), ("inputs:height", "float"), ("inputs:texture:file", "asset")]),
-                ("SphereLight", &["inputs:radius", "treatAsPoint"],
-                    &[("inputs:radius", "float"), ("treatAsPoint", "bool")]),
-                ("DiskLight", &["inputs:radius"],
-                    &[("inputs:radius", "float")]),
-                ("CylinderLight", &["inputs:radius", "inputs:length"],
-                    &[("inputs:radius", "float"), ("inputs:length", "float")]),
-                ("DistantLight", &["inputs:angle"],
-                    &[("inputs:angle", "float")]),
-                ("DomeLight", &["inputs:texture:file", "inputs:texture:format"],
-                    &[("inputs:texture:file", "asset"), ("inputs:texture:format", "token")]),
-                ("DomeLight_1", &["inputs:texture:file", "inputs:texture:format"],
-                    &[("inputs:texture:file", "asset"), ("inputs:texture:format", "token")]),
-                ("PortalLight", &["inputs:width", "inputs:height"],
-                    &[("inputs:width", "float"), ("inputs:height", "float")]),
+                (
+                    "RectLight",
+                    &["inputs:width", "inputs:height", "inputs:texture:file"],
+                    &[
+                        ("inputs:width", "float"),
+                        ("inputs:height", "float"),
+                        ("inputs:texture:file", "asset"),
+                    ],
+                ),
+                (
+                    "SphereLight",
+                    &["inputs:radius", "treatAsPoint"],
+                    &[("inputs:radius", "float"), ("treatAsPoint", "bool")],
+                ),
+                (
+                    "DiskLight",
+                    &["inputs:radius"],
+                    &[("inputs:radius", "float")],
+                ),
+                (
+                    "CylinderLight",
+                    &["inputs:radius", "inputs:length"],
+                    &[("inputs:radius", "float"), ("inputs:length", "float")],
+                ),
+                (
+                    "DistantLight",
+                    &["inputs:angle"],
+                    &[("inputs:angle", "float")],
+                ),
+                (
+                    "DomeLight",
+                    &["inputs:texture:file", "inputs:texture:format"],
+                    &[
+                        ("inputs:texture:file", "asset"),
+                        ("inputs:texture:format", "token"),
+                    ],
+                ),
+                (
+                    "DomeLight_1",
+                    &["inputs:texture:file", "inputs:texture:format"],
+                    &[
+                        ("inputs:texture:file", "asset"),
+                        ("inputs:texture:format", "token"),
+                    ],
+                ),
+                (
+                    "PortalLight",
+                    &["inputs:width", "inputs:height"],
+                    &[("inputs:width", "float"), ("inputs:height", "float")],
+                ),
                 ("GeometryLight", &[], &[]),
                 ("MeshLight", &[], &[]),
                 ("VolumeLight", &[], &[]),
                 ("PluginLight", &[], &[]),
-                ("LightFilter", &["lightFilter:shaderId"],
-                    &[("lightFilter:shaderId", "token")]),
+                (
+                    "LightFilter",
+                    &["lightFilter:shaderId"],
+                    &[("lightFilter:shaderId", "token")],
+                ),
             ];
             for &(type_name, extra_props, extra_types) in light_types {
                 let mut all_props: Vec<&str> = common_props.to_vec();

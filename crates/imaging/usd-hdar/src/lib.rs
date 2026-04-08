@@ -1,4 +1,3 @@
-
 //! Hydra Asset Resolution (hdar) - Asset resolver integration for scene indices.
 //!
 //! Port of pxr/imaging/hdar

@@ -1,4 +1,3 @@
-
 //! Core enumerations for Hydra.
 //!
 //! This module defines fundamental enums used throughout Hydra for graphics

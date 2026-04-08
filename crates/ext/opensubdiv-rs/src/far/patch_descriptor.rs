@@ -6,16 +6,16 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(i32)]
 pub enum PatchType {
-    NonPatch        = 0,
-    Points          = 1,
-    Lines           = 2,
-    Quads           = 3,
-    Triangles       = 4,
-    Loop            = 5,
-    Regular         = 6,
-    Gregory         = 7,
+    NonPatch = 0,
+    Points = 1,
+    Lines = 2,
+    Quads = 3,
+    Triangles = 4,
+    Loop = 5,
+    Regular = 6,
+    Gregory = 7,
     GregoryBoundary = 8,
-    GregoryBasis    = 9,
+    GregoryBasis = 9,
     GregoryTriangle = 10,
 }
 
@@ -27,17 +27,17 @@ impl PatchType {
     pub fn num_control_vertices(self) -> i32 {
         match self {
             // C++ returns -1 for NON_PATCH (switch default branch)
-            PatchType::NonPatch        => -1,
-            PatchType::Points          => 1,
-            PatchType::Lines           => 2,
-            PatchType::Quads           => 4,
-            PatchType::Triangles       => 3,
-            PatchType::Loop            => 12,
-            PatchType::Regular         => 16,
+            PatchType::NonPatch => -1,
+            PatchType::Points => 1,
+            PatchType::Lines => 2,
+            PatchType::Quads => 4,
+            PatchType::Triangles => 3,
+            PatchType::Loop => 12,
+            PatchType::Regular => 16,
             // Gregory and GregoryBoundary both use the 4-CV legacy layout
-            PatchType::Gregory         => 4,
+            PatchType::Gregory => 4,
             PatchType::GregoryBoundary => 4,
-            PatchType::GregoryBasis    => 20,
+            PatchType::GregoryBasis => 20,
             PatchType::GregoryTriangle => 18,
         }
     }
@@ -57,17 +57,25 @@ impl PatchType {
     }
 
     /// Number of control vertices of Regular patches (16).
-    pub const fn regular_patch_size() -> i32 { 16 }
+    pub const fn regular_patch_size() -> i32 {
+        16
+    }
 
     /// Number of control vertices of Gregory / GregoryBoundary patches (4).
-    pub const fn gregory_patch_size() -> i32 { 4 }
+    pub const fn gregory_patch_size() -> i32 {
+        4
+    }
 
     /// Number of control vertices of GregoryBasis patches (20).
-    pub const fn gregory_basis_patch_size() -> i32 { 20 }
+    pub const fn gregory_basis_patch_size() -> i32 {
+        20
+    }
 }
 
 impl Default for PatchType {
-    fn default() -> Self { PatchType::NonPatch }
+    fn default() -> Self {
+        PatchType::NonPatch
+    }
 }
 
 /// Describes a set of patches: type + associated CV count.
@@ -120,20 +128,32 @@ impl PatchDescriptor {
         use crate::sdc::types::SchemeType;
         // Static tables, matching C++ patchDescriptor.cpp
         static CATMARK: &[PatchDescriptor] = &[
-            PatchDescriptor { patch_type: PatchType::Regular },
-            PatchDescriptor { patch_type: PatchType::Gregory },
-            PatchDescriptor { patch_type: PatchType::GregoryBoundary },
-            PatchDescriptor { patch_type: PatchType::GregoryBasis },
+            PatchDescriptor {
+                patch_type: PatchType::Regular,
+            },
+            PatchDescriptor {
+                patch_type: PatchType::Gregory,
+            },
+            PatchDescriptor {
+                patch_type: PatchType::GregoryBoundary,
+            },
+            PatchDescriptor {
+                patch_type: PatchType::GregoryBasis,
+            },
         ];
         static LOOP: &[PatchDescriptor] = &[
-            PatchDescriptor { patch_type: PatchType::Loop },
-            PatchDescriptor { patch_type: PatchType::GregoryTriangle },
+            PatchDescriptor {
+                patch_type: PatchType::Loop,
+            },
+            PatchDescriptor {
+                patch_type: PatchType::GregoryTriangle,
+            },
         ];
         static BILINEAR: &[PatchDescriptor] = &[];
         match scheme {
             SchemeType::Bilinear => BILINEAR,
-            SchemeType::Catmark  => CATMARK,
-            SchemeType::Loop     => LOOP,
+            SchemeType::Catmark => CATMARK,
+            SchemeType::Loop => LOOP,
         }
     }
 }

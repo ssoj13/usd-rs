@@ -1,4 +1,3 @@
-
 //! HdBasisCurves - Basis curves primitive.
 //!
 //! Represents curves (splines) in Hydra. Supports:

@@ -1,4 +1,3 @@
-
 //! Function and type attributes for compiler-specific optimizations.
 //!
 //! This module provides Rust equivalents and documentation for C++ compiler attributes

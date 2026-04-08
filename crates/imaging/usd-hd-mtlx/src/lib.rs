@@ -1,4 +1,3 @@
-
 //! HdMtlx - MaterialX integration for Hydra.
 //!
 //! This module provides utilities for integrating MaterialX with Hydra's material system.

@@ -1,4 +1,3 @@
-
 //! HdMaterialOverrideSchema - Material parameter/interface overrides.
 //!
 //! Corresponds to pxr/imaging/hd/materialOverrideSchema.h

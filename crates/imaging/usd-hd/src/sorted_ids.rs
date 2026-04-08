@@ -1,4 +1,3 @@
-
 //! HdSortedIds - Sorted container of Hydra IDs (multiset semantics).
 //!
 //! Corresponds to pxr/imaging/hd/sortedIds.h.

@@ -35,7 +35,7 @@ use usd_tf::Token;
 /// Rx(-90deg) in row-vector form: X stays, Y -> -Z, Z -> Y.
 // Z-up correction is now handled inside FreeCamera (matches C++ freeCamera.py).
 // The YZUpInvMatrix is part of the camera transform chain, not a post-hoc view fix.
-use usd_camera_util::{conform_window_matrix, ConformWindowPolicy};
+use usd_camera_util::{ConformWindowPolicy, conform_window_matrix};
 
 use crate::camera::FreeCamera;
 use crate::data_model::{DataModel, DrawMode as ViewDrawMode, PickMode, SelectionHighlightMode};
@@ -47,7 +47,7 @@ use crate::panels::hud::HudState;
 use crate::panels::overlays::{self, OverlayState};
 use crate::panels::pick;
 
-use color_correction::{color_correct, update_viewport_texture, OcioCpuState};
+use color_correction::{OcioCpuState, color_correct, update_viewport_texture};
 use context_menu::viewport_context_menu;
 #[cfg(feature = "wgpu")]
 use gpu_display::ViewportGpuState;
@@ -415,7 +415,10 @@ pub fn ui_viewport(
     let vp_entry_t0 = Instant::now();
     let available = ui.available_size();
     let (rect, response) = ui.allocate_exact_size(available, Sense::click_and_drag());
-    log::trace!("[TRACE] viewport: entry + allocate: {:.1}ms", vp_entry_t0.elapsed().as_secs_f64() * 1000.0);
+    log::trace!(
+        "[TRACE] viewport: entry + allocate: {:.1}ms",
+        vp_entry_t0.elapsed().as_secs_f64() * 1000.0
+    );
 
     // Pick on LMB click (not drag, not Shift which starts marquee).
     // Supports modifier-based selection:
@@ -680,7 +683,10 @@ pub fn ui_viewport(
     let is_animating = data_model.root.playing || data_model.root.scrubbing;
     let pre_render_ms = vp_entry_t0.elapsed().as_secs_f64() * 1000.0;
     if pre_render_ms > 50.0 {
-        log::info!("[TRACE] viewport: pre-render (pick+camera+menu): {:.1}ms", pre_render_ms);
+        log::info!(
+            "[TRACE] viewport: pre-render (pick+camera+menu): {:.1}ms",
+            pre_render_ms
+        );
     }
 
     // Render USD scene when we have stage and engine
@@ -726,42 +732,42 @@ pub fn ui_viewport(
                     && data_model.view.free_camera_override_near.is_some()
                     && data_model.view.free_camera_override_far.is_some()
                 {
-                        // User override from the Adjust Free Camera dialog
-                        let near = data_model.view.free_camera_override_near.unwrap();
-                        let far = data_model.view.free_camera_override_far.unwrap();
-                        camera.set_clip_planes(near, far);
-                        (view_matrix, camera.projection_matrix(aspect))
-                    } else if !using_usd_cam {
-                        // Skip expensive stage bbox during animation — reuse last clip planes.
-                        // compute_stage_bbox_for_view traverses ALL prims (~1.5s for flo.usdz).
-                        // C++ usdview also skips full recompute during playback.
-                        let (near, far) = if is_animating {
-                            camera.clip_planes()
-                        } else {
-                            camera_controls::auto_clip_planes(data_model, camera)
-                        };
-                        log::debug!(
-                            "[clip] stage bbox near={:.6} far={:.6} cam_dist={:.6} auto_toggle={}",
-                            near,
-                            far,
-                            camera.dist(),
-                            data_model.view.auto_compute_clipping_planes
-                        );
-                        // Keep the free-camera projection deterministic by
-                        // feeding the computed near/far back through the camera
-                        // object; HUD/debug consumers read the effective clip
-                        // planes from the camera state after this point.
-                        camera.set_clip_planes(near, far);
-                        hud_clip_planes = (near, far);
-                        (view_matrix, camera.projection_matrix(aspect))
+                    // User override from the Adjust Free Camera dialog
+                    let near = data_model.view.free_camera_override_near.unwrap();
+                    let far = data_model.view.free_camera_override_far.unwrap();
+                    camera.set_clip_planes(near, far);
+                    (view_matrix, camera.projection_matrix(aspect))
+                } else if !using_usd_cam {
+                    // Skip expensive stage bbox during animation — reuse last clip planes.
+                    // compute_stage_bbox_for_view traverses ALL prims (~1.5s for flo.usdz).
+                    // C++ usdview also skips full recompute during playback.
+                    let (near, far) = if is_animating {
+                        camera.clip_planes()
                     } else {
-                        // USD camera: use its authored projection matrix unchanged.
-                        // Apply ConformWindow to ensure no stretching when viewport aspect
-                        // differs from the camera's authored aperture aspect.
-                        let conformed_proj =
-                            conform_window_matrix(proj_matrix, ConformWindowPolicy::Fit, aspect);
-                        (view_matrix, conformed_proj)
+                        camera_controls::auto_clip_planes(data_model, camera)
                     };
+                    log::debug!(
+                        "[clip] stage bbox near={:.6} far={:.6} cam_dist={:.6} auto_toggle={}",
+                        near,
+                        far,
+                        camera.dist(),
+                        data_model.view.auto_compute_clipping_planes
+                    );
+                    // Keep the free-camera projection deterministic by
+                    // feeding the computed near/far back through the camera
+                    // object; HUD/debug consumers read the effective clip
+                    // planes from the camera state after this point.
+                    camera.set_clip_planes(near, far);
+                    hud_clip_planes = (near, far);
+                    (view_matrix, camera.projection_matrix(aspect))
+                } else {
+                    // USD camera: use its authored projection matrix unchanged.
+                    // Apply ConformWindow to ensure no stretching when viewport aspect
+                    // differs from the camera's authored aperture aspect.
+                    let conformed_proj =
+                        conform_window_matrix(proj_matrix, ConformWindowPolicy::Fit, aspect);
+                    (view_matrix, conformed_proj)
+                };
 
                 // Z-up correction is now built into FreeCamera.view_matrix()
 
@@ -1091,7 +1097,8 @@ pub fn ui_viewport(
                 || i.raw_scroll_delta.x.abs() > 0.0
                 || i.raw_scroll_delta.y.abs() > 0.0
         });
-    let is_animating_or_interacting = data_model.root.playing || data_model.root.scrubbing || viewport_interacting;
+    let is_animating_or_interacting =
+        data_model.root.playing || data_model.root.scrubbing || viewport_interacting;
 
     if viewport_interacting {
         viewport_state.interaction_hot_until = Some(Instant::now() + Duration::from_millis(180));
@@ -1135,7 +1142,16 @@ pub fn ui_viewport(
         let raw = cam_dist / 20.0;
         let spacing = 10.0_f64.powf(raw.log10().floor());
         let extent = spacing * 20.0;
-        overlays::draw_grid(ui, rect, &view_matrix, &proj_matrix, extent, spacing, 10, camera.is_z_up());
+        overlays::draw_grid(
+            ui,
+            rect,
+            &view_matrix,
+            &proj_matrix,
+            extent,
+            spacing,
+            10,
+            camera.is_z_up(),
+        );
     }
 
     // Camera mask (driven by View > Camera Mask menu)
@@ -1311,7 +1327,10 @@ pub fn ui_viewport(
                                 .selected_text(selected_label)
                                 .show_ui(ui, |ui| {
                                     if ui
-                                        .selectable_label(active_camera_path.is_none(), "Free Camera")
+                                        .selectable_label(
+                                            active_camera_path.is_none(),
+                                            "Free Camera",
+                                        )
                                         .clicked()
                                     {
                                         actions.push(AppAction::SetCamera(None));
@@ -1320,10 +1339,13 @@ pub fn ui_viewport(
                                     if !scene_cameras.is_empty() {
                                         ui.separator();
                                         for (cam_path, cam_name) in scene_cameras {
-                                            let is_selected =
-                                                active_camera_path.as_deref() == Some(cam_path.as_str());
-                                            if ui.selectable_label(is_selected, cam_name).clicked() {
-                                                actions.push(AppAction::SetCamera(Some(cam_path.clone())));
+                                            let is_selected = active_camera_path.as_deref()
+                                                == Some(cam_path.as_str());
+                                            if ui.selectable_label(is_selected, cam_name).clicked()
+                                            {
+                                                actions.push(AppAction::SetCamera(Some(
+                                                    cam_path.clone(),
+                                                )));
                                                 ui.close();
                                             }
                                         }

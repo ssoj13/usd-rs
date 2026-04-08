@@ -46,12 +46,13 @@ impl ResourceBinder {
     /// alone. The Rust path is still mid-port, but taking the draw item here keeps
     /// the API aligned with the eventual parity direction and lets pipeline caches
     /// account for retained draw-item metadata.
-    pub fn from_draw_item_and_mesh_key(key: &MeshShaderKey, _draw_item: Option<&HdStDrawItem>) -> Self {
+    pub fn from_draw_item_and_mesh_key(
+        key: &MeshShaderKey,
+        _draw_item: Option<&HdStDrawItem>,
+    ) -> Self {
         let mut binder = Self::new();
-        let uses_face_varying = key.has_fvar_normals
-            || key.has_fvar_uv
-            || key.has_fvar_color
-            || key.has_fvar_opacity;
+        let uses_face_varying =
+            key.has_fvar_normals || key.has_fvar_uv || key.has_fvar_color || key.has_fvar_opacity;
 
         // Vertex attributes
         binder.add(BindingRequest::vertex_attr(
@@ -190,7 +191,10 @@ impl ResourceBinder {
     }
 
     /// Build bindings from the active program family.
-    pub fn from_program_key(program_key: &DrawProgramKey, sample_item: Option<&HdStDrawItem>) -> Self {
+    pub fn from_program_key(
+        program_key: &DrawProgramKey,
+        sample_item: Option<&HdStDrawItem>,
+    ) -> Self {
         match program_key {
             DrawProgramKey::Mesh(key) => Self::from_draw_item_and_mesh_key(key, sample_item),
             DrawProgramKey::Points(key) => Self::from_points_key(key),

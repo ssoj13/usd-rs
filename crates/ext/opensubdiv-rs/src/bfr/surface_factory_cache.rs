@@ -30,15 +30,21 @@ pub struct SurfaceFactoryCache {
 
 impl Default for SurfaceFactoryCache {
     fn default() -> Self {
-        SurfaceFactoryCache { map: HashMap::new() }
+        SurfaceFactoryCache {
+            map: HashMap::new(),
+        }
     }
 }
 
 impl SurfaceFactoryCache {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     /// Number of entries in the cache.
-    pub fn size(&self) -> usize { self.map.len() }
+    pub fn size(&self) -> usize {
+        self.map.len()
+    }
 
     /// Look up `key` in the cache.  Returns `None` when not found.
     pub fn find(&self, key: CacheKey) -> Option<CacheData> {
@@ -73,7 +79,9 @@ impl Default for SurfaceFactoryCacheThreaded {
 }
 
 impl SurfaceFactoryCacheThreaded {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn size(&self) -> usize {
         self.inner.read().unwrap().size()
@@ -123,8 +131,8 @@ impl SurfaceFactoryCacheTrait for SurfaceFactoryCacheThreaded {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use crate::bfr::patch_tree::PatchTree;
+    use std::sync::Arc;
 
     fn make_patch() -> CacheData {
         Arc::new(PatchTree::new())
@@ -155,7 +163,7 @@ mod tests {
     #[test]
     fn threaded_cache_add_and_find() {
         let cache = SurfaceFactoryCacheThreaded::new();
-        let data  = make_patch();
+        let data = make_patch();
         cache.add(7u64, data);
         assert!(cache.find(7).is_some());
     }

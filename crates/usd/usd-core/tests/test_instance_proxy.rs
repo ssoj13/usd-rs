@@ -152,7 +152,10 @@ fn descendant_proxy_lookup_maps_to_child_not_root() {
         .expect("proxy child");
 
     assert!(child.is_instance_proxy());
-    assert_eq!(child.path(), &Path::from_string("/Instance1/Child").expect("p"));
+    assert_eq!(
+        child.path(),
+        &Path::from_string("/Instance1/Child").expect("p")
+    );
     assert_eq!(
         child.get_prim_in_prototype().path(),
         &Path::from_string("/__Prototype_1/Child").expect("p")

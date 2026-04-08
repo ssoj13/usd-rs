@@ -1,4 +1,3 @@
-
 //! Debug codes for hdMtlx module.
 
 use usd_tf::Token;

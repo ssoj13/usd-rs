@@ -23,9 +23,9 @@ const INSTANCE_LOCATIONS: &str = "instanceLocations";
 const MASK: &str = "mask";
 const PROTOTYPES: &str = "prototypes";
 use crate::ni_instance_aggregation_impl;
+use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_sdf::Path as SdfPath;
 use usd_trace::trace_function;
 

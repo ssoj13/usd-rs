@@ -142,11 +142,7 @@ impl HgiWgpu {
     }
 
     /// Wrap an externally owned adapter/device/queue into an HGI backend.
-    pub fn from_existing(
-        adapter: wgpu::Adapter,
-        device: wgpu::Device,
-        queue: wgpu::Queue,
-    ) -> Self {
+    pub fn from_existing(adapter: wgpu::Adapter, device: wgpu::Device, queue: wgpu::Queue) -> Self {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
@@ -224,9 +220,7 @@ impl HgiWgpu {
 
         log::info!(
             "wgpu device created OK (push_constants: {}, max_size: {})",
-            adapter
-                .features()
-                .contains(wgpu::Features::PUSH_CONSTANTS),
+            adapter.features().contains(wgpu::Features::PUSH_CONSTANTS),
             device.limits().max_push_constant_size,
         );
 

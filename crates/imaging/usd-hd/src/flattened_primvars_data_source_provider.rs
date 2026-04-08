@@ -1,4 +1,3 @@
-
 //! HdFlattenedPrimvarsDataSourceProvider - Flattens primvars with constant inheritance.
 //!
 //! Corresponds to pxr/imaging/hd/flattenedPrimvarsDataSourceProvider.h
@@ -203,7 +202,13 @@ impl HdInvalidatableContainerDataSource for FlattenedPrimvarsDataSource {
             }
 
             if let Some(primvar_name) = locator.first_element() {
-                if self.inner.cached_primvars.write().remove(primvar_name).is_some() {
+                if self
+                    .inner
+                    .cached_primvars
+                    .write()
+                    .remove(primvar_name)
+                    .is_some()
+                {
                     any_dirtied = true;
                 }
             }
@@ -293,7 +298,12 @@ mod tests {
         assert!(names.contains(&tok("opacity")));
 
         assert!(ds.inner.cached_primvars.read().contains_key(&tok("color")));
-        assert!(ds.inner.cached_primvars.read().contains_key(&tok("opacity")));
+        assert!(
+            ds.inner
+                .cached_primvars
+                .read()
+                .contains_key(&tok("opacity"))
+        );
         assert!(ds.inner.cached_constant_primvar_names.read().is_some());
 
         let mut locators = HdDataSourceLocatorSet::new();
@@ -304,7 +314,12 @@ mod tests {
 
         assert!(ds.invalidate(&locators));
         assert!(!ds.inner.cached_primvars.read().contains_key(&tok("color")));
-        assert!(ds.inner.cached_primvars.read().contains_key(&tok("opacity")));
+        assert!(
+            ds.inner
+                .cached_primvars
+                .read()
+                .contains_key(&tok("opacity"))
+        );
         assert!(ds.inner.cached_constant_primvar_names.read().is_some());
     }
 

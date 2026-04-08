@@ -1,4 +1,3 @@
-
 //! HdUnitTestNullRenderPass - Null render pass for core Hydra unit tests.
 //!
 //! Implements the sync part of the render pass, but not the draw part.

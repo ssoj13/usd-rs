@@ -7,9 +7,9 @@
 //! that merges the input prim's data with a selections vector data source for
 //! any prim in the selection set.
 
+use parking_lot::RwLock;
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_hd::data_source::{HdContainerDataSourceHandle, HdRetainedTypedSampledDataSource};
 use usd_hd::scene_index::observer::{
     AddedPrimEntry, DirtiedPrimEntry, HdSceneIndexObserverHandle, RemovedPrimEntry,
@@ -188,9 +188,7 @@ impl SelectionSceneIndex {
                 dirty_locators: locators,
             }];
             // Match `_ref`: downstream consumers may inspect the sender's view.
-            self.base
-                .base()
-                .send_prims_dirtied(self, &entries);
+            self.base.base().send_prims_dirtied(self, &entries);
         }
     }
 
@@ -204,10 +202,7 @@ impl SelectionSceneIndex {
             info.prim_to_selections.keys().cloned().collect()
         };
 
-        self.selection_info
-            .write()
-            .prim_to_selections
-            .clear();
+        self.selection_info.write().prim_to_selections.clear();
 
         let locators =
             HdDataSourceLocatorSet::from_locator(HdSelectionsSchema::get_default_locator());
@@ -219,9 +214,7 @@ impl SelectionSceneIndex {
             })
             .collect();
         // Match `_ref`: downstream consumers may inspect the sender's view.
-        self.base
-            .base()
-            .send_prims_dirtied(self, &entries);
+        self.base.base().send_prims_dirtied(self, &entries);
     }
 
     /// Checks if a path is currently selected.

@@ -1,4 +1,3 @@
-
 //! HdRendererCreateArgsSchema - Arguments for HdRendererPlugin.
 //!
 //! Corresponds to pxr/imaging/hd/rendererCreateArgsSchema.h.

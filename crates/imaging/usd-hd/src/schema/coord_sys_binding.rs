@@ -1,4 +1,3 @@
-
 //! Coord sys binding schema for Hydra.
 //!
 //! Port of pxr/imaging/hd/coordSysBindingSchema.

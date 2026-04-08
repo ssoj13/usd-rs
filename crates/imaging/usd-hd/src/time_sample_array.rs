@@ -1,4 +1,3 @@
-
 //! HdTimeSampleArray - Time-sampled value arrays.
 //!
 //! Port of pxr/imaging/hd/timeSampleArray.h

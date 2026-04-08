@@ -6,9 +6,9 @@
 //! Provides lightweight wrappers around Level topology that satisfy the generic
 //! `FACE`, `EDGE`, `VERTEX` type requirements of Sdc::Scheme mask computation.
 
-use crate::sdc::crease::Crease;
 use super::level::Level;
 use super::types::Index;
+use crate::sdc::crease::Crease;
 
 // ---------------------------------------------------------------------------
 // CountOffset — utility struct for variable-arity topology relations
@@ -17,12 +17,14 @@ use super::types::Index;
 /// A (count, offset) pair used for variable-arity topology relations.
 #[derive(Clone, Copy, Default)]
 pub struct CountOffset {
-    pub count:  i32,
+    pub count: i32,
     pub offset: i32,
 }
 
 impl CountOffset {
-    pub fn new(count: i32, offset: i32) -> Self { Self { count, offset } }
+    pub fn new(count: i32, offset: i32) -> Self {
+        Self { count, offset }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -49,7 +51,9 @@ impl FaceInterface {
 }
 
 impl Default for FaceInterface {
-    fn default() -> Self { Self { vert_count: 0 } }
+    fn default() -> Self {
+        Self { vert_count: 0 }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -122,7 +126,7 @@ impl<'a> EdgeInterface<'a> {
 /// Provides the generic `<typename VERT>` interface expected by Sdc::Scheme.
 pub struct VertexInterface<'a> {
     parent: &'a Level,
-    child:  &'a Level,
+    child: &'a Level,
     p_index: Index,
     c_index: Index,
     e_count: i32,
@@ -132,9 +136,12 @@ pub struct VertexInterface<'a> {
 impl<'a> VertexInterface<'a> {
     pub fn new(parent: &'a Level, child: &'a Level) -> Self {
         Self {
-            parent, child,
-            p_index: 0, c_index: 0,
-            e_count: 0, f_count: 0,
+            parent,
+            child,
+            p_index: 0,
+            c_index: 0,
+            e_count: 0,
+            f_count: 0,
         }
     }
 
@@ -150,11 +157,15 @@ impl<'a> VertexInterface<'a> {
 
     /// Number of edges incident to this vertex.
     #[inline]
-    pub fn get_num_edges(&self) -> i32 { self.e_count }
+    pub fn get_num_edges(&self) -> i32 {
+        self.e_count
+    }
 
     /// Number of faces incident to this vertex.
     #[inline]
-    pub fn get_num_faces(&self) -> i32 { self.f_count }
+    pub fn get_num_faces(&self) -> i32 {
+        self.f_count
+    }
 
     /// Sharpness of this vertex in the parent level.
     #[inline]
@@ -186,10 +197,7 @@ impl<'a> VertexInterface<'a> {
     ) -> &'b [f32] {
         let mut p_sharpness = vec![0.0f32; self.e_count as usize];
         self.get_sharpness_per_edge(&mut p_sharpness);
-        crease.subdivide_edge_sharpnesses_around_vertex(
-            &p_sharpness,
-            c_sharpness,
-        );
+        crease.subdivide_edge_sharpnesses_around_vertex(&p_sharpness, c_sharpness);
         c_sharpness
     }
 
@@ -246,13 +254,13 @@ mod tests {
         level.face_vert_indices = vec![0, 1, 2, 3];
 
         // edge 0: verts 0-1, incident to face 0
-        level.edge_vert_indices = vec![0,1, 1,2, 2,3, 3,0];
+        level.edge_vert_indices = vec![0, 1, 1, 2, 2, 3, 3, 0];
         level.edge_sharpness = vec![0.0, 2.5, 0.0, 0.0];
         level.edge_face_counts_offsets = vec![
-            1, 0,  // edge 0
-            1, 1,  // edge 1
-            1, 2,  // edge 2
-            1, 3,  // edge 3
+            1, 0, // edge 0
+            1, 1, // edge 1
+            1, 2, // edge 2
+            1, 3, // edge 3
         ];
         level.edge_face_indices = vec![0, 0, 0, 0];
         level.edge_face_local_indices = vec![0, 1, 2, 3];

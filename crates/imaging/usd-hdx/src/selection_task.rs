@@ -1,4 +1,3 @@
-
 //! Selection task - Highlight selected objects.
 //!
 //! Renders selection highlight overlay for interactive applications.
@@ -277,12 +276,15 @@ impl HdTask for HdxSelectionTask {
             self.has_selection = true;
             ctx.insert(Token::new("hasSelection"), Value::from(true));
             ctx.insert(Token::new("selectionState"), Value::from(true));
-            ctx.insert(Token::new("selectionBuffer"), Value::new(selection_offsets.clone()));
-            ctx.insert(Token::new("selectionOffsets"), Value::new(selection_offsets));
             ctx.insert(
-                Token::new("selectionUniforms"),
-                Value::from(true),
+                Token::new("selectionBuffer"),
+                Value::new(selection_offsets.clone()),
             );
+            ctx.insert(
+                Token::new("selectionOffsets"),
+                Value::new(selection_offsets),
+            );
+            ctx.insert(Token::new("selectionUniforms"), Value::from(true));
         } else {
             self.has_selection = false;
             ctx.insert(Token::new("hasSelection"), Value::from(false));

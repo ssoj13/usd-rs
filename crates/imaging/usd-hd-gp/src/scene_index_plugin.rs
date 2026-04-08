@@ -1,4 +1,3 @@
-
 //! Scene index plugin integration for generative procedurals.
 
 use super::generative_procedural_resolving_scene_index::HdGpGenerativeProceduralResolvingSceneIndex;

@@ -1,11 +1,10 @@
-
 //! NURBS approximating scene index.
 //!
 //! Converts NURBS curves to basis curves and NURBS patches to meshes.
 //! Port of pxr/imaging/hdsi/nurbsApproximatingSceneIndex.cpp.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdBlockDataSource, HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBase,
     HdDataSourceBaseHandle, HdOverlayContainerDataSource, HdRetainedContainerDataSource,
@@ -319,7 +318,9 @@ impl HdsiNurbsApproximatingSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

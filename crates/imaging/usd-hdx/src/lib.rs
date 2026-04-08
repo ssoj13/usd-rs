@@ -1,4 +1,3 @@
-
 //! Hydra Extensions (HDX) - High-level rendering utilities
 //!
 //! Port of pxr/imaging/hdx

@@ -1,4 +1,3 @@
-
 //! HdVectorSchema - Wrapper for vector data source.
 //!
 //! Corresponds to pxr/imaging/hd/vectorSchema.h

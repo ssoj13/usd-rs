@@ -10,9 +10,9 @@ use super::data_source_prim::DataSourcePrim;
 use super::data_source_stage_globals::DataSourceStageGlobalsHandle;
 use super::prim_adapter::PrimAdapter;
 use super::types::{PopulationMode, PropertyInvalidationType};
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_core::Prim;
 use usd_geom::primvars_api::PrimvarsAPI;
 use usd_hd::{

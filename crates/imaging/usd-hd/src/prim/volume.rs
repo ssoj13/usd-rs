@@ -1,4 +1,3 @@
-
 //! HdVolume - Renderable volume primitive.
 //!
 //! Port of pxr/imaging/hd/volume.h / volume.cpp.

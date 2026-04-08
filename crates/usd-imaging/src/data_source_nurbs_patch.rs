@@ -158,10 +158,8 @@ impl DataSourceNurbsPatchPrim {
             )) as usd_hd::HdContainerDataSourceHandle;
 
             return Some(match base.as_ref().and_then(cast_to_container) {
-                Some(base_container) => {
-                    HdOverlayContainerDataSource::new_2(base_container, custom)
-                        as HdDataSourceBaseHandle
-                }
+                Some(base_container) => HdOverlayContainerDataSource::new_2(base_container, custom)
+                    as HdDataSourceBaseHandle,
                 None => custom as HdDataSourceBaseHandle,
             });
         }
@@ -267,8 +265,8 @@ mod tests {
             PropertyInvalidationType::PropertyChanged,
         );
 
-        assert!(locators.contains(&HdPrimvarsSchema::get_default_locator().append(
-            &usd_geom_tokens().point_weights
-        )));
+        assert!(locators.contains(
+            &HdPrimvarsSchema::get_default_locator().append(&usd_geom_tokens().point_weights)
+        ));
     }
 }

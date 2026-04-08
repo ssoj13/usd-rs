@@ -1,4 +1,3 @@
-
 //! Rerooting scene index - remaps prim paths to a new root.
 //!
 //! This scene index transforms paths from an input scene by rerooting them
@@ -14,7 +13,7 @@ use usd_hd::scene_index::observer::{
 };
 use usd_hd::scene_index::{
     FilteringObserverTarget, HdSceneIndexBase, HdSceneIndexHandle, HdSceneIndexPrim,
-    HdSingleInputFilteringSceneIndexBase, SdfPathVector, wire_filter_to_input, si_ref,
+    HdSingleInputFilteringSceneIndexBase, SdfPathVector, si_ref, wire_filter_to_input,
 };
 use usd_sdf::Path as SdfPath;
 use usd_tf::Token as TfToken;

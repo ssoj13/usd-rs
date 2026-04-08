@@ -1,4 +1,3 @@
-
 //! Legacy display style override scene index.
 //!
 //! Port of pxr/imaging/hdsi/legacyDisplayStyleOverrideSceneIndex.
@@ -6,8 +5,8 @@
 //! Overrides the legacy display style (refine level and cull style) for each prim.
 
 use crate::utils;
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdContainerDataSource, HdContainerDataSourceHandle, HdDataSourceBaseHandle,
     HdDataSourceLocator, HdDataSourceLocatorSet, HdOverlayContainerDataSource,
@@ -205,7 +204,9 @@ impl HdsiLegacyDisplayStyleOverrideSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }

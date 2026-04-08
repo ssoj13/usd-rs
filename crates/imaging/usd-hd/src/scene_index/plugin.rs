@@ -1,4 +1,3 @@
-
 //! Scene index plugin interface.
 
 use super::base::{HdContainerDataSourceHandle, HdSceneIndexHandle};

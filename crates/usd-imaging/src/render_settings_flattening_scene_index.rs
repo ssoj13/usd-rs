@@ -11,8 +11,8 @@
 //! Resolution of "base" properties (resolution, camera, etc.) follows the
 //! USD RenderSettingsBase pattern: product opinion wins, else settings opinion.
 
-use std::sync::Arc;
 use parking_lot::RwLock;
+use std::sync::Arc;
 use usd_hd::data_source::{
     HdDataSourceBaseHandle, HdDataSourceLocator, HdRetainedContainerDataSource,
     HdRetainedTypedSampledDataSource, HdTypedSampledDataSource,
@@ -389,8 +389,7 @@ impl RenderSettingsPrimDataSource {
                                     tokens::RENDER_PRODUCTS.clone(),
                                 ),
                             );
-                            entries
-                                .push((Token::new(&dep_name), dep as HdDataSourceBaseHandle));
+                            entries.push((Token::new(&dep_name), dep as HdDataSourceBaseHandle));
 
                             // Var dependencies
                             let prod_prim = si_locked.get_prim(product_path);
@@ -401,9 +400,7 @@ impl RenderSettingsPrimDataSource {
                                     if let Some(usd_prod) =
                                         usd_hd::data_source::cast_to_container(&usd_prod_base)
                                     {
-                                        if let Some(vars_ds) =
-                                            usd_prod.get(&tokens::ORDERED_VARS)
-                                        {
+                                        if let Some(vars_ds) = usd_prod.get(&tokens::ORDERED_VARS) {
                                             let vars_any = vars_ds.as_any();
                                             if let Some(var_paths) = vars_any.downcast_ref::<
                                                 HdRetainedTypedSampledDataSource<Vec<Path>>,
@@ -549,8 +546,7 @@ impl HdSceneIndexBase for RenderSettingsFlatteningSceneIndex {
                         ds.clone(),
                         input.clone(),
                         prim_path.clone(),
-                    )
-                        as HdContainerDataSourceHandle);
+                    ) as HdContainerDataSourceHandle);
                 }
             }
 

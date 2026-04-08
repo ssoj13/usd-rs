@@ -12,8 +12,8 @@ use usd_hd::data_source::{
     HdRetainedContainerDataSource, HdTypedSampledDataSource, SampledToTypedAdapter,
     cast_to_container,
 };
-use usd_hd::schema::HdSchema;
 use usd_hd::schema::HdMatrixDataSourceHandle;
+use usd_hd::schema::HdSchema;
 use usd_tf::Token;
 
 // Token constants (USD_SKEL_IMAGING_RESOLVED_SKELETON_SCHEMA_TOKENS)

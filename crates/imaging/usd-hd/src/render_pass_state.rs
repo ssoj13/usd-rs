@@ -1,4 +1,3 @@
-
 //! HdRenderPassState - Rendering parameters for render passes.
 //!
 //! Corresponds to pxr/imaging/hd/renderPassState.h.

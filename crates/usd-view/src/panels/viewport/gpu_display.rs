@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bytemuck::{cast_slice, Pod, Zeroable};
+use bytemuck::{Pod, Zeroable, cast_slice};
 use egui::TextureId;
 use egui_wgpu::wgpu;
 use usd_hgi_wgpu::resolve_texture_view;

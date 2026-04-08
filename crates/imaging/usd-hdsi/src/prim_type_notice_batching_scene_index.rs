@@ -1,4 +1,3 @@
-
 //! Prim type notice batching scene index.
 //!
 //! Port of pxr/imaging/hdsi/primTypeNoticeBatchingSceneIndex.
@@ -6,9 +5,9 @@
 //! Batches prim notices by type using a priority functor. Notices are held
 //! until Flush(). The scene index is empty until the first Flush.
 
+use parking_lot::RwLock;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
-use parking_lot::RwLock;
 use usd_hd::data_source::{HdDataSourceBase, HdDataSourceBaseHandle, HdDataSourceLocatorSet};
 use usd_hd::scene_index::filtering::FilteringSceneIndexObserver;
 use usd_hd::scene_index::observer::*;
@@ -185,7 +184,9 @@ impl HdsiPrimTypeNoticeBatchingSceneIndex {
             Arc::downgrade(&observer) as std::sync::Weak<RwLock<dyn FilteringObserverTarget>>
         );
         {
-            input_scene.read().add_observer(Arc::new(filtering_observer));
+            input_scene
+                .read()
+                .add_observer(Arc::new(filtering_observer));
         }
         observer
     }
@@ -319,7 +320,10 @@ impl HdsiPrimTypeNoticeBatchingSceneIndex {
         let delegate = usd_hd::scene_index::base::SceneIndexDelegate(Arc::clone(this));
         let sender = &delegate as &dyn HdSceneIndexBase;
         if !removed_entries.is_empty() {
-            guard.base.base().send_prims_removed(sender, &removed_entries);
+            guard
+                .base
+                .base()
+                .send_prims_removed(sender, &removed_entries);
         }
         for priority in 0..num_priorities {
             if !added_by_priority[priority].is_empty() {

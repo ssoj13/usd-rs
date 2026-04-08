@@ -1,4 +1,3 @@
-
 //! HdStResourceRegistry - Central registry for Storm GPU resources.
 //!
 //! The resource registry manages all GPU resources (buffers, textures, etc.)

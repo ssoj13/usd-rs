@@ -166,8 +166,8 @@ impl Engine {
 
         // Pure xform animation often emits `DIRTY_EXTENT` next to `DIRTY_TRANSFORM`
         // (world bounds / flattening), without mesh or material edits.
-        const ALLOWED_WITH_XFORM: u32 = HdRprimDirtyBits::DIRTY_TRANSFORM
-            | HdRprimDirtyBits::DIRTY_EXTENT;
+        const ALLOWED_WITH_XFORM: u32 =
+            HdRprimDirtyBits::DIRTY_TRANSFORM | HdRprimDirtyBits::DIRTY_EXTENT;
 
         let mut transform_only = true;
         let mut dirty_xform_paths = Vec::new();
@@ -238,7 +238,9 @@ impl Engine {
         }
 
         for prim_id in prim_ids {
-            let rprim_type = index_guard.get_rprim_type_id(&prim_id).map(|t| t.as_str().to_owned());
+            let rprim_type = index_guard
+                .get_rprim_type_id(&prim_id)
+                .map(|t| t.as_str().to_owned());
             let is_mesh = rprim_type.as_deref() == Some("mesh");
 
             // Non-mesh rprims (basisCurves, points): transforms flow through draw
@@ -249,47 +251,42 @@ impl Engine {
             }
 
             let resolved_material = scene_delegate.as_ref().and_then(|delegate| {
-                let mat_id = delegate
-                    .get_material_id(&prim_id);
+                let mat_id = delegate.get_material_id(&prim_id);
 
                 // Stage-based fallback: if scene index doesn't resolve material,
                 // check USD prim directly (direct binding + GeomSubset children)
-                let mat_id = mat_id.or_else(|| {
-                    resolve_material_from_stage(stage.as_ref()?, &prim_id)
-                });
+                let mat_id =
+                    mat_id.or_else(|| resolve_material_from_stage(stage.as_ref()?, &prim_id));
 
                 mat_id.and_then(|mat_path| {
-                        let cached = self
-                            .material_cache
-                            .get(&mat_path)
-                            .cloned()
-                            .map(|(params, features, tex_paths)| {
-                                (mat_path.clone(), params, features, tex_paths)
-                            })
-                            .or_else(|| {
-                                index_guard
-                                    .get_sprim(&mat_token, &mat_path)
-                                    .and_then(|handle| handle.downcast_ref::<HdStMaterial>())
-                                    .map(|st_mat| {
-                                        (
-                                            mat_path.clone(),
-                                            st_mat.get_material_params().clone(),
-                                            (
-                                                st_mat.has_ptex(),
-                                                st_mat.has_limit_surface_evaluation(),
-                                            ),
-                                            st_mat.get_texture_paths().clone(),
-                                        )
-                                    })
-                            });
-                        cached.map(|(cache_path, params, features, tex_paths)| {
-                            self.material_cache.insert(
-                                cache_path.clone(),
-                                (params.clone(), features, tex_paths.clone()),
-                            );
-                            (params, features, tex_paths)
+                    let cached = self
+                        .material_cache
+                        .get(&mat_path)
+                        .cloned()
+                        .map(|(params, features, tex_paths)| {
+                            (mat_path.clone(), params, features, tex_paths)
                         })
+                        .or_else(|| {
+                            index_guard
+                                .get_sprim(&mat_token, &mat_path)
+                                .and_then(|handle| handle.downcast_ref::<HdStMaterial>())
+                                .map(|st_mat| {
+                                    (
+                                        mat_path.clone(),
+                                        st_mat.get_material_params().clone(),
+                                        (st_mat.has_ptex(), st_mat.has_limit_surface_evaluation()),
+                                        st_mat.get_texture_paths().clone(),
+                                    )
+                                })
+                        });
+                    cached.map(|(cache_path, params, features, tex_paths)| {
+                        self.material_cache.insert(
+                            cache_path.clone(),
+                            (params.clone(), features, tex_paths.clone()),
+                        );
+                        (params, features, tex_paths)
                     })
+                })
             });
 
             let instancer_xforms = {
@@ -311,22 +308,27 @@ impl Engine {
             // Prefer the typed sync handle (RprimAdapter<HdStMesh>) when available — it is
             // the mesh that was actually synced via HdRprim::sync. Fall back to the opaque
             // handle for backends that use the sync_rprim dispatch path.
-            let mesh: &mut HdStMesh = if let Some(sh) = index_guard.get_rprim_sync_handle_mut(&prim_id) {
-                let any = sh.as_any_mut();
-                if let Some(adapter) = any.downcast_mut::<usd_hd::render::render_index::RprimAdapter<HdStMesh>>() {
-                    &mut adapter.0
+            let mesh: &mut HdStMesh =
+                if let Some(sh) = index_guard.get_rprim_sync_handle_mut(&prim_id) {
+                    let any = sh.as_any_mut();
+                    if let Some(adapter) =
+                        any.downcast_mut::<usd_hd::render::render_index::RprimAdapter<HdStMesh>>()
+                    {
+                        &mut adapter.0
+                    } else {
+                        continue;
+                    }
+                } else if let Some(handle) = index_guard.get_rprim_handle_mut(&prim_id) {
+                    if let Some(m) =
+                        (handle.as_mut() as &mut dyn std::any::Any).downcast_mut::<HdStMesh>()
+                    {
+                        m
+                    } else {
+                        continue;
+                    }
                 } else {
                     continue;
-                }
-            } else if let Some(handle) = index_guard.get_rprim_handle_mut(&prim_id) {
-                if let Some(m) = (handle.as_mut() as &mut dyn std::any::Any).downcast_mut::<HdStMesh>() {
-                    m
-                } else {
-                    continue;
-                }
-            } else {
-                continue;
-            };
+                };
 
             let material_t0 = std::time::Instant::now();
             mesh.set_material_features(false, false);
@@ -495,27 +497,26 @@ impl Engine {
             }
 
             // Mesh rprim: read cached world_transform from HdStMesh (set during sync)
-            let mesh: &HdStMesh =
-                if let Some(sh) = index_guard.get_rprim_sync_handle_mut(prim_id) {
-                    let any = sh.as_any_mut();
-                    if let Some(adapter) =
-                        any.downcast_mut::<usd_hd::render::render_index::RprimAdapter<HdStMesh>>()
-                    {
-                        &adapter.0
-                    } else {
-                        continue;
-                    }
-                } else if let Some(handle) = index_guard.get_rprim_handle_mut(prim_id) {
-                    if let Some(m) =
-                        (handle.as_mut() as &mut dyn std::any::Any).downcast_mut::<HdStMesh>()
-                    {
-                        m
-                    } else {
-                        continue;
-                    }
+            let mesh: &HdStMesh = if let Some(sh) = index_guard.get_rprim_sync_handle_mut(prim_id) {
+                let any = sh.as_any_mut();
+                if let Some(adapter) =
+                    any.downcast_mut::<usd_hd::render::render_index::RprimAdapter<HdStMesh>>()
+                {
+                    &adapter.0
                 } else {
                     continue;
-                };
+                }
+            } else if let Some(handle) = index_guard.get_rprim_handle_mut(prim_id) {
+                if let Some(m) =
+                    (handle.as_mut() as &mut dyn std::any::Any).downcast_mut::<HdStMesh>()
+                {
+                    m
+                } else {
+                    continue;
+                }
+            } else {
+                continue;
+            };
 
             let world_transform = *mesh.get_world_transform();
 
@@ -541,7 +542,8 @@ impl Engine {
                 }
             }
 
-            self.model_transforms.insert(prim_id.clone(), world_transform);
+            self.model_transforms
+                .insert(prim_id.clone(), world_transform);
             updated += 1;
         }
 
@@ -576,24 +578,24 @@ impl Engine {
         let mut index_guard = index.lock().expect("Mutex poisoned");
 
         for prim_id in index_guard.get_rprim_ids() {
-            let mesh: &HdStMesh =
-                if let Some(sh) = index_guard.get_rprim_sync_handle_mut(&prim_id) {
-                    let any = sh.as_any_mut();
-                    if let Some(adapter) =
-                        any.downcast_mut::<usd_hd::render::render_index::RprimAdapter<HdStMesh>>()
-                    {
-                        &adapter.0
-                    } else {
-                        // Non-mesh: use model_transforms entry for bbox
-                        if let Some(xf) = self.model_transforms.get(&prim_id) {
-                            // No local bbox for non-mesh; skip
-                            let _ = xf;
-                        }
-                        continue;
-                    }
+            let mesh: &HdStMesh = if let Some(sh) = index_guard.get_rprim_sync_handle_mut(&prim_id)
+            {
+                let any = sh.as_any_mut();
+                if let Some(adapter) =
+                    any.downcast_mut::<usd_hd::render::render_index::RprimAdapter<HdStMesh>>()
+                {
+                    &adapter.0
                 } else {
+                    // Non-mesh: use model_transforms entry for bbox
+                    if let Some(xf) = self.model_transforms.get(&prim_id) {
+                        // No local bbox for non-mesh; skip
+                        let _ = xf;
+                    }
                     continue;
-                };
+                }
+            } else {
+                continue;
+            };
 
             let world_transform = *mesh.get_world_transform();
             let local_bbox = mesh.get_local_bbox();
@@ -610,7 +612,6 @@ impl Engine {
         drop(index_guard);
         self.scene_bbox = has_any_bounds.then_some((bbox_min, bbox_max));
     }
-
 }
 
 /// Stage-based material resolution fallback.

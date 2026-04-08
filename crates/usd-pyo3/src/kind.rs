@@ -94,7 +94,9 @@ impl PyKindRegistry {
     #[classmethod]
     #[pyo3(name = "GetBaseKind")]
     fn get_base_kind(_cls: &Bound<'_, pyo3::types::PyType>, kind: &str) -> String {
-        registry::get_base_kind(&Token::new(kind)).as_str().to_string()
+        registry::get_base_kind(&Token::new(kind))
+            .as_str()
+            .to_string()
     }
 
     /// Return an unordered list of all registered kind strings.
@@ -177,7 +179,9 @@ fn has_kind(kind: &str) -> bool {
 #[pyfunction]
 #[pyo3(name = "GetBaseKind")]
 fn get_base_kind(kind: &str) -> String {
-    registry::get_base_kind(&Token::new(kind)).as_str().to_string()
+    registry::get_base_kind(&Token::new(kind))
+        .as_str()
+        .to_string()
 }
 
 /// Return all registered kind strings.

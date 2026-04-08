@@ -12,8 +12,9 @@ use usd_hd::schema::{
     HdDisplayFilterSchema, HdIntegratorSchema, HdMaterialNodeSchema, HdSampleFilterSchema,
 };
 use usd_hd::{
-    HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdDataSourceLocator, HdDataSourceLocatorSet,
-    HdRetainedContainerDataSource, HdRetainedSampledDataSource, HdRetainedTypedSampledDataSource,
+    HdContainerDataSourceHandle, HdDataSourceBaseHandle, HdDataSourceLocator,
+    HdDataSourceLocatorSet, HdRetainedContainerDataSource, HdRetainedSampledDataSource,
+    HdRetainedTypedSampledDataSource,
 };
 use usd_tf::Token;
 
@@ -25,17 +26,21 @@ fn build_resource_ds(
     let node = RenderTerminalHelper::create_hd_material_node2(prim, shader_id, prim_type);
     let mut parameter_entries = Vec::with_capacity(node.parameters.len());
     for (name, value) in node.parameters {
-        let param_ds: HdContainerDataSourceHandle = HdRetainedContainerDataSource::from_entries(&[(
-            Token::new("value"),
-            HdRetainedSampledDataSource::new(value) as HdDataSourceBaseHandle,
-        )]);
+        let param_ds: HdContainerDataSourceHandle =
+            HdRetainedContainerDataSource::from_entries(&[(
+                Token::new("value"),
+                HdRetainedSampledDataSource::new(value) as HdDataSourceBaseHandle,
+            )]);
         parameter_entries.push((name, param_ds as HdDataSourceBaseHandle));
     }
 
     let parameters = if parameter_entries.is_empty() {
         None
     } else {
-        Some(HdRetainedContainerDataSource::from_entries(&parameter_entries) as HdContainerDataSourceHandle)
+        Some(
+            HdRetainedContainerDataSource::from_entries(&parameter_entries)
+                as HdContainerDataSourceHandle,
+        )
     };
     HdMaterialNodeSchema::build_retained(
         parameters,

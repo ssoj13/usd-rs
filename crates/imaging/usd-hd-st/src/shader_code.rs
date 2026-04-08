@@ -1,4 +1,3 @@
-
 //! HdStShaderCode - Base shader code abstraction.
 //!
 //! Provides the interface for shader code generation and resource binding.

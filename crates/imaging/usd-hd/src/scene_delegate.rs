@@ -1,4 +1,3 @@
-
 //! HdSceneDelegate types and structs.
 //!
 //! Corresponds to pxr/imaging/hd/sceneDelegate.h - data structures used by

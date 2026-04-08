@@ -1,4 +1,3 @@
-
 //! Selection tracking for interactive applications
 //!
 //! Maintains the set of selected objects and communicates changes
@@ -18,9 +17,9 @@
 //! - Per-mode data: prim range [min, max+1] followed by per-prim seloffsets.
 //!   Each seloffset encodes `(next_offset << 1) | is_selected`.
 
+use parking_lot::RwLock;
 use std::collections::HashSet;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use usd_sdf::Path;
 
 /// Selection highlight modes, matching HdSelection::HighlightMode.
@@ -342,33 +341,27 @@ pub trait SelectionTrackerExt {
 
 impl SelectionTrackerExt for HdxSelectionTracker {
     fn get_version(&self) -> i32 {
-        self.read()
-            .version() as i32
+        self.read().version() as i32
     }
 
     fn is_empty(&self) -> bool {
-        self.read()
-            .is_empty()
+        self.read().is_empty()
     }
 
     fn count(&self) -> usize {
-        self.read()
-            .count()
+        self.read().count()
     }
 
     fn get_selected_paths(&self) -> Vec<Path> {
-        self.read()
-            .get_selected_paths()
+        self.read().get_selected_paths()
     }
 
     fn get_located_paths(&self) -> Vec<Path> {
-        self.read()
-            .get_located_paths()
+        self.read().get_located_paths()
     }
 
     fn contains(&self, path: &Path) -> bool {
-        self.read()
-            .is_selected(path)
+        self.read().is_selected(path)
     }
 
     fn set_selection(&self, paths: &[Path]) {
@@ -376,13 +369,11 @@ impl SelectionTrackerExt for HdxSelectionTracker {
     }
 
     fn select(&self, path: Path) {
-        self.write()
-            .add(path);
+        self.write().add(path);
     }
 
     fn deselect(&self, path: &Path) {
-        self.write()
-            .remove(path);
+        self.write().remove(path);
     }
 
     fn clear_selection(&self) {
@@ -390,13 +381,11 @@ impl SelectionTrackerExt for HdxSelectionTracker {
     }
 
     fn set_locate_selection(&self, paths: &[Path]) {
-        self.write()
-            .set_located_paths(paths);
+        self.write().set_located_paths(paths);
     }
 
     fn clear_locate_selection(&self) {
-        self.write()
-            .set_located_paths(&[]);
+        self.write().set_located_paths(&[]);
     }
 
     fn get_selection_offset_buffer(

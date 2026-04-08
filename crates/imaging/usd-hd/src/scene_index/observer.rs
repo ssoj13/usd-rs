@@ -1,4 +1,3 @@
-
 //! Scene index observer for tracking scene changes.
 
 use std::sync::{Arc, Weak};

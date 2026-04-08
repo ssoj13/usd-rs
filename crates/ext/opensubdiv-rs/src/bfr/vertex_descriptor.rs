@@ -16,14 +16,14 @@ use super::limits::Limits;
 #[derive(Clone, Debug)]
 pub struct VertexDescriptor {
     // Status flags.
-    pub(crate) is_valid:       bool,
+    pub(crate) is_valid: bool,
     pub(crate) is_initialized: bool,
-    pub(crate) is_finalized:   bool,
+    pub(crate) is_finalized: bool,
 
     pub(crate) is_manifold: bool,
     pub(crate) is_boundary: bool,
 
-    pub(crate) has_face_sizes:     bool,
+    pub(crate) has_face_sizes: bool,
     pub(crate) has_edge_sharpness: bool,
 
     /// Number of incident faces.
@@ -44,17 +44,17 @@ impl VertexDescriptor {
     /// Create an empty (uninitialised) descriptor.
     pub fn new() -> Self {
         VertexDescriptor {
-            is_valid:       false,
+            is_valid: false,
             is_initialized: false,
-            is_finalized:   false,
-            is_manifold:    false,
-            is_boundary:    false,
-            has_face_sizes:     false,
+            is_finalized: false,
+            is_manifold: false,
+            is_boundary: false,
+            has_face_sizes: false,
             has_edge_sharpness: false,
-            num_faces:      0,
+            num_faces: 0,
             vert_sharpness: 0.0,
             face_edge_sharpness: Vec::new(),
-            face_size_offsets:   Vec::new(),
+            face_size_offsets: Vec::new(),
         }
     }
 
@@ -66,19 +66,22 @@ impl VertexDescriptor {
     ///
     /// Returns `false` when `num_incident_faces` is out of range.
     pub fn initialize(&mut self, num_incident_faces: i32) -> bool {
-        self.is_valid  = num_incident_faces > 0
-            && num_incident_faces <= Limits::max_valence();
-        self.num_faces = if self.is_valid { num_incident_faces as i16 } else { 0 };
+        self.is_valid = num_incident_faces > 0 && num_incident_faces <= Limits::max_valence();
+        self.num_faces = if self.is_valid {
+            num_incident_faces as i16
+        } else {
+            0
+        };
 
         // Reset everything else regardless.
-        self.vert_sharpness    = 0.0;
-        self.is_manifold       = false;
-        self.is_boundary       = false;
-        self.has_face_sizes     = false;
+        self.vert_sharpness = 0.0;
+        self.is_manifold = false;
+        self.is_boundary = false;
+        self.has_face_sizes = false;
         self.has_edge_sharpness = false;
 
         self.is_initialized = self.is_valid;
-        self.is_finalized   = false;
+        self.is_finalized = false;
 
         self.is_initialized
     }
@@ -123,13 +126,31 @@ impl VertexDescriptor {
     // Queries
     // -----------------------------------------------------------------------
 
-    #[inline] pub fn is_valid(&self)      -> bool { self.is_valid }
-    #[inline] pub fn is_manifold(&self)   -> bool { self.is_manifold }
-    #[inline] pub fn is_boundary(&self)   -> bool { self.is_boundary }
+    #[inline]
+    pub fn is_valid(&self) -> bool {
+        self.is_valid
+    }
+    #[inline]
+    pub fn is_manifold(&self) -> bool {
+        self.is_manifold
+    }
+    #[inline]
+    pub fn is_boundary(&self) -> bool {
+        self.is_boundary
+    }
 
-    #[inline] pub fn has_incident_face_sizes(&self)  -> bool { self.has_face_sizes }
-    #[inline] pub fn has_vertex_sharpness(&self)     -> bool { self.vert_sharpness > 0.0 }
-    #[inline] pub fn has_edge_sharpness(&self)       -> bool { self.has_edge_sharpness }
+    #[inline]
+    pub fn has_incident_face_sizes(&self) -> bool {
+        self.has_face_sizes
+    }
+    #[inline]
+    pub fn has_vertex_sharpness(&self) -> bool {
+        self.vert_sharpness > 0.0
+    }
+    #[inline]
+    pub fn has_edge_sharpness(&self) -> bool {
+        self.has_edge_sharpness
+    }
 
     #[inline]
     pub fn get_incident_face_size(&self, face_idx: i32) -> i32 {
@@ -141,7 +162,10 @@ impl VertexDescriptor {
         }
     }
 
-    #[inline] pub fn get_vertex_sharpness(&self)   -> f32  { self.vert_sharpness }
+    #[inline]
+    pub fn get_vertex_sharpness(&self) -> f32 {
+        self.vert_sharpness
+    }
 
     pub fn get_manifold_edge_sharpness(&self, edge_idx: i32) -> f32 {
         // Compact storage: 2*N entries (leading, trailing sharpness per face).
@@ -154,10 +178,7 @@ impl VertexDescriptor {
         self.face_edge_sharpness[(2 * edge_idx - (edge_idx == n) as i32) as usize]
     }
 
-    pub fn get_incident_face_edge_sharpness(
-        &self,
-        face_idx: i32,
-    ) -> (f32, f32) {
+    pub fn get_incident_face_edge_sharpness(&self, face_idx: i32) -> (f32, f32) {
         let base = (2 * face_idx) as usize;
         (
             self.face_edge_sharpness[base],
@@ -169,8 +190,14 @@ impl VertexDescriptor {
     // Setters
     // -----------------------------------------------------------------------
 
-    #[inline] pub fn set_manifold(&mut self, v: bool) { self.is_manifold = v; }
-    #[inline] pub fn set_boundary(&mut self, v: bool) { self.is_boundary = v; }
+    #[inline]
+    pub fn set_manifold(&mut self, v: bool) {
+        self.is_manifold = v;
+    }
+    #[inline]
+    pub fn set_boundary(&mut self, v: bool) {
+        self.is_boundary = v;
+    }
 
     pub fn set_incident_face_size(&mut self, face_idx: i32, face_size: i32) {
         if !self.has_face_sizes {
@@ -179,10 +206,19 @@ impl VertexDescriptor {
         self.face_size_offsets[face_idx as usize] = face_size;
     }
 
-    #[inline] pub fn clear_incident_face_sizes(&mut self) { self.has_face_sizes = false; }
+    #[inline]
+    pub fn clear_incident_face_sizes(&mut self) {
+        self.has_face_sizes = false;
+    }
 
-    #[inline] pub fn set_vertex_sharpness(&mut self, s: f32) { self.vert_sharpness = s; }
-    #[inline] pub fn clear_vertex_sharpness(&mut self)       { self.vert_sharpness = 0.0; }
+    #[inline]
+    pub fn set_vertex_sharpness(&mut self, s: f32) {
+        self.vert_sharpness = s;
+    }
+    #[inline]
+    pub fn clear_vertex_sharpness(&mut self) {
+        self.vert_sharpness = 0.0;
+    }
 
     pub fn set_manifold_edge_sharpness(&mut self, edge_idx: i32, sharpness: f32) {
         if !self.has_edge_sharpness {
@@ -201,21 +237,19 @@ impl VertexDescriptor {
         }
     }
 
-    pub fn set_incident_face_edge_sharpness(
-        &mut self,
-        face_idx: i32,
-        leading: f32,
-        trailing: f32,
-    ) {
+    pub fn set_incident_face_edge_sharpness(&mut self, face_idx: i32, leading: f32, trailing: f32) {
         if !self.has_edge_sharpness {
             self.init_edge_sharpness();
         }
         let base = (2 * face_idx) as usize;
-        self.face_edge_sharpness[base]     = leading;
+        self.face_edge_sharpness[base] = leading;
         self.face_edge_sharpness[base + 1] = trailing;
     }
 
-    #[inline] pub fn clear_edge_sharpness(&mut self) { self.has_edge_sharpness = false; }
+    #[inline]
+    pub fn clear_edge_sharpness(&mut self) {
+        self.has_edge_sharpness = false;
+    }
 
     // -----------------------------------------------------------------------
     // Internal helpers (called lazily)
@@ -224,18 +258,20 @@ impl VertexDescriptor {
     pub(crate) fn init_face_sizes(&mut self) {
         let n = self.num_faces as usize + 1;
         self.face_size_offsets = vec![0i32; n];
-        self.has_face_sizes    = true;
+        self.has_face_sizes = true;
     }
 
     pub(crate) fn init_edge_sharpness(&mut self) {
         let n = self.num_faces as usize * 2;
         self.face_edge_sharpness = vec![0.0f32; n];
-        self.has_edge_sharpness  = true;
+        self.has_edge_sharpness = true;
     }
 }
 
 impl Default for VertexDescriptor {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

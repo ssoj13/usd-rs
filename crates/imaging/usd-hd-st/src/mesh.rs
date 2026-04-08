@@ -1,4 +1,3 @@
-
 //! HdStMesh - Storm mesh prim implementation.
 //!
 //! Implements mesh rendering for the Storm backend including vertex/index
@@ -1306,7 +1305,11 @@ impl HdStMesh {
     ///
     /// Mirrors the delegate-read portion of C++ `HdStMesh::Sync` /
     /// `_PopulateTopology` / `_PopulateVertexPrimvars`.
-    pub fn sync_from_delegate(&mut self, delegate: &dyn HdSceneDelegate, dirty_bits: &mut HdDirtyBits) {
+    pub fn sync_from_delegate(
+        &mut self,
+        delegate: &dyn HdSceneDelegate,
+        dirty_bits: &mut HdDirtyBits,
+    ) {
         usd_trace::trace_scope!("mesh_sync_from_delegate");
         let diag_sync = std::env::var_os("USD_PROFILE_MESH_SYNC").is_some();
         let path_text = self.path.to_string();
@@ -1573,8 +1576,7 @@ impl HdStMesh {
                             } else {
                                 uvs
                             };
-                            let flat: Vec<f32> =
-                                expanded.iter().flat_map(|v| [v.x, v.y]).collect();
+                            let flat: Vec<f32> = expanded.iter().flat_map(|v| [v.x, v.y]).collect();
                             let uv_count = flat.len() / 2;
                             let vertex_count = self.topology.get_vertex_count();
                             let face_varying_count = self.topology.face_vertex_indices.len();
@@ -1583,11 +1585,7 @@ impl HdStMesh {
                                 key.as_str(),
                                 uv_count
                             );
-                            if is_face_varying_channel(
-                                uv_count,
-                                vertex_count,
-                                face_varying_count,
-                            ) {
+                            if is_face_varying_channel(uv_count, vertex_count, face_varying_count) {
                                 self.face_varying_primvars.uvs = flat;
                                 self.vertex_data.uvs.clear();
                                 self.authored_vertex_data.uvs.clear();
@@ -1613,11 +1611,10 @@ impl HdStMesh {
         if topo_or_primvar_dirty {
             diag("gather_fvar_topology_metadata");
             let _tfv = std::time::Instant::now();
-            self.fvar_topology_to_primvar_vector =
-                gather_face_varying_topology_metadata_from_data(
-                    &self.face_varying_primvars,
-                    &self.topology,
-                );
+            self.fvar_topology_to_primvar_vector = gather_face_varying_topology_metadata_from_data(
+                &self.face_varying_primvars,
+                &self.topology,
+            );
             _t_fvar_meta = _tfv.elapsed();
         }
 
@@ -2759,7 +2756,10 @@ impl usd_hd::prim::rprim::HdRprim for HdStMesh {
             // Call the concrete GPU-upload method (not this trait method).
             HdStMesh::sync(self, &registry, false);
         } else {
-            log::warn!("[HdStMesh] HdRprim::sync called before resource_registry was set on {}", self.path);
+            log::warn!(
+                "[HdStMesh] HdRprim::sync called before resource_registry was set on {}",
+                self.path
+            );
         }
         let _ = repr_token; // repr_token drives init_repr, not the sync itself
     }
@@ -2773,10 +2773,17 @@ impl usd_hd::prim::rprim::HdRprim for HdStMesh {
 /// If no indices, returns the input unchanged.
 fn expand_indexed_vec3f(values: &[usd_gf::Vec3f], indices: Option<&[i32]>) -> Vec<usd_gf::Vec3f> {
     match indices {
-        Some(idx) => idx.iter().map(|&i| {
-            let ix = i as usize;
-            if ix < values.len() { values[ix] } else { usd_gf::Vec3f::default() }
-        }).collect(),
+        Some(idx) => idx
+            .iter()
+            .map(|&i| {
+                let ix = i as usize;
+                if ix < values.len() {
+                    values[ix]
+                } else {
+                    usd_gf::Vec3f::default()
+                }
+            })
+            .collect(),
         None => values.to_vec(),
     }
 }
@@ -2784,10 +2791,13 @@ fn expand_indexed_vec3f(values: &[usd_gf::Vec3f], indices: Option<&[i32]>) -> Ve
 /// Expand indexed primvar `f32` through optional indices.
 fn expand_indexed_f32(values: &[f32], indices: Option<&[i32]>) -> Vec<f32> {
     match indices {
-        Some(idx) => idx.iter().map(|&i| {
-            let ix = i as usize;
-            if ix < values.len() { values[ix] } else { 0.0 }
-        }).collect(),
+        Some(idx) => idx
+            .iter()
+            .map(|&i| {
+                let ix = i as usize;
+                if ix < values.len() { values[ix] } else { 0.0 }
+            })
+            .collect(),
         None => values.to_vec(),
     }
 }
@@ -3221,7 +3231,10 @@ mod tests {
             1.0, 1.0, 0.0, //
             0.0, 1.0, 0.0,
         ];
-        assert_eq!(once, expected, "first cook must triangulate authored positions");
+        assert_eq!(
+            once, expected,
+            "first cook must triangulate authored positions"
+        );
 
         mesh.process_topology_cpu();
 

@@ -5,9 +5,9 @@
 //! Provides caching for primvar descriptors to avoid redundant computation
 //! when querying primvar metadata for prims at specific time codes.
 
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use parking_lot::RwLock;
 use usd_core::time_code::TimeCode;
 use usd_hd::enums::HdInterpolation;
 use usd_sdf::Path;

@@ -1,4 +1,3 @@
-
 //! HdStRenderParam - Storm render parameter.
 //!
 //! This contains Storm-specific state passed to prims during sync.

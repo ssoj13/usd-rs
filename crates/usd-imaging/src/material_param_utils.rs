@@ -33,8 +33,8 @@ use usd_shade::connectable_api::ConnectableAPI;
 use usd_shade::node_def_api::NodeDefAPI;
 use usd_shade::output::Output;
 use usd_shade::types::AttributeType;
-use usd_shade::{is_udim_identifier, resolve_udim_path};
 use usd_shade::utils::Utils;
+use usd_shade::{is_udim_identifier, resolve_udim_path};
 use usd_tf::Token;
 use usd_vt::Value;
 

@@ -1,4 +1,3 @@
-
 //! HdDrawingCoord - Indirection mapping from conceptual resources to BAR indices.
 //!
 //! Corresponds to pxr/imaging/hd/drawingCoord.h.

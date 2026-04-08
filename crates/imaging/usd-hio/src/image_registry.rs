@@ -1,4 +1,3 @@
-
 //! HioImageRegistry - manages plugin registration and loading for HioImage implementations.
 
 use super::image::{HioImageSharedPtr, SourceColorSpace};

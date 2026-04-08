@@ -1,4 +1,3 @@
-
 //! HdRepr - Single topological representation owning draw items.
 //!
 //! Corresponds to pxr/imaging/hd/repr.h (HdRepr class).

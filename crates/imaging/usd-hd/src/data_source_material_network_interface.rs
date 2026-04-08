@@ -1,4 +1,3 @@
-
 //! Data source implementation of material network interface.
 //!
 //! Port of pxr/imaging/hd/dataSourceMaterialNetworkInterface.{h,cpp}

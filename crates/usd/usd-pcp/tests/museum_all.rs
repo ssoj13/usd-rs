@@ -19,16 +19,17 @@ fn ensure_init() {
     });
 }
 
-fn testenv_path(relative: &str) -> String {
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    format!("{}/testenv/{}", manifest_dir.replace('\\', "/"), relative)
+fn museum_root_usda(scenario_name: &str) -> String {
+    openusd_test_path::pxr_pcp_museum(scenario_name, "root.usda")
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 /// Run a Museum test scenario. Returns (num_prims_tested, num_errors, error_details).
 fn run_museum_scenario(scenario_name: &str) -> (usize, usize, Vec<String>) {
     ensure_init();
 
-    let root_path = testenv_path(&format!("museum/{}/root.usda", scenario_name));
+    let root_path = museum_root_usda(scenario_name);
 
     let id = LayerStackIdentifier::new(root_path.as_str());
     let cache = Cache::new(id.clone(), true);
@@ -119,7 +120,7 @@ fn debug_error_arc_cycle_path_timings() {
     ensure_init();
 
     let scenario_name = "ErrorArcCycle";
-    let root_path = testenv_path(&format!("museum/{}/root.usda", scenario_name));
+    let root_path = museum_root_usda(scenario_name);
     let id = LayerStackIdentifier::new(root_path.as_str());
     let cache = Cache::new(id.clone(), true);
     let layer_stack = cache

@@ -18,7 +18,7 @@ use usd_hd::scene_index::observer::{
 };
 use usd_hd::scene_index::{
     FilteringObserverTarget, HdSceneIndexBase, HdSceneIndexHandle, HdSceneIndexPrim,
-    HdSingleInputFilteringSceneIndexBase, SdfPathVector, wire_filter_to_input, si_ref,
+    HdSingleInputFilteringSceneIndexBase, SdfPathVector, si_ref, wire_filter_to_input,
 };
 use usd_sdf::Path as SdfPath;
 use usd_tf::Token;
@@ -46,11 +46,7 @@ fn populate_from_dependencies(
     }
 }
 
-fn remove_dependency(
-    map: &mut HashMap<SdfPath, HashSet<SdfPath>>,
-    key: &SdfPath,
-    value: &SdfPath,
-) {
+fn remove_dependency(map: &mut HashMap<SdfPath, HashSet<SdfPath>>, key: &SdfPath, value: &SdfPath) {
     let should_remove_key = if let Some(set) = map.get_mut(key) {
         set.remove(value);
         set.is_empty()
@@ -157,9 +153,7 @@ impl SkeletonResolvingSceneIndex {
         }));
         wire_filter_to_input(&this, &input_scene);
 
-        let input = this
-            .read()
-            .base.get_input_scene().cloned();
+        let input = this.read().base.get_input_scene().cloned();
         if let Some(input) = input {
             let input_locked = input.read();
             let guard = this.read();
@@ -309,10 +303,7 @@ impl HdSceneIndexBase for SkeletonResolvingSceneIndex {
 
         HdSceneIndexPrim {
             prim_type: mesh_prim_type(),
-            data_source: Some(HdOverlayContainerDataSource::new_2(
-                overlay,
-                prim_ds,
-            )),
+            data_source: Some(HdOverlayContainerDataSource::new_2(overlay, prim_ds)),
         }
     }
 
@@ -701,26 +692,22 @@ impl FilteringObserverTarget for SkeletonResolvingSceneIndex {
 mod tests {
     use super::*;
     use crate::stage_scene_index::StageSceneIndex;
-    use std::path::PathBuf;
-    use usd_core::{schema_registry::register_builtin_schemas, Stage};
+    use usd_core::{Stage, schema_registry::register_builtin_schemas};
     use usd_hd::scene_index::{arc_scene_index_to_handle, wire_filter_to_input};
 
-    fn open_reference_stage(relative_path: &str) -> Arc<Stage> {
-        let fixture_path: PathBuf = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(relative_path);
-        Stage::open(
-            fixture_path.to_str().expect("fixture path utf8"),
-            usd_core::common::InitialLoadSet::LoadAll,
-        )
-        .expect("open reference stage")
+    fn open_reference_stage(relative_under_usd_imaging_testenv: &str) -> Arc<Stage> {
+        let fixture_path =
+            openusd_test_path::pxr_usd_imaging_testenv(relative_under_usd_imaging_testenv);
+        let p = fixture_path.to_string_lossy().replace('\\', "/");
+        Stage::open(p.as_str(), usd_core::common::InitialLoadSet::LoadAll)
+            .expect("open reference stage")
     }
 
     #[test]
     fn test_stage_after_wiring_populates_skeleton_resolution_state() {
         register_builtin_schemas();
 
-        let stage = open_reference_stage(
-            "testenv/testUsdImagingGLSkeleton/skeleton.usda",
-        );
+        let stage = open_reference_stage("testUsdImagingGLSkeleton/skeleton.usda");
         let stage_scene_index = StageSceneIndex::new_with_input_args(None);
         let stage_handle = arc_scene_index_to_handle(stage_scene_index.clone());
         let resolving = SkeletonResolvingSceneIndex::new(stage_handle.clone());
@@ -730,9 +717,7 @@ mod tests {
 
         let skeleton_path =
             SdfPath::from_string("/SkelChar/Skeleton").expect("skeleton fixture path");
-        let prim = resolving
-            .read()
-            .get_prim(&skeleton_path);
+        let prim = resolving.read().get_prim(&skeleton_path);
 
         assert_eq!(prim.prim_type.as_str(), "mesh");
     }
