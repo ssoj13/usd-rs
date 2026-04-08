@@ -685,16 +685,16 @@ impl PyGprim {
     pub fn new(prim: &PyPrim) -> Self { Self(Gprim::new(prim.0.clone())) }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.get_display_color_attr()) }
-    pub fn create_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_color_attr()) }
-    pub fn get_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.get_display_opacity_attr()) }
-    pub fn create_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_opacity_attr()) }
+    #[pyo3(name = "GetDisplayColorAttr")] pub fn get_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.get_display_color_attr()) }
+    #[pyo3(name = "CreateDisplayColorAttr")] pub fn create_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_color_attr()) }
+    #[pyo3(name = "GetDisplayOpacityAttr")] pub fn get_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.get_display_opacity_attr()) }
+    #[pyo3(name = "CreateDisplayOpacityAttr")] pub fn create_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_opacity_attr()) }
     #[pyo3(name = "GetDoubleSidedAttr")] pub fn get_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.get_double_sided_attr()) }
-    pub fn create_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.create_double_sided_attr()) }
+    #[pyo3(name = "CreateDoubleSidedAttr")] pub fn create_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.create_double_sided_attr()) }
     #[pyo3(name = "GetOrientationAttr")] pub fn get_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.get_orientation_attr()) }
-    pub fn create_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.create_orientation_attr()) }
-    pub fn get_display_color_primvar(&self) -> PyPrimvar { PyPrimvar(self.0.get_display_color_primvar()) }
-    pub fn get_display_opacity_primvar(&self) -> PyPrimvar { PyPrimvar(self.0.get_display_opacity_primvar()) }
+    #[pyo3(name = "CreateOrientationAttr")] pub fn create_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.create_orientation_attr()) }
+    #[pyo3(name = "GetDisplayColorPrimvar")] pub fn get_display_color_primvar(&self) -> PyPrimvar { PyPrimvar(self.0.get_display_color_primvar()) }
+    #[pyo3(name = "GetDisplayOpacityPrimvar")] pub fn get_display_opacity_primvar(&self) -> PyPrimvar { PyPrimvar(self.0.get_display_opacity_primvar()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -790,16 +790,16 @@ impl PyMesh {
     }
 
     // topology
-    pub fn get_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_face_vertex_indices_attr()) }
-    pub fn create_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_face_vertex_indices_attr(None, false)) }
-    pub fn get_face_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.get_face_vertex_counts_attr()) }
-    pub fn create_face_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.create_face_vertex_counts_attr(None, false)) }
-    pub fn get_subdivision_scheme_attr(&self) -> PyAttribute { PyAttribute(self.0.get_subdivision_scheme_attr()) }
-    pub fn create_subdivision_scheme_attr(&self) -> PyAttribute { PyAttribute(self.0.create_subdivision_scheme_attr(None, false)) }
-    pub fn get_interpolate_boundary_attr(&self) -> PyAttribute { PyAttribute(self.0.get_interpolate_boundary_attr()) }
-    pub fn create_interpolate_boundary_attr(&self) -> PyAttribute { PyAttribute(self.0.create_interpolate_boundary_attr(None, false)) }
-    pub fn get_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute(self.0.get_face_varying_linear_interpolation_attr()) }
-    pub fn create_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute(self.0.create_face_varying_linear_interpolation_attr(None, false)) }
+    #[pyo3(name = "GetFaceVertexIndicesAttr")] pub fn get_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_face_vertex_indices_attr()) }
+    #[pyo3(name = "CreateFaceVertexIndicesAttr")] pub fn create_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_face_vertex_indices_attr(None, false)) }
+    #[pyo3(name = "GetFaceVertexCountsAttr")] pub fn get_face_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.get_face_vertex_counts_attr()) }
+    #[pyo3(name = "CreateFaceVertexCountsAttr")] pub fn create_face_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.create_face_vertex_counts_attr(None, false)) }
+    #[pyo3(name = "GetSubdivisionSchemeAttr")] pub fn get_subdivision_scheme_attr(&self) -> PyAttribute { PyAttribute(self.0.get_subdivision_scheme_attr()) }
+    #[pyo3(name = "CreateSubdivisionSchemeAttr")] pub fn create_subdivision_scheme_attr(&self) -> PyAttribute { PyAttribute(self.0.create_subdivision_scheme_attr(None, false)) }
+    #[pyo3(name = "GetInterpolateBoundaryAttr")] pub fn get_interpolate_boundary_attr(&self) -> PyAttribute { PyAttribute(self.0.get_interpolate_boundary_attr()) }
+    #[pyo3(name = "CreateInterpolateBoundaryAttr")] pub fn create_interpolate_boundary_attr(&self) -> PyAttribute { PyAttribute(self.0.create_interpolate_boundary_attr(None, false)) }
+    #[pyo3(name = "GetFaceVaryingLinearInterpolationAttr")] pub fn get_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute(self.0.get_face_varying_linear_interpolation_attr()) }
+    #[pyo3(name = "CreateFaceVaryingLinearInterpolationAttr")] pub fn create_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute(self.0.create_face_varying_linear_interpolation_attr(None, false)) }
 
     // points (via point_based)
     #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_points_attr()) }
@@ -809,17 +809,17 @@ impl PyMesh {
     #[pyo3(name = "CreateNormalsAttr")] pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().create_normals_attr(None, false)) }
 
     // crease / corner / hole
-    pub fn get_crease_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_crease_indices_attr()) }
+    #[pyo3(name = "GetCreaseIndicesAttr")] pub fn get_crease_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_crease_indices_attr()) }
     pub fn create_crease_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_crease_indices_attr(None, false)) }
-    pub fn get_crease_lengths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_crease_lengths_attr()) }
+    #[pyo3(name = "GetCreaseLengthsAttr")] pub fn get_crease_lengths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_crease_lengths_attr()) }
     pub fn create_crease_lengths_attr(&self) -> PyAttribute { PyAttribute(self.0.create_crease_lengths_attr(None, false)) }
-    pub fn get_crease_sharpnesses_attr(&self) -> PyAttribute { PyAttribute(self.0.get_crease_sharpnesses_attr()) }
+    #[pyo3(name = "GetCreaseSharpnessesAttr")] pub fn get_crease_sharpnesses_attr(&self) -> PyAttribute { PyAttribute(self.0.get_crease_sharpnesses_attr()) }
     pub fn create_crease_sharpnesses_attr(&self) -> PyAttribute { PyAttribute(self.0.create_crease_sharpnesses_attr(None, false)) }
-    pub fn get_corner_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_corner_indices_attr()) }
+    #[pyo3(name = "GetCornerIndicesAttr")] pub fn get_corner_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_corner_indices_attr()) }
     pub fn create_corner_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_corner_indices_attr(None, false)) }
-    pub fn get_corner_sharpnesses_attr(&self) -> PyAttribute { PyAttribute(self.0.get_corner_sharpnesses_attr()) }
+    #[pyo3(name = "GetCornerSharpnessesAttr")] pub fn get_corner_sharpnesses_attr(&self) -> PyAttribute { PyAttribute(self.0.get_corner_sharpnesses_attr()) }
     pub fn create_corner_sharpnesses_attr(&self) -> PyAttribute { PyAttribute(self.0.create_corner_sharpnesses_attr(None, false)) }
-    pub fn get_hole_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_hole_indices_attr()) }
+    #[pyo3(name = "GetHoleIndicesAttr")] pub fn get_hole_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_hole_indices_attr()) }
     pub fn create_hole_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_hole_indices_attr(None, false)) }
 
     /// Validate mesh topology at time. Returns (is_valid, reason_string).
