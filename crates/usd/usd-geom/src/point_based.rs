@@ -192,7 +192,7 @@ impl PointBased {
     /// Matches C++ `CreatePointsAttr()`.
     pub fn create_points_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -203,13 +203,18 @@ impl PointBased {
         let registry = ValueTypeRegistry::instance();
         let point3f_array_type = registry.find_type_by_token(&Token::new("point3f[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().points.as_str(),
-            &point3f_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().points.as_str(),
+                &point3f_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================

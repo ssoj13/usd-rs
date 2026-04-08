@@ -48,8 +48,12 @@ impl Scope {
     }
 
     /// Returns true if this schema is valid.
+    ///
+    /// Matches C++ `UsdGeomScope` validity: the prim must be typed as `Scope`
+    /// (retyping the prim to e.g. `Mesh` invalidates an existing `Scope` handle).
     pub fn is_valid(&self) -> bool {
         self.inner.is_valid()
+            && self.inner.prim().type_name().as_str() == Self::schema_type_name().as_str()
     }
 
     /// Returns the wrapped prim.

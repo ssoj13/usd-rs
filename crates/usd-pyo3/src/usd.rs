@@ -18,10 +18,11 @@ use usd_core::{
     population_mask::StagePopulationMask,
     common::InitialLoadSet,
     time_code::TimeCode,
+    schema_registry::SchemaRegistry,
 };
 use usd_sdf::Path;
 use usd_tf::Token;
-use usd_vt::Value;
+use usd_vt::{Array, Value};
 
 // ============================================================================
 // Helper: convert Rust Error to Python RuntimeError
@@ -84,6 +85,14 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
     if let Some(v) = val.downcast_clone::<Vec<i32>>() {
         return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
     }
+    if let Some(v) = val.downcast_clone::<Vec<i64>>() {
+        return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
+    }
+    if let Some(v) = val.downcast_clone::<Array<i64>>() {
+        return Py::new(py, crate::vt::PyInt64Array { inner: v })
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+    }
     if let Some(v) = val.downcast_clone::<Vec<String>>() {
         return PyList::new(py, v).map(|l| l.into_any().unbind()).unwrap_or_else(|_| py.None());
     }
@@ -118,15 +127,16 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
             .map(|p| p.into_any())
             .unwrap_or_else(|_| py.None().into_bound(py).unbind());
     }
-    // float4[] / Vec4f arrays (e.g. UsdGeom.Camera clippingPlanes)
+    // float4[] / Vec4f arrays (e.g. UsdGeom.Camera clippingPlanes) — pxr returns `Vt.Vec4fArray`
+    if let Some(v) = val.downcast_clone::<Array<usd_gf::Vec4f>>() {
+        return Py::new(py, crate::vt::PyVec4fArray { inner: v })
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+    }
     if let Some(v) = val.downcast_clone::<Vec<usd_gf::Vec4f>>() {
-        let elems: Vec<Py<PyAny>> = v
-            .into_iter()
-            .filter_map(|p| Py::new(py, crate::gf::vec::PyVec4f(p)).ok().map(|x| x.into_any()))
-            .collect();
-        return PyList::new(py, elems.as_slice())
-            .map(|l| l.into_any().unbind())
-            .unwrap_or_else(|_| py.None());
+        return Py::new(py, crate::vt::PyVec4fArray { inner: Array::from(v) })
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
     }
     // Legacy glam types (fallback)
     if let Some(v) = val.downcast_clone::<glam::Vec3>() {
@@ -1424,17 +1434,29 @@ impl PyPrim {
     #[allow(non_snake_case)]
     #[pyo3(signature = (schema_type))]
     fn IsA(&self, schema_type: &Bound<'_, PyAny>) -> bool {
-        if let Ok(name) = schema_type.extract::<String>() {
-            self.inner.get_type_name().as_str() == name || self.inner.is_a(&usd_tf::Token::new(&name))
-        } else if let Ok(name) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) {
-            self.inner.is_a(&usd_tf::Token::new(&name))
-        } else {
-            false
+        if let Ok(py_ty) = schema_type.extract::<pyo3::PyRef<crate::tf::PyType>>() {
+            let cxx = py_ty.inner.type_name();
+            return SchemaRegistry::prim_type_is_a_query(&self.inner.get_type_name(), &cxx);
         }
+        if let Ok(name) = schema_type.extract::<String>() {
+            return self.inner.get_type_name().as_str() == name
+                || self.inner.is_a(&usd_tf::Token::new(&name));
+        }
+        if let Ok(name) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) {
+            return self.inner.is_a(&usd_tf::Token::new(&name));
+        }
+        false
     }
     #[allow(non_snake_case)]
     #[pyo3(signature = (schema_type, _instance_name=None))]
     fn HasAPI(&self, schema_type: &Bound<'_, PyAny>, _instance_name: Option<&str>) -> bool {
+        if let Ok(py_ty) = schema_type.extract::<pyo3::PyRef<crate::tf::PyType>>() {
+            let cxx = py_ty.inner.type_name();
+            if let Some(info) = SchemaRegistry::find_schema_info_for_type_string(&cxx) {
+                return self.inner.has_api(&info.identifier);
+            }
+            return false;
+        }
         let name = if let Ok(s) = schema_type.extract::<String>() { s }
             else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
             else { return false; };
@@ -1455,6 +1477,14 @@ impl PyPrim {
             else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
             else { return false; };
         self.inner.remove_api(&usd_tf::Token::new(&name))
+    }
+
+    /// True if this prim's schema is in the given schema family (e.g. `UsdGeom.Tokens.Capsule`).
+    #[allow(non_snake_case)]
+    #[pyo3(name = "IsInFamily")]
+    fn is_in_family(&self, family: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let s: String = family.extract()?;
+        Ok(self.inner.is_in_family(&usd_tf::Token::new(&s)))
     }
 
     fn __repr__(&self) -> String {
@@ -2139,8 +2169,8 @@ impl PyAttribute {
     #[allow(non_snake_case)]
     fn GetVariability(&self) -> String {
         match self.inner.variability() {
-            usd_core::attribute::Variability::Varying => "varying".to_string(),
-            usd_core::attribute::Variability::Uniform => "uniform".to_string(),
+            usd_core::attribute::Variability::Varying => "Sdf.VariabilityVarying".to_string(),
+            usd_core::attribute::Variability::Uniform => "Sdf.VariabilityUniform".to_string(),
         }
     }
 
@@ -2180,6 +2210,7 @@ impl PyAttribute {
     }
 
     /// Clear the authored value at the given time.
+    #[pyo3(signature = (time = None))]
     #[allow(non_snake_case)]
     fn Clear(&self, time: Option<&Bound<'_, PyAny>>) -> PyResult<bool> {
         let tc = match time {
@@ -2381,12 +2412,82 @@ impl PyAttribute {
 
     #[allow(non_snake_case)]
     fn HasMetadata(&self, key: &str) -> bool {
-        self.inner.get_metadata(&Token::new(key)).is_some()
+        let token = Token::new(key);
+        if self.inner.get_metadata(&token).is_some() {
+            return true;
+        }
+        if self.inner.get_all_metadata().contains_key(&token) {
+            return true;
+        }
+        // Standard Sdf attribute spec fields (schema / prim definition), matching pxr when
+        // `get_all_metadata` has not yet composed every registered field.
+        self.inner.is_valid()
+            && matches!(
+                key,
+                "custom"
+                    | "typeName"
+                    | "variability"
+                    | "allowedTokens"
+                    | "displayName"
+                    | "documentation"
+            )
     }
 
     #[allow(non_snake_case)]
     fn ClearMetadata(&self, key: &str) -> bool {
         self.inner.clear_metadata(&Token::new(key))
+    }
+
+    /// Stage that owns this attribute (matches C++ `UsdAttribute::GetStage()`).
+    #[allow(non_snake_case)]
+    fn GetStage(&self) -> PyStage {
+        self.inner
+            .as_property()
+            .stage()
+            .map(|s| PyStage { inner: s })
+            .unwrap_or_else(|| PyStage {
+                inner: self._stage.clone(),
+            })
+    }
+
+    #[allow(non_snake_case)]
+    fn GetAllMetadata(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let map = self.inner.get_all_metadata();
+        let dict = PyDict::new(py);
+        for (k, v) in &map {
+            dict.set_item(k.as_str(), value_to_py(py, v))?;
+        }
+        if !map.contains_key(&Token::new("typeName")) {
+            let tn = self.inner.get_type_name();
+            if tn.is_valid() {
+                let tok = tn.as_token();
+                let s = tok.as_str();
+                if !s.is_empty() {
+                    dict.set_item("typeName", s)?;
+                }
+            }
+        }
+        for extra in ["custom", "allowedTokens", "documentation", "displayName"] {
+            let t = Token::new(extra);
+            if !map.contains_key(&t) {
+                if extra == "custom" {
+                    if let Some(v) = self.inner.get_metadata(&t) {
+                        dict.set_item(extra, value_to_py(py, &v))?;
+                    } else {
+                        dict.set_item("custom", self.inner.as_property().is_custom())?;
+                    }
+                } else if let Some(v) = self.inner.get_metadata(&t) {
+                    dict.set_item(extra, value_to_py(py, &v))?;
+                }
+            }
+        }
+        // Composed variability (schema wins over local spec edits), matching pxr `GetAllMetadata`.
+        let variability_py = match self.inner.variability() {
+            usd_core::attribute::Variability::Varying => "Sdf.VariabilityVarying",
+            usd_core::attribute::Variability::Uniform => "Sdf.VariabilityUniform",
+        };
+        dict.set_item("variability", variability_py)?;
+        Ok(dict.into_any().unbind())
     }
 
     // -- Display -----------------------------------------------------------
@@ -2422,6 +2523,14 @@ impl PyAttribute {
     #[allow(non_snake_case)]
     fn IsAuthored(&self) -> bool {
         self.inner.as_property().is_authored()
+    }
+
+    /// True if this property has an authored spec in the given edit target's layer.
+    ///
+    /// Matches C++ `UsdAttribute::IsAuthoredAt(const UsdEditTarget&) const`.
+    #[allow(non_snake_case)]
+    fn IsAuthoredAt(&self, edit_target: &PyEditTarget) -> bool {
+        self.inner.as_property().is_authored_at(&edit_target.inner)
     }
 
     #[allow(non_snake_case)]
@@ -3843,6 +3952,35 @@ pub struct PySchemaRegistry;
 
 #[pymethods]
 impl PySchemaRegistry {
+    #[new]
+    fn new() -> Self {
+        Self
+    }
+
+    /// True if the schema's Tf type inherits from `UsdTyped` (concrete or abstract typed schema).
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    #[pyo3(name = "IsTyped")]
+    fn is_typed_static(py_type: pyo3::PyRef<crate::tf::PyType>) -> bool {
+        SchemaRegistry::is_typed(&py_type.inner.type_name())
+    }
+
+    /// True if the schema is a concrete typed prim schema (instantiable typeName).
+    #[allow(non_snake_case)]
+    #[pyo3(name = "IsConcrete")]
+    fn is_concrete_inst(&self, py_type: pyo3::PyRef<crate::tf::PyType>) -> bool {
+        SchemaRegistry::is_concrete(&py_type.inner.type_name())
+    }
+
+    /// Map a `Tf.Type` (e.g. `UsdGeomMesh`) to the schema identifier string (e.g. `"Mesh"`).
+    #[allow(non_snake_case)]
+    #[pyo3(name = "GetSchemaTypeName")]
+    fn get_schema_type_name_inst(&self, py_type: pyo3::PyRef<crate::tf::PyType>) -> String {
+        SchemaRegistry::get_schema_type_name(&py_type.inner.type_name())
+            .as_str()
+            .to_string()
+    }
+
     /// Parse a schema family name and version from an identifier string.
     #[staticmethod]
     #[allow(non_snake_case)]

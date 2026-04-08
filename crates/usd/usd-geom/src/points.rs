@@ -16,6 +16,41 @@ use usd_sdf::{TimeCode, ValueTypeRegistry};
 use usd_tf::Token;
 use usd_vt::Value;
 
+/// Extract `float[]` / `double[]` / scalar widths from a composed `VtValue`.
+fn widths_vec_from_usd_value(widths_value: &Value) -> Vec<f32> {
+    if let Some(w) = widths_value.get::<Vec<f32>>() {
+        return w.clone();
+    }
+    if let Some(w) = widths_value.get::<usd_vt::Array<f32>>() {
+        return w.iter().cloned().collect();
+    }
+    if let Some(w) = widths_value.get::<Vec<f64>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(w) = widths_value.get::<usd_vt::Array<f64>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(s) = widths_value.get::<f32>() {
+        return vec![*s];
+    }
+    if let Some(s) = widths_value.get::<f64>() {
+        return vec![*s as f32];
+    }
+    if let Some(w) = widths_value.get::<Vec<i32>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(w) = widths_value.get::<usd_vt::Array<i32>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(w) = widths_value.get::<Vec<i64>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    if let Some(w) = widths_value.get::<usd_vt::Array<i64>>() {
+        return w.iter().map(|&x| x as f32).collect();
+    }
+    Vec::new()
+}
+
 // ============================================================================
 // Points
 // ============================================================================
@@ -118,7 +153,7 @@ impl Points {
     /// Matches C++ `CreateWidthsAttr()`.
     pub fn create_widths_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -135,13 +170,18 @@ impl Points {
         let registry = ValueTypeRegistry::instance();
         let float_array_type = registry.find_type_by_token(&Token::new("float[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().widths.as_str(),
-            &float_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().widths.as_str(),
+                &float_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     /// Get the interpolation for the widths attribute.
@@ -217,7 +257,7 @@ impl Points {
     /// Matches C++ `CreateIdsAttr()`.
     pub fn create_ids_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -234,13 +274,18 @@ impl Points {
         let registry = ValueTypeRegistry::instance();
         let int64_array_type = registry.find_type_by_token(&Token::new("int64[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().ids.as_str(),
-            &int64_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().ids.as_str(),
+                &int64_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -405,17 +450,10 @@ impl Points {
         // Get widths if available
         let widths_attr = self.get_widths_attr();
         let widths: Vec<f32> = if widths_attr.is_valid() {
-            if let Some(widths_value) = widths_attr.get(time) {
-                if let Some(w) = widths_value.get::<Vec<f32>>() {
-                    w.clone()
-                } else if let Some(w) = widths_value.get::<usd_vt::Array<f32>>() {
-                    w.iter().cloned().collect()
-                } else {
-                    Vec::new()
-                }
-            } else {
-                Vec::new()
-            }
+            widths_attr
+                .get(time)
+                .map(|widths_value| widths_vec_from_usd_value(&widths_value))
+                .unwrap_or_default()
         } else {
             Vec::new()
         };
@@ -472,17 +510,10 @@ impl Points {
         // Get widths if available
         let widths_attr = self.get_widths_attr();
         let widths: Vec<f32> = if widths_attr.is_valid() {
-            if let Some(widths_value) = widths_attr.get(time) {
-                if let Some(w) = widths_value.get::<Vec<f32>>() {
-                    w.clone()
-                } else if let Some(w) = widths_value.get::<usd_vt::Array<f32>>() {
-                    w.iter().cloned().collect()
-                } else {
-                    Vec::new()
-                }
-            } else {
-                Vec::new()
-            }
+            widths_attr
+                .get(time)
+                .map(|widths_value| widths_vec_from_usd_value(&widths_value))
+                .unwrap_or_default()
         } else {
             Vec::new()
         };

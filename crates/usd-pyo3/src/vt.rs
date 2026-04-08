@@ -6,6 +6,7 @@
 //! - `Dictionary` — bidirectional Python dict ↔ VtDictionary conversion
 
 use pyo3::exceptions::{PyIndexError, PyOverflowError, PyTypeError, PyValueError};
+use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyFloat, PyList, PySlice, PyString, PyTuple};
 
@@ -780,11 +781,13 @@ macro_rules! vt_array {
                 }
             }
 
-            fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<VtStringIter>> {
-                let data = slf.inner.as_slice().iter()
-                    .map(|v| format!("{:?}", ($to_py)(v.clone())))
-                    .collect();
-                Py::new(slf.py(), VtStringIter::new_from_data(data))
+            fn __iter__(slf: PyRef<'_, Self>, py: Python<'_>) -> PyResult<Py<PyAny>> {
+                let list = PyList::empty(py);
+                for v in slf.inner.as_slice() {
+                    let elem: $py_elem = ($to_py)(v.clone());
+                    list.append(elem.into_pyobject(py)?.into_any().unbind())?;
+                }
+                Ok(list.call_method0(intern!(py, "__iter__"))?.unbind())
             }
 
             fn __eq__(&self, _py: Python<'_>, other: &Bound<'_, PyAny>) -> PyResult<bool> {
@@ -1282,6 +1285,9 @@ pub fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
     if let Ok(a) = obj.extract::<PyRef<PyVec3fArray>>() {
         return Ok(Value::from_no_hash(a.inner.clone()));
     }
+    if let Ok(a) = obj.extract::<PyRef<PyVec4fArray>>() {
+        return Ok(Value::from_no_hash(a.inner.clone()));
+    }
     if let Ok(a) = obj.extract::<PyRef<PyIntArray>>() {
         return Ok(Value::from(a.inner.clone()));
     }
@@ -1300,10 +1306,6 @@ pub fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
     }
     if let Ok(v) = obj.extract::<Vec<String>>() {
         return Ok(Value::from(v));
-    }
-    if let Ok(v) = obj.extract::<Vec<i64>>() {
-        let vi: Vec<i32> = v.into_iter().map(|x| x as i32).collect();
-        return Ok(Value::from(vi));
     }
     // Handle Python lists — only as a last resort: `vector[VtValue]` (rare in USD attrs)
     if let Ok(list) = obj.cast::<PyList>() {
@@ -1418,9 +1420,10 @@ fn seq_to_vec4f_vec_value(obj: &Bound<'_, PyAny>) -> PyResult<Option<Value>> {
     Ok(None)
 }
 
-/// `[int, ...]` → `vector[int]` / `VtIntArray` compatible storage in [`Value`].
+/// `[int, ...]` → `VtIntArray` or `VtInt64Array` in [`Value`] (uses `i64` storage when
+/// any element is outside `i32` — matches ids and large integer metadata).
 fn seq_to_i32_vec_value(obj: &Bound<'_, PyAny>) -> PyResult<Option<Value>> {
-    let mut vec: Vec<i32> = Vec::new();
+    let mut nums: Vec<i64> = Vec::new();
     if let Ok(list) = obj.cast::<PyList>() {
         let count = list.len();
         if count == 0 {
@@ -1432,11 +1435,9 @@ fn seq_to_i32_vec_value(obj: &Bound<'_, PyAny>) -> PyResult<Option<Value>> {
                 Ok(v) => v,
                 Err(_) => return Ok(None),
             };
-            vec.push(i32::try_from(iv).map_err(|_| {
-                PyValueError::new_err("int array element out of i32 range")
-            })?);
+            nums.push(iv);
         }
-        return Ok(Some(Value::from(vec)));
+        return Ok(Some(int_slice_to_value(&nums)));
     }
     if let Ok(tuple) = obj.cast::<PyTuple>() {
         let count = tuple.len();
@@ -1449,13 +1450,22 @@ fn seq_to_i32_vec_value(obj: &Bound<'_, PyAny>) -> PyResult<Option<Value>> {
                 Ok(x) => x,
                 Err(_) => return Ok(None),
             };
-            vec.push(i32::try_from(iv).map_err(|_| {
-                PyValueError::new_err("int array element out of i32 range")
-            })?);
+            nums.push(iv);
         }
-        return Ok(Some(Value::from(vec)));
+        return Ok(Some(int_slice_to_value(&nums)));
     }
     Ok(None)
+}
+
+fn int_slice_to_value(nums: &[i64]) -> Value {
+    if nums
+        .iter()
+        .all(|&x| x >= i64::from(i32::MIN) && x <= i64::from(i32::MAX))
+    {
+        let vec: Vec<i32> = nums.iter().map(|&x| x as i32).collect();
+        return Value::from(vec);
+    }
+    Value::from_no_hash(Array::<i64>::from(nums.to_vec()))
 }
 
 fn py_dict_to_dict(d: &Bound<'_, PyDict>) -> PyResult<Dictionary> {

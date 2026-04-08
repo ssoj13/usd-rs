@@ -87,7 +87,8 @@ impl PyToken {
 #[pyclass(skip_from_py_object,name = "Type", module = "pxr_rs.Tf")]
 #[derive(Clone)]
 pub struct PyType {
-    inner: usd_tf::TfType,
+    /// Shared with `Usd` / `UsdGeom` bindings for schema and `IsA` queries.
+    pub(crate) inner: usd_tf::TfType,
 }
 
 #[pymethods]

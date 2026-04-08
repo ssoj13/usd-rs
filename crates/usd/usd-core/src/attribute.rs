@@ -1715,23 +1715,22 @@ impl Attribute {
             }
         }
 
-        // Infer type from schema fallback value or registered property type
+        // Infer type from registered schema property types, then fallback value (Vt type names).
         if let Some(prim) = stage.get_prim_at_path(&prim_path) {
             let prim_type = prim.type_name();
             if !prim_type.is_empty() {
+                if let Some(sdf_type) = super::schema_registry::schema_get_property_type(
+                    &prim_type,
+                    attr_name.as_str(),
+                ) {
+                    return Token::new(&sdf_type);
+                }
                 if let Some(fallback) =
                     super::schema_registry::schema_get_fallback(&prim_type, attr_name.as_str())
                 {
                     if let Some(tn) = fallback.type_name() {
                         return Token::new(tn);
                     }
-                }
-                // Fall back to registered schema property types (e.g. from generatedSchema)
-                if let Some(sdf_type) = super::schema_registry::schema_get_property_type(
-                    &prim_type,
-                    attr_name.as_str(),
-                ) {
-                    return Token::new(&sdf_type);
                 }
             }
         }
@@ -2166,6 +2165,11 @@ impl Attribute {
     /// Matches C++ `GetMetadata()`.
     pub fn get_metadata(&self, key: &Token) -> Option<Value> {
         self.inner.get_metadata(key)
+    }
+
+    /// Composed metadata dictionary (matches C++ `UsdAttribute::GetAllMetadata`).
+    pub fn get_all_metadata(&self) -> super::object::MetadataValueMap {
+        self.inner.get_all_metadata()
     }
 
     /// Returns true if metadata is authored for this attribute.

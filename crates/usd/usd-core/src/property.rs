@@ -463,6 +463,11 @@ impl Property {
         self.inner.get_metadata(key)
     }
 
+    /// Composed metadata map (matches C++ `UsdProperty::GetAllMetadata`).
+    pub fn get_all_metadata(&self) -> super::object::MetadataValueMap {
+        self.inner.get_all_metadata()
+    }
+
     /// Sets metadata value for a given key.
     pub fn set_metadata(&self, key: &Token, value: Value) -> bool {
         self.inner.set_metadata(key, value)

@@ -12,7 +12,7 @@
 use super::common::{SchemaKind, SchemaVersion, VersionPolicy};
 use super::prim_definition::PrimDefinition;
 use parking_lot::RwLock;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 use usd_gf::vec2::Vec2f;
 use usd_gf::Vec4f;
@@ -257,6 +257,14 @@ pub fn schema_has_property(type_name: &Token, prop_name: &str) -> bool {
 /// Returns all schema-defined property names for a given type, including
 /// properties inherited from base types registered in the SchemaPropertyRegistry.
 /// Used by `Prim::get_properties_in_namespace` when `onlyAuthored=false`.
+/// Names registered via [`register_schema_properties`] that are relationships, not attributes.
+///
+/// Used when `get_defining_spec_type` is `Unknown` (no authored spec yet).
+#[inline]
+pub fn schema_builtin_relationship_property_name(prop_name: &str) -> bool {
+    matches!(prop_name, "proxyPrim")
+}
+
 pub fn get_schema_property_names(type_name: &Token) -> Vec<Token> {
     let prop_reg = global_prop_registry();
     let r = prop_reg.read();
@@ -438,9 +446,12 @@ impl SchemaRegistry {
         let id = info.identifier.clone();
         let is_new = !w.schemas.contains_key(&id);
 
-        // Update type_name -> id reverse map
+        // Update type_name -> id reverse map (first registration wins — avoids alias
+        // schemas overwriting the canonical `MotionAPI` mapping for `UsdGeomMotionAPI`).
         if !info.type_name.is_empty() {
-            w.type_name_to_id.insert(info.type_name.clone(), id.clone());
+            w.type_name_to_id
+                .entry(info.type_name.clone())
+                .or_insert_with(|| id.clone());
         }
 
         // Update family -> ids map
@@ -597,6 +608,52 @@ impl SchemaRegistry {
         let reg = global_registry();
         let r = reg.read();
         r.schemas.get(schema_identifier).cloned()
+    }
+
+    /// Resolve a schema by **identifier** (e.g. `"Mesh"`) or **C++ type name** (e.g. `"UsdGeomMesh"`).
+    ///
+    /// Matches lookups used by Python `Tf.Type` / `UsdPrim::IsA` parity paths.
+    pub fn find_schema_info_for_type_string(name: &str) -> Option<SchemaInfo> {
+        Self::ensure_builtin_schemas_registered();
+        if let Some(info) = Self::find_schema_info(&Token::new(name)) {
+            return Some(info);
+        }
+        let reg = global_registry();
+        let r = reg.read();
+        r.type_name_to_id
+            .get(name)
+            .and_then(|id| r.schemas.get(id).cloned())
+    }
+
+    /// True if `prim_identifier`'s schema inherits `query` (identifier or C++ type name).
+    ///
+    /// Walks the registered schema `base_type_names` graph (breadth-first), comparing
+    /// [`SchemaInfo::type_name`] against the resolved target schema's `type_name`.
+    pub fn prim_type_is_a_query(prim_identifier: &Token, query: &str) -> bool {
+        if prim_identifier.is_empty() {
+            return false;
+        }
+        let Some(target) = Self::find_schema_info_for_type_string(query) else {
+            return false;
+        };
+        let target_cxx = target.type_name;
+        let mut stack = vec![prim_identifier.clone()];
+        let mut seen = HashSet::new();
+        while let Some(id) = stack.pop() {
+            if !seen.insert(id.clone()) {
+                continue;
+            }
+            let Some(info) = Self::find_schema_info(&id) else {
+                continue;
+            };
+            if info.type_name == target_cxx {
+                return true;
+            }
+            for b in &info.base_type_names {
+                stack.push(b.clone());
+            }
+        }
+        false
     }
 
     /// Finds and returns the schema info for a registered schema in the
@@ -801,16 +858,18 @@ impl SchemaRegistry {
     /// Returns true if the prim type inherits from UsdTyped.
     ///
     /// Matches C++ `IsTyped(const TfType& primType)`.
-    pub fn is_typed(_prim_type: &str) -> bool {
-        // Full implementation requires TfType integration
-        false
+    pub fn is_typed(prim_type: &str) -> bool {
+        matches!(
+            Self::get_schema_kind(prim_type),
+            SchemaKind::ConcreteTyped | SchemaKind::AbstractTyped
+        )
     }
 
     /// Returns the kind of the schema the given schemaType represents.
     ///
     /// Matches C++ `GetSchemaKind(const TfType &schemaType)`.
     pub fn get_schema_kind(schema_type: &str) -> SchemaKind {
-        if let Some(info) = Self::find_schema_info(&Token::new(schema_type)) {
+        if let Some(info) = Self::find_schema_info_for_type_string(schema_type) {
             return info.kind;
         }
         SchemaKind::Invalid
@@ -2160,6 +2219,7 @@ pub fn register_builtin_schemas() {
             ],
         );
         register_schema_properties("Sphere", &["radius", "extent"]);
+        register_schema_property_types("Sphere", &[("radius", "double"), ("extent", "float3[]")]);
         register_schema_fallbacks("Sphere", &[("radius", Value::from(1.0_f64))]);
         register_schema_properties("Cube", &["size", "extent"]);
         register_schema_fallbacks("Cube", &[("size", Value::from(2.0_f64))]);
@@ -2330,8 +2390,37 @@ pub fn register_builtin_schemas() {
             }
         }
 
+        sync_builtin_tf_types();
+
         eprintln!("[PERF] register_builtin_schemas: {:?}", _t0.elapsed());
     });
+}
+
+/// Register C++-style schema type names with `usd_tf::TfType` (plugin-style) so
+/// `Tf.Type.FindByName("UsdGeomMesh")` and `TfType::is_a` match OpenUSD behavior.
+fn sync_builtin_tf_types() {
+    let schemas: Vec<SchemaInfo> = {
+        let reg = global_registry();
+        let r = reg.read();
+        r.schemas.values().cloned().collect()
+    };
+    let mut schemas_sorted = schemas;
+    schemas_sorted.sort_by_key(|info| info.base_type_names.len());
+    for info in schemas_sorted {
+        if info.type_name.is_empty() {
+            continue;
+        }
+        let parent_cxx: Option<String> = info.base_type_names.first().and_then(|id| {
+            let reg = global_registry();
+            let r = reg.read();
+            r.schemas.get(id).map(|b| b.type_name.clone())
+        });
+        if let Some(ref p) = parent_cxx {
+            usd_tf::declare_by_name_with_bases(&info.type_name, &[p.as_str()]);
+        } else {
+            usd_tf::declare_by_name(&info.type_name);
+        }
+    }
 }
 
 // ============================================================================

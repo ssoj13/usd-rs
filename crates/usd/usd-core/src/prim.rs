@@ -348,15 +348,8 @@ impl Prim {
         if prim_type.is_empty() {
             return false;
         }
-        // Check schema hierarchy via SchemaRegistry
         use super::schema_registry::SchemaRegistry;
-        let info = SchemaRegistry::find_schema_info(&prim_type);
-        if let Some(info) = info {
-            if info.base_type_names.iter().any(|b| b == type_name) {
-                return true;
-            }
-        }
-        false
+        SchemaRegistry::prim_type_is_a_query(&prim_type, type_name.as_str())
     }
 
     /// Returns true if this prim has the given API schema applied.
@@ -888,11 +881,27 @@ impl Prim {
         if spec_type == usd_sdf::SpecType::Relationship {
             return None;
         }
-        if attr.is_valid() || (spec_type == usd_sdf::SpecType::Unknown && name.contains(':')) {
-            Some(attr)
-        } else {
-            None
+        if spec_type == usd_sdf::SpecType::Attribute {
+            return Some(attr);
         }
+        if attr.is_valid() {
+            return Some(attr);
+        }
+        if spec_type == usd_sdf::SpecType::Unknown {
+            if name.contains(':') {
+                return Some(attr);
+            }
+            let tn = self.get_type_name();
+            if !tn.is_empty()
+                && super::schema_registry::get_schema_property_names(&tn)
+                    .iter()
+                    .any(|t| t.as_str() == name)
+                && !super::schema_registry::schema_builtin_relationship_property_name(name)
+            {
+                return Some(attr);
+            }
+        }
+        None
     }
 
     /// Returns true if this prim has an authored attribute spec in the root layer.
@@ -976,11 +985,28 @@ impl Prim {
         let Some(stage) = self.inner.stage() else {
             return Vec::new();
         };
+        let type_name = self.get_type_name();
+        let schema_props: std::collections::HashSet<Token> = if type_name.is_empty() {
+            std::collections::HashSet::new()
+        } else {
+            super::schema_registry::get_schema_property_names(&type_name)
+                .into_iter()
+                .collect()
+        };
+
         self.get_property_names()
             .into_iter()
             .filter(|name| {
-                stage.get_defining_spec_type(self.path(), name.get_text())
-                    == usd_sdf::SpecType::Attribute
+                let st = stage.get_defining_spec_type(self.path(), name.get_text());
+                if st == usd_sdf::SpecType::Relationship {
+                    return false;
+                }
+                if st == usd_sdf::SpecType::Attribute {
+                    return true;
+                }
+                st == usd_sdf::SpecType::Unknown
+                    && schema_props.contains(name)
+                    && !super::schema_registry::schema_builtin_relationship_property_name(name.as_str())
             })
             .collect()
     }
@@ -993,11 +1019,25 @@ impl Prim {
         let Some(stage) = self.inner.stage() else {
             return Vec::new();
         };
+        let type_name = self.get_type_name();
+        let schema_props: std::collections::HashSet<Token> = if type_name.is_empty() {
+            std::collections::HashSet::new()
+        } else {
+            super::schema_registry::get_schema_property_names(&type_name)
+                .into_iter()
+                .collect()
+        };
+
         self.get_property_names()
             .into_iter()
             .filter(|name| {
-                stage.get_defining_spec_type(self.path(), name.get_text())
-                    == usd_sdf::SpecType::Relationship
+                let st = stage.get_defining_spec_type(self.path(), name.get_text());
+                if st == usd_sdf::SpecType::Relationship {
+                    return true;
+                }
+                st == usd_sdf::SpecType::Unknown
+                    && schema_props.contains(name)
+                    && super::schema_registry::schema_builtin_relationship_property_name(name.as_str())
             })
             .collect()
     }
@@ -1041,6 +1081,16 @@ impl Prim {
             }
         }
 
+        // Builtin schema properties (PrimDefinition), matching C++ `UsdPrim::GetProperties`.
+        let type_name = self.get_type_name();
+        if !type_name.is_empty() {
+            for name in super::schema_registry::get_schema_property_names(&type_name) {
+                if seen.insert(name.clone()) {
+                    names.push(name);
+                }
+            }
+        }
+
         names.sort_by(|a, b| {
             let a_str = a.as_str();
             let b_str = b.as_str();
@@ -1055,8 +1105,18 @@ impl Prim {
 
         Self::apply_name_order(&self.get_property_order(), &mut names);
 
+        let schema_names: std::collections::HashSet<Token> = if type_name.is_empty() {
+            std::collections::HashSet::new()
+        } else {
+            super::schema_registry::get_schema_property_names(&type_name)
+                .into_iter()
+                .collect()
+        };
+
         names.retain(|name| {
-            stage.get_defining_spec_type(self.path(), name.get_text()) != usd_sdf::SpecType::Unknown
+            schema_names.contains(name)
+                || stage.get_defining_spec_type(self.path(), name.get_text())
+                    != usd_sdf::SpecType::Unknown
         });
         names
     }

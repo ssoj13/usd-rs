@@ -1986,10 +1986,11 @@ impl PyAttributeSpec {
         let mut attr = AttributeSpec::from_layer_and_path(layer.get_handle(), attr_path);
         attr.set_type_name(&type_name.name);
 
-        // Set variability if specified
+        // Set variability if specified (accept pxr `Sdf.Variability*` string constants and short names).
         if let Some(v) = variability {
             let variability_val = match v {
-                "Uniform" => usd_sdf::Variability::Uniform,
+                "Uniform" | "uniform" | "Sdf.VariabilityUniform" => usd_sdf::Variability::Uniform,
+                "Varying" | "varying" | "Sdf.VariabilityVarying" => usd_sdf::Variability::Varying,
                 _ => usd_sdf::Variability::Varying,
             };
             attr.set_variability(variability_val);
@@ -3767,7 +3768,8 @@ fn py_create_prim_attribute_in_layer(
 
     if let Some(v) = variability {
         let var = match v {
-            "Uniform" => usd_sdf::Variability::Uniform,
+            "Uniform" | "uniform" | "Sdf.VariabilityUniform" => usd_sdf::Variability::Uniform,
+            "Varying" | "varying" | "Sdf.VariabilityVarying" => usd_sdf::Variability::Varying,
             _ => usd_sdf::Variability::Varying,
         };
         attr.set_variability(var);

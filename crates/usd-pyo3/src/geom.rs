@@ -12,8 +12,9 @@
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyList, PyListMethods};
+use pyo3::{exceptions::PyException, PyRef};
 use usd_sdf::{Path, TimeCode};
-use usd_tf::Token;
+use usd_tf::{TfType, Token};
 
 // Qualified imports to avoid name collisions with #[pyfunction] names.
 use usd_geom::metrics;
@@ -37,6 +38,36 @@ fn tc(t: Option<f64>) -> TimeCode {
         Some(v) => TimeCode::new(v),
         None => TimeCode::default(),
     }
+}
+
+/// Points from `list` of 3-tuples / `Gf.Vec3f` / `Vt.Vec3fArray` — used by `PointBased.ComputeExtent` and extents hints.
+fn f32_vec_from_py(obj: &Bound<'_, pyo3::PyAny>) -> PyResult<Vec<f32>> {
+    if let Ok(a) = obj.extract::<PyRef<crate::vt::PyFloatArray>>() {
+        return Ok(a.inner.as_slice().to_vec());
+    }
+    let list = obj.cast::<PyList>()?;
+    let mut out = Vec::with_capacity(list.len());
+    for item in list.iter() {
+        out.push(item.extract::<f64>()? as f32);
+    }
+    Ok(out)
+}
+
+fn vec3f_vec_from_points_arg(obj: &Bound<'_, pyo3::PyAny>) -> PyResult<Vec<usd_gf::Vec3f>> {
+    if let Ok(a) = obj.extract::<PyRef<crate::vt::PyVec3fArray>>() {
+        return Ok(a.inner.as_slice().iter().copied().collect());
+    }
+    let list = obj.cast::<PyList>()?;
+    let mut out = Vec::with_capacity(list.len());
+    for item in list.iter() {
+        if let Ok(v) = item.extract::<PyRef<crate::gf::vec::PyVec3f>>() {
+            out.push(v.0);
+            continue;
+        }
+        let (x, y, z): (f64, f64, f64) = item.extract()?;
+        out.push(usd_gf::Vec3f::new(x as f32, y as f32, z as f32));
+    }
+    Ok(out)
 }
 
 /// `Usd.TimeCode` / `float` / `None` → `Sdf.TimeCode` for xform APIs (matches pxr `GetLocalTransformation` time arg).
@@ -183,6 +214,18 @@ impl PyTokens {
     #[classattr] fn orientation() -> &'static str { "orientation" }
     #[classattr] fn right_handed() -> &'static str { "rightHanded" }
     #[classattr] fn left_handed() -> &'static str { "leftHanded" }
+    /// pxr naming (`UsdGeom.Tokens.leftHanded`).
+    #[classattr]
+    #[pyo3(name = "leftHanded")]
+    fn token_left_handed_px() -> &'static str {
+        "leftHanded"
+    }
+    /// pxr naming (`UsdGeom.Tokens.rightHanded`).
+    #[classattr]
+    #[pyo3(name = "rightHanded")]
+    fn token_right_handed_px() -> &'static str {
+        "rightHanded"
+    }
     #[classattr] fn points() -> &'static str { "points" }
     #[classattr] fn velocities() -> &'static str { "velocities" }
     #[classattr] fn normals() -> &'static str { "normals" }
@@ -198,6 +241,23 @@ impl PyTokens {
     #[classattr] fn corner_sharpnesses() -> &'static str { "cornerSharpnesses" }
     #[classattr] fn hole_indices() -> &'static str { "holeIndices" }
     #[classattr] fn xform_op_order() -> &'static str { "xformOpOrder" }
+    /// pxr naming (`UsdGeom.Tokens.xformOpOrder`).
+    #[classattr]
+    #[pyo3(name = "xformOpOrder")]
+    fn xform_op_order_px() -> &'static str {
+        "xformOpOrder"
+    }
+    /// Cylinder family token (`UsdGeom.Tokens.Capsule`).
+    #[classattr]
+    #[pyo3(name = "Capsule")]
+    fn token_capsule() -> &'static str {
+        "Capsule"
+    }
+    #[classattr]
+    #[pyo3(name = "Cylinder")]
+    fn token_cylinder() -> &'static str {
+        "Cylinder"
+    }
     #[classattr] fn interpolation() -> &'static str { "interpolation" }
     #[classattr] fn constant() -> &'static str { "constant" }
     #[classattr] fn uniform() -> &'static str { "uniform" }
@@ -793,6 +853,22 @@ usd_geom_schema_with_xform!(PyBoundable, yes_get_path, {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Boundable" }
+
+    /// Matches C++ `UsdGeomBoundable::ComputeExtentFromPlugins(boundable, time)`.
+    #[staticmethod]
+    #[pyo3(name = "ComputeExtentFromPlugins")]
+    pub fn compute_extent_from_plugins(
+        schema: &Bound<'_, pyo3::PyAny>,
+        time: &Bound<'_, pyo3::PyAny>,
+    ) -> PyResult<Option<Vec<crate::gf::vec::PyVec3f>>> {
+        let prim = extract_prim(schema)?;
+        let b = Boundable::new(prim);
+        let tc = crate::usd::tc_from_py_sdf(time)?;
+        Ok(
+            Boundable::compute_extent_from_plugins(&b, tc)
+                .map(|v| v.into_iter().map(crate::gf::vec::PyVec3f).collect()),
+        )
+    }
 });
 
 // ============================================================================
@@ -889,7 +965,7 @@ usd_geom_schema_with_xform!(PyMesh, no_get_path, {
     }
 
     #[staticmethod]
-    #[pyo3(name = "GetSchemaAttributeNames")]
+    #[pyo3(name = "GetSchemaAttributeNames", signature = (include_inherited = None))]
     pub fn get_schema_attribute_names(include_inherited: Option<bool>) -> Vec<String> {
         let inc = include_inherited.unwrap_or(true);
         Mesh::get_schema_attribute_names(inc).iter().map(|t| t.as_str().to_string()).collect()
@@ -924,13 +1000,81 @@ usd_geom_schema_with_xform!(PyMesh, no_get_path, {
     #[pyo3(name = "CreateInterpolateBoundaryAttr")] pub fn create_interpolate_boundary_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_interpolate_boundary_attr(None, false)) }
     #[pyo3(name = "GetFaceVaryingLinearInterpolationAttr")] pub fn get_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_face_varying_linear_interpolation_attr()) }
     #[pyo3(name = "CreateFaceVaryingLinearInterpolationAttr")] pub fn create_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_face_varying_linear_interpolation_attr(None, false)) }
+    #[pyo3(name = "GetTriangleSubdivisionRuleAttr")] pub fn get_triangle_subdivision_rule_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_triangle_subdivision_rule_attr()) }
+    #[pyo3(name = "CreateTriangleSubdivisionRuleAttr")] pub fn create_triangle_subdivision_rule_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_triangle_subdivision_rule_attr(None, false)) }
 
     // points (via point_based)
     #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().get_points_attr()) }
-    #[pyo3(name = "CreatePointsAttr")] pub fn create_points_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().create_points_attr(None, false)) }
+    #[pyo3(name = "CreatePointsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_points_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.point_based().create_points_attr(v, write_sparsely),
+        ))
+    }
     #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().get_velocities_attr()) }
+    #[pyo3(name = "CreateVelocitiesAttr")] pub fn create_velocities_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().create_velocities_attr(None, false))
+    }
+    #[pyo3(name = "GetAccelerationsAttr")] pub fn get_accelerations_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().get_accelerations_attr())
+    }
+    #[pyo3(name = "CreateAccelerationsAttr")] pub fn create_accelerations_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().create_accelerations_attr(None, false))
+    }
     #[pyo3(name = "GetNormalsAttr")] pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().get_normals_attr()) }
     #[pyo3(name = "CreateNormalsAttr")] pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().create_normals_attr(None, false)) }
+
+    #[pyo3(name = "GetDoubleSidedAttr")] pub fn get_double_sided_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().gprim().get_double_sided_attr())
+    }
+    #[pyo3(name = "CreateDoubleSidedAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_double_sided_attr(
+        &self,
+        default_value: Option<bool>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let attr = self.0.point_based().gprim().create_double_sided_attr();
+        if let Some(v) = default_value {
+            // Match pxr: sparse default `false` skips authoring only on **defined** prims.
+            let skip_author = write_sparsely && !v && self.0.prim().is_defined();
+            if !skip_author {
+                let _ = attr.set(usd_vt::Value::from(v), usd_sdf::TimeCode::DEFAULT);
+            }
+        }
+        Ok(PyAttribute::from_attr(attr))
+    }
+    #[pyo3(name = "GetOrientationAttr")] pub fn get_orientation_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().gprim().get_orientation_attr())
+    }
+    #[pyo3(name = "CreateOrientationAttr")] pub fn create_orientation_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().gprim().create_orientation_attr())
+    }
+    #[pyo3(name = "GetExtentAttr")] pub fn get_extent_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().gprim().boundable().get_extent_attr())
+    }
+    #[pyo3(name = "CreateExtentAttr")] pub fn create_extent_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().gprim().boundable().create_extent_attr())
+    }
+    #[pyo3(name = "GetDisplayColorAttr")] pub fn get_display_color_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().gprim().get_display_color_attr())
+    }
+    #[pyo3(name = "CreateDisplayColorAttr")] pub fn create_display_color_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().gprim().create_display_color_attr())
+    }
+    #[pyo3(name = "GetDisplayOpacityAttr")] pub fn get_display_opacity_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().gprim().get_display_opacity_attr())
+    }
+    #[pyo3(name = "CreateDisplayOpacityAttr")] pub fn create_display_opacity_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.point_based().gprim().create_display_opacity_attr())
+    }
 
     #[pyo3(name = "ComputePointsAtTime", signature = (time, base_time))]
     pub fn compute_points_at_time(
@@ -1000,6 +1144,14 @@ usd_geom_schema_with_xform!(PyMesh, no_get_path, {
         }
     }
 
+    #[classmethod]
+    #[pyo3(name = "_GetStaticTfType")]
+    pub fn get_static_tf_type_mesh(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
+        crate::tf::PyType {
+            inner: TfType::find_by_name("UsdGeomMesh"),
+        }
+    }
+
     #[staticmethod]
     #[pyo3(name = "SharpnessInfinite")] pub fn sharpness_infinite() -> f32 { SHARPNESS_INFINITE }
 });
@@ -1036,6 +1188,14 @@ usd_geom_schema_with_xform!(PySphere, yes_get_path, {
     pub fn __repr__(&self) -> String {
         if self.0.is_valid() { format!("UsdGeom.Sphere('{}')", self.0.prim().path()) }
         else { "UsdGeom.Sphere(<invalid>)".to_owned() }
+    }
+
+    #[classmethod]
+    #[pyo3(name = "_GetStaticTfType")]
+    pub fn get_static_tf_type_sphere(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
+        crate::tf::PyType {
+            inner: TfType::find_by_name("UsdGeomSphere"),
+        }
     }
 
     #[staticmethod]
@@ -1352,7 +1512,18 @@ usd_geom_schema_with_xform!(PyPointBased, yes_get_path, {
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_points_attr()) }
-    #[pyo3(name = "CreatePointsAttr")] pub fn create_points_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_points_attr(None, false)) }
+    #[pyo3(name = "CreatePointsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_points_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(self.0.create_points_attr(v, write_sparsely)))
+    }
     #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_velocities_attr()) }
     #[pyo3(name = "CreateVelocitiesAttr")] pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_velocities_attr(None, false)) }
     #[pyo3(name = "GetNormalsAttr")] pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_normals_attr()) }
@@ -1398,6 +1569,33 @@ usd_geom_schema_with_xform!(PyPointBased, yes_get_path, {
             .collect())
     }
 
+    /// Axis-aligned bounds of `points` as `[min, max]` (`Gf.Vec3f` each).
+    #[staticmethod]
+    #[pyo3(name = "ComputeExtent")]
+    pub fn compute_extent_static(points: &Bound<'_, pyo3::PyAny>) -> PyResult<Vec<crate::gf::vec::PyVec3f>> {
+        let pts = vec3f_vec_from_points_arg(points)?;
+        let mut extent = [usd_gf::Vec3f::new(0.0, 0.0, 0.0); 2];
+        if pts.is_empty() {
+            // Match pxr: empty input yields an "empty" `Gf.Range3f` when wrapped as min/max.
+            return Ok(vec![
+                crate::gf::vec::PyVec3f(usd_gf::Vec3f::new(
+                    f32::INFINITY,
+                    f32::INFINITY,
+                    f32::INFINITY,
+                )),
+                crate::gf::vec::PyVec3f(usd_gf::Vec3f::new(
+                    f32::NEG_INFINITY,
+                    f32::NEG_INFINITY,
+                    f32::NEG_INFINITY,
+                )),
+            ]);
+        }
+        if !PointBased::compute_extent(&pts, &mut extent) {
+            return Ok(Vec::new());
+        }
+        Ok(extent.iter().map(|e| crate::gf::vec::PyVec3f(*e)).collect())
+    }
+
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1433,12 +1631,69 @@ usd_geom_schema_with_xform!(PyPoints, yes_get_path, {
         Ok(Self(Points::define(&stage.inner, &p)))
     }
 
+    /// Bounds of `points` expanded by `widths` (see `UsdGeomPoints::ComputeExtent` in C++).
+    #[staticmethod]
+    #[pyo3(name = "ComputeExtent")]
+    pub fn compute_extent_points(
+        points: &Bound<'_, pyo3::PyAny>,
+        widths: &Bound<'_, pyo3::PyAny>,
+    ) -> PyResult<Option<Vec<crate::gf::vec::PyVec3f>>> {
+        let pts = vec3f_vec_from_points_arg(points)?;
+        let w = f32_vec_from_py(widths)?;
+        let mut extent = [usd_gf::Vec3f::new(0.0, 0.0, 0.0); 2];
+        if !Points::compute_extent(&pts, &w, &mut extent) {
+            return Ok(None);
+        }
+        Ok(Some(
+            extent
+                .iter()
+                .map(|e| crate::gf::vec::PyVec3f(*e))
+                .collect(),
+        ))
+    }
+
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().get_points_attr()) }
+    #[pyo3(name = "CreatePointsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_points_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.point_based().create_points_attr(v, write_sparsely),
+        ))
+    }
     #[pyo3(name = "GetWidthsAttr")] pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_widths_attr()) }
-    #[pyo3(name = "CreateWidthsAttr")] pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_widths_attr(None, false)) }
+    #[pyo3(name = "CreateWidthsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_widths_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(self.0.create_widths_attr(v, write_sparsely)))
+    }
     #[pyo3(name = "GetIdsAttr")] pub fn get_ids_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_ids_attr()) }
-    #[pyo3(name = "CreateIdsAttr")] pub fn create_ids_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_ids_attr(None, false)) }
+    #[pyo3(name = "CreateIdsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_ids_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(self.0.create_ids_attr(v, write_sparsely)))
+    }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1461,6 +1716,27 @@ pub struct PyCurves(pub Curves);
 usd_geom_schema_with_xform!(PyCurves, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Curves::new(extract_prim(prim)?))) }
+
+    /// Bounds of `points` expanded by curve `widths` (see `UsdGeomCurves::ComputeExtent` in C++).
+    #[staticmethod]
+    #[pyo3(name = "ComputeExtent")]
+    pub fn compute_extent_curves(
+        points: &Bound<'_, pyo3::PyAny>,
+        widths: &Bound<'_, pyo3::PyAny>,
+    ) -> PyResult<Option<Vec<crate::gf::vec::PyVec3f>>> {
+        let pts = vec3f_vec_from_points_arg(points)?;
+        let w = f32_vec_from_py(widths)?;
+        let mut extent = [usd_gf::Vec3f::new(0.0, 0.0, 0.0); 2];
+        if !Curves::compute_extent(&pts, &w, &mut extent) {
+            return Ok(None);
+        }
+        Ok(Some(
+            extent
+                .iter()
+                .map(|e| crate::gf::vec::PyVec3f(*e))
+                .collect(),
+        ))
+    }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     #[pyo3(name = "GetCurveVertexCountsAttr")] pub fn get_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_curve_vertex_counts_attr()) }
@@ -1510,6 +1786,44 @@ usd_geom_schema_with_xform!(PyBasisCurves, yes_get_path, {
     #[pyo3(name = "CreateTypeAttr")] pub fn create_type_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_type_attr(None, false)) }
     #[pyo3(name = "GetWrapAttr")] pub fn get_wrap_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_wrap_attr()) }
     #[pyo3(name = "CreateWrapAttr")] pub fn create_wrap_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_wrap_attr(None, false)) }
+    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.curves().point_based().get_points_attr())
+    }
+    #[pyo3(name = "CreatePointsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_points_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.curves().point_based().create_points_attr(v, write_sparsely),
+        ))
+    }
+    #[pyo3(name = "GetWidthsAttr")] pub fn get_widths_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.curves().get_widths_attr())
+    }
+    #[pyo3(name = "CreateWidthsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_widths_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(self.0.curves().create_widths_attr(v, write_sparsely)))
+    }
+    #[pyo3(name = "GetNormalsInterpolation")] pub fn get_normals_interpolation(&self) -> String {
+        self.0.curves().point_based().get_normals_interpolation().as_str().to_owned()
+    }
+    #[pyo3(name = "GetWidthsInterpolation")] pub fn get_widths_interpolation(&self) -> String {
+        self.0.curves().get_widths_interpolation().as_str().to_owned()
+    }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1546,6 +1860,38 @@ usd_geom_schema_with_xform!(PyNurbsCurves, yes_get_path, {
     }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.curves().point_based().get_points_attr())
+    }
+    #[pyo3(name = "CreatePointsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_points_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.curves().point_based().create_points_attr(v, write_sparsely),
+        ))
+    }
+    #[pyo3(name = "GetWidthsAttr")] pub fn get_widths_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.curves().get_widths_attr())
+    }
+    #[pyo3(name = "CreateWidthsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_widths_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(self.0.curves().create_widths_attr(v, write_sparsely)))
+    }
     #[pyo3(name = "GetOrderAttr")] pub fn get_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_order_attr()) }
     #[pyo3(name = "CreateOrderAttr")] pub fn create_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_order_attr(None, false)) }
     #[pyo3(name = "GetKnotsAttr")] pub fn get_knots_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_knots_attr()) }
@@ -1972,9 +2318,34 @@ impl PyModelAPI {
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(ModelAPI::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> Self {
-        ModelAPI::apply(&prim.inner)
-            .map_or_else(|| Self(ModelAPI::new(prim.inner.clone())), |api| Self(api))
+    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> PyResult<Self> {
+        if !prim.inner.is_valid() {
+            return Err(PyException::new_err(
+                "Cannot apply UsdGeom.ModelAPI to an invalid prim",
+            ));
+        }
+        Ok(Self(ModelAPI::apply(&prim.inner).unwrap_or_else(|| {
+            ModelAPI::new(prim.inner.clone())
+        })))
+    }
+
+    #[pyo3(name = "SetExtentsHint")]
+    pub fn set_extents_hint(&self, hint: &Bound<'_, pyo3::PyAny>) -> PyResult<bool> {
+        let vecs = vec3f_vec_from_points_arg(hint)?;
+        Ok(self.0.set_extents_hint(&vecs, TimeCode::default()))
+    }
+
+    #[pyo3(name = "GetExtentsHint", signature = (time=None))]
+    pub fn get_extents_hint(
+        &self,
+        time: Option<&Bound<'_, pyo3::PyAny>>,
+    ) -> PyResult<Vec<crate::gf::vec::PyVec3f>> {
+        let t = match time {
+            None => TimeCode::default(),
+            Some(o) => crate::usd::tc_from_py_sdf(o)?,
+        };
+        let v = self.0.get_extents_hint(t).unwrap_or_default();
+        Ok(v.into_iter().map(crate::gf::vec::PyVec3f).collect())
     }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.get_prim().clone()) }
@@ -2018,7 +2389,14 @@ impl PyMotionAPI {
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(MotionAPI::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> Self { Self(MotionAPI::apply(&prim.inner)) }
+    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> PyResult<Self> {
+        if !prim.inner.is_valid() {
+            return Err(PyException::new_err(
+                "Cannot apply UsdGeom.MotionAPI to an invalid prim",
+            ));
+        }
+        Ok(Self(MotionAPI::apply(&prim.inner)))
+    }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     #[pyo3(name = "GetMotionBlurScaleAttr")] pub fn get_motion_blur_scale_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_motion_blur_scale_attr()) }
