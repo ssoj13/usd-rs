@@ -1528,6 +1528,10 @@ impl PyPrimSpec {
     pub fn from_inner(inner: PrimSpec) -> Self {
         Self { inner }
     }
+
+    pub fn from_spec(spec: PrimSpec) -> Self {
+        Self { inner: spec }
+    }
 }
 
 #[pymethods]
@@ -3039,6 +3043,16 @@ pub struct PyFunctionNode;
 #[derive(Clone)]
 pub struct PyAssetPath { inner: AssetPath }
 
+impl PyAssetPath {
+    pub fn from_asset_path(ap: AssetPath) -> Self {
+        Self { inner: ap }
+    }
+
+    pub fn to_asset_path(&self) -> AssetPath {
+        self.inner.clone()
+    }
+}
+
 fn has_control_chars(s: &str) -> bool {
     s.chars().any(|c| { let code = c as u32; code <= 0x1F || code == 0x7F || (0x80..=0x9F).contains(&code) })
 }
@@ -3198,6 +3212,13 @@ fn payload_cmp(a: &Payload, b: &Payload) -> std::cmp::Ordering { a.asset_path().
 #[pyclass(from_py_object, name = "Reference", module = "pxr_rs.Sdf")]
 #[derive(Clone)]
 pub struct PyReference { inner: Reference }
+
+impl PyReference {
+    pub fn to_reference(&self) -> Reference {
+        self.inner.clone()
+    }
+}
+
 #[pymethods]
 impl PyReference {
     #[new] #[pyo3(signature = (*args, assetPath = None, primPath = None, layerOffset = None, customData = None))]

@@ -35,6 +35,22 @@ fn path_from_str(s: &str) -> PyResult<Path> {
     Path::from_string(s).ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: {s}")))
 }
 
+/// Extract a path string from either a Python `str` or an `Sdf.Path` object.
+fn extract_path_str(obj: &Bound<'_, PyAny>) -> PyResult<String> {
+    // Try str first (most common)
+    if let Ok(s) = obj.extract::<String>() {
+        return Ok(s);
+    }
+    // Try Sdf.Path
+    if let Ok(p) = obj.extract::<crate::sdf::PyPath>() {
+        return Ok(p.path().as_str().to_string());
+    }
+    Err(PyValueError::new_err(format!(
+        "Expected str or Sdf.Path, got '{}'",
+        obj.get_type().name()?
+    )))
+}
+
 fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
     // Try common types; fall back to string repr
     if let Some(v) = val.downcast_clone::<bool>() {
@@ -185,10 +201,11 @@ impl PyTimeCode {
 
     /// UsdTimeCode representing the pre-time sentinel.
     ///
-    /// Matches C++ `UsdTimeCode::PreTime()`.
+    /// C++ `UsdTimeCode::PreTime()` and `UsdTimeCode::PreTime(stage)`.
     #[staticmethod]
+    #[pyo3(signature = (*_args))]
     #[allow(non_snake_case)]
-    fn PreTime() -> Self {
+    fn PreTime(_args: &Bound<'_, PyTuple>) -> Self {
         // Pre-time is just before the earliest time — use a very small value
         Self { inner: TimeCode::new(f64::MIN) }
     }
@@ -479,6 +496,18 @@ impl PyEditTarget {
         self.inner.layer().map(|l| crate::sdf::PyLayer::from_layer_arc(l.clone()))
     }
 
+    /// Create an edit target for a specific variant.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn ForLocalDirectVariant(layer: &crate::sdf::PyLayer, path: &Bound<'_, PyAny>) -> PyResult<Self> {
+        let s = extract_path_str(path)?;
+        let p = path_from_str(&s)?;
+        let handle = usd_sdf::LayerHandle::from_layer(layer.layer());
+        Ok(Self {
+            inner: EditTarget::for_local_direct_variant(handle, p),
+        })
+    }
+
     fn __repr__(&self) -> String {
         if self.inner.is_valid() {
             format!(
@@ -630,6 +659,17 @@ impl PyPrim {
 
 #[pymethods]
 impl PyPrim {
+    /// Create an invalid prim (no-arg constructor).
+    #[new]
+    fn new() -> PyResult<Self> {
+        // An invalid Prim needs a stage to keep alive — create a minimal in-memory one
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadNone).map_err(to_py_err)?;
+        Ok(Self {
+            inner: Prim::invalid(),
+            _stage: stage,
+        })
+    }
+
     // -- Validity ----------------------------------------------------------
 
     #[allow(non_snake_case)]
@@ -833,11 +873,18 @@ impl PyPrim {
     }
 
     #[allow(non_snake_case)]
-    fn GetChild(&self, name: &str) -> Option<PyPrim> {
-        let child_path = self.inner.path().append_child(name)?;
-        let stage = self.inner.stage()?;
-        let prim = stage.get_prim_at_path(&child_path)?;
-        Some(PyPrim::from_prim(prim, self._stage.clone()))
+    fn GetChild(&self, name: &Bound<'_, PyAny>) -> PyResult<Option<PyPrim>> {
+        let s = extract_path_str(name)?;
+        let child_path = match self.inner.path().append_child(&s) {
+            Some(p) => p,
+            None => return Ok(None),
+        };
+        let stage = match self.inner.stage() {
+            Some(s) => s,
+            None => return Ok(None),
+        };
+        Ok(stage.get_prim_at_path(&child_path)
+            .map(|prim| PyPrim::from_prim(prim, self._stage.clone())))
     }
 
     #[allow(non_snake_case)]
@@ -850,7 +897,60 @@ impl PyPrim {
         }
     }
 
+    // -- Prim definition (stub) -------------------------------------------
+
+    /// Returns a PrimDefinition for this prim's type. Stub: returns None.
+    #[allow(non_snake_case)]
+    fn GetPrimDefinition(&self) -> Option<PyPrimDefinition> {
+        // Full schema registry not wired yet — return stub
+        Some(PyPrimDefinition {
+            type_name: self.inner.get_type_name().as_str().to_string(),
+        })
+    }
+
     // -- Properties --------------------------------------------------------
+
+    /// Return all properties (attributes + relationships) on this prim.
+    #[allow(non_snake_case)]
+    fn GetProperties(&self, py: Python<'_>) -> Vec<Py<PyAny>> {
+        let mut result: Vec<Py<PyAny>> = Vec::new();
+        for attr in self.inner.get_attributes() {
+            let py_attr = PyAttribute { inner: attr, _stage: self._stage.clone() };
+            if let Ok(obj) = py_attr.into_pyobject(py) {
+                result.push(obj.into_any().unbind());
+            }
+        }
+        for rel in self.inner.get_relationships() {
+            let py_rel = PyRelationship { inner: rel, _stage: self._stage.clone() };
+            if let Ok(obj) = py_rel.into_pyobject(py) {
+                result.push(obj.into_any().unbind());
+            }
+        }
+        result
+    }
+
+    /// Return authored properties on this prim.
+    #[allow(non_snake_case)]
+    fn GetAuthoredProperties(&self, py: Python<'_>) -> Vec<Py<PyAny>> {
+        let mut result: Vec<Py<PyAny>> = Vec::new();
+        for attr in self.inner.get_attributes() {
+            if attr.has_authored_value() || attr.as_property().is_authored() {
+                let py_attr = PyAttribute { inner: attr, _stage: self._stage.clone() };
+                if let Ok(obj) = py_attr.into_pyobject(py) {
+                    result.push(obj.into_any().unbind());
+                }
+            }
+        }
+        for rel in self.inner.get_relationships() {
+            if rel.as_property().is_authored() {
+                let py_rel = PyRelationship { inner: rel, _stage: self._stage.clone() };
+                if let Ok(obj) = py_rel.into_pyobject(py) {
+                    result.push(obj.into_any().unbind());
+                }
+            }
+        }
+        result
+    }
 
     #[allow(non_snake_case)]
     fn GetPropertyNames(&self) -> Vec<String> {
@@ -1077,6 +1177,11 @@ impl PyPrim {
     }
 
     #[allow(non_snake_case)]
+    fn ClearTypeName(&self) -> bool {
+        self.inner.clear_type_name()
+    }
+
+    #[allow(non_snake_case)]
     fn SetSpecifier(&self, specifier: &str) -> PyResult<bool> {
         let spec = match specifier {
             "def" | "Def" => usd_sdf::Specifier::Def,
@@ -1190,6 +1295,25 @@ impl PyPrim {
     }
 
     // -- Description -------------------------------------------------------
+
+    /// Human-readable description of this prim.
+    #[allow(non_snake_case)]
+    fn GetDescription(&self) -> String {
+        format!(
+            "Usd.Prim <{} '{}'>",
+            self.inner.get_type_name().as_str(),
+            self.inner.get_path().as_str()
+        )
+    }
+
+    /// Return the prim stack (list of prim specs from all layers).
+    #[allow(non_snake_case)]
+    fn GetPrimStack(&self) -> Vec<crate::sdf::PyPrimSpec> {
+        self.inner.get_prim_stack()
+            .into_iter()
+            .map(|spec| crate::sdf::PyPrimSpec::from_spec(spec))
+            .collect()
+    }
 
     fn __repr__(&self) -> String {
         format!("Usd.Prim({})", self.inner.get_path().as_str())
@@ -1318,12 +1442,107 @@ impl PyVariantSet {
         &self.name
     }
 
+    /// Return a context manager that sets the edit target to this variant set.
+    ///
+    /// Matches C++ `UsdVariantSet::GetVariantEditContext`.
+    #[allow(non_snake_case)]
+    fn GetVariantEditContext(&self) -> PyResult<PyVariantEditContext> {
+        let vs = self.prim.get_variant_sets().get_variant_set(&self.name);
+        let et = vs.get_variant_edit_target();
+        Ok(PyVariantEditContext {
+            stage: self._stage.clone(),
+            edit_target: et,
+            prev_target: None,
+        })
+    }
+
+    /// Return the edit target for this variant set.
+    #[allow(non_snake_case)]
+    fn GetVariantEditTarget(&self) -> PyEditTarget {
+        let vs = self.prim.get_variant_sets().get_variant_set(&self.name);
+        PyEditTarget { inner: vs.get_variant_edit_target() }
+    }
+
     fn __repr__(&self) -> String {
         format!("Usd.VariantSet('{}' on {})", self.name, self.prim.get_path().as_str())
     }
 
     fn __bool__(&self) -> bool {
         true
+    }
+}
+
+// ============================================================================
+// VariantEditContext — context manager for variant editing
+// ============================================================================
+
+/// Context manager that temporarily sets the edit target to a variant.
+///
+/// Matches C++ `UsdVariantSet::GetVariantEditContext` return value.
+#[pyclass(skip_from_py_object, name = "VariantEditContext", module = "pxr_rs.Usd")]
+pub struct PyVariantEditContext {
+    stage: Arc<Stage>,
+    edit_target: EditTarget,
+    prev_target: Option<EditTarget>,
+}
+
+#[pymethods]
+impl PyVariantEditContext {
+    fn __enter__(&mut self) -> PyResult<()> {
+        self.prev_target = Some(self.stage.get_edit_target());
+        self.stage.set_edit_target(self.edit_target.clone());
+        Ok(())
+    }
+
+    fn __exit__(
+        &mut self,
+        _exc_type: &Bound<'_, PyAny>,
+        _exc_val: &Bound<'_, PyAny>,
+        _exc_tb: &Bound<'_, PyAny>,
+    ) -> bool {
+        if let Some(prev) = self.prev_target.take() {
+            self.stage.set_edit_target(prev);
+        }
+        false
+    }
+}
+
+// ============================================================================
+// PrimDefinition stub
+// ============================================================================
+
+/// Stub for UsdPrimDefinition.
+#[pyclass(skip_from_py_object, name = "PrimDefinition", module = "pxr_rs.Usd")]
+pub struct PyPrimDefinition {
+    type_name: String,
+}
+
+#[pymethods]
+impl PyPrimDefinition {
+    /// Return the list of property names for this prim definition.
+    #[allow(non_snake_case)]
+    fn GetPropertyNames(&self) -> Vec<String> {
+        Vec::new()
+    }
+
+    /// Return the doc string for a property.
+    #[allow(non_snake_case)]
+    fn GetPropertyDocumentation(&self, _name: &str) -> String {
+        String::new()
+    }
+
+    /// Return the schema attribute spec for a given property name.
+    #[allow(non_snake_case)]
+    fn GetSchemaAttributeSpec(&self, _name: &str) -> Option<String> {
+        None
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Usd.PrimDefinition('{}')", self.type_name)
+    }
+
+    fn __bool__(&self) -> bool {
+        !self.type_name.is_empty()
     }
 }
 
@@ -1353,31 +1572,73 @@ pub struct PyReferences {
 
 #[pymethods]
 impl PyReferences {
-    /// Add a reference to an external layer (by identifier) and optional prim path.
-    #[pyo3(signature = (asset_path = "", prim_path = "", layer_offset = None, position = "BackOfPrependList"))]
+    /// Add a reference. Accepts either:
+    /// - `AddReference(Sdf.Reference, position=...)`
+    /// - `AddReference(assetPath, primPath, layerOffset, position)`
+    #[pyo3(signature = (*args, **kwargs))]
     #[allow(non_snake_case)]
     fn AddReference(
         &self,
-        asset_path: &str,
-        prim_path: &str,
-        layer_offset: Option<&crate::sdf::PyLayerOffset>,
-        position: &str,
+        args: &Bound<'_, PyTuple>,
+        kwargs: Option<&Bound<'_, PyDict>>,
     ) -> PyResult<bool> {
         let refs = self.prim.get_references();
-        let pos = parse_list_position(position);
+        let pos_str = kwargs.and_then(|kw| kw.get_item("position").ok().flatten())
+            .and_then(|v| v.extract::<String>().ok())
+            .unwrap_or_else(|| "BackOfPrependList".to_string());
+        let pos = parse_list_position(&pos_str);
+
+        // Check if first arg is an Sdf.Reference object
+        if !args.is_empty() {
+            if let Ok(py_ref) = args.get_item(0)?.extract::<crate::sdf::PyReference>() {
+                let reference = py_ref.to_reference();
+                return Ok(refs.add_reference(&reference, pos));
+            }
+        }
+
+        // Parse string-based args
+        let asset_path: String = if !args.is_empty() {
+            args.get_item(0)?.extract().unwrap_or_default()
+        } else {
+            kwargs.and_then(|kw| kw.get_item("assetPath").ok().flatten())
+                .and_then(|v| v.extract::<String>().ok())
+                .unwrap_or_default()
+        };
+
+        let prim_path: String = if args.len() >= 2 {
+            extract_path_str(&args.get_item(1)?).unwrap_or_default()
+        } else {
+            kwargs.and_then(|kw| kw.get_item("primPath").ok().flatten())
+                .and_then(|v| extract_path_str(&v).ok())
+                .unwrap_or_default()
+        };
+
+        let layer_offset = if args.len() >= 3 {
+            args.get_item(2)?.extract::<crate::sdf::PyLayerOffset>().ok()
+        } else {
+            kwargs.and_then(|kw| kw.get_item("layerOffset").ok().flatten())
+                .and_then(|v| v.extract::<crate::sdf::PyLayerOffset>().ok())
+        };
         let offset = layer_offset.map(|lo| lo.to_layer_offset()).unwrap_or_default();
 
+        if args.len() >= 4 {
+            // 4th positional = position
+            if let Ok(s) = args.get_item(3)?.extract::<String>() {
+                let pos = parse_list_position(&s);
+                if prim_path.is_empty() && !asset_path.is_empty() {
+                    return Ok(refs.add_reference_to_default_prim(&asset_path, offset, pos));
+                }
+                let p = if prim_path.is_empty() { Path::empty() } else { path_from_str(&prim_path)? };
+                return Ok(refs.add_reference_with_path(&asset_path, &p, offset, pos));
+            }
+        }
+
         if prim_path.is_empty() && !asset_path.is_empty() {
-            Ok(refs.add_reference_to_default_prim(asset_path, offset, pos))
+            Ok(refs.add_reference_to_default_prim(&asset_path, offset, pos))
         } else if !asset_path.is_empty() || !prim_path.is_empty() {
-            let p = if prim_path.is_empty() {
-                Path::empty()
-            } else {
-                path_from_str(prim_path)?
-            };
-            Ok(refs.add_reference_with_path(asset_path, &p, offset, pos))
+            let p = if prim_path.is_empty() { Path::empty() } else { path_from_str(&prim_path)? };
+            Ok(refs.add_reference_with_path(&asset_path, &p, offset, pos))
         } else {
-            // Both empty — add empty reference (internal)
             let reference = usd_sdf::Reference::default();
             Ok(refs.add_reference(&reference, pos))
         }
@@ -1388,14 +1649,15 @@ impl PyReferences {
     #[allow(non_snake_case)]
     fn AddInternalReference(
         &self,
-        prim_path: &str,
+        prim_path: &Bound<'_, PyAny>,
         layer_offset: Option<&crate::sdf::PyLayerOffset>,
         position: &str,
     ) -> PyResult<bool> {
+        let prim_path_str = extract_path_str(prim_path)?;
         let refs = self.prim.get_references();
         let pos = parse_list_position(position);
         let offset = layer_offset.map(|lo| lo.to_layer_offset()).unwrap_or_default();
-        let p = path_from_str(prim_path)?;
+        let p = path_from_str(&prim_path_str)?;
         Ok(refs.add_internal_reference(&p, offset, pos))
     }
 
@@ -1517,15 +1779,17 @@ pub struct PyInherits {
 impl PyInherits {
     #[pyo3(signature = (prim_path, position = "BackOfPrependList"))]
     #[allow(non_snake_case)]
-    fn AddInherit(&self, prim_path: &str, position: &str) -> PyResult<bool> {
-        let p = path_from_str(prim_path)?;
+    fn AddInherit(&self, prim_path: &Bound<'_, PyAny>, position: &str) -> PyResult<bool> {
+        let s = extract_path_str(prim_path)?;
+        let p = path_from_str(&s)?;
         let pos = parse_list_position(position);
         Ok(self.prim.get_inherits().add_inherit(&p, pos))
     }
 
     #[allow(non_snake_case)]
-    fn RemoveInherit(&self, prim_path: &str) -> PyResult<bool> {
-        let p = path_from_str(prim_path)?;
+    fn RemoveInherit(&self, prim_path: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let s = extract_path_str(prim_path)?;
+        let p = path_from_str(&s)?;
         Ok(self.prim.get_inherits().remove_inherit(&p))
     }
 
@@ -1577,15 +1841,17 @@ pub struct PySpecializes {
 impl PySpecializes {
     #[pyo3(signature = (prim_path, position = "BackOfPrependList"))]
     #[allow(non_snake_case)]
-    fn AddSpecialize(&self, prim_path: &str, position: &str) -> PyResult<bool> {
-        let p = path_from_str(prim_path)?;
+    fn AddSpecialize(&self, prim_path: &Bound<'_, PyAny>, position: &str) -> PyResult<bool> {
+        let s = extract_path_str(prim_path)?;
+        let p = path_from_str(&s)?;
         let pos = parse_list_position(position);
         Ok(self.prim.get_specializes().add_specialize(&p, pos))
     }
 
     #[allow(non_snake_case)]
-    fn RemoveSpecialize(&self, prim_path: &str) -> PyResult<bool> {
-        let p = path_from_str(prim_path)?;
+    fn RemoveSpecialize(&self, prim_path: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let s = extract_path_str(prim_path)?;
+        let p = path_from_str(&s)?;
         Ok(self.prim.get_specializes().remove_specialize(&p))
     }
 
@@ -1776,9 +2042,29 @@ impl PyAttribute {
         self.inner.get_time_samples()
     }
 
+    /// Get time samples in an interval.
+    /// Accepts `GetTimeSamplesInInterval(Gf.Interval)` or `GetTimeSamplesInInterval(lo, hi)`.
+    #[pyo3(signature = (*args))]
     #[allow(non_snake_case)]
-    fn GetTimeSamplesInInterval(&self, lo: f64, hi: f64) -> Vec<f64> {
-        self.inner.get_time_samples_in_interval(lo, hi)
+    fn GetTimeSamplesInInterval(&self, args: &Bound<'_, PyTuple>) -> PyResult<Vec<f64>> {
+        let (lo, hi) = if args.len() == 1 {
+            // Gf.Interval object: extract min/max
+            let interval = args.get_item(0)?;
+            let lo = interval.getattr("min")
+                .and_then(|v| v.extract::<f64>())
+                .or_else(|_| interval.getattr("GetMin").and_then(|f| f.call0()).and_then(|v| v.extract::<f64>()))
+                .unwrap_or(f64::NEG_INFINITY);
+            let hi = interval.getattr("max")
+                .and_then(|v| v.extract::<f64>())
+                .or_else(|_| interval.getattr("GetMax").and_then(|f| f.call0()).and_then(|v| v.extract::<f64>()))
+                .unwrap_or(f64::INFINITY);
+            (lo, hi)
+        } else if args.len() == 2 {
+            (args.get_item(0)?.extract::<f64>()?, args.get_item(1)?.extract::<f64>()?)
+        } else {
+            return Err(PyValueError::new_err("GetTimeSamplesInInterval expects 1 or 2 arguments"));
+        };
+        Ok(self.inner.get_time_samples_in_interval(lo, hi))
     }
 
     #[allow(non_snake_case)]
@@ -1810,22 +2096,30 @@ impl PyAttribute {
             .collect()
     }
 
+    #[pyo3(signature = (source, position = "BackOfPrependList"))]
     #[allow(non_snake_case)]
-    fn AddConnection(&self, source: &str) -> PyResult<bool> {
-        let p = path_from_str(source)?;
+    fn AddConnection(&self, source: &Bound<'_, PyAny>, position: &str) -> PyResult<bool> {
+        let s = extract_path_str(source)?;
+        let p = path_from_str(&s)?;
+        let _ = position; // TODO: use position when add_connection supports it
         Ok(self.inner.add_connection(&p))
     }
 
     #[allow(non_snake_case)]
-    fn RemoveConnection(&self, source: &str) -> PyResult<bool> {
-        let p = path_from_str(source)?;
+    fn RemoveConnection(&self, source: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let s = extract_path_str(source)?;
+        let p = path_from_str(&s)?;
         Ok(self.inner.remove_connection(&p))
     }
 
     #[allow(non_snake_case)]
-    fn SetConnections(&self, sources: Vec<String>) -> PyResult<bool> {
-        let paths: PyResult<Vec<Path>> = sources.iter().map(|s| path_from_str(s)).collect();
-        Ok(self.inner.set_connections(paths?))
+    fn SetConnections(&self, sources: &Bound<'_, PyList>) -> PyResult<bool> {
+        let mut paths = Vec::new();
+        for item in sources.iter() {
+            let s = extract_path_str(&item)?;
+            paths.push(path_from_str(&s)?);
+        }
+        Ok(self.inner.set_connections(paths))
     }
 
     #[allow(non_snake_case)]
@@ -1937,6 +2231,24 @@ impl PyAttribute {
         self.inner.is_valid()
     }
 
+    /// Return the prim this attribute belongs to.
+    #[allow(non_snake_case)]
+    fn GetPrim(&self) -> Option<PyPrim> {
+        let prim_path = self.inner.prim_path();
+        if let Some(stage) = self.inner.as_property().stage() {
+            if let Some(prim) = stage.get_prim_at_path(prim_path) {
+                return Some(PyPrim::from_prim(prim, self._stage.clone()));
+            }
+        }
+        None
+    }
+
+    /// Return the property spec stack. Stub: returns empty list.
+    #[allow(non_snake_case)]
+    fn GetPropertyStack(&self) -> Vec<String> {
+        Vec::new()
+    }
+
     // -- Repr --------------------------------------------------------------
 
     fn __repr__(&self) -> String {
@@ -2025,24 +2337,33 @@ impl PyRelationship {
         self.inner.get_forwarded_targets().iter().map(|p| p.as_str().to_string()).collect()
     }
 
+    #[pyo3(signature = (target, position = "BackOfPrependList"))]
     #[allow(non_snake_case)]
-    fn AddTarget(&self, target: &str) -> PyResult<bool> {
-        let p = path_from_str(target)?;
+    fn AddTarget(&self, target: &Bound<'_, PyAny>, position: &str) -> PyResult<bool> {
+        let s = extract_path_str(target)?;
+        let p = path_from_str(&s)?;
+        let _ = position; // TODO: use when add_target supports position
         Ok(self.inner.add_target(&p))
     }
 
     #[allow(non_snake_case)]
-    fn RemoveTarget(&self, target: &str) -> PyResult<bool> {
-        let p = path_from_str(target)?;
+    fn RemoveTarget(&self, target: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let s = extract_path_str(target)?;
+        let p = path_from_str(&s)?;
         Ok(self.inner.remove_target(&p))
     }
 
     #[allow(non_snake_case)]
-    fn SetTargets(&self, targets: Vec<String>) -> PyResult<bool> {
-        let paths: PyResult<Vec<Path>> = targets.iter().map(|s| path_from_str(s)).collect();
-        Ok(self.inner.set_targets(&paths?))
+    fn SetTargets(&self, targets: &Bound<'_, PyList>) -> PyResult<bool> {
+        let mut paths = Vec::new();
+        for item in targets.iter() {
+            let s = extract_path_str(&item)?;
+            paths.push(path_from_str(&s)?);
+        }
+        Ok(self.inner.set_targets(&paths))
     }
 
+    #[pyo3(signature = (_remove_spec = true))]
     #[allow(non_snake_case)]
     fn ClearTargets(&self, _remove_spec: bool) -> bool {
         // C++ ClearTargets(bool removeSpec): we delegate to clear_targets which removes spec
@@ -2076,6 +2397,18 @@ impl PyRelationship {
     #[allow(non_snake_case)]
     fn IsDefined(&self) -> bool {
         self.inner.is_valid()
+    }
+
+    /// Return the prim this relationship belongs to.
+    #[allow(non_snake_case)]
+    fn GetPrim(&self) -> Option<PyPrim> {
+        let prim_path = self.inner.prim_path();
+        if let Some(stage) = self.inner.as_property().stage() {
+            if let Some(prim) = stage.get_prim_at_path(prim_path) {
+                return Some(PyPrim::from_prim(prim, self._stage.clone()));
+            }
+        }
+        None
     }
 
     // -- Metadata ----------------------------------------------------------
@@ -2206,35 +2539,60 @@ impl PyStage {
 
     /// Create a new stage with an anonymous (in-memory) root layer.
     ///
-    /// Accepts optional `identifier` and optional `sessionLayer` (keyword).
-    /// `sessionLayer` can be a `Sdf.Layer` or `None`.
+    /// Accepts `CreateInMemory()`, `CreateInMemory(id)`, `CreateInMemory(id, sessionLayer)`,
+    /// and optional `sessionLayer` keyword.
     #[staticmethod]
-    #[pyo3(signature = (identifier = None, load = "LoadAll", **kwargs))]
+    #[pyo3(signature = (*args, **kwargs))]
     #[allow(non_snake_case)]
     fn CreateInMemory(
-        identifier: Option<&str>,
-        load: &str,
+        args: &Bound<'_, PyTuple>,
         kwargs: Option<&Bound<'_, PyDict>>,
     ) -> PyResult<Self> {
-        let load_set = parse_load(load)?;
+        let mut identifier: Option<String> = None;
+        let mut session_layer: Option<Arc<usd_sdf::Layer>> = None;
+        let mut load_str = "LoadAll".to_string();
 
-        // Extract sessionLayer from kwargs if provided
-        let session_layer: Option<Arc<usd_sdf::Layer>> = if let Some(kw) = kwargs {
+        // Parse positional args
+        if args.len() >= 1 {
+            let arg0 = args.get_item(0)?;
+            if let Ok(s) = arg0.extract::<String>() {
+                identifier = Some(s);
+            }
+        }
+        if args.len() >= 2 {
+            let arg1 = args.get_item(1)?;
+            if let Ok(py_layer) = arg1.extract::<crate::sdf::PyLayer>() {
+                session_layer = Some(py_layer.layer().clone());
+            } else if let Ok(s) = arg1.extract::<String>() {
+                load_str = s;
+            } else if !arg1.is_none() {
+                // ignore None
+            }
+        }
+        if args.len() >= 3 {
+            if let Ok(s) = args.get_item(2)?.extract::<String>() {
+                load_str = s;
+            }
+        }
+
+        // Override from kwargs
+        if let Some(kw) = kwargs {
             if let Some(val) = kw.get_item("sessionLayer")? {
                 if val.is_none() {
-                    None
+                    session_layer = None;
                 } else {
                     let py_layer: crate::sdf::PyLayer = val.extract()?;
-                    Some(py_layer.layer().clone())
+                    session_layer = Some(py_layer.layer().clone());
                 }
-            } else {
-                None
             }
-        } else {
-            None
-        };
+            if let Some(val) = kw.get_item("load")? {
+                load_str = val.extract()?;
+            }
+        }
 
-        let stage = match (identifier, session_layer) {
+        let load_set = parse_load(&load_str)?;
+
+        let stage = match (identifier.as_deref(), session_layer) {
             (Some(id), Some(sess)) => {
                 Stage::create_in_memory_with_session(id, sess, load_set)
             }
@@ -2248,32 +2606,59 @@ impl PyStage {
     /// Open an existing stage from a file path or a `Sdf.Layer`.
     ///
     /// Accepts `Usd.Stage.Open(str)`, `Usd.Stage.Open(Sdf.Layer)`,
-    /// and optional `sessionLayer` keyword.
+    /// `Usd.Stage.Open(Layer, Layer)`, and optional `sessionLayer` keyword.
     #[staticmethod]
-    #[pyo3(signature = (file_path, load = "LoadAll", **kwargs))]
+    #[pyo3(signature = (*args, **kwargs))]
     #[allow(non_snake_case)]
     fn Open(
-        file_path: &Bound<'_, PyAny>,
-        load: &str,
+        args: &Bound<'_, PyTuple>,
         kwargs: Option<&Bound<'_, PyDict>>,
     ) -> PyResult<Self> {
-        let load_set = parse_load(load)?;
+        if args.is_empty() {
+            return Err(PyValueError::new_err("Stage.Open() requires at least 1 argument"));
+        }
 
-        // Extract optional sessionLayer from kwargs
-        let session_layer: Option<Arc<usd_sdf::Layer>> = if let Some(kw) = kwargs {
+        let file_path = args.get_item(0)?;
+
+        // Parse session layer from 2nd positional or keyword
+        let mut session_layer: Option<Arc<usd_sdf::Layer>> = None;
+        let mut load_str = "LoadAll".to_string();
+
+        // Check 2nd positional: could be Layer (session) or str (load policy)
+        if args.len() >= 2 {
+            let arg1 = args.get_item(1)?;
+            if let Ok(py_layer) = arg1.extract::<crate::sdf::PyLayer>() {
+                session_layer = Some(py_layer.layer().clone());
+            } else if let Ok(s) = arg1.extract::<String>() {
+                load_str = s;
+            } else if !arg1.is_none() {
+                // sessionLayer=None → ignore
+            }
+        }
+
+        // Check 3rd positional (load string) if 2nd was session layer
+        if args.len() >= 3 {
+            if let Ok(s) = args.get_item(2)?.extract::<String>() {
+                load_str = s;
+            }
+        }
+
+        // Override from kwargs
+        if let Some(kw) = kwargs {
             if let Some(val) = kw.get_item("sessionLayer")? {
                 if val.is_none() {
-                    None
+                    session_layer = None;
                 } else {
                     let py_layer: crate::sdf::PyLayer = val.extract()?;
-                    Some(py_layer.layer().clone())
+                    session_layer = Some(py_layer.layer().clone());
                 }
-            } else {
-                None
             }
-        } else {
-            None
-        };
+            if let Some(val) = kw.get_item("load")? {
+                load_str = val.extract()?;
+            }
+        }
+
+        let load_set = parse_load(&load_str)?;
 
         // Accept either a string path or a Layer object
         if let Ok(py_layer) = file_path.extract::<crate::sdf::PyLayer>() {
@@ -2285,7 +2670,6 @@ impl PyStage {
             .map(|s| Self { inner: s })
             .map_err(to_py_err)
         } else if let Ok(path_str) = file_path.extract::<String>() {
-            // session_layer not usable with file path open (would need layer lookup)
             Stage::open(&path_str, load_set)
                 .map(|s| Self { inner: s })
                 .map_err(to_py_err)
@@ -2332,8 +2716,9 @@ impl PyStage {
     // -- Prim access -------------------------------------------------------
 
     #[allow(non_snake_case)]
-    fn GetPrimAtPath(&self, path: &str) -> PyResult<Option<PyPrim>> {
-        let p = path_from_str(path)?;
+    fn GetPrimAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyPrim>> {
+        let s = extract_path_str(path)?;
+        let p = path_from_str(&s)?;
         Ok(self.inner.get_prim_at_path(&p).map(|prim| {
             PyPrim::from_prim(prim, self.inner.clone())
         }))
@@ -2373,24 +2758,27 @@ impl PyStage {
 
     #[pyo3(signature = (path, type_name = ""))]
     #[allow(non_snake_case)]
-    fn DefinePrim(&self, path: &str, type_name: &str) -> PyResult<PyPrim> {
+    fn DefinePrim(&self, path: &Bound<'_, PyAny>, type_name: &str) -> PyResult<PyPrim> {
+        let s = extract_path_str(path)?;
         self.inner
-            .define_prim(path, type_name)
+            .define_prim(&s, type_name)
             .map(|p| PyPrim::from_prim(p, self.inner.clone()))
             .map_err(to_py_err)
     }
 
     #[allow(non_snake_case)]
-    fn OverridePrim(&self, path: &str) -> PyResult<PyPrim> {
+    fn OverridePrim(&self, path: &Bound<'_, PyAny>) -> PyResult<PyPrim> {
+        let s = extract_path_str(path)?;
         self.inner
-            .override_prim(path)
+            .override_prim(&s)
             .map(|p| PyPrim::from_prim(p, self.inner.clone()))
             .map_err(to_py_err)
     }
 
     #[allow(non_snake_case)]
-    fn RemovePrim(&self, path: &str) -> PyResult<bool> {
-        let p = path_from_str(path)?;
+    fn RemovePrim(&self, path: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let s = extract_path_str(path)?;
+        let p = path_from_str(&s)?;
         Ok(self.inner.remove_prim(&p))
     }
 
@@ -2472,9 +2860,18 @@ impl PyStage {
         PyEditTarget { inner: self.inner.get_edit_target() }
     }
 
+    /// Set the edit target. Accepts `EditTarget` or `Sdf.Layer`.
     #[allow(non_snake_case)]
-    fn SetEditTarget(&self, target: &PyEditTarget) {
-        self.inner.set_edit_target(target.inner.clone());
+    fn SetEditTarget(&self, target: &Bound<'_, PyAny>) -> PyResult<()> {
+        if let Ok(et) = target.extract::<PyRef<PyEditTarget>>() {
+            self.inner.set_edit_target(et.inner.clone());
+        } else if let Ok(layer) = target.extract::<crate::sdf::PyLayer>() {
+            let et = self.inner.get_edit_target_for_local_layer(layer.layer());
+            self.inner.set_edit_target(et);
+        } else {
+            return Err(PyValueError::new_err("SetEditTarget expects Usd.EditTarget or Sdf.Layer"));
+        }
+        Ok(())
     }
 
     // -- Time --------------------------------------------------------------
@@ -2555,20 +2952,55 @@ impl PyStage {
 
     // -- Loading -----------------------------------------------------------
 
-    #[pyo3(signature = (path, policy = "LoadWithDescendants"))]
+    #[pyo3(signature = (path = None, policy = "LoadWithDescendants"))]
     #[allow(non_snake_case)]
-    fn Load(&self, path: &str, policy: &str) -> PyResult<PyPrim> {
-        let p = path_from_str(path)?;
+    fn Load(&self, path: Option<&Bound<'_, PyAny>>, policy: &str) -> PyResult<PyPrim> {
+        let s = match path {
+            Some(p) => extract_path_str(p)?,
+            None => "/".to_string(),
+        };
+        let p = path_from_str(&s)?;
         let pol = parse_load_policy(policy)?;
         let prim = self.inner.load(&p, Some(pol));
         Ok(PyPrim::from_prim(prim, self.inner.clone()))
     }
 
+    #[pyo3(signature = (path = None))]
     #[allow(non_snake_case)]
-    fn Unload(&self, path: &str) -> PyResult<()> {
-        let p = path_from_str(path)?;
+    fn Unload(&self, path: Option<&Bound<'_, PyAny>>) -> PyResult<()> {
+        let s = match path {
+            Some(p) => extract_path_str(p)?,
+            None => "/".to_string(),
+        };
+        let p = path_from_str(&s)?;
         self.inner.unload(&p);
         Ok(())
+    }
+
+    /// Return all loadable paths at or below the given root.
+    #[pyo3(signature = (root_path = None))]
+    #[allow(non_snake_case)]
+    fn FindLoadable(&self, root_path: Option<&Bound<'_, PyAny>>) -> PyResult<Vec<String>> {
+        let p = match root_path {
+            Some(rp) => {
+                let s = extract_path_str(rp)?;
+                Some(path_from_str(&s)?)
+            }
+            None => None,
+        };
+        Ok(self.inner.find_loadable(p.as_ref())
+            .into_iter()
+            .map(|path| path.as_str().to_string())
+            .collect())
+    }
+
+    /// Return the set of loaded paths.
+    #[allow(non_snake_case)]
+    fn GetLoadSet(&self) -> Vec<String> {
+        self.inner.get_load_set()
+            .into_iter()
+            .map(|p| p.as_str().to_string())
+            .collect()
     }
 
     #[allow(non_snake_case)]
@@ -2636,6 +3068,70 @@ impl PyStage {
         Ok(())
     }
 
+    // -- Color configuration -----------------------------------------------
+
+    /// Return the color configuration asset path.
+    #[allow(non_snake_case)]
+    fn GetColorConfiguration(&self) -> crate::sdf::PyAssetPath {
+        crate::sdf::PyAssetPath::from_asset_path(self.inner.get_color_configuration())
+    }
+
+    /// Set the color configuration asset path.
+    #[allow(non_snake_case)]
+    fn SetColorConfiguration(&self, asset_path: &Bound<'_, PyAny>) -> PyResult<()> {
+        let ap = if let Ok(py_ap) = asset_path.extract::<crate::sdf::PyAssetPath>() {
+            py_ap.to_asset_path()
+        } else if let Ok(s) = asset_path.extract::<String>() {
+            usd_sdf::AssetPath::new(s)
+        } else {
+            return Err(PyValueError::new_err("Expected Sdf.AssetPath or str"));
+        };
+        self.inner.set_color_configuration(&ap);
+        Ok(())
+    }
+
+    /// Return the color management system.
+    #[allow(non_snake_case)]
+    fn GetColorManagementSystem(&self) -> String {
+        self.inner.get_color_management_system()
+            .map(|t| t.as_str().to_string())
+            .unwrap_or_default()
+    }
+
+    /// Set the color management system.
+    #[allow(non_snake_case)]
+    fn SetColorManagementSystem(&self, cms: &str) {
+        self.inner.set_color_management_system(&Token::new(cms));
+    }
+
+    /// Return the global color config fallbacks.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn GetColorConfigFallbacks() -> (String, String) {
+        let (asset, cms) = Stage::get_color_config_fallbacks();
+        (
+            asset.map(|a| a.get_asset_path().to_string()).unwrap_or_default(),
+            cms.map(|t| t.as_str().to_string()).unwrap_or_default(),
+        )
+    }
+
+    /// Set the global color config fallbacks.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn SetColorConfigFallbacks(color_config: &str, color_mgmt_system: &str) {
+        let asset = if color_config.is_empty() {
+            None
+        } else {
+            Some(usd_sdf::AssetPath::new(color_config.to_string()))
+        };
+        let cms = if color_mgmt_system.is_empty() {
+            None
+        } else {
+            Some(Token::new(color_mgmt_system))
+        };
+        Stage::set_color_config_fallbacks(asset.as_ref(), cms.as_ref());
+    }
+
     // -- Flatten -----------------------------------------------------------
 
     // -- CreateClassPrim ---------------------------------------------------
@@ -2644,27 +3140,73 @@ impl PyStage {
     ///
     /// Matches C++ `UsdStage::CreateClassPrim`.
     #[allow(non_snake_case)]
-    fn CreateClassPrim(&self, path: &str) -> PyResult<PyPrim> {
+    fn CreateClassPrim(&self, path: &Bound<'_, PyAny>) -> PyResult<PyPrim> {
+        let s = extract_path_str(path)?;
         self.inner
-            .create_class_prim(path)
+            .create_class_prim(&s)
             .map(|p| PyPrim::from_prim(p, self.inner.clone()))
             .map_err(to_py_err)
     }
 
     // -- GetAttributeAtPath / GetRelationshipAtPath / GetPropertyAtPath ----
 
+    /// Get an object (prim, attribute, or relationship) by path.
+    #[allow(non_snake_case)]
+    fn GetObjectAtPath(&self, path: &Bound<'_, PyAny>, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let s = extract_path_str(path)?;
+        let p = path_from_str(&s)?;
+
+        // If it's a property path, try attribute then relationship
+        if p.is_property_path() {
+            if let Some(a) = self.inner.get_attribute_at_path(&p) {
+                let py_attr = PyAttribute { inner: a, _stage: self.inner.clone() };
+                return Ok(py_attr.into_pyobject(py).map_err(to_py_err)?.into_any().unbind());
+            }
+            if let Some(r) = self.inner.get_relationship_at_path(&p) {
+                let py_rel = PyRelationship { inner: r, _stage: self.inner.clone() };
+                return Ok(py_rel.into_pyobject(py).map_err(to_py_err)?.into_any().unbind());
+            }
+        }
+
+        // Otherwise try as prim
+        if let Some(prim) = self.inner.get_prim_at_path(&p) {
+            let py_prim = PyPrim::from_prim(prim, self.inner.clone());
+            return Ok(py_prim.into_pyobject(py).map_err(to_py_err)?.into_any().unbind());
+        }
+
+        Ok(py.None())
+    }
+
+    /// Get a property (attribute or relationship) by its full path.
+    #[allow(non_snake_case)]
+    fn GetPropertyAtPath(&self, path: &Bound<'_, PyAny>, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let s = extract_path_str(path)?;
+        let p = path_from_str(&s)?;
+        if let Some(a) = self.inner.get_attribute_at_path(&p) {
+            let py_attr = PyAttribute { inner: a, _stage: self.inner.clone() };
+            return Ok(py_attr.into_pyobject(py).map_err(to_py_err)?.into_any().unbind());
+        }
+        if let Some(r) = self.inner.get_relationship_at_path(&p) {
+            let py_rel = PyRelationship { inner: r, _stage: self.inner.clone() };
+            return Ok(py_rel.into_pyobject(py).map_err(to_py_err)?.into_any().unbind());
+        }
+        Ok(py.None())
+    }
+
     /// Get an attribute by its full path (e.g. `/Foo.bar`).
     #[allow(non_snake_case)]
-    fn GetAttributeAtPath(&self, path: &str) -> PyResult<Option<PyAttribute>> {
-        let p = path_from_str(path)?;
+    fn GetAttributeAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyAttribute>> {
+        let s = extract_path_str(path)?;
+        let p = path_from_str(&s)?;
         Ok(self.inner.get_attribute_at_path(&p)
             .map(|a| PyAttribute { inner: a, _stage: self.inner.clone() }))
     }
 
     /// Get a relationship by its full path.
     #[allow(non_snake_case)]
-    fn GetRelationshipAtPath(&self, path: &str) -> PyResult<Option<PyRelationship>> {
-        let p = path_from_str(path)?;
+    fn GetRelationshipAtPath(&self, path: &Bound<'_, PyAny>) -> PyResult<Option<PyRelationship>> {
+        let s = extract_path_str(path)?;
+        let p = path_from_str(&s)?;
         Ok(self.inner.get_relationship_at_path(&p)
             .map(|r| PyRelationship { inner: r, _stage: self.inner.clone() }))
     }
@@ -3041,6 +3583,437 @@ fn register_schema_registry_attrs(py: Python<'_>) -> PyResult<()> {
 }
 
 // ============================================================================
+// UsdNamespaceEditor
+// ============================================================================
+
+/// Batch namespace editing operations for USD stages.
+///
+/// Matches C++ `UsdNamespaceEditor`.
+#[pyclass(skip_from_py_object, name = "NamespaceEditor", module = "pxr_rs.Usd")]
+pub struct PyNamespaceEditor {
+    inner: usd_core::namespace_editor::NamespaceEditor,
+}
+
+/// Options for namespace editor behavior.
+#[pyclass(skip_from_py_object, name = "NamespaceEditorEditOptions", module = "pxr_rs.Usd")]
+#[derive(Clone)]
+pub struct PyNamespaceEditorEditOptions {
+    inner: usd_core::namespace_editor::EditOptions,
+}
+
+#[pymethods]
+impl PyNamespaceEditorEditOptions {
+    #[new]
+    fn new() -> Self {
+        Self { inner: usd_core::namespace_editor::EditOptions::default() }
+    }
+
+    #[getter]
+    #[allow(non_snake_case)]
+    fn get_allowRelocatesAuthoring(&self) -> bool {
+        self.inner.allow_relocates_authoring
+    }
+
+    #[setter]
+    #[allow(non_snake_case)]
+    fn set_allowRelocatesAuthoring(&mut self, value: bool) {
+        self.inner.allow_relocates_authoring = value;
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "Usd.NamespaceEditor.EditOptions(allowRelocatesAuthoring={})",
+            self.inner.allow_relocates_authoring
+        )
+    }
+}
+
+#[pymethods]
+impl PyNamespaceEditor {
+    #[new]
+    #[pyo3(signature = (stage, options = None))]
+    fn new(stage: &PyStage, options: Option<&PyNamespaceEditorEditOptions>) -> Self {
+        let editor = match options {
+            Some(opts) => usd_core::namespace_editor::NamespaceEditor::with_options(
+                stage.inner.clone(),
+                opts.inner.clone(),
+            ),
+            None => usd_core::namespace_editor::NamespaceEditor::new(stage.inner.clone()),
+        };
+        Self { inner: editor }
+    }
+
+    // -- Prim operations ---------------------------------------------------
+
+    #[allow(non_snake_case)]
+    fn DeletePrimAtPath(&mut self, path: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let s = extract_path_str(path)?;
+        let p = path_from_str(&s)?;
+        Ok(self.inner.delete_prim_at_path(&p))
+    }
+
+    #[allow(non_snake_case)]
+    fn MovePrimAtPath(&mut self, path: &Bound<'_, PyAny>, new_path: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let s1 = extract_path_str(path)?;
+        let s2 = extract_path_str(new_path)?;
+        let p1 = path_from_str(&s1)?;
+        let p2 = path_from_str(&s2)?;
+        Ok(self.inner.move_prim_at_path(&p1, &p2))
+    }
+
+    #[allow(non_snake_case)]
+    fn DeletePrim(&mut self, prim: &PyPrim) -> bool {
+        self.inner.delete_prim(&prim.inner)
+    }
+
+    #[allow(non_snake_case)]
+    fn RenamePrim(&mut self, prim: &PyPrim, new_name: &str) -> bool {
+        self.inner.rename_prim(&prim.inner, &Token::new(new_name))
+    }
+
+    #[allow(non_snake_case)]
+    fn ReparentPrim(&mut self, prim: &PyPrim, new_parent: &PyPrim) -> bool {
+        self.inner.reparent_prim(&prim.inner, &new_parent.inner)
+    }
+
+    #[allow(non_snake_case)]
+    fn ReparentPrimUnder(&mut self, prim: &PyPrim, new_parent: &PyPrim, new_name: &str) -> bool {
+        self.inner.reparent_prim_with_name(&prim.inner, &new_parent.inner, &Token::new(new_name))
+    }
+
+    // -- Property operations -----------------------------------------------
+
+    #[allow(non_snake_case)]
+    fn DeletePropertyAtPath(&mut self, path: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let s = extract_path_str(path)?;
+        let p = path_from_str(&s)?;
+        Ok(self.inner.delete_property_at_path(&p))
+    }
+
+    #[allow(non_snake_case)]
+    fn MovePropertyAtPath(&mut self, path: &Bound<'_, PyAny>, new_path: &Bound<'_, PyAny>) -> PyResult<bool> {
+        let s1 = extract_path_str(path)?;
+        let s2 = extract_path_str(new_path)?;
+        let p1 = path_from_str(&s1)?;
+        let p2 = path_from_str(&s2)?;
+        Ok(self.inner.move_property_at_path(&p1, &p2))
+    }
+
+    #[allow(non_snake_case)]
+    fn RenamePropertyAtPath(&mut self, path: &Bound<'_, PyAny>, new_name: &str) -> PyResult<bool> {
+        let s = extract_path_str(path)?;
+        let p = path_from_str(&s)?;
+        Ok(self.inner.rename_property_at_path(&p, &Token::new(new_name)))
+    }
+
+    // -- Dependent stages --------------------------------------------------
+
+    #[allow(non_snake_case)]
+    fn AddDependentStage(&mut self, stage: &PyStage) {
+        self.inner.add_dependent_stage(stage.inner.clone());
+    }
+
+    #[allow(non_snake_case)]
+    fn RemoveDependentStage(&mut self, stage: &PyStage) {
+        self.inner.remove_dependent_stage(&stage.inner);
+    }
+
+    // -- Apply / Query -----------------------------------------------------
+
+    #[allow(non_snake_case)]
+    fn CanApplyEdits(&self) -> (bool, String) {
+        let result = self.inner.can_apply_edits();
+        (result.success, result.error_message.unwrap_or_default())
+    }
+
+    #[allow(non_snake_case)]
+    fn ApplyEdits(&mut self) -> bool {
+        self.inner.apply_edits()
+    }
+
+    /// Get layers that need to be edited. Stub: returns layer stack of the stage.
+    #[allow(non_snake_case)]
+    fn GetLayersToEdit(&self) -> Vec<crate::sdf::PyLayer> {
+        self.inner.stage().layer_stack()
+            .iter()
+            .map(|l| crate::sdf::PyLayer::from_layer_arc(l.clone()))
+            .collect()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "Usd.NamespaceEditor('{}')",
+            self.inner.stage().get_root_layer().identifier()
+        )
+    }
+}
+
+/// Register EditOptions as a class attribute on NamespaceEditor.
+fn register_namespace_editor_attrs(py: Python<'_>) -> PyResult<()> {
+    let ne_type = py.get_type::<PyNamespaceEditor>();
+    let eo_type = py.get_type::<PyNamespaceEditorEditOptions>();
+    ne_type.setattr("EditOptions", eo_type)?;
+    Ok(())
+}
+
+// ============================================================================
+// UsdAttributeQuery — lightweight cached attribute value access
+// ============================================================================
+
+/// Caches an attribute for efficient repeated value queries.
+///
+/// Matches C++ `UsdAttributeQuery`.
+#[pyclass(skip_from_py_object, name = "AttributeQuery", module = "pxr_rs.Usd")]
+#[derive(Clone)]
+pub struct PyAttributeQuery {
+    attr: Option<Attribute>,
+    _stage: Arc<Stage>,
+}
+
+#[pymethods]
+impl PyAttributeQuery {
+    #[new]
+    #[pyo3(signature = (attr = None))]
+    fn new(attr: Option<&PyAttribute>) -> Self {
+        match attr {
+            Some(a) => Self {
+                attr: Some(a.inner.clone()),
+                _stage: a._stage.clone(),
+            },
+            None => Self {
+                attr: None,
+                _stage: Stage::create_in_memory(InitialLoadSet::LoadNone)
+                    .expect("failed to create stage"),
+            },
+        }
+    }
+
+    #[pyo3(signature = (time = None))]
+    #[allow(non_snake_case)]
+    fn Get(&self, py: Python<'_>, time: Option<&Bound<'_, PyAny>>) -> PyResult<Py<PyAny>> {
+        let Some(ref attr) = self.attr else {
+            return Ok(py.None());
+        };
+        let tc = match time {
+            Some(t) => tc_from_py(t)?,
+            None => TimeCode::default(),
+        };
+        match attr.get(tc) {
+            Some(v) => Ok(value_to_py(py, &v)),
+            None => Ok(py.None()),
+        }
+    }
+
+    #[allow(non_snake_case)]
+    fn IsValid(&self) -> bool {
+        self.attr.as_ref().is_some_and(|a| a.is_valid())
+    }
+
+    fn __bool__(&self) -> bool {
+        self.attr.as_ref().is_some_and(|a| a.is_valid())
+    }
+
+    #[allow(non_snake_case)]
+    fn HasValue(&self) -> bool {
+        self.attr.as_ref().is_some_and(|a| a.has_value())
+    }
+
+    #[allow(non_snake_case)]
+    fn HasAuthoredValue(&self) -> bool {
+        self.attr.as_ref().is_some_and(|a| a.has_authored_value())
+    }
+
+    #[allow(non_snake_case)]
+    fn HasFallbackValue(&self) -> bool {
+        self.attr.as_ref().is_some_and(|a| a.has_fallback_value())
+    }
+
+    #[allow(non_snake_case)]
+    fn ValueMightBeTimeVarying(&self) -> bool {
+        self.attr.as_ref().is_some_and(|a| a.value_might_be_time_varying())
+    }
+
+    #[allow(non_snake_case)]
+    fn GetTimeSamples(&self) -> Vec<f64> {
+        self.attr.as_ref().map(|a| a.get_time_samples()).unwrap_or_default()
+    }
+
+    #[allow(non_snake_case)]
+    fn GetBracketingTimeSamples(&self, desired: f64) -> (f64, f64, bool) {
+        match self.attr.as_ref().and_then(|a| a.get_bracketing_time_samples(desired)) {
+            Some((lo, hi)) => (lo, hi, true),
+            None => (0.0, 0.0, false),
+        }
+    }
+
+    #[allow(non_snake_case)]
+    fn GetNumTimeSamples(&self) -> usize {
+        self.attr.as_ref().map(|a| a.get_time_samples().len()).unwrap_or(0)
+    }
+
+    #[allow(non_snake_case)]
+    fn GetAttribute(&self) -> Option<PyAttribute> {
+        self.attr.as_ref().map(|a| PyAttribute {
+            inner: a.clone(),
+            _stage: self._stage.clone(),
+        })
+    }
+
+    fn __repr__(&self) -> String {
+        match &self.attr {
+            Some(a) => format!("Usd.AttributeQuery({})", a.path().as_str()),
+            None => "Usd.AttributeQuery()".to_string(),
+        }
+    }
+}
+
+// ============================================================================
+// UsdModelAPI — schema wrapper for model hierarchy
+// ============================================================================
+
+/// Schema wrapper for model-related metadata.
+///
+/// Matches C++ `UsdModelAPI`.
+#[pyclass(skip_from_py_object, name = "ModelAPI", module = "pxr_rs.Usd")]
+pub struct PyModelAPI {
+    prim: Option<Prim>,
+    _stage: Option<Arc<Stage>>,
+}
+
+#[pymethods]
+impl PyModelAPI {
+    #[new]
+    #[pyo3(signature = (prim = None))]
+    fn new(prim: Option<&PyPrim>) -> Self {
+        match prim {
+            Some(p) => Self {
+                prim: Some(p.inner.clone()),
+                _stage: Some(p._stage.clone()),
+            },
+            None => Self { prim: None, _stage: None },
+        }
+    }
+
+    #[allow(non_snake_case)]
+    fn GetPrim(&self) -> Option<PyPrim> {
+        self.prim.as_ref().map(|p| {
+            let stage = self._stage.clone().unwrap_or_else(|| {
+                Stage::create_in_memory(InitialLoadSet::LoadNone).expect("stage")
+            });
+            PyPrim::from_prim(p.clone(), stage)
+        })
+    }
+
+    #[allow(non_snake_case)]
+    fn GetKind(&self) -> String {
+        self.prim.as_ref().and_then(|p| {
+            p.stage().and_then(|s| {
+                s.get_metadata_for_object(p.path(), &Token::new("kind"))
+                    .and_then(|v| v.downcast_clone::<Token>())
+                    .map(|t| t.as_str().to_string())
+            })
+        }).unwrap_or_default()
+    }
+
+    #[allow(non_snake_case)]
+    fn SetKind(&self, kind: &str) -> bool {
+        self.prim.as_ref().is_some_and(|p| {
+            p.set_metadata(&Token::new("kind"), Value::from(Token::new(kind)))
+        })
+    }
+
+    #[allow(non_snake_case)]
+    fn IsModel(&self) -> bool {
+        self.prim.as_ref().is_some_and(|p| p.is_model())
+    }
+
+    #[allow(non_snake_case)]
+    fn IsGroup(&self) -> bool {
+        self.prim.as_ref().is_some_and(|p| p.is_group())
+    }
+
+    #[allow(non_snake_case)]
+    fn IsKind(&self, kind: &str) -> bool {
+        self.GetKind() == kind
+    }
+
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn GetSchemaAttributeNames(_include_inherited: Option<bool>) -> Vec<String> {
+        Vec::new()
+    }
+
+    #[allow(non_snake_case)]
+    fn IsAPISchema(&self) -> bool {
+        true
+    }
+
+    fn __bool__(&self) -> bool {
+        self.prim.as_ref().is_some_and(|p| p.is_valid())
+    }
+
+    fn __repr__(&self) -> String {
+        match &self.prim {
+            Some(p) => format!("Usd.ModelAPI({})", p.get_path().as_str()),
+            None => "Usd.ModelAPI()".to_string(),
+        }
+    }
+}
+
+// ============================================================================
+// UsdClipsAPI — stub for value clips support
+// ============================================================================
+
+/// Schema wrapper for USD value clips.
+///
+/// Matches C++ `UsdClipsAPI`.
+#[pyclass(skip_from_py_object, name = "ClipsAPI", module = "pxr_rs.Usd")]
+pub struct PyClipsAPI {
+    prim: Option<Prim>,
+    _stage: Option<Arc<Stage>>,
+}
+
+#[pymethods]
+impl PyClipsAPI {
+    #[new]
+    #[pyo3(signature = (prim = None))]
+    fn new(prim: Option<&PyPrim>) -> Self {
+        match prim {
+            Some(p) => Self {
+                prim: Some(p.inner.clone()),
+                _stage: Some(p._stage.clone()),
+            },
+            None => Self { prim: None, _stage: None },
+        }
+    }
+
+    #[allow(non_snake_case)]
+    fn GetPrim(&self) -> Option<PyPrim> {
+        self.prim.as_ref().map(|p| {
+            let stage = self._stage.clone().unwrap_or_else(|| {
+                Stage::create_in_memory(InitialLoadSet::LoadNone).expect("stage")
+            });
+            PyPrim::from_prim(p.clone(), stage)
+        })
+    }
+
+    fn __bool__(&self) -> bool {
+        self.prim.as_ref().is_some_and(|p| p.is_valid())
+    }
+
+    fn __repr__(&self) -> String {
+        match &self.prim {
+            Some(p) => format!("Usd.ClipsAPI({})", p.get_path().as_str()),
+            None => "Usd.ClipsAPI()".to_string(),
+        }
+    }
+}
+
+// ============================================================================
+// Module-level ListPosition constants
+// ============================================================================
+
+// ============================================================================
 // ColorSpaceHashCache — stub for subclassing in Python tests
 // ============================================================================
 
@@ -3078,6 +4051,13 @@ fn add_constants(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("LoadNone", "LoadNone")?;
     m.add("LoadWithDescendants", "LoadWithDescendants")?;
     m.add("LoadWithoutDescendants", "LoadWithoutDescendants")?;
+
+    // ListPosition constants
+    m.add("ListPositionFrontOfPrependList", "FrontOfPrependList")?;
+    m.add("ListPositionBackOfPrependList", "BackOfPrependList")?;
+    m.add("ListPositionFrontOfAppendList", "FrontOfAppendList")?;
+    m.add("ListPositionBackOfAppendList", "BackOfAppendList")?;
+
     Ok(())
 }
 
@@ -3109,6 +4089,8 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPayloads>()?;
     m.add_class::<PyInherits>()?;
     m.add_class::<PySpecializes>()?;
+    m.add_class::<PyVariantEditContext>()?;
+    m.add_class::<PyPrimDefinition>()?;
 
     // Stage
     m.add_class::<PyStage>()?;
@@ -3127,6 +4109,18 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySchemaRegistry>()?;
     m.add("SchemaRegistry", py.get_type::<PySchemaRegistry>())?;
     register_schema_registry_attrs(py)?;
+
+    // NamespaceEditor
+    m.add_class::<PyNamespaceEditor>()?;
+    m.add_class::<PyNamespaceEditorEditOptions>()?;
+    register_namespace_editor_attrs(py)?;
+
+    // AttributeQuery
+    m.add_class::<PyAttributeQuery>()?;
+
+    // Schema APIs
+    m.add_class::<PyModelAPI>()?;
+    m.add_class::<PyClipsAPI>()?;
 
     // ColorSpaceHashCache
     m.add_class::<PyColorSpaceHashCache>()?;
