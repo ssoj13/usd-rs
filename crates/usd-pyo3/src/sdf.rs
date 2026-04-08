@@ -1440,12 +1440,13 @@ impl PyLayer {
     fn ClearSessionOwner(&self) { self.inner.clear_session_owner(); }
     #[allow(non_snake_case)]
     fn ApplyRootPrimOrder(&self, order: Vec<String>) -> Vec<String> {
-        let tokens: Vec<usd_tf::Token> = order.iter().map(|s| usd_tf::Token::new(s)).collect();
-        self.inner.apply_root_prim_order(&tokens).iter().map(|t| t.as_str().to_string()).collect()
+        let mut tokens: Vec<usd_tf::Token> = order.iter().map(|s| usd_tf::Token::new(s)).collect();
+        self.inner.apply_root_prim_order(&mut tokens);
+        tokens.iter().map(|t| t.as_str().to_string()).collect()
     }
     #[allow(non_snake_case)]
     fn UpdateCompositionAssetDependency(&self, old_path: &str, new_path: &str) {
-        self.inner.update_composition_asset_dependency(old_path, new_path);
+        self.inner.update_composition_asset_dependency(old_path, Some(new_path));
     }
     #[allow(non_snake_case)]
     fn GetBracketingTimeSamples(&self, time: f64) -> (f64, f64) {

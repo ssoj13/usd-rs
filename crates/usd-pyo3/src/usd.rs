@@ -782,8 +782,8 @@ impl PyPrim {
     // -- Schema / type checks ---------------------------------------------
 
     #[allow(non_snake_case)]
-    #[pyo3(signature = (api_name, instance_name=None))]
-    fn CanApplyAPI(&self, api_name: &Bound<'_, PyAny>, instance_name: Option<&str>) -> bool {
+    #[pyo3(signature = (api_name, _instance_name=None))]
+    fn CanApplyAPI(&self, api_name: &Bound<'_, PyAny>, _instance_name: Option<&str>) -> bool {
         let name = if let Ok(s) = api_name.extract::<String>() { s }
             else if let Ok(n) = api_name.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
             else { return false; };
@@ -1432,24 +1432,24 @@ impl PyPrim {
         }
     }
     #[allow(non_snake_case)]
-    #[pyo3(signature = (schema_type, instance_name=None))]
-    fn HasAPI(&self, schema_type: &Bound<'_, PyAny>, instance_name: Option<&str>) -> bool {
+    #[pyo3(signature = (schema_type, _instance_name=None))]
+    fn HasAPI(&self, schema_type: &Bound<'_, PyAny>, _instance_name: Option<&str>) -> bool {
         let name = if let Ok(s) = schema_type.extract::<String>() { s }
             else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
             else { return false; };
         self.inner.has_api(&usd_tf::Token::new(&name))
     }
     #[allow(non_snake_case)]
-    #[pyo3(signature = (schema_type, instance_name=None))]
-    fn ApplyAPI(&self, schema_type: &Bound<'_, PyAny>, instance_name: Option<&str>) -> bool {
+    #[pyo3(signature = (schema_type, _instance_name=None))]
+    fn ApplyAPI(&self, schema_type: &Bound<'_, PyAny>, _instance_name: Option<&str>) -> bool {
         let name = if let Ok(s) = schema_type.extract::<String>() { s }
             else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
             else { return false; };
         self.inner.apply_api(&usd_tf::Token::new(&name))
     }
     #[allow(non_snake_case)]
-    #[pyo3(signature = (schema_type, instance_name=None))]
-    fn RemoveAPI(&self, schema_type: &Bound<'_, PyAny>, instance_name: Option<&str>) -> bool {
+    #[pyo3(signature = (schema_type, _instance_name=None))]
+    fn RemoveAPI(&self, schema_type: &Bound<'_, PyAny>, _instance_name: Option<&str>) -> bool {
         let name = if let Ok(s) = schema_type.extract::<String>() { s }
             else if let Ok(n) = schema_type.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
             else { return false; };
