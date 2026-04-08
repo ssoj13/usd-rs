@@ -355,7 +355,7 @@ impl PyImageable {
 
     #[staticmethod]
     #[pyo3(name = "Get")]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         let prim = stage.0.get_prim_at_path(&p)
             .ok_or_else(|| PyValueError::new_err(format!("No prim at '{path}'")))?;
@@ -454,7 +454,7 @@ impl PyXformable {
 
     #[staticmethod]
     #[pyo3(name = "Get")]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         let prim = stage.0.get_prim_at_path(&p)
             .ok_or_else(|| PyValueError::new_err(format!("No prim at '{path}'")))?;
@@ -593,14 +593,14 @@ impl PyXform {
 
     #[staticmethod]
     #[pyo3(name = "Get")]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Xform::get(&stage.0, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Xform::define(&stage.0, &p)))
     }
@@ -618,7 +618,7 @@ impl PyXform {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Xform" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Xform" }
 }
 
 // ============================================================================
@@ -645,7 +645,7 @@ impl PyBoundable {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Boundable" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Boundable" }
 }
 
 // ============================================================================
@@ -660,9 +660,9 @@ impl PyScope {
     #[new]
     pub fn new(prim: &PyPrim) -> Self { Self(Scope::new(prim.0.clone())) }
     #[staticmethod] #[pyo3(name = "Get")]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::get(&stage.0, &p))) }
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::get(&stage.0, &p))) }
     #[staticmethod] #[pyo3(name = "Define")]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::define(&stage.0, &p))) }
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::define(&stage.0, &p))) }
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     #[pyo3(name = "GetPath")] pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
@@ -704,7 +704,7 @@ impl PyGprim {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Gprim" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Gprim" }
 }
 
 // ============================================================================
@@ -720,13 +720,13 @@ impl PyMesh {
     pub fn new(prim: &PyPrim) -> Self { Self(Mesh::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Mesh::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Mesh::define(&stage.0, &p)))
     }
@@ -856,13 +856,13 @@ impl PySphere {
     pub fn new(prim: &PyPrim) -> Self { Self(Sphere::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Sphere::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Sphere::define(&stage.0, &p)))
     }
@@ -879,7 +879,7 @@ impl PySphere {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Sphere" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Sphere" }
 }
 
 // ============================================================================
@@ -895,13 +895,13 @@ impl PyCube {
     pub fn new(prim: &PyPrim) -> Self { Self(Cube::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Cube::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Cube::define(&stage.0, &p)))
     }
@@ -918,7 +918,7 @@ impl PyCube {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Cube" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Cube" }
 }
 
 // ============================================================================
@@ -934,13 +934,13 @@ impl PyCone {
     pub fn new(prim: &PyPrim) -> Self { Self(Cone::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Cone::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Cone::define(&stage.0, &p)))
     }
@@ -961,7 +961,7 @@ impl PyCone {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Cone" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Cone" }
 }
 
 // ============================================================================
@@ -977,13 +977,13 @@ impl PyCylinder {
     pub fn new(prim: &PyPrim) -> Self { Self(Cylinder::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Cylinder::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Cylinder::define(&stage.0, &p)))
     }
@@ -1004,7 +1004,7 @@ impl PyCylinder {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Cylinder" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Cylinder" }
 }
 
 // ============================================================================
@@ -1020,13 +1020,13 @@ impl PyCylinder1 {
     pub fn new(prim: &PyPrim) -> Self { Self(Cylinder1::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Cylinder1::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Cylinder1::define(&stage.0, &p)))
     }
@@ -1050,7 +1050,7 @@ impl PyCylinder1 {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Cylinder_1" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Cylinder_1" }
 }
 
 // ============================================================================
@@ -1066,13 +1066,13 @@ impl PyCapsule {
     pub fn new(prim: &PyPrim) -> Self { Self(Capsule::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Capsule::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Capsule::define(&stage.0, &p)))
     }
@@ -1093,7 +1093,7 @@ impl PyCapsule {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Capsule" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Capsule" }
 }
 
 // ============================================================================
@@ -1109,13 +1109,13 @@ impl PyCapsule1 {
     pub fn new(prim: &PyPrim) -> Self { Self(Capsule1::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Capsule1::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Capsule1::define(&stage.0, &p)))
     }
@@ -1139,7 +1139,7 @@ impl PyCapsule1 {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Capsule_1" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Capsule_1" }
 }
 
 // ============================================================================
@@ -1155,13 +1155,13 @@ impl PyPlane {
     pub fn new(prim: &PyPrim) -> Self { Self(Plane::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Plane::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Plane::define(&stage.0, &p)))
     }
@@ -1183,7 +1183,7 @@ impl PyPlane {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Plane" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Plane" }
 }
 
 // ============================================================================
@@ -1219,7 +1219,7 @@ impl PyPointBased {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "PointBased" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "PointBased" }
 }
 
 // ============================================================================
@@ -1235,13 +1235,13 @@ impl PyPoints {
     pub fn new(prim: &PyPrim) -> Self { Self(Points::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Points::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Points::define(&stage.0, &p)))
     }
@@ -1261,7 +1261,7 @@ impl PyPoints {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Points" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Points" }
 }
 
 // ============================================================================
@@ -1291,7 +1291,7 @@ impl PyCurves {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Curves" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Curves" }
 }
 
 // ============================================================================
@@ -1307,13 +1307,13 @@ impl PyBasisCurves {
     pub fn new(prim: &PyPrim) -> Self { Self(BasisCurves::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(BasisCurves::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(BasisCurves::define(&stage.0, &p)))
     }
@@ -1334,7 +1334,7 @@ impl PyBasisCurves {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "BasisCurves" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "BasisCurves" }
 }
 
 // ============================================================================
@@ -1350,13 +1350,13 @@ impl PyNurbsCurves {
     pub fn new(prim: &PyPrim) -> Self { Self(NurbsCurves::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(NurbsCurves::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(NurbsCurves::define(&stage.0, &p)))
     }
@@ -1377,7 +1377,7 @@ impl PyNurbsCurves {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "NurbsCurves" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "NurbsCurves" }
 }
 
 // ============================================================================
@@ -1393,13 +1393,13 @@ impl PyHermiteCurves {
     pub fn new(prim: &PyPrim) -> Self { Self(HermiteCurves::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(HermiteCurves::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(HermiteCurves::define(&stage.0, &p)))
     }
@@ -1416,7 +1416,7 @@ impl PyHermiteCurves {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "HermiteCurves" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "HermiteCurves" }
 }
 
 // ============================================================================
@@ -1432,13 +1432,13 @@ impl PyNurbsPatch {
     pub fn new(prim: &PyPrim) -> Self { Self(NurbsPatch::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(NurbsPatch::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(NurbsPatch::define(&stage.0, &p)))
     }
@@ -1465,7 +1465,7 @@ impl PyNurbsPatch {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "NurbsPatch" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "NurbsPatch" }
 }
 
 // ============================================================================
@@ -1481,13 +1481,13 @@ impl PyTetMesh {
     pub fn new(prim: &PyPrim) -> Self { Self(TetMesh::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(TetMesh::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(TetMesh::define(&stage.0, &p)))
     }
@@ -1505,7 +1505,7 @@ impl PyTetMesh {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "TetMesh" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "TetMesh" }
 }
 
 // ============================================================================
@@ -1521,13 +1521,13 @@ impl PyPointInstancer {
     pub fn new(prim: &PyPrim) -> Self { Self(PointInstancer::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(PointInstancer::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(PointInstancer::define(&stage.0, &p)))
     }
@@ -1590,7 +1590,7 @@ impl PyPointInstancer {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "PointInstancer" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "PointInstancer" }
 
     /// C++ enum UsdGeomPointInstancer::ProtoXformInclusion
     #[classattr]
@@ -1615,13 +1615,13 @@ impl PyCamera {
     pub fn new(prim: &PyPrim) -> Self { Self(Camera::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Camera::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Camera::define(&stage.0, &p)))
     }
@@ -1673,7 +1673,7 @@ impl PyCamera {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Camera" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Camera" }
 }
 
 // ============================================================================
@@ -1730,7 +1730,7 @@ impl PyVisibilityAPI {
     pub fn new(prim: &PyPrim) -> Self { Self(VisibilityAPI::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn apply(prim: &PyPrim) -> Self { Self(VisibilityAPI::apply(&prim.0)) }
+    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> Self { Self(VisibilityAPI::apply(&prim.0)) }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_guide_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_guide_visibility_attr()) }
@@ -1761,7 +1761,7 @@ impl PyModelAPI {
     pub fn new(prim: &PyPrim) -> Self { Self(ModelAPI::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn apply(prim: &PyPrim) -> Self {
+    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> Self {
         ModelAPI::apply(&prim.0)
             .map_or_else(|| Self(ModelAPI::new(prim.0.clone())), |api| Self(api))
     }
@@ -1807,7 +1807,7 @@ impl PyMotionAPI {
     pub fn new(prim: &PyPrim) -> Self { Self(MotionAPI::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn apply(prim: &PyPrim) -> Self { Self(MotionAPI::apply(&prim.0)) }
+    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> Self { Self(MotionAPI::apply(&prim.0)) }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_motion_blur_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.get_motion_blur_scale_attr()) }
@@ -1898,13 +1898,13 @@ impl PySubset {
     pub fn new(prim: &PyPrim) -> Self { Self(Subset::new(prim.0.clone())) }
 
     #[staticmethod]
-    pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Subset::get(&stage.0, &p)))
     }
 
     #[staticmethod]
-    pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
         Ok(Self(Subset::define(&stage.0, &p)))
     }
@@ -1947,7 +1947,7 @@ impl PySubset {
     }
 
     #[staticmethod]
-    pub fn get_schema_type_name() -> &'static str { "Subset" }
+    #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Subset" }
 }
 
 // ============================================================================
