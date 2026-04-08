@@ -363,7 +363,7 @@ impl PyImageable {
     }
 
     #[pyo3(name = "GetPrim")]
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     #[pyo3(name = "GetPath")]
     pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     #[pyo3(name = "GetVisibilityAttr")]
@@ -462,7 +462,7 @@ impl PyXformable {
     }
 
     #[pyo3(name = "GetPrim")]
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     #[pyo3(name = "GetPath")]
     pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     #[pyo3(name = "GetXformOpOrderAttr")]
@@ -606,7 +606,7 @@ impl PyXform {
     }
 
     #[pyo3(name = "GetPrim")]
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     #[pyo3(name = "GetPath")]
     pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
@@ -633,9 +633,9 @@ impl PyBoundable {
     #[new]
     pub fn new(prim: &PyPrim) -> Self { Self(Boundable::new(prim.0.clone())) }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_extent_attr(&self) -> PyAttribute { PyAttribute(self.0.get_extent_attr()) }
-    pub fn create_extent_attr(&self) -> PyAttribute { PyAttribute(self.0.create_extent_attr()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetExtentAttr")] pub fn get_extent_attr(&self) -> PyAttribute { PyAttribute(self.0.get_extent_attr()) }
+    #[pyo3(name = "CreateExtentAttr")] pub fn create_extent_attr(&self) -> PyAttribute { PyAttribute(self.0.create_extent_attr()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -684,14 +684,14 @@ impl PyGprim {
     #[new]
     pub fn new(prim: &PyPrim) -> Self { Self(Gprim::new(prim.0.clone())) }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.get_display_color_attr()) }
     pub fn create_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_color_attr()) }
     pub fn get_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.get_display_opacity_attr()) }
     pub fn create_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_opacity_attr()) }
-    pub fn get_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.get_double_sided_attr()) }
+    #[pyo3(name = "GetDoubleSidedAttr")] pub fn get_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.get_double_sided_attr()) }
     pub fn create_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.create_double_sided_attr()) }
-    pub fn get_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.get_orientation_attr()) }
+    #[pyo3(name = "GetOrientationAttr")] pub fn get_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.get_orientation_attr()) }
     pub fn create_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.create_orientation_attr()) }
     pub fn get_display_color_primvar(&self) -> PyPrimvar { PyPrimvar(self.0.get_display_color_primvar()) }
     pub fn get_display_opacity_primvar(&self) -> PyPrimvar { PyPrimvar(self.0.get_display_opacity_primvar()) }
@@ -731,7 +731,7 @@ impl PyMesh {
         Ok(Self(Mesh::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -802,11 +802,11 @@ impl PyMesh {
     pub fn create_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute(self.0.create_face_varying_linear_interpolation_attr(None, false)) }
 
     // points (via point_based)
-    pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_points_attr()) }
-    pub fn create_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().create_points_attr(None, false)) }
-    pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_velocities_attr()) }
-    pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_normals_attr()) }
-    pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().create_normals_attr(None, false)) }
+    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_points_attr()) }
+    #[pyo3(name = "CreatePointsAttr")] pub fn create_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().create_points_attr(None, false)) }
+    #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_velocities_attr()) }
+    #[pyo3(name = "GetNormalsAttr")] pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_normals_attr()) }
+    #[pyo3(name = "CreateNormalsAttr")] pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().create_normals_attr(None, false)) }
 
     // crease / corner / hole
     pub fn get_crease_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_crease_indices_attr()) }
@@ -867,9 +867,9 @@ impl PySphere {
         Ok(Self(Sphere::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
-    pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
+    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -906,9 +906,9 @@ impl PyCube {
         Ok(Self(Cube::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_size_attr(&self) -> PyAttribute { PyAttribute(self.0.get_size_attr()) }
-    pub fn create_size_attr(&self) -> PyAttribute { PyAttribute(self.0.create_size_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetSizeAttr")] pub fn get_size_attr(&self) -> PyAttribute { PyAttribute(self.0.get_size_attr()) }
+    #[pyo3(name = "CreateSizeAttr")] pub fn create_size_attr(&self) -> PyAttribute { PyAttribute(self.0.create_size_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -945,13 +945,13 @@ impl PyCone {
         Ok(Self(Cone::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
-    pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
-    pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.get_height_attr()) }
-    pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.create_height_attr(None, false)) }
-    pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
-    pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
+    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
+    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.get_height_attr()) }
+    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.create_height_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -988,13 +988,13 @@ impl PyCylinder {
         Ok(Self(Cylinder::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
-    pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
-    pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.get_height_attr()) }
-    pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.create_height_attr(None, false)) }
-    pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
-    pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
+    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
+    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.get_height_attr()) }
+    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.create_height_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1031,16 +1031,16 @@ impl PyCylinder1 {
         Ok(Self(Cylinder1::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     // Cylinder1 delegates attribute access to the inner Cylinder schema.
     pub fn get_radius_bottom_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().get_radius_bottom_attr()) }
     pub fn create_radius_bottom_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().create_radius_bottom_attr(None, false)) }
     pub fn get_radius_top_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().get_radius_top_attr()) }
     pub fn create_radius_top_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().create_radius_top_attr(None, false)) }
-    pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().get_height_attr()) }
-    pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().create_height_attr(None, false)) }
-    pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().get_axis_attr()) }
-    pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().create_axis_attr(None, false)) }
+    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().get_height_attr()) }
+    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().create_height_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().create_axis_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1077,13 +1077,13 @@ impl PyCapsule {
         Ok(Self(Capsule::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
-    pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
-    pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.get_height_attr()) }
-    pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.create_height_attr(None, false)) }
-    pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
-    pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
+    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
+    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.get_height_attr()) }
+    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.create_height_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1120,16 +1120,16 @@ impl PyCapsule1 {
         Ok(Self(Capsule1::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     // Capsule1 delegates attribute access to the inner Capsule schema.
     pub fn get_radius_top_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().get_radius_top_attr()) }
     pub fn create_radius_top_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().create_radius_top_attr(None, false)) }
     pub fn get_radius_bottom_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().get_radius_bottom_attr()) }
     pub fn create_radius_bottom_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().create_radius_bottom_attr(None, false)) }
-    pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().get_height_attr()) }
-    pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().create_height_attr(None, false)) }
-    pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().get_axis_attr()) }
-    pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().create_axis_attr(None, false)) }
+    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().get_height_attr()) }
+    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().create_height_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().create_axis_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1166,14 +1166,14 @@ impl PyPlane {
         Ok(Self(Plane::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_width_attr(&self) -> PyAttribute { PyAttribute(self.0.get_width_attr()) }
-    pub fn create_width_attr(&self) -> PyAttribute { PyAttribute(self.0.create_width_attr(None, false)) }
-    pub fn get_length_attr(&self) -> PyAttribute { PyAttribute(self.0.get_length_attr()) }
-    pub fn create_length_attr(&self) -> PyAttribute { PyAttribute(self.0.create_length_attr(None, false)) }
-    pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
-    pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
-    pub fn get_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.gprim().get_double_sided_attr()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetWidthAttr")] pub fn get_width_attr(&self) -> PyAttribute { PyAttribute(self.0.get_width_attr()) }
+    #[pyo3(name = "CreateWidthAttr")] pub fn create_width_attr(&self) -> PyAttribute { PyAttribute(self.0.create_width_attr(None, false)) }
+    #[pyo3(name = "GetLengthAttr")] pub fn get_length_attr(&self) -> PyAttribute { PyAttribute(self.0.get_length_attr()) }
+    #[pyo3(name = "CreateLengthAttr")] pub fn create_length_attr(&self) -> PyAttribute { PyAttribute(self.0.create_length_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
+    #[pyo3(name = "GetDoubleSidedAttr")] pub fn get_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.gprim().get_double_sided_attr()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1198,13 +1198,13 @@ impl PyPointBased {
     #[new]
     pub fn new(prim: &PyPrim) -> Self { Self(PointBased::new(prim.0.clone())) }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.get_points_attr()) }
-    pub fn create_points_attr(&self) -> PyAttribute { PyAttribute(self.0.create_points_attr(None, false)) }
-    pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_velocities_attr()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.get_points_attr()) }
+    #[pyo3(name = "CreatePointsAttr")] pub fn create_points_attr(&self) -> PyAttribute { PyAttribute(self.0.create_points_attr(None, false)) }
+    #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_velocities_attr()) }
     pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_velocities_attr(None, false)) }
-    pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.get_normals_attr()) }
-    pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.create_normals_attr(None, false)) }
+    #[pyo3(name = "GetNormalsAttr")] pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.get_normals_attr()) }
+    #[pyo3(name = "CreateNormalsAttr")] pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.create_normals_attr(None, false)) }
 
     pub fn get_normals_interpolation(&self) -> String {
         self.0.get_normals_interpolation().as_str().to_owned()
@@ -1246,8 +1246,8 @@ impl PyPoints {
         Ok(Self(Points::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_points_attr()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_points_attr()) }
     pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_widths_attr()) }
     pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.create_widths_attr(None, false)) }
     pub fn get_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_ids_attr()) }
@@ -1276,7 +1276,7 @@ impl PyCurves {
     #[new]
     pub fn new(prim: &PyPrim) -> Self { Self(Curves::new(prim.0.clone())) }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.get_curve_vertex_counts_attr()) }
     pub fn create_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.create_curve_vertex_counts_attr(None, false)) }
     pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_widths_attr()) }
@@ -1318,7 +1318,7 @@ impl PyBasisCurves {
         Ok(Self(BasisCurves::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_basis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_basis_attr()) }
     pub fn create_basis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_basis_attr(None, false)) }
     pub fn get_type_attr(&self) -> PyAttribute { PyAttribute(self.0.get_type_attr()) }
@@ -1361,7 +1361,7 @@ impl PyNurbsCurves {
         Ok(Self(NurbsCurves::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_order_attr(&self) -> PyAttribute { PyAttribute(self.0.get_order_attr()) }
     pub fn create_order_attr(&self) -> PyAttribute { PyAttribute(self.0.create_order_attr(None, false)) }
     pub fn get_knots_attr(&self) -> PyAttribute { PyAttribute(self.0.get_knots_attr()) }
@@ -1404,7 +1404,7 @@ impl PyHermiteCurves {
         Ok(Self(HermiteCurves::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_tangents_attr(&self) -> PyAttribute { PyAttribute(self.0.get_tangents_attr()) }
     pub fn create_tangents_attr(&self) -> PyAttribute { PyAttribute(self.0.create_tangents_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
@@ -1443,7 +1443,7 @@ impl PyNurbsPatch {
         Ok(Self(NurbsPatch::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_u_vertex_count_attr(&self) -> PyAttribute { PyAttribute(self.0.get_u_vertex_count_attr()) }
     pub fn get_v_vertex_count_attr(&self) -> PyAttribute { PyAttribute(self.0.get_v_vertex_count_attr()) }
     pub fn get_u_order_attr(&self) -> PyAttribute { PyAttribute(self.0.get_u_order_attr()) }
@@ -1492,7 +1492,7 @@ impl PyTetMesh {
         Ok(Self(TetMesh::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_tet_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_tet_vertex_indices_attr()) }
     pub fn create_tet_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_tet_vertex_indices_attr(None, false)) }
     pub fn get_surface_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_surface_face_vertex_indices_attr()) }
@@ -1532,7 +1532,7 @@ impl PyPointInstancer {
         Ok(Self(PointInstancer::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
 
     pub fn get_proto_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_proto_indices_attr()) }
     pub fn create_proto_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_proto_indices_attr(None, false)) }
@@ -1542,7 +1542,7 @@ impl PyPointInstancer {
     pub fn create_orientations_attr(&self) -> PyAttribute { PyAttribute(self.0.create_orientations_attr(None, false)) }
     pub fn get_scales_attr(&self) -> PyAttribute { PyAttribute(self.0.get_scales_attr()) }
     pub fn create_scales_attr(&self) -> PyAttribute { PyAttribute(self.0.create_scales_attr(None, false)) }
-    pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_velocities_attr()) }
+    #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_velocities_attr()) }
     pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_velocities_attr(None, false)) }
     pub fn get_angular_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_angular_velocities_attr()) }
     pub fn create_angular_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_angular_velocities_attr(None, false)) }
@@ -1626,7 +1626,7 @@ impl PyCamera {
         Ok(Self(Camera::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_projection_attr(&self) -> PyAttribute { PyAttribute(self.0.get_projection_attr()) }
     pub fn create_projection_attr(&self) -> PyAttribute { PyAttribute(self.0.create_projection_attr(None, false)) }
     pub fn get_horizontal_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.get_horizontal_aperture_attr()) }
@@ -1688,7 +1688,7 @@ impl PyPrimvarsAPI {
     #[new]
     pub fn new(prim: &PyPrim) -> Self { Self(PrimvarsAPI::new(prim.0.clone())) }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
 
     pub fn create_primvar(
         &self,
@@ -1732,7 +1732,7 @@ impl PyVisibilityAPI {
     #[staticmethod]
     pub fn apply(prim: &PyPrim) -> Self { Self(VisibilityAPI::apply(&prim.0)) }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_guide_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_guide_visibility_attr()) }
     pub fn create_guide_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_guide_visibility_attr()) }
     pub fn get_proxy_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_proxy_visibility_attr()) }
@@ -1766,7 +1766,7 @@ impl PyModelAPI {
             .map_or_else(|| Self(ModelAPI::new(prim.0.clone())), |api| Self(api))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.get_prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.get_prim().clone()) }
     pub fn get_model_draw_mode_attr(&self) -> PyAttribute {
         PyAttribute(self.0.get_model_draw_mode_attr().unwrap_or_else(usd_core::Attribute::invalid))
     }
@@ -1809,7 +1809,7 @@ impl PyMotionAPI {
     #[staticmethod]
     pub fn apply(prim: &PyPrim) -> Self { Self(MotionAPI::apply(&prim.0)) }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_motion_blur_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.get_motion_blur_scale_attr()) }
     pub fn create_motion_blur_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.create_motion_blur_scale_attr(None, false)) }
     pub fn get_velocity_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.get_motion_velocity_scale_attr()) }
@@ -1838,7 +1838,7 @@ impl PyXformCommonAPI {
     #[new]
     pub fn new(prim: &PyPrim) -> Self { Self(XformCommonAPI::new(prim.0.clone())) }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
 
     pub fn set_xform_vectors(
         &self,
@@ -1909,7 +1909,7 @@ impl PySubset {
         Ok(Self(Subset::define(&stage.0, &p)))
     }
 
-    pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     pub fn get_element_type_attr(&self) -> PyAttribute { PyAttribute(self.0.get_element_type_attr()) }
     pub fn create_element_type_attr(&self) -> PyAttribute { PyAttribute(self.0.create_element_type_attr(None, false)) }
     pub fn get_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_indices_attr()) }
