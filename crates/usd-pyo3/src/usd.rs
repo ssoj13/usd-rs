@@ -2363,6 +2363,27 @@ impl PyAttribute {
 
     // -- Repr --------------------------------------------------------------
 
+    // -- Missing Attribute methods from C++ reference -----------------------
+
+    #[allow(non_snake_case)]
+    fn BlockAnimation(&self) { self.inner.block_animation(); }
+    #[allow(non_snake_case)]
+    fn HasAuthoredConnections(&self) -> bool { self.inner.has_authored_connections() }
+    #[allow(non_snake_case)]
+    fn HasAuthoredValueOpinion(&self) -> bool { self.inner.has_authored_value() }
+    #[allow(non_snake_case)]
+    fn GetFallbackValue(&self) -> Option<String> {
+        self.inner.get_fallback_value().map(|v| format!("{:?}", v))
+    }
+    #[allow(non_snake_case)]
+    fn SetVariability(&self, variability: &str) -> bool {
+        let var = match variability {
+            "uniform" | "Uniform" | "SdfVariabilityUniform" => usd_core::attribute::Variability::Uniform,
+            _ => usd_core::attribute::Variability::Varying,
+        };
+        self.inner.set_variability(var)
+    }
+
     fn __repr__(&self) -> String {
         format!("Usd.Attribute({})", self.inner.path().as_str())
     }
@@ -2485,6 +2506,11 @@ impl PyRelationship {
     #[allow(non_snake_case)]
     fn HasTargets(&self) -> bool {
         !self.inner.get_targets().is_empty()
+    }
+
+    #[allow(non_snake_case)]
+    fn HasAuthoredTargets(&self) -> bool {
+        self.inner.has_authored_targets()
     }
 
     // -- Custom flag -------------------------------------------------------
