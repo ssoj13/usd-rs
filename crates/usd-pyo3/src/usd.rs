@@ -2236,7 +2236,7 @@ impl PyAttribute {
     fn GetPrim(&self) -> Option<PyPrim> {
         let prim_path = self.inner.prim_path();
         if let Some(stage) = self.inner.as_property().stage() {
-            if let Some(prim) = stage.get_prim_at_path(prim_path) {
+            if let Some(prim) = stage.get_prim_at_path(&prim_path) {
                 return Some(PyPrim::from_prim(prim, self._stage.clone()));
             }
         }
@@ -2404,7 +2404,7 @@ impl PyRelationship {
     fn GetPrim(&self) -> Option<PyPrim> {
         let prim_path = self.inner.prim_path();
         if let Some(stage) = self.inner.as_property().stage() {
-            if let Some(prim) = stage.get_prim_at_path(prim_path) {
+            if let Some(prim) = stage.get_prim_at_path(&prim_path) {
                 return Some(PyPrim::from_prim(prim, self._stage.clone()));
             }
         }
@@ -4014,6 +4014,229 @@ impl PyClipsAPI {
 // ============================================================================
 
 // ============================================================================
+// UsdCollectionAPI — collection membership schema
+// ============================================================================
+
+/// Wrapper for USD CollectionAPI schema.
+///
+/// Matches C++ `UsdCollectionAPI`.
+#[pyclass(skip_from_py_object, name = "CollectionAPI", module = "pxr_rs.Usd")]
+pub struct PyCollectionAPI {
+    inner: usd_core::collection_api::CollectionAPI,
+    _stage: Arc<Stage>,
+}
+
+#[pymethods]
+impl PyCollectionAPI {
+    /// Construct from a prim and collection name.
+    #[new]
+    fn new(prim: &PyPrim, name: &str) -> Self {
+        let inner = usd_core::collection_api::CollectionAPI::new(
+            prim.inner.clone(),
+            Token::new(name),
+        );
+        Self { inner, _stage: prim._stage.clone() }
+    }
+
+    /// Apply CollectionAPI to a prim with the given name and return the schema object.
+    ///
+    /// Matches C++ `UsdCollectionAPI::Apply(prim, name)`.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn Apply(prim: &PyPrim, name: &str) -> Self {
+        let inner = usd_core::collection_api::CollectionAPI::apply(
+            &prim.inner,
+            &Token::new(name),
+        );
+        Self { inner, _stage: prim._stage.clone() }
+    }
+
+    /// Get a CollectionAPI from stage and property path.
+    ///
+    /// Matches C++ `UsdCollectionAPI::Get(stage, path)`.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn Get(stage: &PyStage, path: &str) -> PyResult<Self> {
+        let p = path_from_str(path)?;
+        let inner = usd_core::collection_api::CollectionAPI::get(&stage.inner, &p);
+        Ok(Self { inner, _stage: stage.inner.clone() })
+    }
+
+    /// Get all CollectionAPI instances on a prim.
+    ///
+    /// Matches C++ `UsdCollectionAPI::GetAll(prim)`.
+    #[staticmethod]
+    #[allow(non_snake_case)]
+    fn GetAll(prim: &PyPrim) -> Vec<Self> {
+        usd_core::collection_api::CollectionAPI::get_all(&prim.inner)
+            .into_iter()
+            .map(|c| Self { inner: c, _stage: prim._stage.clone() })
+            .collect()
+    }
+
+    fn __bool__(&self) -> bool {
+        self.inner.is_valid()
+    }
+
+    #[allow(non_snake_case)]
+    fn GetName(&self) -> Option<String> {
+        self.inner.name().map(|t| t.as_str().to_string())
+    }
+
+    #[allow(non_snake_case)]
+    fn GetPrim(&self) -> PyPrim {
+        PyPrim::from_prim(self.inner.prim().clone(), self._stage.clone())
+    }
+
+    /// Include a path in the collection.
+    ///
+    /// Matches C++ `UsdCollectionAPI::IncludePath(path)`.
+    #[allow(non_snake_case)]
+    fn IncludePath(&self, path: &str) -> PyResult<bool> {
+        let p = path_from_str(path)?;
+        Ok(self.inner.include_path(&p))
+    }
+
+    /// Exclude a path from the collection.
+    ///
+    /// Matches C++ `UsdCollectionAPI::ExcludePath(path)`.
+    #[allow(non_snake_case)]
+    fn ExcludePath(&self, path: &str) -> PyResult<bool> {
+        let p = path_from_str(path)?;
+        Ok(self.inner.exclude_path(&p))
+    }
+
+    /// Compute the membership query for this collection.
+    ///
+    /// Matches C++ `UsdCollectionAPI::ComputeMembershipQuery()`.
+    #[allow(non_snake_case)]
+    fn ComputeMembershipQuery(&self, py: Python<'_>) -> Py<PyAny> {
+        let query = self.inner.compute_membership_query();
+        // Return an opaque Python object wrapping the membership query
+        Py::new(py, PyMembershipQuery { inner: query })
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None())
+    }
+
+    fn __repr__(&self) -> String {
+        match self.inner.name() {
+            Some(n) => format!(
+                "Usd.CollectionAPI({}, {})",
+                self.inner.path().as_str(),
+                n.as_str()
+            ),
+            None => "Usd.CollectionAPI()".to_string(),
+        }
+    }
+}
+
+/// Opaque wrapper for CollectionMembershipQuery.
+#[pyclass(skip_from_py_object, name = "CollectionMembershipQuery", module = "pxr_rs.Usd")]
+pub struct PyMembershipQuery {
+    inner: usd_core::collection_api::CollectionMembershipQuery,
+}
+
+#[pymethods]
+impl PyMembershipQuery {
+    /// Check if the given path is included in this collection.
+    ///
+    /// Matches C++ `UsdCollectionMembershipQuery::IsPathIncluded(path)`.
+    #[allow(non_snake_case)]
+    fn IsPathIncluded(&self, path: &str) -> PyResult<bool> {
+        let p = path_from_str(path)?;
+        Ok(self.inner.is_path_included(&p, None))
+    }
+
+    fn __repr__(&self) -> &str {
+        "Usd.CollectionMembershipQuery()"
+    }
+}
+
+// ============================================================================
+// UsdStageCache — thread-safe stage registry
+// ============================================================================
+
+/// Wrapper for USD StageCache.
+///
+/// Matches C++ `UsdStageCache`.
+#[pyclass(skip_from_py_object, name = "StageCache", module = "pxr_rs.Usd")]
+pub struct PyStageCache {
+    inner: Arc<usd_core::stage_cache::StageCache>,
+}
+
+#[pymethods]
+impl PyStageCache {
+    #[new]
+    fn new() -> Self {
+        Self { inner: Arc::new(usd_core::stage_cache::StageCache::new()) }
+    }
+
+    /// Insert a stage into the cache and return its ID as an integer.
+    ///
+    /// Matches C++ `UsdStageCache::Insert(stage)`.
+    #[allow(non_snake_case)]
+    fn Insert(&self, stage: &PyStage) -> i64 {
+        let id = self.inner.insert(stage.inner.clone());
+        id.to_long_int()
+    }
+
+    /// Find a stage by its integer ID.
+    ///
+    /// Matches C++ `UsdStageCache::Find(id)`.
+    #[allow(non_snake_case)]
+    fn Find(&self, id: i64) -> Option<PyStage> {
+        let cache_id = usd_core::stage_cache::StageCacheId::from_long_int(id);
+        self.inner.find(cache_id).map(|s| PyStage { inner: s })
+    }
+
+    /// Erase a stage by its integer ID. Returns true if erased.
+    ///
+    /// Matches C++ `UsdStageCache::Erase(id)`.
+    #[allow(non_snake_case)]
+    fn Erase(&self, id: i64) -> bool {
+        let cache_id = usd_core::stage_cache::StageCacheId::from_long_int(id);
+        self.inner.erase(cache_id)
+    }
+
+    /// Return all stages currently in the cache.
+    ///
+    /// Matches C++ `UsdStageCache::GetAllStages()`.
+    #[allow(non_snake_case)]
+    fn GetAllStages(&self) -> Vec<PyStage> {
+        self.inner
+            .get_all_stages()
+            .into_iter()
+            .map(|s| PyStage { inner: s })
+            .collect()
+    }
+
+    fn Size(&self) -> usize {
+        self.inner.size()
+    }
+
+    #[allow(non_snake_case)]
+    fn IsEmpty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
+    fn Contains(&self, stage: &PyStage) -> bool {
+        self.inner.contains(&stage.inner)
+    }
+
+    fn Clear(&self) {
+        self.inner.clear();
+    }
+
+    fn __len__(&self) -> usize {
+        self.inner.size()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Usd.StageCache(size={})", self.inner.size())
+    }
+}
+
+// ============================================================================
 // ColorSpaceHashCache — stub for subclassing in Python tests
 // ============================================================================
 
@@ -4121,6 +4344,11 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Schema APIs
     m.add_class::<PyModelAPI>()?;
     m.add_class::<PyClipsAPI>()?;
+    m.add_class::<PyCollectionAPI>()?;
+    m.add_class::<PyMembershipQuery>()?;
+
+    // StageCache
+    m.add_class::<PyStageCache>()?;
 
     // ColorSpaceHashCache
     m.add_class::<PyColorSpaceHashCache>()?;
