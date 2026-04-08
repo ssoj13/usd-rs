@@ -1202,7 +1202,7 @@ impl PyPointBased {
     #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.get_points_attr()) }
     #[pyo3(name = "CreatePointsAttr")] pub fn create_points_attr(&self) -> PyAttribute { PyAttribute(self.0.create_points_attr(None, false)) }
     #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_velocities_attr()) }
-    pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_velocities_attr(None, false)) }
+    #[pyo3(name = "CreateVelocitiesAttr")] pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_velocities_attr(None, false)) }
     #[pyo3(name = "GetNormalsAttr")] pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.get_normals_attr()) }
     #[pyo3(name = "CreateNormalsAttr")] pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.create_normals_attr(None, false)) }
 
@@ -1248,10 +1248,10 @@ impl PyPoints {
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
     #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_points_attr()) }
-    pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_widths_attr()) }
-    pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.create_widths_attr(None, false)) }
-    pub fn get_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_ids_attr()) }
-    pub fn create_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.create_ids_attr(None, false)) }
+    #[pyo3(name = "GetWidthsAttr")] pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_widths_attr()) }
+    #[pyo3(name = "CreateWidthsAttr")] pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.create_widths_attr(None, false)) }
+    #[pyo3(name = "GetIdsAttr")] pub fn get_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_ids_attr()) }
+    #[pyo3(name = "CreateIdsAttr")] pub fn create_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.create_ids_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1277,10 +1277,10 @@ impl PyCurves {
     pub fn new(prim: &PyPrim) -> Self { Self(Curves::new(prim.0.clone())) }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.get_curve_vertex_counts_attr()) }
-    pub fn create_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.create_curve_vertex_counts_attr(None, false)) }
-    pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_widths_attr()) }
-    pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.create_widths_attr(None, false)) }
+    #[pyo3(name = "GetCurveVertexCountsAttr")] pub fn get_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.get_curve_vertex_counts_attr()) }
+    #[pyo3(name = "CreateCurveVertexCountsAttr")] pub fn create_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.create_curve_vertex_counts_attr(None, false)) }
+    #[pyo3(name = "GetWidthsAttr")] pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_widths_attr()) }
+    #[pyo3(name = "CreateWidthsAttr")] pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.create_widths_attr(None, false)) }
     pub fn get_widths_interpolation(&self) -> String { self.0.get_widths_interpolation().as_str().to_owned() }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
@@ -1319,12 +1319,12 @@ impl PyBasisCurves {
     }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_basis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_basis_attr()) }
-    pub fn create_basis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_basis_attr(None, false)) }
-    pub fn get_type_attr(&self) -> PyAttribute { PyAttribute(self.0.get_type_attr()) }
-    pub fn create_type_attr(&self) -> PyAttribute { PyAttribute(self.0.create_type_attr(None, false)) }
-    pub fn get_wrap_attr(&self) -> PyAttribute { PyAttribute(self.0.get_wrap_attr()) }
-    pub fn create_wrap_attr(&self) -> PyAttribute { PyAttribute(self.0.create_wrap_attr(None, false)) }
+    #[pyo3(name = "GetBasisAttr")] pub fn get_basis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_basis_attr()) }
+    #[pyo3(name = "CreateBasisAttr")] pub fn create_basis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_basis_attr(None, false)) }
+    #[pyo3(name = "GetTypeAttr")] pub fn get_type_attr(&self) -> PyAttribute { PyAttribute(self.0.get_type_attr()) }
+    #[pyo3(name = "CreateTypeAttr")] pub fn create_type_attr(&self) -> PyAttribute { PyAttribute(self.0.create_type_attr(None, false)) }
+    #[pyo3(name = "GetWrapAttr")] pub fn get_wrap_attr(&self) -> PyAttribute { PyAttribute(self.0.get_wrap_attr()) }
+    #[pyo3(name = "CreateWrapAttr")] pub fn create_wrap_attr(&self) -> PyAttribute { PyAttribute(self.0.create_wrap_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1362,12 +1362,12 @@ impl PyNurbsCurves {
     }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_order_attr(&self) -> PyAttribute { PyAttribute(self.0.get_order_attr()) }
-    pub fn create_order_attr(&self) -> PyAttribute { PyAttribute(self.0.create_order_attr(None, false)) }
-    pub fn get_knots_attr(&self) -> PyAttribute { PyAttribute(self.0.get_knots_attr()) }
-    pub fn create_knots_attr(&self) -> PyAttribute { PyAttribute(self.0.create_knots_attr(None, false)) }
-    pub fn get_ranges_attr(&self) -> PyAttribute { PyAttribute(self.0.get_ranges_attr()) }
-    pub fn create_ranges_attr(&self) -> PyAttribute { PyAttribute(self.0.create_ranges_attr(None, false)) }
+    #[pyo3(name = "GetOrderAttr")] pub fn get_order_attr(&self) -> PyAttribute { PyAttribute(self.0.get_order_attr()) }
+    #[pyo3(name = "CreateOrderAttr")] pub fn create_order_attr(&self) -> PyAttribute { PyAttribute(self.0.create_order_attr(None, false)) }
+    #[pyo3(name = "GetKnotsAttr")] pub fn get_knots_attr(&self) -> PyAttribute { PyAttribute(self.0.get_knots_attr()) }
+    #[pyo3(name = "CreateKnotsAttr")] pub fn create_knots_attr(&self) -> PyAttribute { PyAttribute(self.0.create_knots_attr(None, false)) }
+    #[pyo3(name = "GetRangesAttr")] pub fn get_ranges_attr(&self) -> PyAttribute { PyAttribute(self.0.get_ranges_attr()) }
+    #[pyo3(name = "CreateRangesAttr")] pub fn create_ranges_attr(&self) -> PyAttribute { PyAttribute(self.0.create_ranges_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1405,8 +1405,8 @@ impl PyHermiteCurves {
     }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_tangents_attr(&self) -> PyAttribute { PyAttribute(self.0.get_tangents_attr()) }
-    pub fn create_tangents_attr(&self) -> PyAttribute { PyAttribute(self.0.create_tangents_attr(None, false)) }
+    #[pyo3(name = "GetTangentsAttr")] pub fn get_tangents_attr(&self) -> PyAttribute { PyAttribute(self.0.get_tangents_attr()) }
+    #[pyo3(name = "CreateTangentsAttr")] pub fn create_tangents_attr(&self) -> PyAttribute { PyAttribute(self.0.create_tangents_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1534,22 +1534,22 @@ impl PyPointInstancer {
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
 
-    pub fn get_proto_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_proto_indices_attr()) }
-    pub fn create_proto_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_proto_indices_attr(None, false)) }
-    pub fn get_positions_attr(&self) -> PyAttribute { PyAttribute(self.0.get_positions_attr()) }
-    pub fn create_positions_attr(&self) -> PyAttribute { PyAttribute(self.0.create_positions_attr(None, false)) }
-    pub fn get_orientations_attr(&self) -> PyAttribute { PyAttribute(self.0.get_orientations_attr()) }
-    pub fn create_orientations_attr(&self) -> PyAttribute { PyAttribute(self.0.create_orientations_attr(None, false)) }
-    pub fn get_scales_attr(&self) -> PyAttribute { PyAttribute(self.0.get_scales_attr()) }
-    pub fn create_scales_attr(&self) -> PyAttribute { PyAttribute(self.0.create_scales_attr(None, false)) }
+    #[pyo3(name = "GetProtoIndicesAttr")] pub fn get_proto_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_proto_indices_attr()) }
+    #[pyo3(name = "CreateProtoIndicesAttr")] pub fn create_proto_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_proto_indices_attr(None, false)) }
+    #[pyo3(name = "GetPositionsAttr")] pub fn get_positions_attr(&self) -> PyAttribute { PyAttribute(self.0.get_positions_attr()) }
+    #[pyo3(name = "CreatePositionsAttr")] pub fn create_positions_attr(&self) -> PyAttribute { PyAttribute(self.0.create_positions_attr(None, false)) }
+    #[pyo3(name = "GetOrientationsAttr")] pub fn get_orientations_attr(&self) -> PyAttribute { PyAttribute(self.0.get_orientations_attr()) }
+    #[pyo3(name = "CreateOrientationsAttr")] pub fn create_orientations_attr(&self) -> PyAttribute { PyAttribute(self.0.create_orientations_attr(None, false)) }
+    #[pyo3(name = "GetScalesAttr")] pub fn get_scales_attr(&self) -> PyAttribute { PyAttribute(self.0.get_scales_attr()) }
+    #[pyo3(name = "CreateScalesAttr")] pub fn create_scales_attr(&self) -> PyAttribute { PyAttribute(self.0.create_scales_attr(None, false)) }
     #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_velocities_attr()) }
-    pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_velocities_attr(None, false)) }
-    pub fn get_angular_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_angular_velocities_attr()) }
-    pub fn create_angular_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_angular_velocities_attr(None, false)) }
-    pub fn get_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_ids_attr()) }
-    pub fn create_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.create_ids_attr(None, false)) }
-    pub fn get_invisible_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_invisible_ids_attr()) }
-    pub fn create_invisible_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.create_invisible_ids_attr(None, false)) }
+    #[pyo3(name = "CreateVelocitiesAttr")] pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_velocities_attr(None, false)) }
+    #[pyo3(name = "GetAngularVelocitiesAttr")] pub fn get_angular_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_angular_velocities_attr()) }
+    #[pyo3(name = "CreateAngularVelocitiesAttr")] pub fn create_angular_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_angular_velocities_attr(None, false)) }
+    #[pyo3(name = "GetIdsAttr")] pub fn get_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_ids_attr()) }
+    #[pyo3(name = "CreateIdsAttr")] pub fn create_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.create_ids_attr(None, false)) }
+    #[pyo3(name = "GetInvisibleIdsAttr")] pub fn get_invisible_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_invisible_ids_attr()) }
+    #[pyo3(name = "CreateInvisibleIdsAttr")] pub fn create_invisible_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.create_invisible_ids_attr(None, false)) }
 
     pub fn get_prototypes_rel(&self) -> Vec<String> {
         let rel = self.0.get_prototypes_rel();
@@ -1627,25 +1627,25 @@ impl PyCamera {
     }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_projection_attr(&self) -> PyAttribute { PyAttribute(self.0.get_projection_attr()) }
-    pub fn create_projection_attr(&self) -> PyAttribute { PyAttribute(self.0.create_projection_attr(None, false)) }
-    pub fn get_horizontal_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.get_horizontal_aperture_attr()) }
+    #[pyo3(name = "GetProjectionAttr")] pub fn get_projection_attr(&self) -> PyAttribute { PyAttribute(self.0.get_projection_attr()) }
+    #[pyo3(name = "CreateProjectionAttr")] pub fn create_projection_attr(&self) -> PyAttribute { PyAttribute(self.0.create_projection_attr(None, false)) }
+    #[pyo3(name = "GetHorizontalApertureAttr")] pub fn get_horizontal_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.get_horizontal_aperture_attr()) }
     pub fn create_horizontal_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.create_horizontal_aperture_attr(None, false)) }
-    pub fn get_vertical_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.get_vertical_aperture_attr()) }
+    #[pyo3(name = "GetVerticalApertureAttr")] pub fn get_vertical_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.get_vertical_aperture_attr()) }
     pub fn create_vertical_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.create_vertical_aperture_attr(None, false)) }
     pub fn get_horizontal_aperture_offset_attr(&self) -> PyAttribute { PyAttribute(self.0.get_horizontal_aperture_offset_attr()) }
     pub fn create_horizontal_aperture_offset_attr(&self) -> PyAttribute { PyAttribute(self.0.create_horizontal_aperture_offset_attr(None, false)) }
     pub fn get_vertical_aperture_offset_attr(&self) -> PyAttribute { PyAttribute(self.0.get_vertical_aperture_offset_attr()) }
     pub fn create_vertical_aperture_offset_attr(&self) -> PyAttribute { PyAttribute(self.0.create_vertical_aperture_offset_attr(None, false)) }
-    pub fn get_focal_length_attr(&self) -> PyAttribute { PyAttribute(self.0.get_focal_length_attr()) }
+    #[pyo3(name = "GetFocalLengthAttr")] pub fn get_focal_length_attr(&self) -> PyAttribute { PyAttribute(self.0.get_focal_length_attr()) }
     pub fn create_focal_length_attr(&self) -> PyAttribute { PyAttribute(self.0.create_focal_length_attr(None, false)) }
-    pub fn get_clipping_range_attr(&self) -> PyAttribute { PyAttribute(self.0.get_clipping_range_attr()) }
+    #[pyo3(name = "GetClippingRangeAttr")] pub fn get_clipping_range_attr(&self) -> PyAttribute { PyAttribute(self.0.get_clipping_range_attr()) }
     pub fn create_clipping_range_attr(&self) -> PyAttribute { PyAttribute(self.0.create_clipping_range_attr(None, false)) }
     pub fn get_clipping_planes_attr(&self) -> PyAttribute { PyAttribute(self.0.get_clipping_planes_attr()) }
     pub fn create_clipping_planes_attr(&self) -> PyAttribute { PyAttribute(self.0.create_clipping_planes_attr(None, false)) }
-    pub fn get_f_stop_attr(&self) -> PyAttribute { PyAttribute(self.0.get_f_stop_attr()) }
+    #[pyo3(name = "GetFStopAttr")] pub fn get_f_stop_attr(&self) -> PyAttribute { PyAttribute(self.0.get_f_stop_attr()) }
     pub fn create_f_stop_attr(&self) -> PyAttribute { PyAttribute(self.0.create_f_stop_attr(None, false)) }
-    pub fn get_focus_distance_attr(&self) -> PyAttribute { PyAttribute(self.0.get_focus_distance_attr()) }
+    #[pyo3(name = "GetFocusDistanceAttr")] pub fn get_focus_distance_attr(&self) -> PyAttribute { PyAttribute(self.0.get_focus_distance_attr()) }
     pub fn create_focus_distance_attr(&self) -> PyAttribute { PyAttribute(self.0.create_focus_distance_attr(None, false)) }
     pub fn get_shutter_open_attr(&self) -> PyAttribute { PyAttribute(self.0.get_shutter_open_attr()) }
     pub fn create_shutter_open_attr(&self) -> PyAttribute { PyAttribute(self.0.create_shutter_open_attr(None, false)) }
@@ -1910,12 +1910,12 @@ impl PySubset {
     }
 
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    pub fn get_element_type_attr(&self) -> PyAttribute { PyAttribute(self.0.get_element_type_attr()) }
-    pub fn create_element_type_attr(&self) -> PyAttribute { PyAttribute(self.0.create_element_type_attr(None, false)) }
-    pub fn get_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_indices_attr()) }
-    pub fn create_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_indices_attr(None, false)) }
-    pub fn get_family_name_attr(&self) -> PyAttribute { PyAttribute(self.0.get_family_name_attr()) }
-    pub fn create_family_name_attr(&self) -> PyAttribute { PyAttribute(self.0.create_family_name_attr(None, false)) }
+    #[pyo3(name = "GetElementTypeAttr")] pub fn get_element_type_attr(&self) -> PyAttribute { PyAttribute(self.0.get_element_type_attr()) }
+    #[pyo3(name = "CreateElementTypeAttr")] pub fn create_element_type_attr(&self) -> PyAttribute { PyAttribute(self.0.create_element_type_attr(None, false)) }
+    #[pyo3(name = "GetIndicesAttr")] pub fn get_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_indices_attr()) }
+    #[pyo3(name = "CreateIndicesAttr")] pub fn create_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_indices_attr(None, false)) }
+    #[pyo3(name = "GetFamilyNameAttr")] pub fn get_family_name_attr(&self) -> PyAttribute { PyAttribute(self.0.get_family_name_attr()) }
+    #[pyo3(name = "CreateFamilyNameAttr")] pub fn create_family_name_attr(&self) -> PyAttribute { PyAttribute(self.0.create_family_name_attr(None, false)) }
 
     /// Create a geometry subset child prim under a mesh prim.
     #[staticmethod]
