@@ -4,6 +4,9 @@
 **Goal:** Full parity with C++ OpenUSD Python API (`pxr`). Package: `pxr_rs` (`import pxr_rs as pxr`).
 **Ref tests:** `crates/usd-pyo3/tests/` — ported from `C:\projects\projects.rust.cg\usd-refs\OpenUSD`
 
+**Parity memory (checklist + changelog):** `md/PYTHON_API_PARITY.md`  
+**Полный реестр отклонений от OpenUSD (что ещё чинить):** `md/PYTHON_API_DEVIATIONS.md`
+
 ---
 
 ## Current Test Counts

@@ -11,6 +11,7 @@
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use pyo3::types::{PyList, PyListMethods};
 use usd_sdf::{Path, TimeCode};
 use usd_tf::Token;
 
@@ -38,9 +39,28 @@ fn tc(t: Option<f64>) -> TimeCode {
     }
 }
 
+/// `Usd.TimeCode` / `float` / `None` → `Sdf.TimeCode` for xform APIs (matches pxr `GetLocalTransformation` time arg).
+fn tc_from_py_opt(time: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<TimeCode> {
+    match time {
+        None => Ok(TimeCode::default()),
+        Some(o) => crate::usd::tc_from_py_sdf(o),
+    }
+}
+
 fn parse_path(s: &str) -> PyResult<Path> {
     Path::from_string(s)
         .ok_or_else(|| PyValueError::new_err(format!("Invalid SdfPath: '{s}'")))
+}
+
+/// `Get` / `Define` path argument: `str` or `Sdf.Path` (pxr parity).
+fn parse_path_py(path: &Bound<'_, pyo3::PyAny>) -> PyResult<Path> {
+    if let Ok(s) = path.extract::<String>() {
+        return parse_path(&s);
+    }
+    if let Ok(p) = path.extract::<pyo3::PyRef<'_, crate::sdf::PyPath>>() {
+        return Ok(p.inner.clone());
+    }
+    Err(PyValueError::new_err("Path must be str or Sdf.Path"))
 }
 
 fn mat4_to_flat(m: &usd_gf::Matrix4d) -> Vec<f64> {
@@ -133,6 +153,13 @@ fn extract_prim(obj: &Bound<'_, pyo3::PyAny>) -> PyResult<usd_core::Prim> {
     Err(PyValueError::new_err("Expected a Prim or schema object with GetPrim()"))
 }
 
+#[inline]
+fn imageable_for_subset_prim(prim: &usd_core::Prim) -> Imageable {
+    Imageable::new(prim.clone())
+}
+
+include!("impl_xform_img_macros.rs");
+
 // ============================================================================
 // Tokens
 // ============================================================================
@@ -196,6 +223,9 @@ impl PyTokens {
     #[classattr] fn cards() -> &'static str { "cards" }
     #[classattr] fn bounds() -> &'static str { "bounds" }
     #[classattr] fn origin() -> &'static str { "origin" }
+    /// Camera projection token values (`UsdGeomCamera` schema).
+    #[classattr] fn perspective() -> &'static str { "perspective" }
+    #[classattr] fn orthographic() -> &'static str { "orthographic" }
 }
 
 // ============================================================================
@@ -370,10 +400,10 @@ impl PyImageable {
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Imageable::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         let prim = stage.inner.get_prim_at_path(&p)
-            .ok_or_else(|| PyValueError::new_err(format!("No prim at '{path}'")))?;
+            .ok_or_else(|| PyValueError::new_err(format!("No prim at '{}'", p.get_string())))?;
         Ok(Self(Imageable::new(prim)))
     }
 
@@ -409,14 +439,28 @@ impl PyImageable {
         bbox_to_flat(&cache.compute_local_bound(self.0.prim()))
     }
 
-    #[pyo3(name = "ComputeLocalToWorldTransform", signature = (time=None))] pub fn compute_local_to_world_transform(&self, time: Option<f64>) -> Vec<f64> {
-        let mut cache = XformCache::new(tc(time));
-        mat4_to_flat(&cache.get_local_to_world_transform(self.0.prim()))
+    #[pyo3(name = "ComputeLocalToWorldTransform", signature = (time=None))]
+    pub fn compute_local_to_world_transform(
+        &self,
+        time: Option<&Bound<'_, pyo3::PyAny>>,
+    ) -> PyResult<crate::gf::matrix::PyMatrix4d> {
+        let t = tc_from_py_opt(time)?;
+        let mut cache = XformCache::new(t);
+        Ok(crate::gf::matrix::PyMatrix4d(
+            cache.get_local_to_world_transform(self.0.prim()),
+        ))
     }
 
-    #[pyo3(name = "ComputeParentToWorldTransform", signature = (time=None))] pub fn compute_parent_to_world_transform(&self, time: Option<f64>) -> Vec<f64> {
-        let mut cache = XformCache::new(tc(time));
-        mat4_to_flat(&cache.get_parent_to_world_transform(self.0.prim()))
+    #[pyo3(name = "ComputeParentToWorldTransform", signature = (time=None))]
+    pub fn compute_parent_to_world_transform(
+        &self,
+        time: Option<&Bound<'_, pyo3::PyAny>>,
+    ) -> PyResult<crate::gf::matrix::PyMatrix4d> {
+        let t = tc_from_py_opt(time)?;
+        let mut cache = XformCache::new(t);
+        Ok(crate::gf::matrix::PyMatrix4d(
+            cache.get_parent_to_world_transform(self.0.prim()),
+        ))
     }
 
     #[staticmethod]
@@ -427,8 +471,9 @@ impl PyImageable {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaAttributeNames")]
-    pub fn get_schema_attribute_names(_include_inherited: Option<bool>) -> Vec<String> {
-        Imageable::get_schema_attribute_names(true).iter().map(|t| t.as_str().to_string()).collect()
+    pub fn get_schema_attribute_names(include_inherited: Option<bool>) -> Vec<String> {
+        let inc = include_inherited.unwrap_or(true);
+        Imageable::get_schema_attribute_names(inc).iter().map(|t| t.as_str().to_string()).collect()
     }
 
     #[pyo3(name = "IsValid")]
@@ -454,10 +499,10 @@ impl PyXformable {
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Xformable::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         let prim = stage.inner.get_prim_at_path(&p)
-            .ok_or_else(|| PyValueError::new_err(format!("No prim at '{path}'")))?;
+            .ok_or_else(|| PyValueError::new_err(format!("No prim at '{}'", p.get_string())))?;
         Ok(Self(Xformable::new(prim)))
     }
 
@@ -544,10 +589,40 @@ impl PyXformable {
         self.0.get_ordered_xform_ops().into_iter().map(PyXformOp).collect()
     }
 
+    /// Matches C++ `UsdGeomXformable::GetLocalTransformation(UsdTimeCode) -> GfMatrix4d`.
     #[pyo3(name = "GetLocalTransformation", signature = (time=None))]
-    pub fn get_local_transformation(&self, time: Option<f64>) -> (Vec<f64>, bool) {
-        let (mat, resets) = self.0.get_local_transformation_with_reset(tc(time));
-        (mat4_to_flat(&mat), resets)
+    pub fn get_local_transformation(
+        &self,
+        time: Option<&Bound<'_, pyo3::PyAny>>,
+    ) -> PyResult<crate::gf::matrix::PyMatrix4d> {
+        let t = tc_from_py_opt(time)?;
+        Ok(crate::gf::matrix::PyMatrix4d(
+            self.0.get_local_transformation(t),
+        ))
+    }
+
+    #[pyo3(name = "ComputeLocalToWorldTransform", signature = (time=None))]
+    pub fn compute_local_to_world_transform(
+        &self,
+        time: Option<&Bound<'_, pyo3::PyAny>>,
+    ) -> PyResult<crate::gf::matrix::PyMatrix4d> {
+        let t = tc_from_py_opt(time)?;
+        let mut cache = XformCache::new(t);
+        Ok(crate::gf::matrix::PyMatrix4d(
+            cache.get_local_to_world_transform(self.0.imageable().prim()),
+        ))
+    }
+
+    #[pyo3(name = "ComputeParentToWorldTransform", signature = (time=None))]
+    pub fn compute_parent_to_world_transform(
+        &self,
+        time: Option<&Bound<'_, pyo3::PyAny>>,
+    ) -> PyResult<crate::gf::matrix::PyMatrix4d> {
+        let t = tc_from_py_opt(time)?;
+        let mut cache = XformCache::new(t);
+        Ok(crate::gf::matrix::PyMatrix4d(
+            cache.get_parent_to_world_transform(self.0.imageable().prim()),
+        ))
     }
 
     #[pyo3(name = "TransformMightBeTimeVarying")]
@@ -564,8 +639,9 @@ impl PyXformable {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaAttributeNames")]
-    pub fn get_schema_attribute_names(_include_inherited: Option<bool>) -> Vec<String> {
-        Xformable::get_schema_attribute_names(true).iter().map(|t| t.as_str().to_string()).collect()
+    pub fn get_schema_attribute_names(include_inherited: Option<bool>) -> Vec<String> {
+        let inc = include_inherited.unwrap_or(true);
+        Xformable::get_schema_attribute_names(inc).iter().map(|t| t.as_str().to_string()).collect()
     }
 
     #[pyo3(name = "IsValid")]
@@ -591,14 +667,14 @@ impl PyXform {
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Xform::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Xform::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Xform::define(&stage.inner, &p)))
     }
 
@@ -661,9 +737,14 @@ impl PyXform {
         self.0.xformable().get_ordered_xform_ops().into_iter().map(PyXformOp).collect()
     }
     #[pyo3(name = "GetLocalTransformation", signature = (time=None))]
-    pub fn get_local_transformation(&self, time: Option<f64>) -> (Vec<f64>, bool) {
-        let (mat, resets) = self.0.xformable().get_local_transformation_with_reset(tc(time));
-        (mat4_to_flat(&mat), resets)
+    pub fn get_local_transformation(
+        &self,
+        time: Option<&Bound<'_, pyo3::PyAny>>,
+    ) -> PyResult<crate::gf::matrix::PyMatrix4d> {
+        let t = tc_from_py_opt(time)?;
+        Ok(crate::gf::matrix::PyMatrix4d(
+            self.0.xformable().get_local_transformation(t),
+        ))
     }
     #[pyo3(name = "TransformMightBeTimeVarying")]
     pub fn transform_might_be_time_varying(&self) -> bool { self.0.xformable().transform_might_be_time_varying() }
@@ -695,8 +776,7 @@ impl PyXform {
 #[pyclass(name = "Boundable", module = "pxr_rs.UsdGeom")]
 pub struct PyBoundable(pub Boundable);
 
-#[pymethods]
-impl PyBoundable {
+usd_geom_schema_with_xform!(PyBoundable, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Boundable::new(extract_prim(prim)?))) }
 
@@ -713,7 +793,7 @@ impl PyBoundable {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Boundable" }
-}
+});
 
 // ============================================================================
 // Scope
@@ -722,20 +802,22 @@ impl PyBoundable {
 #[pyclass(name = "Scope", module = "pxr_rs.UsdGeom")]
 pub struct PyScope(pub Scope);
 
-#[pymethods]
-impl PyScope {
+usd_geom_schema_imageable_scope!(PyScope, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Scope::new(extract_prim(prim)?))) }
-    #[staticmethod] #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::get(&stage.inner, &p))) }
-    #[staticmethod] #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::define(&stage.inner, &p))) }
+    #[staticmethod] #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { let p = parse_path_py(path)?; Ok(Self(Scope::get(&stage.inner, &p))) }
+    #[staticmethod] #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { let p = parse_path_py(path)?; Ok(Self(Scope::define(&stage.inner, &p))) }
     #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     #[pyo3(name = "GetPath")] pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
     pub fn __repr__(&self) -> String { if self.0.is_valid() { format!("UsdGeom.Scope('{}')", self.0.prim().path()) } else { "UsdGeom.Scope(<invalid>)".to_owned() } }
     #[staticmethod] #[pyo3(name = "GetSchemaAttributeNames")]
-    pub fn get_schema_attribute_names(_include_inherited: Option<bool>) -> Vec<String> { Scope::get_schema_attribute_names(true).iter().map(|t| t.as_str().to_string()).collect() }
-}
+    pub fn get_schema_attribute_names(include_inherited: Option<bool>) -> Vec<String> {
+        let inc = include_inherited.unwrap_or(true);
+        Scope::get_schema_attribute_names(inc).iter().map(|t| t.as_str().to_string()).collect()
+    }
+});
 
 // ============================================================================
 // Gprim
@@ -744,8 +826,7 @@ impl PyScope {
 #[pyclass(name = "Gprim", module = "pxr_rs.UsdGeom")]
 pub struct PyGprim(pub Gprim);
 
-#[pymethods]
-impl PyGprim {
+usd_geom_schema_with_xform!(PyGprim, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Gprim::new(extract_prim(prim)?))) }
 
@@ -770,7 +851,7 @@ impl PyGprim {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Gprim" }
-}
+});
 
 // ============================================================================
 // Mesh
@@ -779,20 +860,19 @@ impl PyGprim {
 #[pyclass(name = "Mesh", module = "pxr_rs.UsdGeom")]
 pub struct PyMesh(pub Mesh);
 
-#[pymethods]
-impl PyMesh {
+usd_geom_schema_with_xform!(PyMesh, no_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Mesh::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Mesh::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Mesh::define(&stage.inner, &p)))
     }
 
@@ -810,8 +890,9 @@ impl PyMesh {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaAttributeNames")]
-    pub fn get_schema_attribute_names(_include_inherited: Option<bool>) -> Vec<String> {
-        Mesh::get_schema_attribute_names(true).iter().map(|t| t.as_str().to_string()).collect()
+    pub fn get_schema_attribute_names(include_inherited: Option<bool>) -> Vec<String> {
+        let inc = include_inherited.unwrap_or(true);
+        Mesh::get_schema_attribute_names(inc).iter().map(|t| t.as_str().to_string()).collect()
     }
 
     #[staticmethod]
@@ -851,6 +932,42 @@ impl PyMesh {
     #[pyo3(name = "GetNormalsAttr")] pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().get_normals_attr()) }
     #[pyo3(name = "CreateNormalsAttr")] pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().create_normals_attr(None, false)) }
 
+    #[pyo3(name = "ComputePointsAtTime", signature = (time, base_time))]
+    pub fn compute_points_at_time(
+        &self,
+        time: Bound<'_, pyo3::PyAny>,
+        base_time: Bound<'_, pyo3::PyAny>,
+    ) -> PyResult<Vec<crate::gf::vec::PyVec3f>> {
+        let t = crate::usd::tc_from_py_sdf(&time)?;
+        let bt = crate::usd::tc_from_py_sdf(&base_time)?;
+        let mut points: Vec<usd_gf::Vec3f> = Vec::new();
+        if !self.0.point_based().compute_points_at_time(&mut points, t, bt) {
+            return Ok(Vec::new());
+        }
+        Ok(points.into_iter().map(crate::gf::vec::PyVec3f).collect())
+    }
+
+    #[pyo3(name = "ComputePointsAtTimes", signature = (times, base_time))]
+    pub fn compute_points_at_times(
+        &self,
+        times: &Bound<'_, PyList>,
+        base_time: Bound<'_, pyo3::PyAny>,
+    ) -> PyResult<Vec<Vec<crate::gf::vec::PyVec3f>>> {
+        let bt = crate::usd::tc_from_py_sdf(&base_time)?;
+        let mut tcs: Vec<TimeCode> = Vec::with_capacity(times.len());
+        for item in times.iter() {
+            tcs.push(crate::usd::tc_from_py_sdf(&item)?);
+        }
+        let mut points_array: Vec<Vec<usd_gf::Vec3f>> = Vec::new();
+        if !self.0.point_based().compute_points_at_times(&mut points_array, &tcs, bt) {
+            return Ok(Vec::new());
+        }
+        Ok(points_array
+            .into_iter()
+            .map(|frame| frame.into_iter().map(crate::gf::vec::PyVec3f).collect())
+            .collect())
+    }
+
     // crease / corner / hole
     #[pyo3(name = "GetCreaseIndicesAttr")] pub fn get_crease_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_crease_indices_attr()) }
     #[pyo3(name = "CreateCreaseIndicesAttr")] pub fn create_crease_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_crease_indices_attr(None, false)) }
@@ -885,7 +1002,7 @@ impl PyMesh {
 
     #[staticmethod]
     #[pyo3(name = "SharpnessInfinite")] pub fn sharpness_infinite() -> f32 { SHARPNESS_INFINITE }
-}
+});
 
 // ============================================================================
 // Sphere
@@ -894,20 +1011,19 @@ impl PyMesh {
 #[pyclass(name = "Sphere", module = "pxr_rs.UsdGeom")]
 pub struct PySphere(pub Sphere);
 
-#[pymethods]
-impl PySphere {
+usd_geom_schema_with_xform!(PySphere, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Sphere::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Sphere::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Sphere::define(&stage.inner, &p)))
     }
 
@@ -924,7 +1040,7 @@ impl PySphere {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Sphere" }
-}
+});
 
 // ============================================================================
 // Cube
@@ -933,20 +1049,19 @@ impl PySphere {
 #[pyclass(name = "Cube", module = "pxr_rs.UsdGeom")]
 pub struct PyCube(pub Cube);
 
-#[pymethods]
-impl PyCube {
+usd_geom_schema_with_xform!(PyCube, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Cube::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Cube::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Cube::define(&stage.inner, &p)))
     }
 
@@ -963,7 +1078,7 @@ impl PyCube {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Cube" }
-}
+});
 
 // ============================================================================
 // Cone
@@ -972,20 +1087,19 @@ impl PyCube {
 #[pyclass(name = "Cone", module = "pxr_rs.UsdGeom")]
 pub struct PyCone(pub Cone);
 
-#[pymethods]
-impl PyCone {
+usd_geom_schema_with_xform!(PyCone, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Cone::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Cone::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Cone::define(&stage.inner, &p)))
     }
 
@@ -1006,7 +1120,7 @@ impl PyCone {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Cone" }
-}
+});
 
 // ============================================================================
 // Cylinder
@@ -1015,20 +1129,19 @@ impl PyCone {
 #[pyclass(name = "Cylinder", module = "pxr_rs.UsdGeom")]
 pub struct PyCylinder(pub Cylinder);
 
-#[pymethods]
-impl PyCylinder {
+usd_geom_schema_with_xform!(PyCylinder, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Cylinder::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Cylinder::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Cylinder::define(&stage.inner, &p)))
     }
 
@@ -1049,7 +1162,7 @@ impl PyCylinder {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Cylinder" }
-}
+});
 
 // ============================================================================
 // Cylinder_1
@@ -1058,20 +1171,19 @@ impl PyCylinder {
 #[pyclass(name = "Cylinder_1", module = "pxr_rs.UsdGeom")]
 pub struct PyCylinder1(pub Cylinder1);
 
-#[pymethods]
-impl PyCylinder1 {
+usd_geom_schema_with_xform!(PyCylinder1, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Cylinder1::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Cylinder1::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Cylinder1::define(&stage.inner, &p)))
     }
 
@@ -1095,7 +1207,7 @@ impl PyCylinder1 {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Cylinder_1" }
-}
+});
 
 // ============================================================================
 // Capsule
@@ -1104,20 +1216,19 @@ impl PyCylinder1 {
 #[pyclass(name = "Capsule", module = "pxr_rs.UsdGeom")]
 pub struct PyCapsule(pub Capsule);
 
-#[pymethods]
-impl PyCapsule {
+usd_geom_schema_with_xform!(PyCapsule, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Capsule::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Capsule::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Capsule::define(&stage.inner, &p)))
     }
 
@@ -1138,7 +1249,7 @@ impl PyCapsule {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Capsule" }
-}
+});
 
 // ============================================================================
 // Capsule_1
@@ -1147,20 +1258,19 @@ impl PyCapsule {
 #[pyclass(name = "Capsule_1", module = "pxr_rs.UsdGeom")]
 pub struct PyCapsule1(pub Capsule1);
 
-#[pymethods]
-impl PyCapsule1 {
+usd_geom_schema_with_xform!(PyCapsule1, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Capsule1::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Capsule1::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Capsule1::define(&stage.inner, &p)))
     }
 
@@ -1184,7 +1294,7 @@ impl PyCapsule1 {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Capsule_1" }
-}
+});
 
 // ============================================================================
 // Plane
@@ -1193,20 +1303,19 @@ impl PyCapsule1 {
 #[pyclass(name = "Plane", module = "pxr_rs.UsdGeom")]
 pub struct PyPlane(pub Plane);
 
-#[pymethods]
-impl PyPlane {
+usd_geom_schema_with_xform!(PyPlane, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Plane::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Plane::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Plane::define(&stage.inner, &p)))
     }
 
@@ -1228,7 +1337,7 @@ impl PyPlane {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Plane" }
-}
+});
 
 // ============================================================================
 // PointBased
@@ -1237,8 +1346,7 @@ impl PyPlane {
 #[pyclass(name = "PointBased", module = "pxr_rs.UsdGeom")]
 pub struct PyPointBased(pub PointBased);
 
-#[pymethods]
-impl PyPointBased {
+usd_geom_schema_with_xform!(PyPointBased, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(PointBased::new(extract_prim(prim)?))) }
 
@@ -1254,6 +1362,42 @@ impl PyPointBased {
         self.0.get_normals_interpolation().as_str().to_owned()
     }
 
+    #[pyo3(name = "ComputePointsAtTime", signature = (time, base_time))]
+    pub fn compute_points_at_time(
+        &self,
+        time: Bound<'_, pyo3::PyAny>,
+        base_time: Bound<'_, pyo3::PyAny>,
+    ) -> PyResult<Vec<crate::gf::vec::PyVec3f>> {
+        let t = crate::usd::tc_from_py_sdf(&time)?;
+        let bt = crate::usd::tc_from_py_sdf(&base_time)?;
+        let mut points: Vec<usd_gf::Vec3f> = Vec::new();
+        if !self.0.compute_points_at_time(&mut points, t, bt) {
+            return Ok(Vec::new());
+        }
+        Ok(points.into_iter().map(crate::gf::vec::PyVec3f).collect())
+    }
+
+    #[pyo3(name = "ComputePointsAtTimes", signature = (times, base_time))]
+    pub fn compute_points_at_times(
+        &self,
+        times: &Bound<'_, PyList>,
+        base_time: Bound<'_, pyo3::PyAny>,
+    ) -> PyResult<Vec<Vec<crate::gf::vec::PyVec3f>>> {
+        let bt = crate::usd::tc_from_py_sdf(&base_time)?;
+        let mut tcs: Vec<TimeCode> = Vec::with_capacity(times.len());
+        for item in times.iter() {
+            tcs.push(crate::usd::tc_from_py_sdf(&item)?);
+        }
+        let mut points_array: Vec<Vec<usd_gf::Vec3f>> = Vec::new();
+        if !self.0.compute_points_at_times(&mut points_array, &tcs, bt) {
+            return Ok(Vec::new());
+        }
+        Ok(points_array
+            .into_iter()
+            .map(|frame| frame.into_iter().map(crate::gf::vec::PyVec3f).collect())
+            .collect())
+    }
+
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1264,7 +1408,7 @@ impl PyPointBased {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "PointBased" }
-}
+});
 
 // ============================================================================
 // Points
@@ -1273,20 +1417,19 @@ impl PyPointBased {
 #[pyclass(name = "Points", module = "pxr_rs.UsdGeom")]
 pub struct PyPoints(pub Points);
 
-#[pymethods]
-impl PyPoints {
+usd_geom_schema_with_xform!(PyPoints, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Points::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Points::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Points::define(&stage.inner, &p)))
     }
 
@@ -1306,7 +1449,7 @@ impl PyPoints {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Points" }
-}
+});
 
 // ============================================================================
 // Curves
@@ -1315,8 +1458,7 @@ impl PyPoints {
 #[pyclass(name = "Curves", module = "pxr_rs.UsdGeom")]
 pub struct PyCurves(pub Curves);
 
-#[pymethods]
-impl PyCurves {
+usd_geom_schema_with_xform!(PyCurves, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Curves::new(extract_prim(prim)?))) }
 
@@ -1336,7 +1478,7 @@ impl PyCurves {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Curves" }
-}
+});
 
 // ============================================================================
 // BasisCurves
@@ -1345,20 +1487,19 @@ impl PyCurves {
 #[pyclass(name = "BasisCurves", module = "pxr_rs.UsdGeom")]
 pub struct PyBasisCurves(pub BasisCurves);
 
-#[pymethods]
-impl PyBasisCurves {
+usd_geom_schema_with_xform!(PyBasisCurves, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(BasisCurves::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(BasisCurves::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(BasisCurves::define(&stage.inner, &p)))
     }
 
@@ -1379,7 +1520,7 @@ impl PyBasisCurves {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "BasisCurves" }
-}
+});
 
 // ============================================================================
 // NurbsCurves
@@ -1388,20 +1529,19 @@ impl PyBasisCurves {
 #[pyclass(name = "NurbsCurves", module = "pxr_rs.UsdGeom")]
 pub struct PyNurbsCurves(pub NurbsCurves);
 
-#[pymethods]
-impl PyNurbsCurves {
+usd_geom_schema_with_xform!(PyNurbsCurves, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(NurbsCurves::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(NurbsCurves::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(NurbsCurves::define(&stage.inner, &p)))
     }
 
@@ -1422,7 +1562,7 @@ impl PyNurbsCurves {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "NurbsCurves" }
-}
+});
 
 // ============================================================================
 // HermiteCurves
@@ -1431,20 +1571,19 @@ impl PyNurbsCurves {
 #[pyclass(name = "HermiteCurves", module = "pxr_rs.UsdGeom")]
 pub struct PyHermiteCurves(pub HermiteCurves);
 
-#[pymethods]
-impl PyHermiteCurves {
+usd_geom_schema_with_xform!(PyHermiteCurves, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(HermiteCurves::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(HermiteCurves::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(HermiteCurves::define(&stage.inner, &p)))
     }
 
@@ -1461,7 +1600,7 @@ impl PyHermiteCurves {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "HermiteCurves" }
-}
+});
 
 // ============================================================================
 // NurbsPatch
@@ -1470,20 +1609,19 @@ impl PyHermiteCurves {
 #[pyclass(name = "NurbsPatch", module = "pxr_rs.UsdGeom")]
 pub struct PyNurbsPatch(pub NurbsPatch);
 
-#[pymethods]
-impl PyNurbsPatch {
+usd_geom_schema_with_xform!(PyNurbsPatch, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(NurbsPatch::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(NurbsPatch::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(NurbsPatch::define(&stage.inner, &p)))
     }
 
@@ -1510,7 +1648,7 @@ impl PyNurbsPatch {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "NurbsPatch" }
-}
+});
 
 // ============================================================================
 // TetMesh
@@ -1519,20 +1657,19 @@ impl PyNurbsPatch {
 #[pyclass(name = "TetMesh", module = "pxr_rs.UsdGeom")]
 pub struct PyTetMesh(pub TetMesh);
 
-#[pymethods]
-impl PyTetMesh {
+usd_geom_schema_with_xform!(PyTetMesh, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(TetMesh::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(TetMesh::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(TetMesh::define(&stage.inner, &p)))
     }
 
@@ -1550,7 +1687,7 @@ impl PyTetMesh {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "TetMesh" }
-}
+});
 
 // ============================================================================
 // PointInstancer
@@ -1559,20 +1696,19 @@ impl PyTetMesh {
 #[pyclass(name = "PointInstancer", module = "pxr_rs.UsdGeom")]
 pub struct PyPointInstancer(pub PointInstancer);
 
-#[pymethods]
-impl PyPointInstancer {
+usd_geom_schema_with_xform!(PyPointInstancer, no_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(PointInstancer::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(PointInstancer::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(PointInstancer::define(&stage.inner, &p)))
     }
 
@@ -1615,6 +1751,7 @@ impl PyPointInstancer {
     /// Compute per-instance transforms. Returns flat 16-element list per instance.
     #[pyo3(name = "ComputeInstanceTransformsAtTime", signature = (time, base_time, doProtos=0, applyMask=0))]
     #[allow(non_snake_case)]
+    #[allow(unused_variables)]
     pub fn compute_instance_transforms_at_time(&self, time: f64, base_time: f64, doProtos: u8, applyMask: u8) -> Vec<Vec<f64>> {
         use usd_geom::point_instancer::{ProtoXformInclusion, MaskApplication};
         let mut xforms = Vec::new();
@@ -1647,7 +1784,7 @@ impl PyPointInstancer {
     #[classattr]
     #[allow(non_upper_case_globals)]
     pub fn ExcludeProtoXform() -> u8 { 1 }
-}
+});
 
 // ============================================================================
 // Camera
@@ -1656,20 +1793,19 @@ impl PyPointInstancer {
 #[pyclass(name = "Camera", module = "pxr_rs.UsdGeom")]
 pub struct PyCamera(pub Camera);
 
-#[pymethods]
-impl PyCamera {
+usd_geom_schema_with_xform!(PyCamera, yes_get_path, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Camera::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Camera::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Camera::define(&stage.inner, &p)))
     }
 
@@ -1701,14 +1837,41 @@ impl PyCamera {
     #[pyo3(name = "GetStereoRoleAttr")] pub fn get_stereo_role_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_stereo_role_attr()) }
     #[pyo3(name = "CreateStereoRoleAttr")] pub fn create_stereo_role_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_stereo_role_attr(None, false)) }
 
-    /// Returns key camera parameters as a Python dict.
-    #[pyo3(name = "GetCamera")] pub fn get_camera(&self, py: Python<'_>, time: Option<f64>) -> PyResult<Py<PyAny>> {
-        let gf_cam = self.0.get_camera(tc(time));
-        let d = pyo3::types::PyDict::new(py);
-        d.set_item("focalLength", gf_cam.focal_length())?;
-        d.set_item("horizontalAperture", gf_cam.horizontal_aperture())?;
-        d.set_item("verticalAperture", gf_cam.vertical_aperture())?;
-        Ok(d.into_any().unbind())
+    #[pyo3(name = "GetExposureAttr")] pub fn get_exposure_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_exposure_attr()) }
+    #[pyo3(name = "CreateExposureAttr")] pub fn create_exposure_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_exposure_attr(None, false)) }
+    #[pyo3(name = "GetExposureIsoAttr")] pub fn get_exposure_iso_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_exposure_iso_attr()) }
+    #[pyo3(name = "CreateExposureIsoAttr")] pub fn create_exposure_iso_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_exposure_iso_attr(None, false)) }
+    #[pyo3(name = "GetExposureTimeAttr")] pub fn get_exposure_time_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_exposure_time_attr()) }
+    #[pyo3(name = "CreateExposureTimeAttr")] pub fn create_exposure_time_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_exposure_time_attr(None, false)) }
+    #[pyo3(name = "GetExposureFStopAttr")] pub fn get_exposure_f_stop_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_exposure_f_stop_attr()) }
+    #[pyo3(name = "CreateExposureFStopAttr")] pub fn create_exposure_f_stop_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_exposure_f_stop_attr(None, false)) }
+    #[pyo3(name = "GetExposureResponsivityAttr")] pub fn get_exposure_responsivity_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_exposure_responsivity_attr()) }
+    #[pyo3(name = "CreateExposureResponsivityAttr")] pub fn create_exposure_responsivity_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_exposure_responsivity_attr(None, false)) }
+
+    /// Matches C++ `UsdGeomCamera::SetFromCamera(GfCamera const&, UsdTimeCode)`.
+    #[pyo3(name = "SetFromCamera", signature = (camera, time))]
+    pub fn set_from_camera(
+        &self,
+        camera: pyo3::PyRef<'_, crate::gf::geo::PyCamera>,
+        time: &Bound<'_, pyo3::PyAny>,
+    ) -> PyResult<bool> {
+        let t = crate::usd::tc_from_py_sdf(time)?;
+        Ok(self.0.set_from_camera(&camera.0, t))
+    }
+
+    /// Matches C++ `UsdGeomCamera::ComputeLinearExposureScale(UsdTimeCode)`.
+    #[pyo3(name = "ComputeLinearExposureScale", signature = (time=None))]
+    pub fn compute_linear_exposure_scale(
+        &self,
+        time: Option<&Bound<'_, pyo3::PyAny>>,
+    ) -> PyResult<f32> {
+        let t = tc_from_py_opt(time)?;
+        Ok(self.0.compute_linear_exposure_scale(t))
+    }
+
+    #[pyo3(name = "GetCamera", signature = (time=None))]
+    pub fn get_camera(&self, time: Option<f64>) -> crate::gf::geo::PyCamera {
+        crate::gf::geo::PyCamera(self.0.get_camera(tc(time)))
     }
 
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
@@ -1721,7 +1884,7 @@ impl PyCamera {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Camera" }
-}
+});
 
 // ============================================================================
 // PrimvarsAPI
@@ -1948,20 +2111,19 @@ impl PyXformCommonAPI {
 #[pyclass(name = "Subset", module = "pxr_rs.UsdGeom")]
 pub struct PySubset(pub Subset);
 
-#[pymethods]
-impl PySubset {
+usd_geom_schema_imageable_subset!(PySubset, {
     #[new]
     pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Subset::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Subset::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
-    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
-        let p = parse_path(path)?;
+    #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        let p = parse_path_py(path)?;
         Ok(Self(Subset::define(&stage.inner, &p)))
     }
 
@@ -2004,7 +2166,7 @@ impl PySubset {
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Subset" }
-}
+});
 
 // ============================================================================
 // Metrics — module-level functions

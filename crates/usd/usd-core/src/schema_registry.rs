@@ -14,6 +14,8 @@ use super::prim_definition::PrimDefinition;
 use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
+use usd_gf::vec2::Vec2f;
+use usd_gf::Vec4f;
 use usd_sdf::{Layer, Path};
 use usd_tf::Token;
 use usd_vt::Value;
@@ -2212,6 +2214,10 @@ pub fn register_builtin_schemas() {
                 "shutterOpen",
                 "shutterClose",
                 "exposure",
+                "exposure:iso",
+                "exposure:time",
+                "exposure:fStop",
+                "exposure:responsivity",
             ],
         );
         register_schema_fallbacks(
@@ -2223,8 +2229,15 @@ pub fn register_builtin_schemas() {
                 ("horizontalApertureOffset", Value::from(0.0_f32)),
                 ("verticalApertureOffset", Value::from(0.0_f32)),
                 ("focalLength", Value::from(50.0_f32)),
+                ("clippingRange", Value::from_no_hash(Vec2f::new(1.0, 1_000_000.0))),
+                ("clippingPlanes", Value::from(Vec::<Vec4f>::new())),
                 ("fStop", Value::from(0.0_f32)),
                 ("focusDistance", Value::from(0.0_f32)),
+                ("exposure", Value::from(0.0_f32)),
+                ("exposure:iso", Value::from(100.0_f32)),
+                ("exposure:time", Value::from(1.0_f32)),
+                ("exposure:fStop", Value::from(1.0_f32)),
+                ("exposure:responsivity", Value::from(1.0_f32)),
             ],
         );
         register_schema_properties("Xform", &[]);

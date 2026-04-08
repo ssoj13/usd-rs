@@ -870,15 +870,17 @@ impl Xformable {
 
     /// Clear the xformOpOrder and add a single transform op (4x4 matrix).
     ///
-    /// Matches C++ `MakeMatrixXform()`.
+    /// Ref: `usd-refs/OpenUSD/pxr/usd/usdGeom/xformable.cpp`
+    /// `UsdGeomXformable::MakeMatrixXform()` — after `ClearXformOpOrder()`, fails if
+    /// `GetOrderedXformOps` is non-empty (not the raw token array alone).
     pub fn make_matrix_xform(&self) -> XformOp {
         if !self.clear_xform_op_order() {
             return XformOp::invalid();
         }
 
-        // Check that xformOpOrder is now empty
-        let xform_op_order = self.get_xform_op_order_value().unwrap_or_default();
-        if !xform_op_order.is_empty() {
+        let mut resets_xform_stack = false;
+        let ordered_ops = self.get_ordered_xform_ops_with_reset(&mut resets_xform_stack);
+        if !ordered_ops.is_empty() {
             return XformOp::invalid();
         }
 
@@ -1032,8 +1034,12 @@ impl XformQuery {
             DEBUG_XFORM_QUERY_CALLS.fetch_add(1, Ordering::Relaxed);
         }
         let mut resets_xform_stack = false;
+        // Use non-query XformOps (matches `get_ordered_xform_ops_with_reset`): `AttributeQuery::get`
+        // at `UsdTimeCode::Default()` can return `None` for authored default values when resolve
+        // info is classified as time-sampled, which makes `get_op_transform` identity and breaks
+        // `UsdGeomXformCache` / `BBoxCache` (see Python `GetLocalTransformation` / point bounds).
         let xform_ops =
-            xformable.get_ordered_xform_ops_with_reset_impl(&mut resets_xform_stack, true);
+            xformable.get_ordered_xform_ops_with_reset_impl(&mut resets_xform_stack, false);
         let result = Self {
             xform_ops,
             resets_xform_stack,

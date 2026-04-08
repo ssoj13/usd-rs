@@ -841,6 +841,10 @@ impl Camera {
                 camera.set_horizontal_aperture(v);
             } else if let Some(&v) = value.get::<f64>() {
                 camera.set_horizontal_aperture(v as f32);
+            } else if let Some(&v) = value.get::<i32>() {
+                camera.set_horizontal_aperture(v as f32);
+            } else if let Some(&v) = value.get::<i64>() {
+                camera.set_horizontal_aperture(v as f32);
             }
         }
 
@@ -849,6 +853,10 @@ impl Camera {
             if let Some(&v) = value.get::<f32>() {
                 camera.set_vertical_aperture(v);
             } else if let Some(&v) = value.get::<f64>() {
+                camera.set_vertical_aperture(v as f32);
+            } else if let Some(&v) = value.get::<i32>() {
+                camera.set_vertical_aperture(v as f32);
+            } else if let Some(&v) = value.get::<i64>() {
                 camera.set_vertical_aperture(v as f32);
             }
         }
@@ -859,6 +867,10 @@ impl Camera {
                 camera.set_horizontal_aperture_offset(v);
             } else if let Some(&v) = value.get::<f64>() {
                 camera.set_horizontal_aperture_offset(v as f32);
+            } else if let Some(&v) = value.get::<i32>() {
+                camera.set_horizontal_aperture_offset(v as f32);
+            } else if let Some(&v) = value.get::<i64>() {
+                camera.set_horizontal_aperture_offset(v as f32);
             }
         }
 
@@ -867,6 +879,10 @@ impl Camera {
             if let Some(&v) = value.get::<f32>() {
                 camera.set_vertical_aperture_offset(v);
             } else if let Some(&v) = value.get::<f64>() {
+                camera.set_vertical_aperture_offset(v as f32);
+            } else if let Some(&v) = value.get::<i32>() {
+                camera.set_vertical_aperture_offset(v as f32);
+            } else if let Some(&v) = value.get::<i64>() {
                 camera.set_vertical_aperture_offset(v as f32);
             }
         }
@@ -877,6 +893,10 @@ impl Camera {
                 camera.set_focal_length(v);
             } else if let Some(&v) = value.get::<f64>() {
                 camera.set_focal_length(v as f32);
+            } else if let Some(&v) = value.get::<i32>() {
+                camera.set_focal_length(v as f32);
+            } else if let Some(&v) = value.get::<i64>() {
+                camera.set_focal_length(v as f32);
             }
         }
 
@@ -886,6 +906,14 @@ impl Camera {
                 camera.set_clipping_range(Self::vec2f_to_range1f(vec2f));
             } else if let Some(vec2f) = value.get::<usd_gf::vec2::Vec2<f32>>() {
                 camera.set_clipping_range(Range1f::new(vec2f.x, vec2f.y));
+            } else if let Some(v) = value.get::<Vec<f64>>() {
+                if v.len() == 2 {
+                    camera.set_clipping_range(Range1f::new(v[0] as f32, v[1] as f32));
+                }
+            } else if let Some(v) = value.get::<Vec<f32>>() {
+                if v.len() == 2 {
+                    camera.set_clipping_range(Range1f::new(v[0], v[1]));
+                }
             }
         }
 
@@ -904,6 +932,10 @@ impl Camera {
                 camera.set_f_stop(v);
             } else if let Some(&v) = value.get::<f64>() {
                 camera.set_f_stop(v as f32);
+            } else if let Some(&v) = value.get::<i32>() {
+                camera.set_f_stop(v as f32);
+            } else if let Some(&v) = value.get::<i64>() {
+                camera.set_f_stop(v as f32);
             }
         }
 
@@ -912,6 +944,10 @@ impl Camera {
             if let Some(&v) = value.get::<f32>() {
                 camera.set_focus_distance(v);
             } else if let Some(&v) = value.get::<f64>() {
+                camera.set_focus_distance(v as f32);
+            } else if let Some(&v) = value.get::<i32>() {
+                camera.set_focus_distance(v as f32);
+            } else if let Some(&v) = value.get::<i64>() {
                 camera.set_focus_distance(v as f32);
             }
         }
@@ -924,13 +960,16 @@ impl Camera {
     /// Matches C++ `SetFromCamera(const GfCamera &camera, const UsdTimeCode &time)`.
     pub fn set_from_camera(&self, camera: &GfCamera, time: TimeCode) -> bool {
         // Compute cam-local matrix: camera.transform * parentToWorld^-1
-        // C++: camMatrix = camera.GetTransform() * ComputeParentToWorldTransform(time).GetInverse()
+        // Ref: `usd-refs/OpenUSD/pxr/usd/usdGeom/camera.cpp` `SetFromCamera`
+        // Ref: `usd-refs/OpenUSD/pxr/base/gf/matrix4d.cpp` `GfMatrix4d::GetInverse` (default eps=0;
+        //      singular → `SetScale(FLT_MAX)`, not identity)
         let parent_to_world = self
             .inner
             .imageable()
             .compute_parent_to_world_transform(time);
-        // Fall back to identity inverse if matrix is singular (degenerate hierarchy)
-        let parent_to_world_inv = parent_to_world.inverse().unwrap_or_else(Matrix4d::identity);
+        let parent_to_world_inv = parent_to_world.inverse_with_eps(0.0).unwrap_or_else(|| {
+            Matrix4d::from_scale(f32::MAX as f64)
+        });
         let cam_matrix = *camera.transform() * parent_to_world_inv;
 
         // Author the matrix as a single xformOp:transform (clears existing xform ops).
@@ -1137,43 +1176,27 @@ impl Camera {
 
     /// Computes the linear exposure scale.
     ///
-    /// Matches C++ `ComputeLinearExposureScale(UsdTimeCode time)`.
+    /// Ref: `usd-refs/OpenUSD/pxr/usd/usdGeom/camera.cpp` `ComputeLinearExposureScale`
+    fn exposure_scalar_at(attr: &Attribute, time: TimeCode, default: f32) -> f32 {
+        let Some(value) = attr.get(time) else {
+            return default;
+        };
+        if let Some(&v) = value.get::<f32>() {
+            return v;
+        }
+        if let Some(&v) = value.get::<f64>() {
+            return v as f32;
+        }
+        default
+    }
+
     pub fn compute_linear_exposure_scale(&self, time: TimeCode) -> f32 {
-        let mut exposure_time = 1.0f32;
-        let mut exposure_iso = 100.0f32;
-        let mut exposure_f_stop = 1.0f32;
-        let mut exposure_responsivity = 1.0f32;
-        let mut exposure_exponent = 0.0f32;
-
-        if let Some(value) = self.get_exposure_time_attr().get(time) {
-            if let Some(&val) = value.get::<f32>() {
-                exposure_time = val;
-            }
-        }
-
-        if let Some(value) = self.get_exposure_iso_attr().get(time) {
-            if let Some(&val) = value.get::<f32>() {
-                exposure_iso = val;
-            }
-        }
-
-        if let Some(value) = self.get_exposure_f_stop_attr().get(time) {
-            if let Some(&val) = value.get::<f32>() {
-                exposure_f_stop = val;
-            }
-        }
-
-        if let Some(value) = self.get_exposure_responsivity_attr().get(time) {
-            if let Some(&val) = value.get::<f32>() {
-                exposure_responsivity = val;
-            }
-        }
-
-        if let Some(value) = self.get_exposure_attr().get(time) {
-            if let Some(&val) = value.get::<f32>() {
-                exposure_exponent = val;
-            }
-        }
+        let exposure_time = Self::exposure_scalar_at(&self.get_exposure_time_attr(), time, 1.0);
+        let exposure_iso = Self::exposure_scalar_at(&self.get_exposure_iso_attr(), time, 100.0);
+        let exposure_f_stop = Self::exposure_scalar_at(&self.get_exposure_f_stop_attr(), time, 1.0);
+        let exposure_responsivity =
+            Self::exposure_scalar_at(&self.get_exposure_responsivity_attr(), time, 1.0);
+        let exposure_exponent = Self::exposure_scalar_at(&self.get_exposure_attr(), time, 0.0);
 
         (exposure_time * exposure_iso * 2.0f32.powf(exposure_exponent) * exposure_responsivity)
             / (100.0f32 * exposure_f_stop * exposure_f_stop)

@@ -63,7 +63,8 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
         return v.into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(v) = val.downcast_clone::<f32>() {
-        return (v as f64).into_pyobject(py).expect("ok").into_any().unbind();
+        let x = crate::gf::geo::schema_float_to_python_double(v);
+        return x.into_pyobject(py).expect("ok").into_any().unbind();
     }
     if let Some(v) = val.downcast_clone::<f64>() {
         return v.into_pyobject(py).expect("ok").into_any().unbind();
@@ -117,6 +118,16 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
             .map(|p| p.into_any())
             .unwrap_or_else(|_| py.None().into_bound(py).unbind());
     }
+    // float4[] / Vec4f arrays (e.g. UsdGeom.Camera clippingPlanes)
+    if let Some(v) = val.downcast_clone::<Vec<usd_gf::Vec4f>>() {
+        let elems: Vec<Py<PyAny>> = v
+            .into_iter()
+            .filter_map(|p| Py::new(py, crate::gf::vec::PyVec4f(p)).ok().map(|x| x.into_any()))
+            .collect();
+        return PyList::new(py, elems.as_slice())
+            .map(|l| l.into_any().unbind())
+            .unwrap_or_else(|_| py.None());
+    }
     // Legacy glam types (fallback)
     if let Some(v) = val.downcast_clone::<glam::Vec3>() {
         return PyTuple::new(py, [v.x as f64, v.y as f64, v.z as f64])
@@ -136,32 +147,7 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
 }
 
 fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
-    if let Ok(v) = obj.extract::<bool>() {
-        return Ok(Value::from(v));
-    }
-    if let Ok(v) = obj.extract::<i64>() {
-        return Ok(Value::from(v as i32));
-    }
-    if let Ok(v) = obj.extract::<f64>() {
-        return Ok(Value::from(v));
-    }
-    if let Ok(v) = obj.extract::<String>() {
-        return Ok(Value::from(v));
-    }
-    if let Ok(v) = obj.extract::<Vec<f64>>() {
-        return Ok(Value::from_no_hash(v));
-    }
-    if let Ok(v) = obj.extract::<Vec<i64>>() {
-        let vi: Vec<i32> = v.into_iter().map(|x| x as i32).collect();
-        return Ok(Value::from(vi));
-    }
-    if let Ok(v) = obj.extract::<Vec<String>>() {
-        return Ok(Value::from(v));
-    }
-    Err(PyValueError::new_err(format!(
-        "Cannot convert Python object of type '{}' to VtValue",
-        obj.get_type().name()?
-    )))
+    crate::vt::py_to_value(obj)
 }
 
 // ============================================================================
@@ -356,6 +342,11 @@ fn core_tc_to_sdf(tc: TimeCode) -> usd_sdf::TimeCode {
     } else {
         usd_sdf::TimeCode::new(tc.value())
     }
+}
+
+/// Convert Python `Usd.TimeCode` or `float` to `Sdf.TimeCode` for schema / Sdf APIs.
+pub(crate) fn tc_from_py_sdf(obj: &Bound<'_, PyAny>) -> PyResult<usd_sdf::TimeCode> {
+    Ok(core_tc_to_sdf(tc_from_py(obj)?))
 }
 
 // ============================================================================
@@ -2032,6 +2023,42 @@ impl PySpecializes {
 }
 
 // ============================================================================
+// UsdResolveInfo
+// ============================================================================
+
+fn resolve_info_source_to_py(s: usd_core::resolve_info::ResolveInfoSource) -> i64 {
+    use usd_core::resolve_info::ResolveInfoSource;
+    match s {
+        ResolveInfoSource::None => 0,
+        ResolveInfoSource::Fallback => 1,
+        ResolveInfoSource::Default => 2,
+        ResolveInfoSource::TimeSamples => 3,
+        ResolveInfoSource::ValueClips => 4,
+        ResolveInfoSource::Spline => 5,
+    }
+}
+
+/// Information about how an attribute value was resolved.
+///
+/// Matches C++ `UsdResolveInfo`.
+#[pyclass(skip_from_py_object, name = "ResolveInfo", module = "pxr_rs.Usd")]
+pub struct PyResolveInfo {
+    inner: usd_core::resolve_info::ResolveInfo,
+}
+
+#[pymethods]
+impl PyResolveInfo {
+    #[allow(non_snake_case)]
+    fn GetSource(&self) -> i64 {
+        resolve_info_source_to_py(self.inner.source())
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Usd.ResolveInfo(source={})", self.inner.source())
+    }
+}
+
+// ============================================================================
 // UsdAttribute
 // ============================================================================
 
@@ -2191,6 +2218,14 @@ impl PyAttribute {
     #[allow(non_snake_case)]
     fn HasAuthoredValue(&self) -> bool {
         self.inner.has_authored_value()
+    }
+
+    /// Matches C++ `UsdAttribute::GetResolveInfo()`.
+    #[allow(non_snake_case)]
+    fn GetResolveInfo(&self) -> PyResolveInfo {
+        PyResolveInfo {
+            inner: self.inner.get_resolve_info(),
+        }
     }
 
     #[allow(non_snake_case)]
@@ -2467,6 +2502,17 @@ impl PyAttribute {
 pub struct PyRelationship {
     inner: Relationship,
     _stage: Arc<Stage>,
+}
+
+impl PyRelationship {
+    /// Construct with stage handle (keeps `Stage` alive for weak refs in relationship).
+    #[allow(dead_code)]
+    pub(crate) fn pack(rel: Relationship, stage: Arc<Stage>) -> Self {
+        Self {
+            inner: rel,
+            _stage: stage,
+        }
+    }
 }
 
 #[pymethods]
@@ -4572,6 +4618,14 @@ fn add_constants(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("ListPositionFrontOfAppendList", "FrontOfAppendList")?;
     m.add("ListPositionBackOfAppendList", "BackOfAppendList")?;
 
+    // UsdResolveInfoSource — integer tags match pxr / C++ enum order
+    m.add("ResolveInfoSourceNone", 0i64)?;
+    m.add("ResolveInfoSourceFallback", 1i64)?;
+    m.add("ResolveInfoSourceDefault", 2i64)?;
+    m.add("ResolveInfoSourceTimeSamples", 3i64)?;
+    m.add("ResolveInfoSourceValueClips", 4i64)?;
+    m.add("ResolveInfoSourceSpline", 5i64)?;
+
     Ok(())
 }
 
@@ -4593,6 +4647,7 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Scene graph
     m.add_class::<PyPrim>()?;
+    m.add_class::<PyResolveInfo>()?;
     m.add_class::<PyAttribute>()?;
     m.add_class::<PyRelationship>()?;
     m.add_class::<PyVariantSets>()?;

@@ -205,6 +205,17 @@ impl Boundable {
         Some(extent)
     }
 
+    /// Compute extent using the same path as C++ `UsdGeomBoundable::ComputeExtentFromPlugins`
+    /// without a transform (registered extent functions / integrated implementations).
+    ///
+    /// Matches C++ `UsdGeomBoundable::ComputeExtentFromPlugins(boundable, time, extent)`.
+    pub fn compute_extent_from_plugins(
+        boundable: &Boundable,
+        time: usd_sdf::TimeCode,
+    ) -> Option<Vec<Vec3f>> {
+        Self::compute_extent_from_integrated(boundable, time)
+    }
+
     /// Compute extent from integrated implementations (no plugin system).
     ///
     /// Matches C++ `ComputeExtentFromPlugins()` but uses integrated implementations.

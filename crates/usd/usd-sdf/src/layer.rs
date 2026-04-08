@@ -36,7 +36,7 @@
 //! let anon = Layer::create_anonymous(Some("temp"));
 //! ```
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::path::{Path as StdPath, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 
@@ -235,6 +235,20 @@ impl LayerRegistry {
         }
     }
 
+    /// Normalizes a filesystem path for registry lookup so the same on-disk file
+    /// maps to one key across `./foo` vs `foo`, anchored vs cwd resolution, and
+    /// Windows `\` vs `/` spellings (C++ `_TryToFindLayer` dual-key behavior).
+    fn normalize_real_path_key(path: &str) -> String {
+        #[cfg(windows)]
+        {
+            path.replace('\\', "/").to_lowercase()
+        }
+        #[cfg(not(windows))]
+        {
+            path.to_string()
+        }
+    }
+
     /// Gets the global registry instance.
     fn global() -> &'static LayerRegistry {
         static REGISTRY: OnceLock<LayerRegistry> = OnceLock::new();
@@ -250,16 +264,29 @@ impl LayerRegistry {
     /// Registers a layer in the registry.
     fn register(layer: Arc<Layer>) {
         let registry = Self::global();
+        let weak = Arc::downgrade(&layer);
         let mut layers = registry.layers.write().expect("rwlock poisoned");
-        layers.insert(layer.identifier().to_string(), Arc::downgrade(&layer));
+        layers.insert(layer.identifier().to_string(), weak.clone());
         drop(layers);
 
+        let mut real_paths = registry.real_paths.write().expect("rwlock poisoned");
+        let mut primary_key: Option<String> = None;
         if let Some(real_path) = layer.real_path() {
-            registry
-                .real_paths
-                .write()
-                .expect("rwlock poisoned")
-                .insert(real_path.to_string_lossy().into_owned(), Arc::downgrade(&layer));
+            let key = Self::normalize_real_path_key(&real_path.to_string_lossy());
+            primary_key = Some(key.clone());
+            real_paths.insert(key, weak.clone());
+        }
+        // Second alias: resolver view of `identifier` (e.g. `b.usda` vs absolute path).
+        // Matches C++ `_TryToFindLayer` so FindOrOpen("b.usda") finds a layer opened
+        // via an anchored absolute path from composition.
+        if let Ok(resolver) = usd_ar::get_resolver().read() {
+            let resolved = resolver.resolve(layer.identifier());
+            if !resolved.is_empty() {
+                let key2 = Self::normalize_real_path_key(resolved.as_str());
+                if primary_key.as_ref() != Some(&key2) {
+                    real_paths.insert(key2, weak);
+                }
+            }
         }
     }
 
@@ -268,8 +295,9 @@ impl LayerRegistry {
         if real_path.is_empty() {
             return None;
         }
+        let key = Self::normalize_real_path_key(real_path);
         let real_paths = Self::global().real_paths.read().expect("rwlock poisoned");
-        real_paths.get(real_path).and_then(Weak::upgrade)
+        real_paths.get(&key).and_then(Weak::upgrade)
     }
 
     /// Unregisters a layer by identifier.
@@ -281,9 +309,9 @@ impl LayerRegistry {
             .expect("rwlock poisoned")
             .remove(identifier);
         if let Some(layer) = removed.and_then(|weak| Weak::upgrade(&weak)) {
+            let mut real_paths = registry.real_paths.write().expect("rwlock poisoned");
             if let Some(real_path) = layer.real_path() {
-                let key = real_path.to_string_lossy().into_owned();
-                let mut real_paths = registry.real_paths.write().expect("rwlock poisoned");
+                let key = Self::normalize_real_path_key(&real_path.to_string_lossy());
                 let should_remove = real_paths
                     .get(&key)
                     .and_then(Weak::upgrade)
@@ -291,6 +319,20 @@ impl LayerRegistry {
                     .unwrap_or(true);
                 if should_remove {
                     real_paths.remove(&key);
+                }
+            }
+            if let Ok(resolver) = usd_ar::get_resolver().read() {
+                let resolved = resolver.resolve(layer.identifier());
+                if !resolved.is_empty() {
+                    let key2 = Self::normalize_real_path_key(resolved.as_str());
+                    let should_remove = real_paths
+                        .get(&key2)
+                        .and_then(Weak::upgrade)
+                        .map(|registered| Arc::ptr_eq(&registered, &layer))
+                        .unwrap_or(true);
+                    if should_remove {
+                        real_paths.remove(&key2);
+                    }
                 }
             }
         }
@@ -799,13 +841,21 @@ impl Layer {
             }
         }
 
-        // C++ _TryToFindLayer also checks by resolved path (dual-key lookup)
+        // C++ _TryToFindLayer also checks by resolved path (dual-key lookup).
+        // Try resolving every spelling we have: canonical, stripped, and raw identifier
+        // (e.g. `./b.usda` vs `b.usda` vs absolute path from another opener).
         if !is_anonymous {
             let resolver = usd_ar::get_resolver().read().expect("rwlock poisoned");
-            let resolved = resolver.resolve(&canonical);
-            if !resolved.is_empty() {
-                if let Some(layer) = LayerRegistry::find_by_real_path(resolved.as_str()) {
-                    return wait_and_check(layer);
+            let mut uniq = BTreeSet::new();
+            uniq.insert(canonical.clone());
+            uniq.insert(stripped_path.clone());
+            uniq.insert(identifier.clone());
+            for cand in uniq {
+                let resolved = resolver.resolve(&cand);
+                if !resolved.is_empty() {
+                    if let Some(layer) = LayerRegistry::find_by_real_path(resolved.as_str()) {
+                        return wait_and_check(layer);
+                    }
                 }
             }
         }

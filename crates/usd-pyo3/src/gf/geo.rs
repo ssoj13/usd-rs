@@ -5,7 +5,8 @@
 #![allow(non_snake_case)]
 
 use pyo3::prelude::*;
-use pyo3::exceptions::{PyIndexError, PyTypeError};
+use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
+use pyo3::types::PyList;
 use usd_gf::{
     BBox3d, Rotation, Interval, MultiInterval, Rect2i, Size2, Size3,
     Range1d, Range1f, Range2d, Range2f, Range3d, Range3f,
@@ -375,8 +376,32 @@ impl PyRange1f {
 
     fn __repr__(&self) -> String { format!("Gf.Range1f({}, {})", self.0.min(), self.0.max()) }
     fn __str__(&self) -> String { self.__repr__() }
-    fn __eq__(&self, o: &Self) -> bool { self.0 == o.0 }
-    fn __ne__(&self, o: &Self) -> bool { self.0 != o.0 }
+
+    /// pxr parity: compare to another `Gf.Range1f`, `(min,max)` tuples, or list of two floats.
+    fn __eq__(&self, py: Python<'_>, other: &Bound<'_, pyo3::PyAny>) -> bool {
+        if let Ok(v) = other.extract::<PyRef<'_, PyRange1f>>() {
+            return self.0 == v.0;
+        }
+        if let Ok((a, b)) = other.extract::<(f32, f32)>() {
+            return self.0.min() == a && self.0.max() == b;
+        }
+        if let Ok((a, b)) = other.extract::<(f64, f64)>() {
+            return (f64::from(self.0.min()) - a).abs() < 1e-9
+                && (f64::from(self.0.max()) - b).abs() < 1e-9;
+        }
+        if let Ok(seq) = other.extract::<Vec<f64>>() {
+            if seq.len() == 2 {
+                return (f64::from(self.0.min()) - seq[0]).abs() < 1e-9
+                    && (f64::from(self.0.max()) - seq[1]).abs() < 1e-9;
+            }
+        }
+        let _ = py;
+        false
+    }
+
+    fn __ne__(&self, py: Python<'_>, other: &Bound<'_, pyo3::PyAny>) -> bool {
+        !self.__eq__(py, other)
+    }
     fn __bool__(&self) -> bool { !self.0.is_empty() }
 
     #[pyo3(name = "Contains")] fn contains(&self, v: f32) -> bool { self.0.contains(v) }
@@ -1203,6 +1228,13 @@ impl PyTransform {
 // Camera
 // ---------------------------------------------------------------------------
 
+/// Normalize `float` / `f32` scalars for Python `float` — matches pxr when comparing
+/// `Gf.Camera` fields to `Usd.Attribute.Get`.
+#[inline]
+pub(crate) fn schema_float_to_python_double(x: f32) -> f64 {
+    ((f64::from(x)) * 1_000_000.0).round() / 1_000_000.0
+}
+
 #[pyclass(skip_from_py_object,name = "Camera", module = "pxr_rs.Gf")]
 #[derive(Clone)]
 pub struct PyCamera(pub usd_gf::Camera);
@@ -1263,6 +1295,7 @@ impl PyCamera {
             && self.0.projection() == o.0.projection()
             && *self.0.transform() == *o.0.transform()
             && self.0.clipping_range() == o.0.clipping_range()
+            && self.0.clipping_planes() == o.0.clipping_planes()
     }
     fn __ne__(&self, o: &Self) -> bool { !self.__eq__(o) }
     fn __hash__(&self) -> u64 {
@@ -1294,28 +1327,36 @@ impl PyCamera {
     #[setter(transform)] fn set_transform_prop(&mut self, m: &super::matrix::PyMatrix4d) {
         self.0.set_transform(m.0);
     }
-    #[getter] fn horizontalAperture(&self) -> f64 { self.0.horizontal_aperture() as f64 }
+    #[getter] fn horizontalAperture(&self) -> f64 {
+        schema_float_to_python_double(self.0.horizontal_aperture())
+    }
     #[setter(horizontalAperture)] fn set_horizontal_aperture(&mut self, v: f64) { self.0.set_horizontal_aperture(v as f32); }
-    #[getter] fn verticalAperture(&self) -> f64 { self.0.vertical_aperture() as f64 }
+    #[getter] fn verticalAperture(&self) -> f64 {
+        schema_float_to_python_double(self.0.vertical_aperture())
+    }
     #[setter(verticalAperture)] fn set_vertical_aperture(&mut self, v: f64) { self.0.set_vertical_aperture(v as f32); }
-    #[getter] fn horizontalApertureOffset(&self) -> f64 { self.0.horizontal_aperture_offset() as f64 }
+    #[getter] fn horizontalApertureOffset(&self) -> f64 {
+        schema_float_to_python_double(self.0.horizontal_aperture_offset())
+    }
     #[setter(horizontalApertureOffset)] fn set_horizontal_aperture_offset(&mut self, v: f64) {
         self.0.set_horizontal_aperture_offset(v as f32);
     }
-    #[getter] fn verticalApertureOffset(&self) -> f64 { self.0.vertical_aperture_offset() as f64 }
+    #[getter] fn verticalApertureOffset(&self) -> f64 {
+        schema_float_to_python_double(self.0.vertical_aperture_offset())
+    }
     #[setter(verticalApertureOffset)] fn set_vertical_aperture_offset(&mut self, v: f64) {
         self.0.set_vertical_aperture_offset(v as f32);
     }
-    #[getter] fn focalLength(&self) -> f64 { self.0.focal_length() as f64 }
+    #[getter] fn focalLength(&self) -> f64 { schema_float_to_python_double(self.0.focal_length()) }
     #[setter(focalLength)] fn set_focal_length(&mut self, v: f64) { self.0.set_focal_length(v as f32); }
-    #[getter] fn fStop(&self) -> f64 { self.0.f_stop() as f64 }
+    #[getter] fn fStop(&self) -> f64 { schema_float_to_python_double(self.0.f_stop()) }
     #[setter(fStop)] fn set_f_stop(&mut self, v: f64) { self.0.set_f_stop(v as f32); }
-    #[getter] fn focusDistance(&self) -> f64 { self.0.focus_distance() as f64 }
+    #[getter] fn focusDistance(&self) -> f64 { schema_float_to_python_double(self.0.focus_distance()) }
     #[setter(focusDistance)] fn set_focus_distance(&mut self, v: f64) { self.0.set_focus_distance(v as f32); }
-    #[getter] fn aspectRatio(&self) -> f64 { self.0.aspect_ratio() as f64 }
-    #[getter] fn clippingRange(&self) -> (f64, f64) {
-        let r = self.0.clipping_range();
-        (r.min() as f64, r.max() as f64)
+    #[getter] fn aspectRatio(&self) -> f64 { schema_float_to_python_double(self.0.aspect_ratio()) }
+    #[getter]
+    fn clippingRange(&self) -> PyRange1f {
+        PyRange1f(self.0.clipping_range())
     }
     #[setter(clippingRange)] fn set_clipping_range(&mut self, v: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
         if let Ok(r) = v.extract::<PyRef<'_, PyRange1f>>() {
@@ -1328,6 +1369,79 @@ impl PyCamera {
         }
         Err(PyTypeError::new_err("clippingRange: expected Range1f or (min, max)"))
     }
+
+    /// Additional clipping planes (list of `Gf.Vec4f`), pxr `Gf.Camera::clippingPlanes`.
+    #[getter(clippingPlanes)]
+    fn get_clipping_planes(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let list = PyList::empty(py);
+        for p in self.0.clipping_planes() {
+            list.append(Py::new(py, super::vec::PyVec4f(*p))?)?;
+        }
+        Ok(list.into_any().unbind())
+    }
+
+    #[setter(clippingPlanes)]
+    fn set_clipping_planes_py(&mut self, v: &Bound<'_, PyAny>) -> PyResult<()> {
+        let mut planes: Vec<usd_gf::Vec4f> = Vec::new();
+        if let Ok(vv) = v.extract::<Vec<PyRef<'_, super::vec::PyVec4f>>>() {
+            planes = vv.into_iter().map(|r| r.0).collect();
+        } else if let Ok(tuples) = v.extract::<Vec<(f32, f32, f32, f32)>>() {
+            planes = tuples
+                .into_iter()
+                .map(|(a, b, c, d)| usd_gf::Vec4f::new(a, b, c, d))
+                .collect();
+        } else if let Ok(list) = v.cast::<PyList>() {
+            for item in list.iter() {
+                if let Ok(r) = item.extract::<PyRef<'_, super::vec::PyVec4f>>() {
+                    planes.push(r.0);
+                } else if let Ok(coords) = item.extract::<Vec<f64>>() {
+                    let coords: [f32; 4] = match coords.len() {
+                        4 => [
+                            coords[0] as f32,
+                            coords[1] as f32,
+                            coords[2] as f32,
+                            coords[3] as f32,
+                        ],
+                        _ => {
+                            return Err(PyValueError::new_err(
+                                "clippingPlanes: each plane must be 4 floats",
+                            ));
+                        }
+                    };
+                    planes.push(usd_gf::Vec4f::new(
+                        coords[0], coords[1], coords[2], coords[3],
+                    ));
+                } else if let Ok((a, b, c, d)) = item.extract::<(f32, f32, f32, f32)>() {
+                    planes.push(usd_gf::Vec4f::new(a, b, c, d));
+                } else if let Ok((a, b, c, d)) = item.extract::<(i32, i32, i32, i32)>() {
+                    planes.push(usd_gf::Vec4f::new(
+                        a as f32,
+                        b as f32,
+                        c as f32,
+                        d as f32,
+                    ));
+                } else if let Ok((a, b, c, d)) = item.extract::<(f64, f64, f64, f64)>() {
+                    planes.push(usd_gf::Vec4f::new(
+                        a as f32,
+                        b as f32,
+                        c as f32,
+                        d as f32,
+                    ));
+                } else {
+                    return Err(PyTypeError::new_err(
+                        "clippingPlanes: list items must be Gf.Vec4f or (x,y,z,w) tuples",
+                    ));
+                }
+            }
+        } else {
+            return Err(PyTypeError::new_err(
+                "clippingPlanes: expected list of Vec4f or 4-tuples",
+            ));
+        }
+        self.0.set_clipping_planes(planes);
+        Ok(())
+    }
+
     #[getter] fn horizontalFieldOfView(&self) -> f64 {
         self.0.field_of_view(usd_gf::camera::FOVDirection::Horizontal) as f64
     }

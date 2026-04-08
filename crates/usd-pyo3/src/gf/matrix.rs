@@ -1121,11 +1121,20 @@ impl PyMatrix4d {
         Ok(self.clone())
     }
 
-    /// SetTranslate(Vec3d) -> Matrix4d
+    /// SetTranslate(Vec3d | tuple) -> Matrix4d
     #[pyo3(name = "SetTranslate")]
-    fn set_translate(&mut self, t: &super::vec::PyVec3d) -> Self {
-        self.0.set_translate(&t.0);
-        self.clone()
+    fn set_translate(&mut self, t: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> {
+        if let Ok(v) = t.extract::<PyRef<'_, super::vec::PyVec3d>>() {
+            self.0.set_translate(&v.0);
+        } else if let Ok((x, y, z)) = t.extract::<(f64, f64, f64)>() {
+            self.0
+                .set_translate(&usd_gf::Vec3d::new(x, y, z));
+        } else {
+            return Err(pyo3::exceptions::PyTypeError::new_err(
+                "SetTranslate: expected Vec3d or 3-tuple of float",
+            ));
+        }
+        Ok(self.clone())
     }
 
     /// SetTranslateOnly(Vec3d) -> Matrix4d

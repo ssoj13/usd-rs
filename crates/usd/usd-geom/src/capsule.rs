@@ -711,6 +711,27 @@ impl Capsule1 {
     pub fn as_capsule(&self) -> &Capsule {
         &self.inner
     }
+
+    /// Matches C++ `UsdGeomCapsule_1::GetSchemaAttributeNames`.
+    ///
+    /// Local names are those of **Capsule_1** (top/bottom radii), not the legacy single `radius`.
+    pub fn get_schema_attribute_names(include_inherited: bool) -> Vec<Token> {
+        let local_names = vec![
+            usd_geom_tokens().height.clone(),
+            usd_geom_tokens().radius_top.clone(),
+            usd_geom_tokens().radius_bottom.clone(),
+            usd_geom_tokens().axis.clone(),
+            usd_geom_tokens().extent.clone(),
+        ];
+
+        if include_inherited {
+            let mut all_names = Gprim::get_schema_attribute_names(true);
+            all_names.extend(local_names);
+            all_names
+        } else {
+            local_names
+        }
+    }
 }
 
 #[cfg(test)]

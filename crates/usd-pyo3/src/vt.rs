@@ -11,7 +11,8 @@ use pyo3::types::{PyBool, PyDict, PyFloat, PyList, PySlice, PyString, PyTuple};
 
 use usd_vt::{Array, ArrayEdit, ArrayEditBuilder, Dictionary, Value};
 
-use crate::gf::matrix::{PyMatrix4d};
+use crate::gf::matrix::PyMatrix4d;
+use crate::gf::vec::{PyVec2f, PyVec3f, PyVec4f};
 
 // ============================================================================
 // Helpers
@@ -1240,23 +1241,71 @@ pub fn dict_to_py(py: Python<'_>, d: &Dictionary) -> PyResult<Py<PyAny>> {
 }
 
 /// Convert a Python object to a Rust `Value`.
+///
+/// Matches C++ `VtValue` / `TfPyConvert` behavior: typed arrays (`point3f[]`, `int[]`, …),
+/// not `VtValue`-of-`VtValue` for homogeneous sequences.
 pub fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
-    if obj.is_none() { return Ok(Value::empty()); }
+    if obj.is_none() {
+        return Ok(Value::empty());
+    }
     // bool before int (Python bool subclasses int)
-    if let Ok(b) = obj.extract::<bool>() { return Ok(Value::new(b)); }
+    if let Ok(b) = obj.extract::<bool>() {
+        return Ok(Value::new(b));
+    }
     if let Ok(i) = obj.extract::<i64>() {
         if i >= i64::from(i32::MIN) && i <= i64::from(i32::MAX) {
             return Ok(Value::new(i as i32));
         }
         return Ok(Value::new(i));
     }
-    if let Ok(u) = obj.extract::<u64>() { return Ok(Value::new(u)); }
-    if let Ok(f) = obj.extract::<f64>() { return Ok(Value::from_f64(f)); }
-    if let Ok(s) = obj.extract::<String>() { return Ok(Value::new(s)); }
-    if let Ok(d) = obj.cast::<PyDict>() {
-        return Ok(Value::from_dictionary(py_dict_to_dict(d)?.to_hash_map()));
+    if let Ok(u) = obj.extract::<u64>() {
+        return Ok(Value::new(u));
     }
-    // Handle Python lists — store as Vec<Value>
+    if let Ok(f) = obj.extract::<f64>() {
+        return Ok(Value::from_f64(f));
+    }
+    if let Ok(m) = obj.extract::<PyRef<PyMatrix4d>>() {
+        return Ok(Value::from_no_hash(m.0));
+    }
+    if let Ok(v) = obj.extract::<PyRef<PyVec2f>>() {
+        return Ok(Value::from_no_hash(v.0));
+    }
+    if let Ok(s) = obj.extract::<String>() {
+        return Ok(Value::new(s));
+    }
+    if let Ok(d) = obj.cast::<PyDict>() {
+        return Ok(Value::from_dictionary(
+            py_dict_to_dict(d)?.to_hash_map(),
+        ));
+    }
+    // Already materialized Vt arrays / wrappers
+    if let Ok(a) = obj.extract::<PyRef<PyVec3fArray>>() {
+        return Ok(Value::from_no_hash(a.inner.clone()));
+    }
+    if let Ok(a) = obj.extract::<PyRef<PyIntArray>>() {
+        return Ok(Value::from(a.inner.clone()));
+    }
+    // Homogeneous sequences (before `Vec<f64>` — otherwise `[0]` becomes `[0.0f64]`).
+    if let Some(v) = seq_to_vec3f_array_value(obj)? {
+        return Ok(v);
+    }
+    if let Some(v) = seq_to_vec4f_vec_value(obj)? {
+        return Ok(v);
+    }
+    if let Some(v) = seq_to_i32_vec_value(obj)? {
+        return Ok(v);
+    }
+    if let Ok(v) = obj.extract::<Vec<f64>>() {
+        return Ok(Value::from_no_hash(v));
+    }
+    if let Ok(v) = obj.extract::<Vec<String>>() {
+        return Ok(Value::from(v));
+    }
+    if let Ok(v) = obj.extract::<Vec<i64>>() {
+        let vi: Vec<i32> = v.into_iter().map(|x| x as i32).collect();
+        return Ok(Value::from(vi));
+    }
+    // Handle Python lists — only as a last resort: `vector[VtValue]` (rare in USD attrs)
     if let Ok(list) = obj.cast::<PyList>() {
         let mut values = Vec::new();
         for item in list.iter() {
@@ -1264,7 +1313,149 @@ pub fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
         }
         return Ok(Value::new(values));
     }
-    Ok(Value::empty())
+    if let Ok(tuple) = obj.cast::<PyTuple>() {
+        let mut values = Vec::new();
+        for item in tuple.iter() {
+            values.push(py_to_value(&item)?);
+        }
+        return Ok(Value::new(values));
+    }
+    Err(PyValueError::new_err(format!(
+        "Cannot convert Python object of type '{}' to Vt.Value",
+        obj.get_type().name()?
+    )))
+}
+
+/// `[Gf.Vec3f, ...]` or `[(f,f,f), ...]` → `VtArray<GfVec3f>` inside [`Value`].
+fn seq_to_vec3f_array_value(obj: &Bound<'_, PyAny>) -> PyResult<Option<Value>> {
+    let push_elem = |item: Bound<'_, PyAny>| -> PyResult<Option<usd_gf::Vec3f>> {
+        if let Ok(p) = item.extract::<PyRef<PyVec3f>>() {
+            return Ok(Some(p.0));
+        }
+        if let Ok((x, y, z)) = item.extract::<(f32, f32, f32)>() {
+            return Ok(Some(usd_gf::Vec3f::new(x, y, z)));
+        }
+        Ok(None)
+    };
+
+    let mut arr = Array::<usd_gf::Vec3f>::new();
+    if let Ok(list) = obj.cast::<PyList>() {
+        let n = list.len();
+        if n == 0 {
+            return Ok(None);
+        }
+        for i in 0..n {
+            let item = list.get_item(i)?;
+            let Some(v) = push_elem(item)? else {
+                return Ok(None);
+            };
+            arr.push(v);
+        }
+        return Ok(Some(Value::from_no_hash(arr)));
+    }
+    if let Ok(tuple) = obj.cast::<PyTuple>() {
+        let n = tuple.len();
+        if n == 0 {
+            return Ok(None);
+        }
+        for i in 0..n {
+            let item = tuple.get_item(i)?;
+            let Some(v) = push_elem(item)? else {
+                return Ok(None);
+            };
+            arr.push(v);
+        }
+        return Ok(Some(Value::from_no_hash(arr)));
+    }
+    Ok(None)
+}
+
+/// `[(x,y,z,w), ...]` / `[Gf.Vec4f, ...]` → `vector[GfVec4f]` for `float4[]` attrs.
+fn seq_to_vec4f_vec_value(obj: &Bound<'_, PyAny>) -> PyResult<Option<Value>> {
+    let push_elem = |item: Bound<'_, PyAny>| -> PyResult<Option<usd_gf::Vec4f>> {
+        if let Ok(p) = item.extract::<PyRef<PyVec4f>>() {
+            return Ok(Some(p.0));
+        }
+        if let Ok((x, y, z, w)) = item.extract::<(f32, f32, f32, f32)>() {
+            return Ok(Some(usd_gf::Vec4f::new(x, y, z, w)));
+        }
+        if let Ok((x, y, z, w)) = item.extract::<(i32, i32, i32, i32)>() {
+            return Ok(Some(usd_gf::Vec4f::new(
+                x as f32,
+                y as f32,
+                z as f32,
+                w as f32,
+            )));
+        }
+        if let Ok(v) = item.extract::<Vec<f64>>() {
+            if v.len() == 4 {
+                return Ok(Some(usd_gf::Vec4f::new(
+                    v[0] as f32,
+                    v[1] as f32,
+                    v[2] as f32,
+                    v[3] as f32,
+                )));
+            }
+        }
+        Ok(None)
+    };
+
+    let mut vecs: Vec<usd_gf::Vec4f> = Vec::new();
+    if let Ok(list) = obj.cast::<PyList>() {
+        let n = list.len();
+        if n == 0 {
+            return Ok(None);
+        }
+        for i in 0..n {
+            let item = list.get_item(i)?;
+            let Some(v) = push_elem(item)? else {
+                return Ok(None);
+            };
+            vecs.push(v);
+        }
+        return Ok(Some(Value::from_no_hash(vecs)));
+    }
+    Ok(None)
+}
+
+/// `[int, ...]` → `vector[int]` / `VtIntArray` compatible storage in [`Value`].
+fn seq_to_i32_vec_value(obj: &Bound<'_, PyAny>) -> PyResult<Option<Value>> {
+    let mut vec: Vec<i32> = Vec::new();
+    if let Ok(list) = obj.cast::<PyList>() {
+        let count = list.len();
+        if count == 0 {
+            return Ok(None);
+        }
+        for i in 0..count {
+            let item = list.get_item(i)?;
+            let iv: i64 = match item.extract() {
+                Ok(v) => v,
+                Err(_) => return Ok(None),
+            };
+            vec.push(i32::try_from(iv).map_err(|_| {
+                PyValueError::new_err("int array element out of i32 range")
+            })?);
+        }
+        return Ok(Some(Value::from(vec)));
+    }
+    if let Ok(tuple) = obj.cast::<PyTuple>() {
+        let count = tuple.len();
+        if count == 0 {
+            return Ok(None);
+        }
+        for i in 0..count {
+            let item = tuple.get_item(i)?;
+            let iv: i64 = match item.extract() {
+                Ok(x) => x,
+                Err(_) => return Ok(None),
+            };
+            vec.push(i32::try_from(iv).map_err(|_| {
+                PyValueError::new_err("int array element out of i32 range")
+            })?);
+        }
+        return Ok(Some(Value::from(vec)));
+    }
+    Ok(None)
 }
 
 fn py_dict_to_dict(d: &Bound<'_, PyDict>) -> PyResult<Dictionary> {

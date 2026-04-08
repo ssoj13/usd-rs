@@ -20,6 +20,7 @@ mod ar;
 mod plug;
 mod ts;
 mod usd;
+mod xform_img_delegate;
 mod geom;
 mod shade;
 mod lux;
