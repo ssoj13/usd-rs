@@ -1,28 +1,41 @@
-# Python API Parity — Current State
+# Python API Parity — Current State (2026-04-07)
 
-## What I was doing
-Adding CamelCase #[pyo3(name = "...")] aliases to ALL methods in geom.rs
-Using mcp__filesystem__bulk_edits for mass renaming — works great.
+## Test counts:
+- **Total**: 283 passed / 901 failed / 61 errors (core modules)
+- **UsdGeom**: 8 passed / 196 failed / 2 errors (was 0/206)
+- **base/gf**: 126/147 (86%)
+- **base/vt**: 24/28 (86%)
+- **usd/ar**: 36/52 (69%)
 
-## Test counts (last measured):
-- base/gf: 126/147 (86%)
-- base/vt: 24/28 (86%)
-- usd/sdf: 38/210 (18%)
-- usd/usd: 36/527 (7%)
-- usd/ar: 36/52 (69%)
-- usd/pcp: 0/111 (0%)
-- usd/usdGeom: 0/206 → should improve after CamelCase rename
-- usd/usdSkel: 4/33 (12%)
+## What was done this session:
+1. **geom.rs complete CamelCase** — ALL methods annotated with `#[pyo3(name = "CamelCase")]`
+2. **Type unification** — removed duplicate PyStage/PyPrim/PyAttribute from geom.rs, use crate::usd::*
+3. **extract_prim()** — schema wrappers (Mesh, Xform...) accepted as Prim via GetPrim() duck typing
+4. **check_xform_op()** — returns RuntimeError when adding duplicate xform ops (C++ TF_CODING_ERROR parity)
+5. **XformOp.Set/Get** — delegates to Attribute.Set/Get via Python bridge
+6. **Xform xformable methods** — AddTranslateOp, AddRotateXYZ, AddScale, GetOrderedXformOps, etc. delegated
+7. **PointInstancer.GetPath** — added
+8. **XformCommonAPI.RotationOrderXYZ** etc. — classattr constants
+9. **Tf.Type.Define/Find** — stubs for plugin test infrastructure
+10. **Plug._TestPlugBase1..4** — for cross-language inheritance tests
+11. **PrimvarsAPI.CreatePrimvar** — optional args signature fix
+12. **Stage.DefinePrim** — accepts `typeName` keyword arg
+13. **sdf.rs** — fixed ApplyRootPrimOrder mutability and UpdateCompositionAssetDependency Option
+14. **Metrics functions** — CamelCase (GetStageUpAxis etc.)
+15. **Dummy stage OnceLock** — shared instance instead of per-call creation
 
-## What's done this session
-- geom.rs: bulk CamelCase rename for all 39 schema classes (Get/Define/Apply/GetPrim/GetPath/attr methods)
-- usd.rs: Prim 30+ new methods, Stage 15 missing methods, GetPath→PyPath, Tf.Notice.Register
-- sdf.rs: Layer missing methods (GetFileFormat, Clear*, GetExternalReferences, etc.), Sdf.Find
-- pcp.rs: PyPrimIndex.from_index constructor
+## Top remaining failure patterns (UsdGeom):
+- 22: XformOp.Set → FIXED but tests expect specific value formats
+- 16: ComputeInstanceTransformsAtTimes (plural) — missing
+- 15: NotImplementedError stubs
+- 13: Gf.IsClose unsupported types
+- 7: BBoxCache kwarg includedPurposes
+- 7: PointBased.ComputePointsAtTime — missing
+- 5: CreatePrimvar type_name_str receives ValueTypeName object
 
-## What's next
-1. Finish CamelCase rename in geom.rs — remaining snake_case methods
-2. Add remaining missing methods per C++ reference for each module
-3. Focus: usd/usd (527 tests), usd/sdf (210 tests), usd/usdGeom (206 tests) — biggest impact
-4. NEVER run tests — operator does it. NEVER use sed. Use Edit tool and filesystem MCP bulk_edits.
-5. NEVER launch long-running agents. Do work directly.
+## Top remaining failure patterns (usd/usd):
+- 49: "Failed to load expected test plugin" — schema registration tests
+- 35: "0 != 1" — attribute set/get value issues
+- 6: Path object not accepted as str
+- 6: PathListOp.CreateExplicit missing
+- 5: Layer.relocates missing

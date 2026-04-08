@@ -110,6 +110,15 @@ use crate::usd::{PyStage, PyPrim, PyAttribute};
 
 /// Extract a Prim from a PyPrim or any schema wrapper with GetPrim().
 /// Mirrors C++ implicit Prim conversion from schema types.
+/// Wrap add_xform_op result: raise RuntimeError if the op already exists (invalid).
+fn check_xform_op(op: XformOp) -> PyResult<PyXformOp> {
+    if op.is_valid() {
+        Ok(PyXformOp(op))
+    } else {
+        Err(pyo3::exceptions::PyRuntimeError::new_err("Failed to add xform op (already exists or invalid)"))
+    }
+}
+
 fn extract_prim(obj: &Bound<'_, pyo3::PyAny>) -> PyResult<usd_core::Prim> {
     // Try direct PyPrim first
     if let Ok(p) = obj.cast_exact::<PyPrim>() {
@@ -461,59 +470,59 @@ impl PyXformable {
     pub fn create_xform_op_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_xform_op_order_attr()) }
 
     #[pyo3(name = "AddTranslateOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
-    pub fn add_translate_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_translate_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::Translate, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.add_xform_op(XformOpType::Translate, prec, tok.as_ref(), is_inverse_op))
     }
 
     #[pyo3(name = "AddRotateXYZOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
-    pub fn add_rotate_xyz_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_rotate_xyz_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::RotateXYZ, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.add_xform_op(XformOpType::RotateXYZ, prec, tok.as_ref(), is_inverse_op))
     }
 
     #[pyo3(name = "AddScaleOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
-    pub fn add_scale_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_scale_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::Scale, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.add_xform_op(XformOpType::Scale, prec, tok.as_ref(), is_inverse_op))
     }
 
     #[pyo3(name = "AddTransformOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
-    pub fn add_transform_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_transform_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::Transform, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.add_xform_op(XformOpType::Transform, prec, tok.as_ref(), is_inverse_op))
     }
 
     #[pyo3(name = "AddOrientOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
-    pub fn add_orient_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_orient_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::Orient, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.add_xform_op(XformOpType::Orient, prec, tok.as_ref(), is_inverse_op))
     }
 
     #[pyo3(name = "AddRotateXOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
-    pub fn add_rotate_x_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_rotate_x_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::RotateX, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.add_xform_op(XformOpType::RotateX, prec, tok.as_ref(), is_inverse_op))
     }
 
     #[pyo3(name = "AddRotateYOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
-    pub fn add_rotate_y_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_rotate_y_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::RotateY, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.add_xform_op(XformOpType::RotateY, prec, tok.as_ref(), is_inverse_op))
     }
 
     #[pyo3(name = "AddRotateZOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
-    pub fn add_rotate_z_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_rotate_z_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.add_xform_op(XformOpType::RotateZ, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.add_xform_op(XformOpType::RotateZ, prec, tok.as_ref(), is_inverse_op))
     }
 
     #[pyo3(name = "AddXformOp", signature = (op_type, precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
@@ -611,41 +620,41 @@ impl PyXform {
     pub fn create_xform_op_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.xformable().create_xform_op_order_attr()) }
 
     #[pyo3(name = "AddTranslateOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
-    pub fn add_translate_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_translate_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.xformable().add_xform_op(XformOpType::Translate, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.xformable().add_xform_op(XformOpType::Translate, prec, tok.as_ref(), is_inverse_op))
     }
     #[pyo3(name = "AddRotateXYZOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
-    pub fn add_rotate_xyz_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_rotate_xyz_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.xformable().add_xform_op(XformOpType::RotateXYZ, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.xformable().add_xform_op(XformOpType::RotateXYZ, prec, tok.as_ref(), is_inverse_op))
     }
     #[pyo3(name = "AddScaleOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
-    pub fn add_scale_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_scale_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.xformable().add_xform_op(XformOpType::Scale, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.xformable().add_xform_op(XformOpType::Scale, prec, tok.as_ref(), is_inverse_op))
     }
     #[pyo3(name = "AddTransformOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
-    pub fn add_transform_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_transform_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.xformable().add_xform_op(XformOpType::Transform, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.xformable().add_xform_op(XformOpType::Transform, prec, tok.as_ref(), is_inverse_op))
     }
     #[pyo3(name = "AddOrientOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
-    pub fn add_orient_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+    pub fn add_orient_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
         let tok = suffix.map(Token::new);
-        PyXformOp(self.0.xformable().add_xform_op(XformOpType::Orient, prec, tok.as_ref(), is_inverse_op))
+        check_xform_op(self.0.xformable().add_xform_op(XformOpType::Orient, prec, tok.as_ref(), is_inverse_op))
     }
     #[pyo3(name = "AddXformOp", signature = (op_type, precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
     pub fn add_xform_op(&self, op_type: &str, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
         let op_t = parse_xform_op_type(op_type)?;
         let prec = parse_xform_precision(precision)?;
         let tok = suffix.map(Token::new);
-        Ok(PyXformOp(self.0.xformable().add_xform_op(op_t, prec, tok.as_ref(), is_inverse_op)))
+        check_xform_op(self.0.xformable().add_xform_op(op_t, prec, tok.as_ref(), is_inverse_op))
     }
     #[pyo3(name = "GetOrderedXformOps")]
     pub fn get_ordered_xform_ops(&self) -> Vec<PyXformOp> {

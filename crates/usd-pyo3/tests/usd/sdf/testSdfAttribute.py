@@ -11,7 +11,7 @@ from pxr_rs import Sdf, Tf, Gf, Vt
 import sys, unittest
 
 # This class is derived by format-specific test cases below.
-class TestSdfAttributeBase():
+class _SdfAttributeBase():
 
     def CreateAnonymous(self):
         return Sdf.Layer.CreateAnonymous(self.extension)
@@ -790,10 +790,10 @@ def Sphere "Foo"
             p3fa.QueryTimeSample(1.0))
 
 
-class TestSdfAttributeUsda(TestSdfAttributeBase, unittest.TestCase):
+class TestSdfAttributeUsda(_SdfAttributeBase, unittest.TestCase):
     extension = 'usda'
 
-class TestSdfAttributeUsdc(TestSdfAttributeBase, unittest.TestCase):
+class TestSdfAttributeUsdc(_SdfAttributeBase, unittest.TestCase):
     extension = 'usdc'
 
 if __name__ == '__main__':
