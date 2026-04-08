@@ -689,8 +689,8 @@ impl PyPrim {
     }
 
     #[allow(non_snake_case)]
-    fn GetPath(&self) -> String {
-        self.inner.get_path().as_str().to_string()
+    fn GetPath(&self) -> crate::sdf::PyPath {
+        crate::sdf::PyPath::from_path(self.inner.get_path().clone())
     }
 
     /// Returns the prim path (same as GetPath).
@@ -1924,8 +1924,8 @@ impl PyAttribute {
     // -- Identity ----------------------------------------------------------
 
     #[allow(non_snake_case)]
-    fn GetPath(&self) -> String {
-        self.inner.path().as_str().to_string()
+    fn GetPath(&self) -> crate::sdf::PyPath {
+        crate::sdf::PyPath::from_path(self.inner.path().clone())
     }
 
     #[allow(non_snake_case)]
@@ -2315,8 +2315,8 @@ impl PyRelationship {
     // -- Identity ----------------------------------------------------------
 
     #[allow(non_snake_case)]
-    fn GetPath(&self) -> String {
-        self.inner.path().as_str().to_string()
+    fn GetPath(&self) -> crate::sdf::PyPath {
+        crate::sdf::PyPath::from_path(self.inner.path().clone())
     }
 
     #[allow(non_snake_case)]
@@ -2514,8 +2514,8 @@ impl PySchemaBase {
     }
 
     #[allow(non_snake_case)]
-    fn GetPath(&self) -> String {
-        self.prim.get_path().as_str().to_string()
+    fn GetPath(&self) -> crate::sdf::PyPath {
+        crate::sdf::PyPath::from_path(self.prim.get_path().clone())
     }
 
     #[allow(non_snake_case)]
