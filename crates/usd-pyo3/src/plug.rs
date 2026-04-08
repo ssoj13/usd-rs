@@ -66,6 +66,51 @@ impl PyPlugRegistry {
 }
 
 // ============================================================================
+// _TestPlugBase — test infrastructure for plugin cross-language inheritance
+// ============================================================================
+
+/// Base class for Plug test modules (mirrors C++ `_TestPlugBase<N>`).
+/// Python test modules derive from these to test plugin discovery.
+macro_rules! test_plug_base {
+    ($name:ident, $py_name:literal) => {
+        #[pyclass(subclass, name = $py_name, module = "pxr_rs.Plug")]
+        pub struct $name;
+
+        #[pymethods]
+        impl $name {
+            #[new]
+            fn new() -> Self { Self }
+
+            #[pyo3(name = "GetTypeName")]
+            fn get_type_name(&self) -> String { $py_name.to_owned() }
+        }
+    };
+}
+
+test_plug_base!(PyTestPlugBase1, "_TestPlugBase1");
+test_plug_base!(PyTestPlugBase2, "_TestPlugBase2");
+test_plug_base!(PyTestPlugBase3, "_TestPlugBase3");
+test_plug_base!(PyTestPlugBase4, "_TestPlugBase4");
+
+// ============================================================================
+// Plugin — wraps a discovered plugin handle
+// ============================================================================
+
+/// Wraps a single discovered plugin (mirrors `pxr.Plug.Plugin`).
+#[pyclass(name = "Plugin", module = "pxr_rs.Plug")]
+pub struct PyPlugin {
+    name: String,
+}
+
+#[pymethods]
+impl PyPlugin {
+    #[pyo3(name = "GetName")]
+    fn get_name(&self) -> &str { &self.name }
+
+    fn __repr__(&self) -> String { format!("Plug.Plugin('{}')", self.name) }
+}
+
+// ============================================================================
 // Module registration
 // ============================================================================
 
@@ -73,5 +118,10 @@ impl PyPlugRegistry {
 pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let _ = py;
     m.add_class::<PyPlugRegistry>()?;
+    m.add_class::<PyTestPlugBase1>()?;
+    m.add_class::<PyTestPlugBase2>()?;
+    m.add_class::<PyTestPlugBase3>()?;
+    m.add_class::<PyTestPlugBase4>()?;
+    m.add_class::<PyPlugin>()?;
     Ok(())
 }

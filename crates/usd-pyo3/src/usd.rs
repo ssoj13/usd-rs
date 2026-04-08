@@ -681,7 +681,17 @@ pub struct PyPrim {
 }
 
 impl PyPrim {
-    fn from_prim(prim: Prim, stage: Arc<Stage>) -> Self {
+    pub(crate) fn from_prim(prim: Prim, stage: Arc<Stage>) -> Self {
+        Self { inner: prim, _stage: stage }
+    }
+    /// Construct from a prim when stage handle is not available (geom wrappers).
+    /// Uses a shared dummy stage to avoid creating one per call.
+    pub(crate) fn from_prim_auto(prim: Prim) -> Self {
+        static DUMMY: std::sync::OnceLock<Arc<Stage>> = std::sync::OnceLock::new();
+        let stage = DUMMY.get_or_init(|| {
+            Stage::create_new("__dummy__", InitialLoadSet::LoadNone)
+                .expect("dummy stage creation")
+        }).clone();
         Self { inner: prim, _stage: stage }
     }
 }
@@ -2031,8 +2041,20 @@ impl PySpecializes {
 #[pyclass(skip_from_py_object,name = "Attribute", module = "pxr_rs.Usd")]
 #[derive(Clone)]
 pub struct PyAttribute {
-    inner: Attribute,
+    pub(crate) inner: Attribute,
     _stage: Arc<Stage>,
+}
+
+impl PyAttribute {
+    /// Construct from a bare Attribute (geom wrappers).
+    pub(crate) fn from_attr(attr: Attribute) -> Self {
+        static DUMMY: std::sync::OnceLock<Arc<Stage>> = std::sync::OnceLock::new();
+        let stage = DUMMY.get_or_init(|| {
+            Stage::create_new("__dummy_attr__", InitialLoadSet::LoadNone)
+                .expect("dummy stage creation")
+        }).clone();
+        Self { inner: attr, _stage: stage }
+    }
 }
 
 #[pymethods]
@@ -2923,9 +2945,16 @@ impl PyStage {
 
     // -- Authoring ---------------------------------------------------------
 
-    #[pyo3(signature = (path, type_name = ""))]
+    #[pyo3(signature = (path, type_name = "", **kwargs))]
     #[allow(non_snake_case)]
-    fn DefinePrim(&self, path: &Bound<'_, PyAny>, type_name: &str) -> PyResult<PyPrim> {
+    fn DefinePrim(&self, path: &Bound<'_, PyAny>, type_name: &str, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<PyPrim> {
+        // Support both positional type_name and keyword typeName
+        let type_name = if let Some(kw) = kwargs {
+            if let Some(tn) = kw.get_item("typeName")? {
+                tn.extract::<String>()?
+            } else { type_name.to_owned() }
+        } else { type_name.to_owned() };
+        let type_name = &type_name;
         let s = extract_path_str(path)?;
         self.inner
             .define_prim(&s, type_name)

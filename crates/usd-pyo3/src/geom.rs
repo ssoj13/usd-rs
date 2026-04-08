@@ -105,28 +105,23 @@ fn parse_rotation_order(s: &str) -> PyResult<RotationOrder> {
     })
 }
 
-// ============================================================================
-// Core opaque wrappers (Stage / Prim / Attribute)
-// ============================================================================
+// Re-use core wrappers from usd module — PyO3 needs a single pyclass per type.
+use crate::usd::{PyStage, PyPrim, PyAttribute};
 
-/// Opaque wrapper for Arc<Stage> — passed in from pxr.Usd.Stage.
-#[pyclass(name = "Stage", module = "pxr_rs.Usd")]
-pub struct PyStage(pub std::sync::Arc<usd_core::Stage>);
-
-/// Opaque wrapper for Prim.
-#[pyclass(name = "Prim", module = "pxr_rs.Usd")]
-pub struct PyPrim(pub usd_core::Prim);
-
-/// Opaque wrapper for Attribute.
-#[pyclass(name = "Attribute", module = "pxr_rs.Usd")]
-pub struct PyAttribute(pub usd_core::Attribute);
-
-#[pymethods]
-impl PyAttribute {
-    #[pyo3(name = "GetName")] pub fn get_name(&self) -> String { self.0.name().as_str().to_owned() }
-    #[pyo3(name = "IsValid")] pub fn is_valid(&self) -> bool { self.0.is_valid() }
-    pub fn __bool__(&self) -> bool { self.0.is_valid() }
-    pub fn __repr__(&self) -> String { format!("Usd.Attribute('{}')", self.0.name()) }
+/// Extract a Prim from a PyPrim or any schema wrapper with GetPrim().
+/// Mirrors C++ implicit Prim conversion from schema types.
+fn extract_prim(obj: &Bound<'_, pyo3::PyAny>) -> PyResult<usd_core::Prim> {
+    // Try direct PyPrim first
+    if let Ok(p) = obj.cast_exact::<PyPrim>() {
+        return Ok(p.borrow().inner.clone());
+    }
+    // Try calling GetPrim() on schema wrappers (Mesh, Xform, etc.)
+    if let Ok(prim_obj) = obj.call_method0("GetPrim") {
+        if let Ok(p) = prim_obj.cast_exact::<PyPrim>() {
+            return Ok(p.borrow().inner.clone());
+        }
+    }
+    Err(PyValueError::new_err("Expected a Prim or schema object with GetPrim()"))
 }
 
 // ============================================================================
@@ -204,11 +199,38 @@ pub struct PyXformOp(pub XformOp);
 #[pymethods]
 impl PyXformOp {
     #[pyo3(name = "GetOpType")] pub fn get_op_type(&self) -> String { format!("{}", self.0.op_type()) }
-    #[pyo3(name = "GetAttr")] pub fn get_attr(&self) -> PyAttribute { PyAttribute(self.0.attr().clone()) }
+    #[pyo3(name = "GetAttr")] pub fn get_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.attr().clone()) }
     #[pyo3(name = "GetName")] pub fn get_name(&self) -> String { self.0.op_name().as_str().to_owned() }
     #[pyo3(name = "GetBaseName")] pub fn get_base_name(&self) -> String { self.0.op_name().as_str().to_owned() }
     #[pyo3(name = "IsInverseOp")] pub fn is_inverse_op(&self) -> bool { self.0.is_inverse_op() }
     #[pyo3(name = "IsDefined")] pub fn is_defined(&self) -> bool { self.0.is_valid() }
+
+    /// Set the value of this xform op. Delegates to Attribute.Set().
+    #[pyo3(name = "Set", signature = (value, time=None))]
+    pub fn set(&self, py: pyo3::Python<'_>, value: &Bound<'_, pyo3::PyAny>, time: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<bool> {
+        // Wrap inner attr as PyAttribute and call its Set method
+        let py_attr = PyAttribute::from_attr(self.0.attr().clone());
+        let bound = pyo3::Bound::new(py, py_attr)?;
+        let args = match time {
+            Some(t) => pyo3::types::PyTuple::new(py, &[value.clone(), t.clone()])?,
+            None => pyo3::types::PyTuple::new(py, &[value.clone()])?,
+        };
+        let result = bound.call_method1("Set", args)?;
+        result.extract::<bool>()
+    }
+
+    /// Get the value of this xform op at a time.
+    #[pyo3(name = "Get", signature = (time=None))]
+    pub fn get_value(&self, py: pyo3::Python<'_>, time: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<pyo3::Py<pyo3::PyAny>> {
+        let py_attr = PyAttribute::from_attr(self.0.attr().clone());
+        let bound = pyo3::Bound::new(py, py_attr)?;
+        let result = match time {
+            Some(t) => bound.call_method1("Get", (t,))?,
+            None => bound.call_method0("Get")?,
+        };
+        Ok(result.unbind())
+    }
+
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
     pub fn __repr__(&self) -> String { format!("UsdGeom.XformOp('{}')", self.0.op_name()) }
@@ -230,7 +252,7 @@ impl PyPrimvar {
     #[pyo3(name = "HasValue")] pub fn has_value(&self) -> bool { self.0.has_value() }
     #[pyo3(name = "HasAuthoredValue")] pub fn has_authored_value(&self) -> bool { self.0.has_authored_value() }
     #[pyo3(name = "IsIndexed")] pub fn is_indexed(&self) -> bool { self.0.is_indexed() }
-    #[pyo3(name = "GetAttr")] pub fn get_attr(&self) -> PyAttribute { PyAttribute(self.0.get_attr().clone()) }
+    #[pyo3(name = "GetAttr")] pub fn get_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_attr().clone()) }
     #[pyo3(name = "GetName")] pub fn get_name(&self) -> String { self.0.get_attr().name().as_str().to_owned() }
     #[pyo3(name = "GetPrimvarName")] pub fn get_primvar_name(&self) -> String { self.0.get_primvar_name().as_str().to_owned() }
     #[pyo3(name = "GetTypeName")] pub fn get_type_name(&self) -> String { self.0.get_type_name().to_string() }
@@ -240,7 +262,7 @@ impl PyPrimvar {
     pub fn is_defined(&self) -> bool { self.0.is_valid() }
     #[pyo3(name = "IsPrimvar")]
     #[staticmethod]
-    pub fn is_primvar(attr: &PyAttribute) -> bool { Primvar::is_primvar(&attr.0) }
+    pub fn is_primvar(attr: &PyAttribute) -> bool { Primvar::is_primvar(&attr.inner) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
     pub fn __repr__(&self) -> String { format!("UsdGeom.Primvar('{}')", self.0.get_attr().name()) }
@@ -271,12 +293,12 @@ impl PyBBoxCache {
 
     #[pyo3(name = "ComputeWorldBound")]
     pub fn compute_world_bound(&mut self, prim: &PyPrim) -> Vec<f64> {
-        bbox_to_flat(&self.0.compute_world_bound(&prim.0))
+        bbox_to_flat(&self.0.compute_world_bound(&prim.inner))
     }
 
     #[pyo3(name = "ComputeLocalBound")]
     pub fn compute_local_bound(&mut self, prim: &PyPrim) -> Vec<f64> {
-        bbox_to_flat(&self.0.compute_local_bound(&prim.0))
+        bbox_to_flat(&self.0.compute_local_bound(&prim.inner))
     }
 
     #[pyo3(name = "SetTime")]
@@ -308,12 +330,12 @@ impl PyXformCache {
 
     #[pyo3(name = "GetLocalToWorldTransform")]
     pub fn get_local_to_world_transform(&mut self, prim: &PyPrim) -> Vec<f64> {
-        mat4_to_flat(&self.0.get_local_to_world_transform(&prim.0))
+        mat4_to_flat(&self.0.get_local_to_world_transform(&prim.inner))
     }
 
     #[pyo3(name = "GetParentToWorldTransform")]
     pub fn get_parent_to_world_transform(&mut self, prim: &PyPrim) -> Vec<f64> {
-        mat4_to_flat(&self.0.get_parent_to_world_transform(&prim.0))
+        mat4_to_flat(&self.0.get_parent_to_world_transform(&prim.inner))
     }
 
     #[pyo3(name = "SetTime")]
@@ -336,22 +358,22 @@ pub struct PyImageable(pub Imageable);
 #[pymethods]
 impl PyImageable {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Imageable::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Imageable::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        let prim = stage.0.get_prim_at_path(&p)
+        let prim = stage.inner.get_prim_at_path(&p)
             .ok_or_else(|| PyValueError::new_err(format!("No prim at '{path}'")))?;
         Ok(Self(Imageable::new(prim)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     #[pyo3(name = "GetPath")] pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
-    #[pyo3(name = "GetVisibilityAttr")] pub fn get_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_visibility_attr()) }
-    #[pyo3(name = "CreateVisibilityAttr")] pub fn create_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_visibility_attr()) }
-    #[pyo3(name = "GetPurposeAttr")] pub fn get_purpose_attr(&self) -> PyAttribute { PyAttribute(self.0.get_purpose_attr()) }
-    #[pyo3(name = "CreatePurposeAttr")] pub fn create_purpose_attr(&self) -> PyAttribute { PyAttribute(self.0.create_purpose_attr()) }
+    #[pyo3(name = "GetVisibilityAttr")] pub fn get_visibility_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_visibility_attr()) }
+    #[pyo3(name = "CreateVisibilityAttr")] pub fn create_visibility_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_visibility_attr()) }
+    #[pyo3(name = "GetPurposeAttr")] pub fn get_purpose_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_purpose_attr()) }
+    #[pyo3(name = "CreatePurposeAttr")] pub fn create_purpose_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_purpose_attr()) }
 
     #[pyo3(name = "ComputeVisibility", signature = (time=None))] pub fn compute_visibility(&self, time: Option<f64>) -> String {
         self.0.compute_visibility(tc(time)).as_str().to_owned()
@@ -420,23 +442,23 @@ pub struct PyXformable(pub Xformable);
 #[pymethods]
 impl PyXformable {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Xformable::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Xformable::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        let prim = stage.0.get_prim_at_path(&p)
+        let prim = stage.inner.get_prim_at_path(&p)
             .ok_or_else(|| PyValueError::new_err(format!("No prim at '{path}'")))?;
         Ok(Self(Xformable::new(prim)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     #[pyo3(name = "GetPath")]
     pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     #[pyo3(name = "GetXformOpOrderAttr")]
-    pub fn get_xform_op_order_attr(&self) -> PyAttribute { PyAttribute(self.0.get_xform_op_order_attr()) }
+    pub fn get_xform_op_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_xform_op_order_attr()) }
     #[pyo3(name = "CreateXformOpOrderAttr")]
-    pub fn create_xform_op_order_attr(&self) -> PyAttribute { PyAttribute(self.0.create_xform_op_order_attr()) }
+    pub fn create_xform_op_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_xform_op_order_attr()) }
 
     #[pyo3(name = "AddTranslateOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
     pub fn add_translate_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
@@ -557,21 +579,21 @@ pub struct PyXform(pub Xform);
 #[pymethods]
 impl PyXform {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Xform::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Xform::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Xform::get(&stage.0, &p)))
+        Ok(Self(Xform::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Xform::define(&stage.0, &p)))
+        Ok(Self(Xform::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     #[pyo3(name = "GetPath")]
     pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
@@ -581,6 +603,77 @@ impl PyXform {
         if self.0.is_valid() { format!("UsdGeom.Xform('{}')", self.0.prim().path()) }
         else { "UsdGeom.Xform(<invalid>)".to_owned() }
     }
+
+    // --- Xformable methods delegated through xformable() ---
+    #[pyo3(name = "GetXformOpOrderAttr")]
+    pub fn get_xform_op_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.xformable().get_xform_op_order_attr()) }
+    #[pyo3(name = "CreateXformOpOrderAttr")]
+    pub fn create_xform_op_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.xformable().create_xform_op_order_attr()) }
+
+    #[pyo3(name = "AddTranslateOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
+    pub fn add_translate_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
+        let tok = suffix.map(Token::new);
+        PyXformOp(self.0.xformable().add_xform_op(XformOpType::Translate, prec, tok.as_ref(), is_inverse_op))
+    }
+    #[pyo3(name = "AddRotateXYZOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
+    pub fn add_rotate_xyz_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
+        let tok = suffix.map(Token::new);
+        PyXformOp(self.0.xformable().add_xform_op(XformOpType::RotateXYZ, prec, tok.as_ref(), is_inverse_op))
+    }
+    #[pyo3(name = "AddScaleOp", signature = (precision="PrecisionFloat", suffix=None, is_inverse_op=false))]
+    pub fn add_scale_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Float);
+        let tok = suffix.map(Token::new);
+        PyXformOp(self.0.xformable().add_xform_op(XformOpType::Scale, prec, tok.as_ref(), is_inverse_op))
+    }
+    #[pyo3(name = "AddTransformOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
+    pub fn add_transform_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
+        let tok = suffix.map(Token::new);
+        PyXformOp(self.0.xformable().add_xform_op(XformOpType::Transform, prec, tok.as_ref(), is_inverse_op))
+    }
+    #[pyo3(name = "AddOrientOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
+    pub fn add_orient_op(&self, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyXformOp {
+        let prec = parse_xform_precision(precision).unwrap_or(XformOpPrecision::Double);
+        let tok = suffix.map(Token::new);
+        PyXformOp(self.0.xformable().add_xform_op(XformOpType::Orient, prec, tok.as_ref(), is_inverse_op))
+    }
+    #[pyo3(name = "AddXformOp", signature = (op_type, precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
+    pub fn add_xform_op(&self, op_type: &str, precision: &str, suffix: Option<&str>, is_inverse_op: bool) -> PyResult<PyXformOp> {
+        let op_t = parse_xform_op_type(op_type)?;
+        let prec = parse_xform_precision(precision)?;
+        let tok = suffix.map(Token::new);
+        Ok(PyXformOp(self.0.xformable().add_xform_op(op_t, prec, tok.as_ref(), is_inverse_op)))
+    }
+    #[pyo3(name = "GetOrderedXformOps")]
+    pub fn get_ordered_xform_ops(&self) -> Vec<PyXformOp> {
+        self.0.xformable().get_ordered_xform_ops().into_iter().map(PyXformOp).collect()
+    }
+    #[pyo3(name = "GetLocalTransformation", signature = (time=None))]
+    pub fn get_local_transformation(&self, time: Option<f64>) -> (Vec<f64>, bool) {
+        let (mat, resets) = self.0.xformable().get_local_transformation_with_reset(tc(time));
+        (mat4_to_flat(&mat), resets)
+    }
+    #[pyo3(name = "TransformMightBeTimeVarying")]
+    pub fn transform_might_be_time_varying(&self) -> bool { self.0.xformable().transform_might_be_time_varying() }
+    #[pyo3(name = "MakeMatrixXform")]
+    pub fn make_matrix_xform(&self) -> PyXformOp { PyXformOp(self.0.xformable().make_matrix_xform()) }
+    #[pyo3(name = "ClearXformOpOrder")]
+    pub fn clear_xform_op_order(&self) -> bool { self.0.xformable().clear_xform_op_order() }
+    #[pyo3(name = "GetResetXformStack")]
+    pub fn get_reset_xform_stack(&self) -> bool { self.0.xformable().get_reset_xform_stack() }
+    #[pyo3(name = "SetResetXformStack")]
+    pub fn set_reset_xform_stack(&self, reset: bool) -> bool { self.0.xformable().set_reset_xform_stack(reset) }
+
+    // --- Imageable methods ---
+    #[pyo3(name = "GetVisibilityAttr")]
+    pub fn get_visibility_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.xformable().imageable().get_visibility_attr()) }
+    #[pyo3(name = "GetPurposeAttr")]
+    pub fn get_purpose_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.xformable().imageable().get_purpose_attr()) }
+    #[pyo3(name = "ComputeVisibility", signature = (time=None))]
+    pub fn compute_visibility(&self, time: Option<f64>) -> String { self.0.xformable().imageable().compute_visibility(tc(time)).as_str().to_owned() }
 
     #[staticmethod]
     #[pyo3(name = "GetSchemaTypeName")] pub fn get_schema_type_name() -> &'static str { "Xform" }
@@ -596,11 +689,11 @@ pub struct PyBoundable(pub Boundable);
 #[pymethods]
 impl PyBoundable {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Boundable::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Boundable::new(extract_prim(prim)?))) }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetExtentAttr")] pub fn get_extent_attr(&self) -> PyAttribute { PyAttribute(self.0.get_extent_attr()) }
-    #[pyo3(name = "CreateExtentAttr")] pub fn create_extent_attr(&self) -> PyAttribute { PyAttribute(self.0.create_extent_attr()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetExtentAttr")] pub fn get_extent_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_extent_attr()) }
+    #[pyo3(name = "CreateExtentAttr")] pub fn create_extent_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_extent_attr()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -623,10 +716,10 @@ pub struct PyScope(pub Scope);
 #[pymethods]
 impl PyScope {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Scope::new(prim.0.clone())) }
-    #[staticmethod] #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::get(&stage.0, &p))) }
-    #[staticmethod] #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::define(&stage.0, &p))) }
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Scope::new(extract_prim(prim)?))) }
+    #[staticmethod] #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::get(&stage.inner, &p))) }
+    #[staticmethod] #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> { let p = parse_path(path)?; Ok(Self(Scope::define(&stage.inner, &p))) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     #[pyo3(name = "GetPath")] pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
@@ -645,17 +738,17 @@ pub struct PyGprim(pub Gprim);
 #[pymethods]
 impl PyGprim {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Gprim::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Gprim::new(extract_prim(prim)?))) }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetDisplayColorAttr")] pub fn get_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.get_display_color_attr()) }
-    #[pyo3(name = "CreateDisplayColorAttr")] pub fn create_display_color_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_color_attr()) }
-    #[pyo3(name = "GetDisplayOpacityAttr")] pub fn get_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.get_display_opacity_attr()) }
-    #[pyo3(name = "CreateDisplayOpacityAttr")] pub fn create_display_opacity_attr(&self) -> PyAttribute { PyAttribute(self.0.create_display_opacity_attr()) }
-    #[pyo3(name = "GetDoubleSidedAttr")] pub fn get_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.get_double_sided_attr()) }
-    #[pyo3(name = "CreateDoubleSidedAttr")] pub fn create_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.create_double_sided_attr()) }
-    #[pyo3(name = "GetOrientationAttr")] pub fn get_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.get_orientation_attr()) }
-    #[pyo3(name = "CreateOrientationAttr")] pub fn create_orientation_attr(&self) -> PyAttribute { PyAttribute(self.0.create_orientation_attr()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetDisplayColorAttr")] pub fn get_display_color_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_display_color_attr()) }
+    #[pyo3(name = "CreateDisplayColorAttr")] pub fn create_display_color_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_display_color_attr()) }
+    #[pyo3(name = "GetDisplayOpacityAttr")] pub fn get_display_opacity_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_display_opacity_attr()) }
+    #[pyo3(name = "CreateDisplayOpacityAttr")] pub fn create_display_opacity_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_display_opacity_attr()) }
+    #[pyo3(name = "GetDoubleSidedAttr")] pub fn get_double_sided_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_double_sided_attr()) }
+    #[pyo3(name = "CreateDoubleSidedAttr")] pub fn create_double_sided_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_double_sided_attr()) }
+    #[pyo3(name = "GetOrientationAttr")] pub fn get_orientation_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_orientation_attr()) }
+    #[pyo3(name = "CreateOrientationAttr")] pub fn create_orientation_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_orientation_attr()) }
     #[pyo3(name = "GetDisplayColorPrimvar")] pub fn get_display_color_primvar(&self) -> PyPrimvar { PyPrimvar(self.0.get_display_color_primvar()) }
     #[pyo3(name = "GetDisplayOpacityPrimvar")] pub fn get_display_opacity_primvar(&self) -> PyPrimvar { PyPrimvar(self.0.get_display_opacity_primvar()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
@@ -680,21 +773,21 @@ pub struct PyMesh(pub Mesh);
 #[pymethods]
 impl PyMesh {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Mesh::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Mesh::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Mesh::get(&stage.0, &p)))
+        Ok(Self(Mesh::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Mesh::define(&stage.0, &p)))
+        Ok(Self(Mesh::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     #[pyo3(name = "GetPath")] pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
     #[pyo3(name = "GetFaceCount", signature = (time=None))]
     pub fn get_face_count(&self, time: Option<f64>) -> usize { self.0.get_face_count(tc(time)) }
@@ -731,37 +824,37 @@ impl PyMesh {
     }
 
     // topology
-    #[pyo3(name = "GetFaceVertexIndicesAttr")] pub fn get_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_face_vertex_indices_attr()) }
-    #[pyo3(name = "CreateFaceVertexIndicesAttr")] pub fn create_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_face_vertex_indices_attr(None, false)) }
-    #[pyo3(name = "GetFaceVertexCountsAttr")] pub fn get_face_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.get_face_vertex_counts_attr()) }
-    #[pyo3(name = "CreateFaceVertexCountsAttr")] pub fn create_face_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.create_face_vertex_counts_attr(None, false)) }
-    #[pyo3(name = "GetSubdivisionSchemeAttr")] pub fn get_subdivision_scheme_attr(&self) -> PyAttribute { PyAttribute(self.0.get_subdivision_scheme_attr()) }
-    #[pyo3(name = "CreateSubdivisionSchemeAttr")] pub fn create_subdivision_scheme_attr(&self) -> PyAttribute { PyAttribute(self.0.create_subdivision_scheme_attr(None, false)) }
-    #[pyo3(name = "GetInterpolateBoundaryAttr")] pub fn get_interpolate_boundary_attr(&self) -> PyAttribute { PyAttribute(self.0.get_interpolate_boundary_attr()) }
-    #[pyo3(name = "CreateInterpolateBoundaryAttr")] pub fn create_interpolate_boundary_attr(&self) -> PyAttribute { PyAttribute(self.0.create_interpolate_boundary_attr(None, false)) }
-    #[pyo3(name = "GetFaceVaryingLinearInterpolationAttr")] pub fn get_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute(self.0.get_face_varying_linear_interpolation_attr()) }
-    #[pyo3(name = "CreateFaceVaryingLinearInterpolationAttr")] pub fn create_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute(self.0.create_face_varying_linear_interpolation_attr(None, false)) }
+    #[pyo3(name = "GetFaceVertexIndicesAttr")] pub fn get_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_face_vertex_indices_attr()) }
+    #[pyo3(name = "CreateFaceVertexIndicesAttr")] pub fn create_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_face_vertex_indices_attr(None, false)) }
+    #[pyo3(name = "GetFaceVertexCountsAttr")] pub fn get_face_vertex_counts_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_face_vertex_counts_attr()) }
+    #[pyo3(name = "CreateFaceVertexCountsAttr")] pub fn create_face_vertex_counts_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_face_vertex_counts_attr(None, false)) }
+    #[pyo3(name = "GetSubdivisionSchemeAttr")] pub fn get_subdivision_scheme_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_subdivision_scheme_attr()) }
+    #[pyo3(name = "CreateSubdivisionSchemeAttr")] pub fn create_subdivision_scheme_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_subdivision_scheme_attr(None, false)) }
+    #[pyo3(name = "GetInterpolateBoundaryAttr")] pub fn get_interpolate_boundary_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_interpolate_boundary_attr()) }
+    #[pyo3(name = "CreateInterpolateBoundaryAttr")] pub fn create_interpolate_boundary_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_interpolate_boundary_attr(None, false)) }
+    #[pyo3(name = "GetFaceVaryingLinearInterpolationAttr")] pub fn get_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_face_varying_linear_interpolation_attr()) }
+    #[pyo3(name = "CreateFaceVaryingLinearInterpolationAttr")] pub fn create_face_varying_linear_interpolation_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_face_varying_linear_interpolation_attr(None, false)) }
 
     // points (via point_based)
-    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_points_attr()) }
-    #[pyo3(name = "CreatePointsAttr")] pub fn create_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().create_points_attr(None, false)) }
-    #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_velocities_attr()) }
-    #[pyo3(name = "GetNormalsAttr")] pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_normals_attr()) }
-    #[pyo3(name = "CreateNormalsAttr")] pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().create_normals_attr(None, false)) }
+    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().get_points_attr()) }
+    #[pyo3(name = "CreatePointsAttr")] pub fn create_points_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().create_points_attr(None, false)) }
+    #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().get_velocities_attr()) }
+    #[pyo3(name = "GetNormalsAttr")] pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().get_normals_attr()) }
+    #[pyo3(name = "CreateNormalsAttr")] pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().create_normals_attr(None, false)) }
 
     // crease / corner / hole
-    #[pyo3(name = "GetCreaseIndicesAttr")] pub fn get_crease_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_crease_indices_attr()) }
-    #[pyo3(name = "CreateCreaseIndicesAttr")] pub fn create_crease_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_crease_indices_attr(None, false)) }
-    #[pyo3(name = "GetCreaseLengthsAttr")] pub fn get_crease_lengths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_crease_lengths_attr()) }
-    #[pyo3(name = "CreateCreaseLengthsAttr")] pub fn create_crease_lengths_attr(&self) -> PyAttribute { PyAttribute(self.0.create_crease_lengths_attr(None, false)) }
-    #[pyo3(name = "GetCreaseSharpnessesAttr")] pub fn get_crease_sharpnesses_attr(&self) -> PyAttribute { PyAttribute(self.0.get_crease_sharpnesses_attr()) }
-    #[pyo3(name = "CreateCreaseSharpnessesAttr")] pub fn create_crease_sharpnesses_attr(&self) -> PyAttribute { PyAttribute(self.0.create_crease_sharpnesses_attr(None, false)) }
-    #[pyo3(name = "GetCornerIndicesAttr")] pub fn get_corner_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_corner_indices_attr()) }
-    #[pyo3(name = "CreateCornerIndicesAttr")] pub fn create_corner_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_corner_indices_attr(None, false)) }
-    #[pyo3(name = "GetCornerSharpnessesAttr")] pub fn get_corner_sharpnesses_attr(&self) -> PyAttribute { PyAttribute(self.0.get_corner_sharpnesses_attr()) }
-    #[pyo3(name = "CreateCornerSharpnessesAttr")] pub fn create_corner_sharpnesses_attr(&self) -> PyAttribute { PyAttribute(self.0.create_corner_sharpnesses_attr(None, false)) }
-    #[pyo3(name = "GetHoleIndicesAttr")] pub fn get_hole_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_hole_indices_attr()) }
-    #[pyo3(name = "CreateHoleIndicesAttr")] pub fn create_hole_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_hole_indices_attr(None, false)) }
+    #[pyo3(name = "GetCreaseIndicesAttr")] pub fn get_crease_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_crease_indices_attr()) }
+    #[pyo3(name = "CreateCreaseIndicesAttr")] pub fn create_crease_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_crease_indices_attr(None, false)) }
+    #[pyo3(name = "GetCreaseLengthsAttr")] pub fn get_crease_lengths_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_crease_lengths_attr()) }
+    #[pyo3(name = "CreateCreaseLengthsAttr")] pub fn create_crease_lengths_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_crease_lengths_attr(None, false)) }
+    #[pyo3(name = "GetCreaseSharpnessesAttr")] pub fn get_crease_sharpnesses_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_crease_sharpnesses_attr()) }
+    #[pyo3(name = "CreateCreaseSharpnessesAttr")] pub fn create_crease_sharpnesses_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_crease_sharpnesses_attr(None, false)) }
+    #[pyo3(name = "GetCornerIndicesAttr")] pub fn get_corner_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_corner_indices_attr()) }
+    #[pyo3(name = "CreateCornerIndicesAttr")] pub fn create_corner_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_corner_indices_attr(None, false)) }
+    #[pyo3(name = "GetCornerSharpnessesAttr")] pub fn get_corner_sharpnesses_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_corner_sharpnesses_attr()) }
+    #[pyo3(name = "CreateCornerSharpnessesAttr")] pub fn create_corner_sharpnesses_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_corner_sharpnesses_attr(None, false)) }
+    #[pyo3(name = "GetHoleIndicesAttr")] pub fn get_hole_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_hole_indices_attr()) }
+    #[pyo3(name = "CreateHoleIndicesAttr")] pub fn create_hole_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_hole_indices_attr(None, false)) }
 
     /// Validate this mesh's topology at time. Returns (is_valid, reason_string).
     #[pyo3(name = "ValidateTopologyAtTime", signature = (time=None))]
@@ -795,23 +888,23 @@ pub struct PySphere(pub Sphere);
 #[pymethods]
 impl PySphere {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Sphere::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Sphere::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Sphere::get(&stage.0, &p)))
+        Ok(Self(Sphere::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Sphere::define(&stage.0, &p)))
+        Ok(Self(Sphere::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
-    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_radius_attr()) }
+    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_radius_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -834,23 +927,23 @@ pub struct PyCube(pub Cube);
 #[pymethods]
 impl PyCube {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Cube::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Cube::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Cube::get(&stage.0, &p)))
+        Ok(Self(Cube::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Cube::define(&stage.0, &p)))
+        Ok(Self(Cube::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetSizeAttr")] pub fn get_size_attr(&self) -> PyAttribute { PyAttribute(self.0.get_size_attr()) }
-    #[pyo3(name = "CreateSizeAttr")] pub fn create_size_attr(&self) -> PyAttribute { PyAttribute(self.0.create_size_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetSizeAttr")] pub fn get_size_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_size_attr()) }
+    #[pyo3(name = "CreateSizeAttr")] pub fn create_size_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_size_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -873,27 +966,27 @@ pub struct PyCone(pub Cone);
 #[pymethods]
 impl PyCone {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Cone::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Cone::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Cone::get(&stage.0, &p)))
+        Ok(Self(Cone::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Cone::define(&stage.0, &p)))
+        Ok(Self(Cone::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
-    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
-    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.get_height_attr()) }
-    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.create_height_attr(None, false)) }
-    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
-    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_radius_attr()) }
+    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_radius_attr(None, false)) }
+    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_height_attr()) }
+    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_height_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_axis_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -916,27 +1009,27 @@ pub struct PyCylinder(pub Cylinder);
 #[pymethods]
 impl PyCylinder {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Cylinder::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Cylinder::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Cylinder::get(&stage.0, &p)))
+        Ok(Self(Cylinder::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Cylinder::define(&stage.0, &p)))
+        Ok(Self(Cylinder::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
-    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
-    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.get_height_attr()) }
-    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.create_height_attr(None, false)) }
-    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
-    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_radius_attr()) }
+    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_radius_attr(None, false)) }
+    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_height_attr()) }
+    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_height_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_axis_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -959,30 +1052,30 @@ pub struct PyCylinder1(pub Cylinder1);
 #[pymethods]
 impl PyCylinder1 {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Cylinder1::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Cylinder1::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Cylinder1::get(&stage.0, &p)))
+        Ok(Self(Cylinder1::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Cylinder1::define(&stage.0, &p)))
+        Ok(Self(Cylinder1::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     // Cylinder1 delegates attribute access to the inner Cylinder schema.
-    #[pyo3(name = "GetRadiusBottomAttr")] pub fn get_radius_bottom_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().get_radius_bottom_attr()) }
-    #[pyo3(name = "CreateRadiusBottomAttr")] pub fn create_radius_bottom_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().create_radius_bottom_attr(None, false)) }
-    #[pyo3(name = "GetRadiusTopAttr")] pub fn get_radius_top_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().get_radius_top_attr()) }
-    #[pyo3(name = "CreateRadiusTopAttr")] pub fn create_radius_top_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().create_radius_top_attr(None, false)) }
-    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().get_height_attr()) }
-    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().create_height_attr(None, false)) }
-    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().get_axis_attr()) }
-    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_cylinder().create_axis_attr(None, false)) }
+    #[pyo3(name = "GetRadiusBottomAttr")] pub fn get_radius_bottom_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_cylinder().get_radius_bottom_attr()) }
+    #[pyo3(name = "CreateRadiusBottomAttr")] pub fn create_radius_bottom_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_cylinder().create_radius_bottom_attr(None, false)) }
+    #[pyo3(name = "GetRadiusTopAttr")] pub fn get_radius_top_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_cylinder().get_radius_top_attr()) }
+    #[pyo3(name = "CreateRadiusTopAttr")] pub fn create_radius_top_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_cylinder().create_radius_top_attr(None, false)) }
+    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_cylinder().get_height_attr()) }
+    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_cylinder().create_height_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_cylinder().get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_cylinder().create_axis_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1005,27 +1098,27 @@ pub struct PyCapsule(pub Capsule);
 #[pymethods]
 impl PyCapsule {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Capsule::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Capsule::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Capsule::get(&stage.0, &p)))
+        Ok(Self(Capsule::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Capsule::define(&stage.0, &p)))
+        Ok(Self(Capsule::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.get_radius_attr()) }
-    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute(self.0.create_radius_attr(None, false)) }
-    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.get_height_attr()) }
-    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.create_height_attr(None, false)) }
-    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
-    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetRadiusAttr")] pub fn get_radius_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_radius_attr()) }
+    #[pyo3(name = "CreateRadiusAttr")] pub fn create_radius_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_radius_attr(None, false)) }
+    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_height_attr()) }
+    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_height_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_axis_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1048,30 +1141,30 @@ pub struct PyCapsule1(pub Capsule1);
 #[pymethods]
 impl PyCapsule1 {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Capsule1::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Capsule1::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Capsule1::get(&stage.0, &p)))
+        Ok(Self(Capsule1::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Capsule1::define(&stage.0, &p)))
+        Ok(Self(Capsule1::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
     // Capsule1 delegates attribute access to the inner Capsule schema.
-    #[pyo3(name = "GetRadiusTopAttr")] pub fn get_radius_top_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().get_radius_top_attr()) }
-    #[pyo3(name = "CreateRadiusTopAttr")] pub fn create_radius_top_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().create_radius_top_attr(None, false)) }
-    #[pyo3(name = "GetRadiusBottomAttr")] pub fn get_radius_bottom_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().get_radius_bottom_attr()) }
-    #[pyo3(name = "CreateRadiusBottomAttr")] pub fn create_radius_bottom_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().create_radius_bottom_attr(None, false)) }
-    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().get_height_attr()) }
-    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().create_height_attr(None, false)) }
-    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().get_axis_attr()) }
-    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.as_capsule().create_axis_attr(None, false)) }
+    #[pyo3(name = "GetRadiusTopAttr")] pub fn get_radius_top_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_capsule().get_radius_top_attr()) }
+    #[pyo3(name = "CreateRadiusTopAttr")] pub fn create_radius_top_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_capsule().create_radius_top_attr(None, false)) }
+    #[pyo3(name = "GetRadiusBottomAttr")] pub fn get_radius_bottom_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_capsule().get_radius_bottom_attr()) }
+    #[pyo3(name = "CreateRadiusBottomAttr")] pub fn create_radius_bottom_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_capsule().create_radius_bottom_attr(None, false)) }
+    #[pyo3(name = "GetHeightAttr")] pub fn get_height_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_capsule().get_height_attr()) }
+    #[pyo3(name = "CreateHeightAttr")] pub fn create_height_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_capsule().create_height_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_capsule().get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.as_capsule().create_axis_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1094,28 +1187,28 @@ pub struct PyPlane(pub Plane);
 #[pymethods]
 impl PyPlane {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Plane::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Plane::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Plane::get(&stage.0, &p)))
+        Ok(Self(Plane::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Plane::define(&stage.0, &p)))
+        Ok(Self(Plane::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetWidthAttr")] pub fn get_width_attr(&self) -> PyAttribute { PyAttribute(self.0.get_width_attr()) }
-    #[pyo3(name = "CreateWidthAttr")] pub fn create_width_attr(&self) -> PyAttribute { PyAttribute(self.0.create_width_attr(None, false)) }
-    #[pyo3(name = "GetLengthAttr")] pub fn get_length_attr(&self) -> PyAttribute { PyAttribute(self.0.get_length_attr()) }
-    #[pyo3(name = "CreateLengthAttr")] pub fn create_length_attr(&self) -> PyAttribute { PyAttribute(self.0.create_length_attr(None, false)) }
-    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_axis_attr()) }
-    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_axis_attr(None, false)) }
-    #[pyo3(name = "GetDoubleSidedAttr")] pub fn get_double_sided_attr(&self) -> PyAttribute { PyAttribute(self.0.gprim().get_double_sided_attr()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetWidthAttr")] pub fn get_width_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_width_attr()) }
+    #[pyo3(name = "CreateWidthAttr")] pub fn create_width_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_width_attr(None, false)) }
+    #[pyo3(name = "GetLengthAttr")] pub fn get_length_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_length_attr()) }
+    #[pyo3(name = "CreateLengthAttr")] pub fn create_length_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_length_attr(None, false)) }
+    #[pyo3(name = "GetAxisAttr")] pub fn get_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_axis_attr()) }
+    #[pyo3(name = "CreateAxisAttr")] pub fn create_axis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_axis_attr(None, false)) }
+    #[pyo3(name = "GetDoubleSidedAttr")] pub fn get_double_sided_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.gprim().get_double_sided_attr()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1138,15 +1231,15 @@ pub struct PyPointBased(pub PointBased);
 #[pymethods]
 impl PyPointBased {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(PointBased::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(PointBased::new(extract_prim(prim)?))) }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.get_points_attr()) }
-    #[pyo3(name = "CreatePointsAttr")] pub fn create_points_attr(&self) -> PyAttribute { PyAttribute(self.0.create_points_attr(None, false)) }
-    #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_velocities_attr()) }
-    #[pyo3(name = "CreateVelocitiesAttr")] pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_velocities_attr(None, false)) }
-    #[pyo3(name = "GetNormalsAttr")] pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.get_normals_attr()) }
-    #[pyo3(name = "CreateNormalsAttr")] pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute(self.0.create_normals_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_points_attr()) }
+    #[pyo3(name = "CreatePointsAttr")] pub fn create_points_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_points_attr(None, false)) }
+    #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_velocities_attr()) }
+    #[pyo3(name = "CreateVelocitiesAttr")] pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_velocities_attr(None, false)) }
+    #[pyo3(name = "GetNormalsAttr")] pub fn get_normals_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_normals_attr()) }
+    #[pyo3(name = "CreateNormalsAttr")] pub fn create_normals_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_normals_attr(None, false)) }
 
     #[pyo3(name = "GetNormalsInterpolation")] pub fn get_normals_interpolation(&self) -> String {
         self.0.get_normals_interpolation().as_str().to_owned()
@@ -1174,26 +1267,26 @@ pub struct PyPoints(pub Points);
 #[pymethods]
 impl PyPoints {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Points::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Points::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Points::get(&stage.0, &p)))
+        Ok(Self(Points::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Points::define(&stage.0, &p)))
+        Ok(Self(Points::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute(self.0.point_based().get_points_attr()) }
-    #[pyo3(name = "GetWidthsAttr")] pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_widths_attr()) }
-    #[pyo3(name = "CreateWidthsAttr")] pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.create_widths_attr(None, false)) }
-    #[pyo3(name = "GetIdsAttr")] pub fn get_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_ids_attr()) }
-    #[pyo3(name = "CreateIdsAttr")] pub fn create_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.create_ids_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetPointsAttr")] pub fn get_points_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.point_based().get_points_attr()) }
+    #[pyo3(name = "GetWidthsAttr")] pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_widths_attr()) }
+    #[pyo3(name = "CreateWidthsAttr")] pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_widths_attr(None, false)) }
+    #[pyo3(name = "GetIdsAttr")] pub fn get_ids_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_ids_attr()) }
+    #[pyo3(name = "CreateIdsAttr")] pub fn create_ids_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_ids_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1216,13 +1309,13 @@ pub struct PyCurves(pub Curves);
 #[pymethods]
 impl PyCurves {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Curves::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Curves::new(extract_prim(prim)?))) }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetCurveVertexCountsAttr")] pub fn get_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.get_curve_vertex_counts_attr()) }
-    #[pyo3(name = "CreateCurveVertexCountsAttr")] pub fn create_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.create_curve_vertex_counts_attr(None, false)) }
-    #[pyo3(name = "GetWidthsAttr")] pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.get_widths_attr()) }
-    #[pyo3(name = "CreateWidthsAttr")] pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute(self.0.create_widths_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetCurveVertexCountsAttr")] pub fn get_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_curve_vertex_counts_attr()) }
+    #[pyo3(name = "CreateCurveVertexCountsAttr")] pub fn create_curve_vertex_counts_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_curve_vertex_counts_attr(None, false)) }
+    #[pyo3(name = "GetWidthsAttr")] pub fn get_widths_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_widths_attr()) }
+    #[pyo3(name = "CreateWidthsAttr")] pub fn create_widths_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_widths_attr(None, false)) }
     #[pyo3(name = "GetWidthsInterpolation")] pub fn get_widths_interpolation(&self) -> String { self.0.get_widths_interpolation().as_str().to_owned() }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
@@ -1246,27 +1339,27 @@ pub struct PyBasisCurves(pub BasisCurves);
 #[pymethods]
 impl PyBasisCurves {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(BasisCurves::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(BasisCurves::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(BasisCurves::get(&stage.0, &p)))
+        Ok(Self(BasisCurves::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(BasisCurves::define(&stage.0, &p)))
+        Ok(Self(BasisCurves::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetBasisAttr")] pub fn get_basis_attr(&self) -> PyAttribute { PyAttribute(self.0.get_basis_attr()) }
-    #[pyo3(name = "CreateBasisAttr")] pub fn create_basis_attr(&self) -> PyAttribute { PyAttribute(self.0.create_basis_attr(None, false)) }
-    #[pyo3(name = "GetTypeAttr")] pub fn get_type_attr(&self) -> PyAttribute { PyAttribute(self.0.get_type_attr()) }
-    #[pyo3(name = "CreateTypeAttr")] pub fn create_type_attr(&self) -> PyAttribute { PyAttribute(self.0.create_type_attr(None, false)) }
-    #[pyo3(name = "GetWrapAttr")] pub fn get_wrap_attr(&self) -> PyAttribute { PyAttribute(self.0.get_wrap_attr()) }
-    #[pyo3(name = "CreateWrapAttr")] pub fn create_wrap_attr(&self) -> PyAttribute { PyAttribute(self.0.create_wrap_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetBasisAttr")] pub fn get_basis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_basis_attr()) }
+    #[pyo3(name = "CreateBasisAttr")] pub fn create_basis_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_basis_attr(None, false)) }
+    #[pyo3(name = "GetTypeAttr")] pub fn get_type_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_type_attr()) }
+    #[pyo3(name = "CreateTypeAttr")] pub fn create_type_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_type_attr(None, false)) }
+    #[pyo3(name = "GetWrapAttr")] pub fn get_wrap_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_wrap_attr()) }
+    #[pyo3(name = "CreateWrapAttr")] pub fn create_wrap_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_wrap_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1289,27 +1382,27 @@ pub struct PyNurbsCurves(pub NurbsCurves);
 #[pymethods]
 impl PyNurbsCurves {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(NurbsCurves::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(NurbsCurves::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(NurbsCurves::get(&stage.0, &p)))
+        Ok(Self(NurbsCurves::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(NurbsCurves::define(&stage.0, &p)))
+        Ok(Self(NurbsCurves::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetOrderAttr")] pub fn get_order_attr(&self) -> PyAttribute { PyAttribute(self.0.get_order_attr()) }
-    #[pyo3(name = "CreateOrderAttr")] pub fn create_order_attr(&self) -> PyAttribute { PyAttribute(self.0.create_order_attr(None, false)) }
-    #[pyo3(name = "GetKnotsAttr")] pub fn get_knots_attr(&self) -> PyAttribute { PyAttribute(self.0.get_knots_attr()) }
-    #[pyo3(name = "CreateKnotsAttr")] pub fn create_knots_attr(&self) -> PyAttribute { PyAttribute(self.0.create_knots_attr(None, false)) }
-    #[pyo3(name = "GetRangesAttr")] pub fn get_ranges_attr(&self) -> PyAttribute { PyAttribute(self.0.get_ranges_attr()) }
-    #[pyo3(name = "CreateRangesAttr")] pub fn create_ranges_attr(&self) -> PyAttribute { PyAttribute(self.0.create_ranges_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetOrderAttr")] pub fn get_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_order_attr()) }
+    #[pyo3(name = "CreateOrderAttr")] pub fn create_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_order_attr(None, false)) }
+    #[pyo3(name = "GetKnotsAttr")] pub fn get_knots_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_knots_attr()) }
+    #[pyo3(name = "CreateKnotsAttr")] pub fn create_knots_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_knots_attr(None, false)) }
+    #[pyo3(name = "GetRangesAttr")] pub fn get_ranges_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_ranges_attr()) }
+    #[pyo3(name = "CreateRangesAttr")] pub fn create_ranges_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_ranges_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1332,23 +1425,23 @@ pub struct PyHermiteCurves(pub HermiteCurves);
 #[pymethods]
 impl PyHermiteCurves {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(HermiteCurves::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(HermiteCurves::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(HermiteCurves::get(&stage.0, &p)))
+        Ok(Self(HermiteCurves::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(HermiteCurves::define(&stage.0, &p)))
+        Ok(Self(HermiteCurves::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetTangentsAttr")] pub fn get_tangents_attr(&self) -> PyAttribute { PyAttribute(self.0.get_tangents_attr()) }
-    #[pyo3(name = "CreateTangentsAttr")] pub fn create_tangents_attr(&self) -> PyAttribute { PyAttribute(self.0.create_tangents_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetTangentsAttr")] pub fn get_tangents_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_tangents_attr()) }
+    #[pyo3(name = "CreateTangentsAttr")] pub fn create_tangents_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_tangents_attr(None, false)) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1371,33 +1464,33 @@ pub struct PyNurbsPatch(pub NurbsPatch);
 #[pymethods]
 impl PyNurbsPatch {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(NurbsPatch::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(NurbsPatch::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(NurbsPatch::get(&stage.0, &p)))
+        Ok(Self(NurbsPatch::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(NurbsPatch::define(&stage.0, &p)))
+        Ok(Self(NurbsPatch::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetUVertexCountAttr")] pub fn get_u_vertex_count_attr(&self) -> PyAttribute { PyAttribute(self.0.get_u_vertex_count_attr()) }
-    #[pyo3(name = "GetVVertexCountAttr")] pub fn get_v_vertex_count_attr(&self) -> PyAttribute { PyAttribute(self.0.get_v_vertex_count_attr()) }
-    #[pyo3(name = "GetUOrderAttr")] pub fn get_u_order_attr(&self) -> PyAttribute { PyAttribute(self.0.get_u_order_attr()) }
-    #[pyo3(name = "GetVOrderAttr")] pub fn get_v_order_attr(&self) -> PyAttribute { PyAttribute(self.0.get_v_order_attr()) }
-    #[pyo3(name = "GetUKnotsAttr")] pub fn get_u_knots_attr(&self) -> PyAttribute { PyAttribute(self.0.get_u_knots_attr()) }
-    #[pyo3(name = "GetVKnotsAttr")] pub fn get_v_knots_attr(&self) -> PyAttribute { PyAttribute(self.0.get_v_knots_attr()) }
-    #[pyo3(name = "GetURangeAttr")] pub fn get_u_range_attr(&self) -> PyAttribute { PyAttribute(self.0.get_u_range_attr()) }
-    #[pyo3(name = "GetVRangeAttr")] pub fn get_v_range_attr(&self) -> PyAttribute { PyAttribute(self.0.get_v_range_attr()) }
-    #[pyo3(name = "GetUFormAttr")] pub fn get_u_form_attr(&self) -> PyAttribute { PyAttribute(self.0.get_u_form_attr()) }
-    #[pyo3(name = "GetVFormAttr")] pub fn get_v_form_attr(&self) -> PyAttribute { PyAttribute(self.0.get_v_form_attr()) }
-    #[pyo3(name = "GetPointWeightsAttr")] pub fn get_point_weights_attr(&self) -> PyAttribute { PyAttribute(self.0.get_point_weights_attr()) }
-    #[pyo3(name = "GetTrimCurveCountsAttr")] pub fn get_trim_curve_counts_attr(&self) -> PyAttribute { PyAttribute(self.0.get_trim_curve_counts_attr()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetUVertexCountAttr")] pub fn get_u_vertex_count_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_u_vertex_count_attr()) }
+    #[pyo3(name = "GetVVertexCountAttr")] pub fn get_v_vertex_count_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_v_vertex_count_attr()) }
+    #[pyo3(name = "GetUOrderAttr")] pub fn get_u_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_u_order_attr()) }
+    #[pyo3(name = "GetVOrderAttr")] pub fn get_v_order_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_v_order_attr()) }
+    #[pyo3(name = "GetUKnotsAttr")] pub fn get_u_knots_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_u_knots_attr()) }
+    #[pyo3(name = "GetVKnotsAttr")] pub fn get_v_knots_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_v_knots_attr()) }
+    #[pyo3(name = "GetURangeAttr")] pub fn get_u_range_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_u_range_attr()) }
+    #[pyo3(name = "GetVRangeAttr")] pub fn get_v_range_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_v_range_attr()) }
+    #[pyo3(name = "GetUFormAttr")] pub fn get_u_form_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_u_form_attr()) }
+    #[pyo3(name = "GetVFormAttr")] pub fn get_v_form_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_v_form_attr()) }
+    #[pyo3(name = "GetPointWeightsAttr")] pub fn get_point_weights_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_point_weights_attr()) }
+    #[pyo3(name = "GetTrimCurveCountsAttr")] pub fn get_trim_curve_counts_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_trim_curve_counts_attr()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1420,24 +1513,24 @@ pub struct PyTetMesh(pub TetMesh);
 #[pymethods]
 impl PyTetMesh {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(TetMesh::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(TetMesh::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(TetMesh::get(&stage.0, &p)))
+        Ok(Self(TetMesh::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(TetMesh::define(&stage.0, &p)))
+        Ok(Self(TetMesh::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetTetVertexIndicesAttr")] pub fn get_tet_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_tet_vertex_indices_attr()) }
-    #[pyo3(name = "CreateTetVertexIndicesAttr")] pub fn create_tet_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_tet_vertex_indices_attr(None, false)) }
-    #[pyo3(name = "GetSurfaceFaceVertexIndicesAttr")] pub fn get_surface_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_surface_face_vertex_indices_attr()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetTetVertexIndicesAttr")] pub fn get_tet_vertex_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_tet_vertex_indices_attr()) }
+    #[pyo3(name = "CreateTetVertexIndicesAttr")] pub fn create_tet_vertex_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_tet_vertex_indices_attr(None, false)) }
+    #[pyo3(name = "GetSurfaceFaceVertexIndicesAttr")] pub fn get_surface_face_vertex_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_surface_face_vertex_indices_attr()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1460,38 +1553,39 @@ pub struct PyPointInstancer(pub PointInstancer);
 #[pymethods]
 impl PyPointInstancer {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(PointInstancer::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(PointInstancer::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(PointInstancer::get(&stage.0, &p)))
+        Ok(Self(PointInstancer::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(PointInstancer::define(&stage.0, &p)))
+        Ok(Self(PointInstancer::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetPath")] pub fn get_path(&self) -> crate::sdf::PyPath { crate::sdf::PyPath::from_path(self.0.prim().path().clone()) }
 
-    #[pyo3(name = "GetProtoIndicesAttr")] pub fn get_proto_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_proto_indices_attr()) }
-    #[pyo3(name = "CreateProtoIndicesAttr")] pub fn create_proto_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_proto_indices_attr(None, false)) }
-    #[pyo3(name = "GetPositionsAttr")] pub fn get_positions_attr(&self) -> PyAttribute { PyAttribute(self.0.get_positions_attr()) }
-    #[pyo3(name = "CreatePositionsAttr")] pub fn create_positions_attr(&self) -> PyAttribute { PyAttribute(self.0.create_positions_attr(None, false)) }
-    #[pyo3(name = "GetOrientationsAttr")] pub fn get_orientations_attr(&self) -> PyAttribute { PyAttribute(self.0.get_orientations_attr()) }
-    #[pyo3(name = "CreateOrientationsAttr")] pub fn create_orientations_attr(&self) -> PyAttribute { PyAttribute(self.0.create_orientations_attr(None, false)) }
-    #[pyo3(name = "GetScalesAttr")] pub fn get_scales_attr(&self) -> PyAttribute { PyAttribute(self.0.get_scales_attr()) }
-    #[pyo3(name = "CreateScalesAttr")] pub fn create_scales_attr(&self) -> PyAttribute { PyAttribute(self.0.create_scales_attr(None, false)) }
-    #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_velocities_attr()) }
-    #[pyo3(name = "CreateVelocitiesAttr")] pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_velocities_attr(None, false)) }
-    #[pyo3(name = "GetAngularVelocitiesAttr")] pub fn get_angular_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.get_angular_velocities_attr()) }
-    #[pyo3(name = "CreateAngularVelocitiesAttr")] pub fn create_angular_velocities_attr(&self) -> PyAttribute { PyAttribute(self.0.create_angular_velocities_attr(None, false)) }
-    #[pyo3(name = "GetIdsAttr")] pub fn get_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_ids_attr()) }
-    #[pyo3(name = "CreateIdsAttr")] pub fn create_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.create_ids_attr(None, false)) }
-    #[pyo3(name = "GetInvisibleIdsAttr")] pub fn get_invisible_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.get_invisible_ids_attr()) }
-    #[pyo3(name = "CreateInvisibleIdsAttr")] pub fn create_invisible_ids_attr(&self) -> PyAttribute { PyAttribute(self.0.create_invisible_ids_attr(None, false)) }
+    #[pyo3(name = "GetProtoIndicesAttr")] pub fn get_proto_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_proto_indices_attr()) }
+    #[pyo3(name = "CreateProtoIndicesAttr")] pub fn create_proto_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_proto_indices_attr(None, false)) }
+    #[pyo3(name = "GetPositionsAttr")] pub fn get_positions_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_positions_attr()) }
+    #[pyo3(name = "CreatePositionsAttr")] pub fn create_positions_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_positions_attr(None, false)) }
+    #[pyo3(name = "GetOrientationsAttr")] pub fn get_orientations_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_orientations_attr()) }
+    #[pyo3(name = "CreateOrientationsAttr")] pub fn create_orientations_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_orientations_attr(None, false)) }
+    #[pyo3(name = "GetScalesAttr")] pub fn get_scales_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_scales_attr()) }
+    #[pyo3(name = "CreateScalesAttr")] pub fn create_scales_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_scales_attr(None, false)) }
+    #[pyo3(name = "GetVelocitiesAttr")] pub fn get_velocities_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_velocities_attr()) }
+    #[pyo3(name = "CreateVelocitiesAttr")] pub fn create_velocities_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_velocities_attr(None, false)) }
+    #[pyo3(name = "GetAngularVelocitiesAttr")] pub fn get_angular_velocities_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_angular_velocities_attr()) }
+    #[pyo3(name = "CreateAngularVelocitiesAttr")] pub fn create_angular_velocities_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_angular_velocities_attr(None, false)) }
+    #[pyo3(name = "GetIdsAttr")] pub fn get_ids_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_ids_attr()) }
+    #[pyo3(name = "CreateIdsAttr")] pub fn create_ids_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_ids_attr(None, false)) }
+    #[pyo3(name = "GetInvisibleIdsAttr")] pub fn get_invisible_ids_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_invisible_ids_attr()) }
+    #[pyo3(name = "CreateInvisibleIdsAttr")] pub fn create_invisible_ids_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_invisible_ids_attr(None, false)) }
 
     #[pyo3(name = "GetPrototypesRel")] pub fn get_prototypes_rel(&self) -> Vec<String> {
         let rel = self.0.get_prototypes_rel();
@@ -1510,7 +1604,9 @@ impl PyPointInstancer {
     #[pyo3(name = "VisAllIds")] pub fn vis_all_ids(&self, time: Option<f64>) -> bool { self.0.vis_all_ids(tc(time)) }
 
     /// Compute per-instance transforms. Returns flat 16-element list per instance.
-    #[pyo3(name = "ComputeInstanceTransformsAtTime")] pub fn compute_instance_transforms_at_time(&self, time: f64, base_time: f64) -> Vec<Vec<f64>> {
+    #[pyo3(name = "ComputeInstanceTransformsAtTime", signature = (time, base_time, doProtos=0, applyMask=0))]
+    #[allow(non_snake_case)]
+    pub fn compute_instance_transforms_at_time(&self, time: f64, base_time: f64, doProtos: u8, applyMask: u8) -> Vec<Vec<f64>> {
         use usd_geom::point_instancer::{ProtoXformInclusion, MaskApplication};
         let mut xforms = Vec::new();
         self.0.compute_instance_transforms_at_time(
@@ -1554,47 +1650,47 @@ pub struct PyCamera(pub Camera);
 #[pymethods]
 impl PyCamera {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Camera::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Camera::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Camera::get(&stage.0, &p)))
+        Ok(Self(Camera::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Camera::define(&stage.0, &p)))
+        Ok(Self(Camera::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetProjectionAttr")] pub fn get_projection_attr(&self) -> PyAttribute { PyAttribute(self.0.get_projection_attr()) }
-    #[pyo3(name = "CreateProjectionAttr")] pub fn create_projection_attr(&self) -> PyAttribute { PyAttribute(self.0.create_projection_attr(None, false)) }
-    #[pyo3(name = "GetHorizontalApertureAttr")] pub fn get_horizontal_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.get_horizontal_aperture_attr()) }
-    #[pyo3(name = "CreateHorizontalApertureAttr")] pub fn create_horizontal_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.create_horizontal_aperture_attr(None, false)) }
-    #[pyo3(name = "GetVerticalApertureAttr")] pub fn get_vertical_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.get_vertical_aperture_attr()) }
-    #[pyo3(name = "CreateVerticalApertureAttr")] pub fn create_vertical_aperture_attr(&self) -> PyAttribute { PyAttribute(self.0.create_vertical_aperture_attr(None, false)) }
-    #[pyo3(name = "GetHorizontalApertureOffsetAttr")] pub fn get_horizontal_aperture_offset_attr(&self) -> PyAttribute { PyAttribute(self.0.get_horizontal_aperture_offset_attr()) }
-    #[pyo3(name = "CreateHorizontalApertureOffsetAttr")] pub fn create_horizontal_aperture_offset_attr(&self) -> PyAttribute { PyAttribute(self.0.create_horizontal_aperture_offset_attr(None, false)) }
-    #[pyo3(name = "GetVerticalApertureOffsetAttr")] pub fn get_vertical_aperture_offset_attr(&self) -> PyAttribute { PyAttribute(self.0.get_vertical_aperture_offset_attr()) }
-    #[pyo3(name = "CreateVerticalApertureOffsetAttr")] pub fn create_vertical_aperture_offset_attr(&self) -> PyAttribute { PyAttribute(self.0.create_vertical_aperture_offset_attr(None, false)) }
-    #[pyo3(name = "GetFocalLengthAttr")] pub fn get_focal_length_attr(&self) -> PyAttribute { PyAttribute(self.0.get_focal_length_attr()) }
-    #[pyo3(name = "CreateFocalLengthAttr")] pub fn create_focal_length_attr(&self) -> PyAttribute { PyAttribute(self.0.create_focal_length_attr(None, false)) }
-    #[pyo3(name = "GetClippingRangeAttr")] pub fn get_clipping_range_attr(&self) -> PyAttribute { PyAttribute(self.0.get_clipping_range_attr()) }
-    #[pyo3(name = "CreateClippingRangeAttr")] pub fn create_clipping_range_attr(&self) -> PyAttribute { PyAttribute(self.0.create_clipping_range_attr(None, false)) }
-    #[pyo3(name = "GetClippingPlanesAttr")] pub fn get_clipping_planes_attr(&self) -> PyAttribute { PyAttribute(self.0.get_clipping_planes_attr()) }
-    #[pyo3(name = "CreateClippingPlanesAttr")] pub fn create_clipping_planes_attr(&self) -> PyAttribute { PyAttribute(self.0.create_clipping_planes_attr(None, false)) }
-    #[pyo3(name = "GetFStopAttr")] pub fn get_f_stop_attr(&self) -> PyAttribute { PyAttribute(self.0.get_f_stop_attr()) }
-    #[pyo3(name = "CreateFStopAttr")] pub fn create_f_stop_attr(&self) -> PyAttribute { PyAttribute(self.0.create_f_stop_attr(None, false)) }
-    #[pyo3(name = "GetFocusDistanceAttr")] pub fn get_focus_distance_attr(&self) -> PyAttribute { PyAttribute(self.0.get_focus_distance_attr()) }
-    #[pyo3(name = "CreateFocusDistanceAttr")] pub fn create_focus_distance_attr(&self) -> PyAttribute { PyAttribute(self.0.create_focus_distance_attr(None, false)) }
-    #[pyo3(name = "GetShutterOpenAttr")] pub fn get_shutter_open_attr(&self) -> PyAttribute { PyAttribute(self.0.get_shutter_open_attr()) }
-    #[pyo3(name = "CreateShutterOpenAttr")] pub fn create_shutter_open_attr(&self) -> PyAttribute { PyAttribute(self.0.create_shutter_open_attr(None, false)) }
-    #[pyo3(name = "GetShutterCloseAttr")] pub fn get_shutter_close_attr(&self) -> PyAttribute { PyAttribute(self.0.get_shutter_close_attr()) }
-    #[pyo3(name = "CreateShutterCloseAttr")] pub fn create_shutter_close_attr(&self) -> PyAttribute { PyAttribute(self.0.create_shutter_close_attr(None, false)) }
-    #[pyo3(name = "GetStereoRoleAttr")] pub fn get_stereo_role_attr(&self) -> PyAttribute { PyAttribute(self.0.get_stereo_role_attr()) }
-    #[pyo3(name = "CreateStereoRoleAttr")] pub fn create_stereo_role_attr(&self) -> PyAttribute { PyAttribute(self.0.create_stereo_role_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetProjectionAttr")] pub fn get_projection_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_projection_attr()) }
+    #[pyo3(name = "CreateProjectionAttr")] pub fn create_projection_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_projection_attr(None, false)) }
+    #[pyo3(name = "GetHorizontalApertureAttr")] pub fn get_horizontal_aperture_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_horizontal_aperture_attr()) }
+    #[pyo3(name = "CreateHorizontalApertureAttr")] pub fn create_horizontal_aperture_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_horizontal_aperture_attr(None, false)) }
+    #[pyo3(name = "GetVerticalApertureAttr")] pub fn get_vertical_aperture_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_vertical_aperture_attr()) }
+    #[pyo3(name = "CreateVerticalApertureAttr")] pub fn create_vertical_aperture_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_vertical_aperture_attr(None, false)) }
+    #[pyo3(name = "GetHorizontalApertureOffsetAttr")] pub fn get_horizontal_aperture_offset_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_horizontal_aperture_offset_attr()) }
+    #[pyo3(name = "CreateHorizontalApertureOffsetAttr")] pub fn create_horizontal_aperture_offset_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_horizontal_aperture_offset_attr(None, false)) }
+    #[pyo3(name = "GetVerticalApertureOffsetAttr")] pub fn get_vertical_aperture_offset_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_vertical_aperture_offset_attr()) }
+    #[pyo3(name = "CreateVerticalApertureOffsetAttr")] pub fn create_vertical_aperture_offset_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_vertical_aperture_offset_attr(None, false)) }
+    #[pyo3(name = "GetFocalLengthAttr")] pub fn get_focal_length_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_focal_length_attr()) }
+    #[pyo3(name = "CreateFocalLengthAttr")] pub fn create_focal_length_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_focal_length_attr(None, false)) }
+    #[pyo3(name = "GetClippingRangeAttr")] pub fn get_clipping_range_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_clipping_range_attr()) }
+    #[pyo3(name = "CreateClippingRangeAttr")] pub fn create_clipping_range_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_clipping_range_attr(None, false)) }
+    #[pyo3(name = "GetClippingPlanesAttr")] pub fn get_clipping_planes_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_clipping_planes_attr()) }
+    #[pyo3(name = "CreateClippingPlanesAttr")] pub fn create_clipping_planes_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_clipping_planes_attr(None, false)) }
+    #[pyo3(name = "GetFStopAttr")] pub fn get_f_stop_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_f_stop_attr()) }
+    #[pyo3(name = "CreateFStopAttr")] pub fn create_f_stop_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_f_stop_attr(None, false)) }
+    #[pyo3(name = "GetFocusDistanceAttr")] pub fn get_focus_distance_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_focus_distance_attr()) }
+    #[pyo3(name = "CreateFocusDistanceAttr")] pub fn create_focus_distance_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_focus_distance_attr(None, false)) }
+    #[pyo3(name = "GetShutterOpenAttr")] pub fn get_shutter_open_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_shutter_open_attr()) }
+    #[pyo3(name = "CreateShutterOpenAttr")] pub fn create_shutter_open_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_shutter_open_attr(None, false)) }
+    #[pyo3(name = "GetShutterCloseAttr")] pub fn get_shutter_close_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_shutter_close_attr()) }
+    #[pyo3(name = "CreateShutterCloseAttr")] pub fn create_shutter_close_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_shutter_close_attr(None, false)) }
+    #[pyo3(name = "GetStereoRoleAttr")] pub fn get_stereo_role_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_stereo_role_attr()) }
+    #[pyo3(name = "CreateStereoRoleAttr")] pub fn create_stereo_role_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_stereo_role_attr(None, false)) }
 
     /// Returns key camera parameters as a Python dict.
     #[pyo3(name = "GetCamera")] pub fn get_camera(&self, py: Python<'_>, time: Option<f64>) -> PyResult<Py<PyAny>> {
@@ -1628,11 +1724,12 @@ pub struct PyPrimvarsAPI(pub PrimvarsAPI);
 #[pymethods]
 impl PyPrimvarsAPI {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(PrimvarsAPI::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(PrimvarsAPI::new(extract_prim(prim)?))) }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
 
-    #[pyo3(name = "CreatePrimvar")] pub fn create_primvar(
+    #[pyo3(name = "CreatePrimvar", signature = (name, type_name_str, interpolation=None, element_size=-1))]
+    pub fn create_primvar(
         &self,
         name: &str,
         type_name_str: &str,
@@ -1669,18 +1766,18 @@ pub struct PyVisibilityAPI(pub VisibilityAPI);
 #[pymethods]
 impl PyVisibilityAPI {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(VisibilityAPI::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(VisibilityAPI::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> Self { Self(VisibilityAPI::apply(&prim.0)) }
+    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> Self { Self(VisibilityAPI::apply(&prim.inner)) }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetGuideVisibilityAttr")] pub fn get_guide_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_guide_visibility_attr()) }
-    #[pyo3(name = "CreateGuideVisibilityAttr")] pub fn create_guide_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_guide_visibility_attr()) }
-    #[pyo3(name = "GetProxyVisibilityAttr")] pub fn get_proxy_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_proxy_visibility_attr()) }
-    #[pyo3(name = "CreateProxyVisibilityAttr")] pub fn create_proxy_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_proxy_visibility_attr()) }
-    #[pyo3(name = "GetRenderVisibilityAttr")] pub fn get_render_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.get_render_visibility_attr()) }
-    #[pyo3(name = "CreateRenderVisibilityAttr")] pub fn create_render_visibility_attr(&self) -> PyAttribute { PyAttribute(self.0.create_render_visibility_attr()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetGuideVisibilityAttr")] pub fn get_guide_visibility_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_guide_visibility_attr()) }
+    #[pyo3(name = "CreateGuideVisibilityAttr")] pub fn create_guide_visibility_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_guide_visibility_attr()) }
+    #[pyo3(name = "GetProxyVisibilityAttr")] pub fn get_proxy_visibility_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_proxy_visibility_attr()) }
+    #[pyo3(name = "CreateProxyVisibilityAttr")] pub fn create_proxy_visibility_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_proxy_visibility_attr()) }
+    #[pyo3(name = "GetRenderVisibilityAttr")] pub fn get_render_visibility_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_render_visibility_attr()) }
+    #[pyo3(name = "CreateRenderVisibilityAttr")] pub fn create_render_visibility_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_render_visibility_attr()) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1700,32 +1797,32 @@ pub struct PyModelAPI(pub ModelAPI);
 #[pymethods]
 impl PyModelAPI {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(ModelAPI::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(ModelAPI::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> Self {
-        ModelAPI::apply(&prim.0)
-            .map_or_else(|| Self(ModelAPI::new(prim.0.clone())), |api| Self(api))
+        ModelAPI::apply(&prim.inner)
+            .map_or_else(|| Self(ModelAPI::new(prim.inner.clone())), |api| Self(api))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.get_prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.get_prim().clone()) }
     #[pyo3(name = "GetModelDrawModeAttr")] pub fn get_model_draw_mode_attr(&self) -> PyAttribute {
-        PyAttribute(self.0.get_model_draw_mode_attr().unwrap_or_else(usd_core::Attribute::invalid))
+        PyAttribute::from_attr(self.0.get_model_draw_mode_attr().unwrap_or_else(usd_core::Attribute::invalid))
     }
     #[pyo3(name = "CreateModelDrawModeAttr")] pub fn create_model_draw_mode_attr(&self) -> PyAttribute {
-        PyAttribute(self.0.create_model_draw_mode_attr(None).unwrap_or_else(usd_core::Attribute::invalid))
+        PyAttribute::from_attr(self.0.create_model_draw_mode_attr(None).unwrap_or_else(usd_core::Attribute::invalid))
     }
     #[pyo3(name = "GetModelApplyDrawModeAttr")] pub fn get_model_apply_draw_mode_attr(&self) -> PyAttribute {
-        PyAttribute(self.0.get_model_apply_draw_mode_attr().unwrap_or_else(usd_core::Attribute::invalid))
+        PyAttribute::from_attr(self.0.get_model_apply_draw_mode_attr().unwrap_or_else(usd_core::Attribute::invalid))
     }
     #[pyo3(name = "CreateModelApplyDrawModeAttr")] pub fn create_model_apply_draw_mode_attr(&self) -> PyAttribute {
-        PyAttribute(self.0.create_model_apply_draw_mode_attr(None).unwrap_or_else(usd_core::Attribute::invalid))
+        PyAttribute::from_attr(self.0.create_model_apply_draw_mode_attr(None).unwrap_or_else(usd_core::Attribute::invalid))
     }
     #[pyo3(name = "GetModelCardGeometryAttr")] pub fn get_model_card_geometry_attr(&self) -> PyAttribute {
-        PyAttribute(self.0.get_model_card_geometry_attr().unwrap_or_else(usd_core::Attribute::invalid))
+        PyAttribute::from_attr(self.0.get_model_card_geometry_attr().unwrap_or_else(usd_core::Attribute::invalid))
     }
     #[pyo3(name = "GetExtentsHintAttr")] pub fn get_extents_hint_attr(&self) -> PyAttribute {
-        PyAttribute(self.0.get_extents_hint_attr().unwrap_or_else(usd_core::Attribute::invalid))
+        PyAttribute::from_attr(self.0.get_extents_hint_attr().unwrap_or_else(usd_core::Attribute::invalid))
     }
     pub fn is_valid(&self) -> bool { self.0.get_prim().is_valid() }
     pub fn __bool__(&self) -> bool { self.0.get_prim().is_valid() }
@@ -1746,18 +1843,18 @@ pub struct PyMotionAPI(pub MotionAPI);
 #[pymethods]
 impl PyMotionAPI {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(MotionAPI::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(MotionAPI::new(extract_prim(prim)?))) }
 
     #[staticmethod]
-    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> Self { Self(MotionAPI::apply(&prim.0)) }
+    #[pyo3(name = "Apply")] pub fn apply(prim: &PyPrim) -> Self { Self(MotionAPI::apply(&prim.inner)) }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetMotionBlurScaleAttr")] pub fn get_motion_blur_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.get_motion_blur_scale_attr()) }
-    #[pyo3(name = "CreateMotionBlurScaleAttr")] pub fn create_motion_blur_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.create_motion_blur_scale_attr(None, false)) }
-    #[pyo3(name = "GetVelocityScaleAttr")] pub fn get_velocity_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.get_motion_velocity_scale_attr()) }
-    #[pyo3(name = "CreateVelocityScaleAttr")] pub fn create_velocity_scale_attr(&self) -> PyAttribute { PyAttribute(self.0.create_motion_velocity_scale_attr(None, false)) }
-    #[pyo3(name = "GetNonlinearSampleCountAttr")] pub fn get_nonlinear_sample_count_attr(&self) -> PyAttribute { PyAttribute(self.0.get_motion_nonlinear_sample_count_attr()) }
-    #[pyo3(name = "CreateNonlinearSampleCountAttr")] pub fn create_nonlinear_sample_count_attr(&self) -> PyAttribute { PyAttribute(self.0.create_motion_nonlinear_sample_count_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetMotionBlurScaleAttr")] pub fn get_motion_blur_scale_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_motion_blur_scale_attr()) }
+    #[pyo3(name = "CreateMotionBlurScaleAttr")] pub fn create_motion_blur_scale_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_motion_blur_scale_attr(None, false)) }
+    #[pyo3(name = "GetVelocityScaleAttr")] pub fn get_velocity_scale_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_motion_velocity_scale_attr()) }
+    #[pyo3(name = "CreateVelocityScaleAttr")] pub fn create_velocity_scale_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_motion_velocity_scale_attr(None, false)) }
+    #[pyo3(name = "GetNonlinearSampleCountAttr")] pub fn get_nonlinear_sample_count_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_motion_nonlinear_sample_count_attr()) }
+    #[pyo3(name = "CreateNonlinearSampleCountAttr")] pub fn create_nonlinear_sample_count_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_motion_nonlinear_sample_count_attr(None, false)) }
     #[pyo3(name = "ComputeVelocityScale")] pub fn compute_velocity_scale(&self, time: Option<f64>) -> f64 { f64::from(self.0.compute_velocity_scale(tc(time))) }
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
@@ -1778,9 +1875,9 @@ pub struct PyXformCommonAPI(pub XformCommonAPI);
 #[pymethods]
 impl PyXformCommonAPI {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(XformCommonAPI::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(XformCommonAPI::new(extract_prim(prim)?))) }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
 
     #[pyo3(name = "SetXformVectors")] pub fn set_xform_vectors(
         &self,
@@ -1818,6 +1915,14 @@ impl PyXformCommonAPI {
         )
     }
 
+    // Rotation order constants (C++ enum XformCommonAPI::RotationOrder)
+    #[classattr] #[allow(non_upper_case_globals)] fn RotationOrderXYZ() -> &'static str { "XYZ" }
+    #[classattr] #[allow(non_upper_case_globals)] fn RotationOrderXZY() -> &'static str { "XZY" }
+    #[classattr] #[allow(non_upper_case_globals)] fn RotationOrderYXZ() -> &'static str { "YXZ" }
+    #[classattr] #[allow(non_upper_case_globals)] fn RotationOrderYZX() -> &'static str { "YZX" }
+    #[classattr] #[allow(non_upper_case_globals)] fn RotationOrderZXY() -> &'static str { "ZXY" }
+    #[classattr] #[allow(non_upper_case_globals)] fn RotationOrderZYX() -> &'static str { "ZYX" }
+
     pub fn is_valid(&self) -> bool { self.0.is_valid() }
     pub fn __bool__(&self) -> bool { self.0.is_valid() }
 
@@ -1837,27 +1942,27 @@ pub struct PySubset(pub Subset);
 #[pymethods]
 impl PySubset {
     #[new]
-    pub fn new(prim: &PyPrim) -> Self { Self(Subset::new(prim.0.clone())) }
+    pub fn new(prim: &Bound<'_, pyo3::PyAny>) -> PyResult<Self> { Ok(Self(Subset::new(extract_prim(prim)?))) }
 
     #[staticmethod]
     #[pyo3(name = "Get")] pub fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Subset::get(&stage.0, &p)))
+        Ok(Self(Subset::get(&stage.inner, &p)))
     }
 
     #[staticmethod]
     #[pyo3(name = "Define")] pub fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
         let p = parse_path(path)?;
-        Ok(Self(Subset::define(&stage.0, &p)))
+        Ok(Self(Subset::define(&stage.inner, &p)))
     }
 
-    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim(self.0.prim().clone()) }
-    #[pyo3(name = "GetElementTypeAttr")] pub fn get_element_type_attr(&self) -> PyAttribute { PyAttribute(self.0.get_element_type_attr()) }
-    #[pyo3(name = "CreateElementTypeAttr")] pub fn create_element_type_attr(&self) -> PyAttribute { PyAttribute(self.0.create_element_type_attr(None, false)) }
-    #[pyo3(name = "GetIndicesAttr")] pub fn get_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.get_indices_attr()) }
-    #[pyo3(name = "CreateIndicesAttr")] pub fn create_indices_attr(&self) -> PyAttribute { PyAttribute(self.0.create_indices_attr(None, false)) }
-    #[pyo3(name = "GetFamilyNameAttr")] pub fn get_family_name_attr(&self) -> PyAttribute { PyAttribute(self.0.get_family_name_attr()) }
-    #[pyo3(name = "CreateFamilyNameAttr")] pub fn create_family_name_attr(&self) -> PyAttribute { PyAttribute(self.0.create_family_name_attr(None, false)) }
+    #[pyo3(name = "GetPrim")] pub fn get_prim(&self) -> PyPrim { PyPrim::from_prim_auto(self.0.prim().clone()) }
+    #[pyo3(name = "GetElementTypeAttr")] pub fn get_element_type_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_element_type_attr()) }
+    #[pyo3(name = "CreateElementTypeAttr")] pub fn create_element_type_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_element_type_attr(None, false)) }
+    #[pyo3(name = "GetIndicesAttr")] pub fn get_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_indices_attr()) }
+    #[pyo3(name = "CreateIndicesAttr")] pub fn create_indices_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_indices_attr(None, false)) }
+    #[pyo3(name = "GetFamilyNameAttr")] pub fn get_family_name_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.get_family_name_attr()) }
+    #[pyo3(name = "CreateFamilyNameAttr")] pub fn create_family_name_attr(&self) -> PyAttribute { PyAttribute::from_attr(self.0.create_family_name_attr(None, false)) }
 
     /// Create a geometry subset child prim under a mesh prim.
     #[staticmethod]
@@ -1900,28 +2005,28 @@ impl PySubset {
 #[pyfunction]
 #[pyo3(name = "GetStageUpAxis")]
 pub fn get_stage_up_axis(stage: &PyStage) -> String {
-    metrics::get_stage_up_axis(&stage.0).as_str().to_owned()
+    metrics::get_stage_up_axis(&stage.inner).as_str().to_owned()
 }
 
 /// Set stage up axis. Returns true on success.
 #[pyfunction]
 #[pyo3(name = "SetStageUpAxis")]
 pub fn set_stage_up_axis(stage: &PyStage, axis: &str) -> bool {
-    metrics::set_stage_up_axis(&stage.0, &Token::new(axis))
+    metrics::set_stage_up_axis(&stage.inner, &Token::new(axis))
 }
 
 /// Get stage meters-per-unit (e.g. 0.01 = centimeters).
 #[pyfunction]
 #[pyo3(name = "GetStageMetersPerUnit")]
 pub fn get_stage_meters_per_unit(stage: &PyStage) -> f64 {
-    metrics::get_stage_meters_per_unit(&stage.0)
+    metrics::get_stage_meters_per_unit(&stage.inner)
 }
 
 /// Set stage meters-per-unit. Returns true on success.
 #[pyfunction]
 #[pyo3(name = "SetStageMetersPerUnit")]
 pub fn set_stage_meters_per_unit(stage: &PyStage, mpu: f64) -> bool {
-    metrics::set_stage_meters_per_unit(&stage.0, mpu)
+    metrics::set_stage_meters_per_unit(&stage.inner, mpu)
 }
 
 // ============================================================================

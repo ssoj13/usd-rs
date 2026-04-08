@@ -129,6 +129,30 @@ impl PyType {
         }
     }
 
+    /// Register a Python-derived type in the TfType system.
+    /// In C++ this is `TfType::Define<T>()`. For Python-derived classes
+    /// this is effectively a no-op that returns the Unknown type — the real
+    /// plugin system handles registration via plugInfo.json.
+    #[classmethod]
+    #[pyo3(name = "Define")]
+    fn define(_cls: &Bound<'_, pyo3::types::PyType>, _py_class: &Bound<'_, PyAny>) -> Self {
+        Self {
+            inner: usd_tf::TfType::unknown(),
+        }
+    }
+
+    /// Alias for FindByName — `Tf.Type.Find("UsdGeomMesh")`.
+    #[classmethod]
+    #[pyo3(name = "Find")]
+    fn find(_cls: &Bound<'_, pyo3::types::PyType>, arg: &Bound<'_, PyAny>) -> Self {
+        let name = if let Ok(s) = arg.extract::<String>() { s }
+            else if let Ok(n) = arg.getattr("__name__").and_then(|n| n.extract::<String>()) { n }
+            else { return Self { inner: usd_tf::TfType::unknown() }; };
+        Self {
+            inner: usd_tf::TfType::find_by_name(&name),
+        }
+    }
+
     // ---- predicates ----
 
     /// True if this type has not been registered.

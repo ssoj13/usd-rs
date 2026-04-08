@@ -81,6 +81,10 @@ collect_ignore_glob = [
     # Helper/utility scripts (not tests)
     "**/create_symlinks.py",
     "**/__init__.py",
+    # Plug test fixture modules (loaded by testPlug.py, not standalone tests)
+    "**/plug/TestPlug*__init__.py",
+    # Trace module not yet ported
+    "**/trace/**",
     # Module-level variant editing logic needs full API surface (GetVariantEditContext etc.)
     "**/testUsdVariantEditing.py",
     # Scripts that use argparse at module level
