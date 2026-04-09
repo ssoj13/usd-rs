@@ -9,12 +9,12 @@ use pyo3::types::{PyDict, PyList, PyTuple};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
+use usd_core::stage_cache_context::{StageCacheContext, StageCacheContextBlockType};
 use usd_core::{
     attribute::Attribute, common::InitialLoadSet, edit_context::EditContext,
     edit_target::EditTarget, population_mask::StagePopulationMask, prim::Prim,
     relationship::Relationship, schema_registry::SchemaRegistry, stage::Stage, time_code::TimeCode,
 };
-use usd_core::stage_cache_context::{StageCacheContext, StageCacheContextBlockType};
 use usd_sdf::Path;
 use usd_tf::Token;
 use usd_vt::{Array, Value};
@@ -442,11 +442,7 @@ pub(crate) fn tc_from_py_sdf(obj: &Bound<'_, PyAny>) -> PyResult<usd_sdf::TimeCo
 /// Controls which prims are populated on a stage.
 ///
 /// Matches C++ `UsdStagePopulationMask`.
-#[pyclass(
-    skip_from_py_object,
-    name = "StagePopulationMask",
-    module = "pxr.Usd"
-)]
+#[pyclass(skip_from_py_object, name = "StagePopulationMask", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyStagePopulationMask {
     inner: StagePopulationMask,
@@ -1943,11 +1939,7 @@ impl PyVariantSet {
 /// Context manager that temporarily sets the edit target to a variant.
 ///
 /// Matches C++ `UsdVariantSet::GetVariantEditContext` return value.
-#[pyclass(
-    skip_from_py_object,
-    name = "VariantEditContext",
-    module = "pxr.Usd"
-)]
+#[pyclass(skip_from_py_object, name = "VariantEditContext", module = "pxr.Usd")]
 pub struct PyVariantEditContext {
     stage: Arc<Stage>,
     edit_target: EditTarget,
@@ -3344,7 +3336,10 @@ impl PyStage {
     #[staticmethod]
     #[pyo3(signature = (*args, **kwargs))]
     #[allow(non_snake_case)]
-    fn Open(args: &Bound<'_, PyTuple>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Py<PyStage>> {
+    fn Open(
+        args: &Bound<'_, PyTuple>,
+        kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<Py<PyStage>> {
         let py = args.py();
         if args.is_empty() {
             return Err(PyValueError::new_err(
@@ -3484,7 +3479,8 @@ impl PyStage {
         load: &str,
     ) -> PyResult<Py<PyStage>> {
         let load_set = parse_load(load)?;
-        let stage = Stage::open_masked(file_path, population_mask.inner.clone(), load_set).map_err(to_py_err)?;
+        let stage = Stage::open_masked(file_path, population_mask.inner.clone(), load_set)
+            .map_err(to_py_err)?;
         intern_py_stage(py, stage)
     }
 
@@ -4437,11 +4433,7 @@ impl PyObjectsChanged {
 // ============================================================================
 
 /// Stub for `UsdNotice::StageContentsChanged`.
-#[pyclass(
-    skip_from_py_object,
-    name = "StageContentsChanged",
-    module = "pxr.Usd"
-)]
+#[pyclass(skip_from_py_object, name = "StageContentsChanged", module = "pxr.Usd")]
 pub struct PyStageContentsChanged;
 
 /// Stub for `UsdNotice::StageEditTargetChanged`.
@@ -5507,9 +5499,7 @@ impl PyStageCache {
             }
             _ => unreachable!(),
         };
-        out.into_iter()
-            .map(|s| intern_py_stage(py, s))
-            .collect()
+        out.into_iter().map(|s| intern_py_stage(py, s)).collect()
     }
 
     /// Erase a stage by id (`int`, [`PyStageCacheId`]), by [`PyStage`], or None / invalid id → false).
@@ -5633,7 +5623,12 @@ enum PyStageCacheContextSpec {
 }
 
 /// Read-only wrapper around `Usd.StageCache` (C++ `UsdUseButDoNotPopulateCache`).
-#[pyclass(weakref, skip_from_py_object, name = "UseButDoNotPopulateCache", module = "pxr.Usd")]
+#[pyclass(
+    weakref,
+    skip_from_py_object,
+    name = "UseButDoNotPopulateCache",
+    module = "pxr.Usd"
+)]
 pub struct PyUseButDoNotPopulateCache {
     pub(crate) cache: std::sync::Arc<usd_core::stage_cache::StageCache>,
     /// Keeps the Python `Usd.StageCache` alive (see `testUsdStageCache.test_CacheContextLifetime`).
@@ -5888,10 +5883,7 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyUseButDoNotPopulateCache>()?;
     m.add_class::<PyUsdBlockStageCaches>()?;
     m.add_class::<PyUsdBlockStageCachePopulation>()?;
-    m.add(
-        "BlockStageCaches",
-        Py::new(py, PyUsdBlockStageCaches)?,
-    )?;
+    m.add("BlockStageCaches", Py::new(py, PyUsdBlockStageCaches)?)?;
     m.add(
         "BlockStageCachePopulation",
         Py::new(py, PyUsdBlockStageCachePopulation)?,

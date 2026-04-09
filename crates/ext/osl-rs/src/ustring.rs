@@ -289,9 +289,9 @@ impl UStringHash {
         Self(h)
     }
 
-    /// Create by hashing a string literal at runtime.
+    /// Hash UTF-8 text at runtime (replaces ad-hoc `from_str` naming; see also [`FromStr`] impl).
     #[inline]
-    pub fn from_str(s: &str) -> Self {
+    pub fn hash_utf8(s: &str) -> Self {
         Self(hashes::strhash(s))
     }
 
@@ -311,6 +311,14 @@ impl UStringHash {
     #[inline]
     pub fn resolve(&self) -> Option<UString> {
         UString::from_hash(self.0)
+    }
+}
+
+impl std::str::FromStr for UStringHash {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(hashes::strhash(s)))
     }
 }
 

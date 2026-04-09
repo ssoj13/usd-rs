@@ -55,6 +55,12 @@ pub struct Preprocessor {
     current_line: Cell<u32>,
 }
 
+impl Default for Preprocessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Preprocessor {
     pub fn new() -> Self {
         let mut pp = Self {
@@ -171,43 +177,43 @@ impl Preprocessor {
                     i += 1;
                 }
                 let ident = &line[start..i];
-                if let Some(def) = self.defines.get(ident) {
-                    if def.is_function {
-                        // Found a function-like macro. Check if the '(' after it
-                        // is unmatched within this line.
-                        let mut j = i;
-                        while j < len && (bytes[j] == b' ' || bytes[j] == b'\t') {
-                            j += 1;
-                        }
-                        if j < len && bytes[j] == b'(' {
-                            // Count paren depth from this '(' to end of line
-                            let mut pd = 0i32;
-                            let mut k = j;
-                            while k < len {
-                                match bytes[k] {
-                                    b'"' => {
-                                        k += 1;
-                                        while k < len && bytes[k] != b'"' {
-                                            if bytes[k] == b'\\' && k + 1 < len {
-                                                k += 2;
-                                            } else {
-                                                k += 1;
-                                            }
-                                        }
-                                        if k < len {
+                if let Some(def) = self.defines.get(ident)
+                    && def.is_function
+                {
+                    // Found a function-like macro. Check if the '(' after it
+                    // is unmatched within this line.
+                    let mut j = i;
+                    while j < len && (bytes[j] == b' ' || bytes[j] == b'\t') {
+                        j += 1;
+                    }
+                    if j < len && bytes[j] == b'(' {
+                        // Count paren depth from this '(' to end of line
+                        let mut pd = 0i32;
+                        let mut k = j;
+                        while k < len {
+                            match bytes[k] {
+                                b'"' => {
+                                    k += 1;
+                                    while k < len && bytes[k] != b'"' {
+                                        if bytes[k] == b'\\' && k + 1 < len {
+                                            k += 2;
+                                        } else {
                                             k += 1;
                                         }
-                                        continue;
                                     }
-                                    b'(' => pd += 1,
-                                    b')' => pd -= 1,
-                                    _ => {}
+                                    if k < len {
+                                        k += 1;
+                                    }
+                                    continue;
                                 }
-                                k += 1;
+                                b'(' => pd += 1,
+                                b')' => pd -= 1,
+                                _ => {}
                             }
-                            if pd > 0 {
-                                return true;
-                            }
+                            k += 1;
+                        }
+                        if pd > 0 {
+                            return true;
                         }
                     }
                 }
@@ -352,7 +358,7 @@ impl Preprocessor {
                     // Already had a true branch — skip
                     self.cond_stack[stack_len - 1].0 = false;
                 } else {
-                    let cond_text = directive[4..].trim();
+                    let cond_text = directive.strip_prefix("elif").unwrap_or("").trim();
                     let result = self.evaluate_condition(cond_text);
                     let last = self.cond_stack.len() - 1;
                     self.cond_stack[last].0 = result;
@@ -378,34 +384,34 @@ impl Preprocessor {
             return;
         }
 
-        if directive.starts_with("define") {
-            self.process_define(&directive[6..].trim_start());
-        } else if directive.starts_with("undef") {
-            let name = directive[5..].trim();
+        if let Some(rest) = directive.strip_prefix("define") {
+            self.process_define(rest.trim_start());
+        } else if let Some(rest) = directive.strip_prefix("undef") {
+            let name = rest.trim();
             self.undef(name);
-        } else if directive.starts_with("ifdef") {
-            let name = directive[5..].trim();
+        } else if let Some(rest) = directive.strip_prefix("ifdef") {
+            let name = rest.trim();
             let defined = self.is_defined(name);
             self.cond_stack.push((defined, defined, false));
-        } else if directive.starts_with("ifndef") {
-            let name = directive[6..].trim();
+        } else if let Some(rest) = directive.strip_prefix("ifndef") {
+            let name = rest.trim();
             let defined = self.is_defined(name);
             self.cond_stack.push((!defined, !defined, false));
-        } else if directive.starts_with("if") {
-            let cond_text = directive[2..].trim();
+        } else if let Some(rest) = directive.strip_prefix("if") {
+            let cond_text = rest.trim();
             let result = self.evaluate_condition(cond_text);
             self.cond_stack.push((result, result, false));
-        } else if directive.starts_with("include") {
-            self.process_include(&directive[7..].trim_start(), output, filename, line_num);
-        } else if directive.starts_with("pragma") {
-            self.process_pragma(&directive[6..].trim_start(), filename);
-        } else if directive.starts_with("error") {
-            let msg = directive[5..].trim();
+        } else if let Some(rest) = directive.strip_prefix("include") {
+            self.process_include(rest.trim_start(), output, filename, line_num);
+        } else if let Some(rest) = directive.strip_prefix("pragma") {
+            self.process_pragma(rest.trim_start(), filename);
+        } else if let Some(rest) = directive.strip_prefix("error") {
+            let msg = rest.trim();
             self.errors
                 .push(format!("{filename}:{line_num}: #error {msg}"));
-        } else if directive.starts_with("warning") {
+        } else if let Some(rest) = directive.strip_prefix("warning") {
             // Warnings don't stop compilation, just store them
-            let msg = directive[7..].trim();
+            let msg = rest.trim();
             self.errors
                 .push(format!("{filename}:{line_num}: #warning {msg}"));
         } else if directive.starts_with("line") {
@@ -471,19 +477,19 @@ impl Preprocessor {
 
     /// Process `#include "file"` or `#include <file>`.
     fn process_include(&mut self, rest: &str, output: &mut String, filename: &str, line_num: u32) {
-        let (path, _is_system) = if rest.starts_with('"') {
-            let end = rest[1..].find('"').map(|i| i + 1);
+        let (path, _is_system) = if let Some(quoted) = rest.strip_prefix('"') {
+            let end = quoted.find('"');
             if let Some(end) = end {
-                (rest[1..end].to_string(), false)
+                (quoted[..end].to_string(), false)
             } else {
                 self.errors
                     .push(format!("{filename}:{line_num}: malformed #include"));
                 return;
             }
-        } else if rest.starts_with('<') {
-            let end = rest[1..].find('>').map(|i| i + 1);
+        } else if let Some(system) = rest.strip_prefix('<') {
+            let end = system.find('>');
             if let Some(end) = end {
-                (rest[1..end].to_string(), true)
+                (system[..end].to_string(), true)
             } else {
                 self.errors
                     .push(format!("{filename}:{line_num}: malformed #include"));
@@ -625,8 +631,8 @@ impl Preprocessor {
         // Handle `defined(X)` or `defined X`
         if let Some(rest) = expr.strip_prefix("defined") {
             let rest = rest.trim();
-            let name = if rest.starts_with('(') {
-                rest[1..].trim_end_matches(')').trim()
+            let name = if let Some(inner) = rest.strip_prefix('(') {
+                inner.trim_end_matches(')').trim()
             } else {
                 rest.split_whitespace().next().unwrap_or("")
             };
@@ -720,15 +726,15 @@ impl Preprocessor {
             return self.eval_int(&trimmed[..pos]) != self.eval_int(&trimmed[pos + 2..]);
         }
         // Be careful with > and < — don't confuse with >= and <=
-        if let Some(pos) = trimmed.find('>') {
-            if trimmed.as_bytes().get(pos + 1) != Some(&b'=') {
-                return self.eval_int(&trimmed[..pos]) > self.eval_int(&trimmed[pos + 1..]);
-            }
+        if let Some(pos) = trimmed.find('>')
+            && trimmed.as_bytes().get(pos + 1) != Some(&b'=')
+        {
+            return self.eval_int(&trimmed[..pos]) > self.eval_int(&trimmed[pos + 1..]);
         }
-        if let Some(pos) = trimmed.find('<') {
-            if trimmed.as_bytes().get(pos + 1) != Some(&b'=') {
-                return self.eval_int(&trimmed[..pos]) < self.eval_int(&trimmed[pos + 1..]);
-            }
+        if let Some(pos) = trimmed.find('<')
+            && trimmed.as_bytes().get(pos + 1) != Some(&b'=')
+        {
+            return self.eval_int(&trimmed[..pos]) < self.eval_int(&trimmed[pos + 1..]);
         }
 
         // Handle negation

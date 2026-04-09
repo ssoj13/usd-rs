@@ -1224,15 +1224,13 @@ macro_rules! vt_array {
                 }
                 if let Ok(list) = obj.extract::<Vec<$py_elem>>() {
                     return Ok(Self {
-                        inner: Array::from(
-                            list.into_iter().map($from_py).collect::<Vec<_>>(),
-                        ),
+                        inner: Array::from(list.into_iter().map($from_py).collect::<Vec<_>>()),
                     });
                 }
                 // pxr: e.g. `Vt.Vec3fArray([x, y, z])` is one Gf.Vec3f (flat components).
-                let flat: Vec<f64> = obj.extract().map_err(|_| {
-                    PyValueError::new_err("expected int size or sequence")
-                })?;
+                let flat: Vec<f64> = obj
+                    .extract()
+                    .map_err(|_| PyValueError::new_err("expected int size or sequence"))?;
                 if flat.is_empty() {
                     return Ok(Self {
                         inner: Array::new(),
@@ -1248,8 +1246,7 @@ macro_rules! vt_array {
                 }
                 Ok(Self {
                     inner: Array::from(
-                        flat
-                            .chunks(DIM)
+                        flat.chunks(DIM)
                             .map(|c| ($from_flat)(c))
                             .collect::<Vec<_>>(),
                     ),
@@ -1600,9 +1597,7 @@ vt_array!(
     from_py = |(x, y, z): (f32, f32, f32)| usd_gf::Vec3f::new(x, y, z),
     to_py = |v: usd_gf::Vec3f| (v[0], v[1], v[2]),
     flat_dim = 3,
-    from_flat = |c: &[f64]| {
-        usd_gf::Vec3f::new(c[0] as f32, c[1] as f32, c[2] as f32)
-    }
+    from_flat = |c: &[f64]| { usd_gf::Vec3f::new(c[0] as f32, c[1] as f32, c[2] as f32) }
 );
 
 vt_array!(
@@ -1615,9 +1610,8 @@ vt_array!(
     from_py = |(x, y, z, w): (f32, f32, f32, f32)| usd_gf::Vec4f::new(x, y, z, w),
     to_py = |v: usd_gf::Vec4f| (v[0], v[1], v[2], v[3]),
     flat_dim = 4,
-    from_flat = |c: &[f64]| {
-        usd_gf::Vec4f::new(c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32)
-    }
+    from_flat =
+        |c: &[f64]| { usd_gf::Vec4f::new(c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32) }
 );
 
 vt_array!(
@@ -1682,9 +1676,7 @@ vt_array!(
     from_py = |(x, y, z): (i32, i32, i32)| usd_gf::Vec3i::new(x, y, z),
     to_py = |v: usd_gf::Vec3i| (v[0], v[1], v[2]),
     flat_dim = 3,
-    from_flat = |c: &[f64]| {
-        usd_gf::Vec3i::new(c[0] as i32, c[1] as i32, c[2] as i32)
-    }
+    from_flat = |c: &[f64]| { usd_gf::Vec3i::new(c[0] as i32, c[1] as i32, c[2] as i32) }
 );
 
 vt_array!(
@@ -1697,9 +1689,8 @@ vt_array!(
     from_py = |(x, y, z, w): (i32, i32, i32, i32)| usd_gf::Vec4i::new(x, y, z, w),
     to_py = |v: usd_gf::Vec4i| (v[0], v[1], v[2], v[3]),
     flat_dim = 4,
-    from_flat = |c: &[f64]| {
-        usd_gf::Vec4i::new(c[0] as i32, c[1] as i32, c[2] as i32, c[3] as i32)
-    }
+    from_flat =
+        |c: &[f64]| { usd_gf::Vec4i::new(c[0] as i32, c[1] as i32, c[2] as i32, c[3] as i32) }
 );
 
 // ============================================================================
@@ -2578,11 +2569,7 @@ impl PyFloatArrayEdit {
     }
 }
 
-#[pyclass(
-    skip_from_py_object,
-    name = "IntArrayEditBuilder",
-    module = "pxr.Vt"
-)]
+#[pyclass(skip_from_py_object, name = "IntArrayEditBuilder", module = "pxr.Vt")]
 pub struct PyIntArrayEditBuilder {
     inner: ArrayEditBuilder<i32>,
 }

@@ -56,7 +56,7 @@ const CIE_COLOUR_MATCH: [Float; 81 * 3] = [
 pub fn wavelength_color_xyz(lambda_nm: Float) -> Color3 {
     let ii = (lambda_nm - 380.0) / 5.0;
     let i = ii as i32;
-    if i < 0 || i >= 80 {
+    if !(0..80).contains(&i) {
         return Color3::ZERO;
     }
     let remainder = ii - i as Float;
@@ -897,7 +897,7 @@ pub fn rgb_to_xyz(rgb: Color3) -> Color3 {
     Color3::new(
         0.4124564 * rgb.x + 0.3575761 * rgb.y + 0.1804375 * rgb.z,
         0.2126729 * rgb.x + 0.7151522 * rgb.y + 0.0721750 * rgb.z,
-        0.0193339 * rgb.x + 0.1191920 * rgb.y + 0.9503041 * rgb.z,
+        0.0193339 * rgb.x + 0.119_192 * rgb.y + 0.9503041 * rgb.z,
     )
 }
 
@@ -905,7 +905,7 @@ pub fn rgb_to_xyz(rgb: Color3) -> Color3 {
 pub fn xyz_to_rgb(xyz: Color3) -> Color3 {
     Color3::new(
         3.2404542 * xyz.x - 1.5371385 * xyz.y - 0.4985314 * xyz.z,
-        -0.9692660 * xyz.x + 1.8760108 * xyz.y + 0.0415560 * xyz.z,
+        -0.969_266 * xyz.x + 1.8760108 * xyz.y + 0.0415560 * xyz.z,
         0.0556434 * xyz.x - 0.2040259 * xyz.y + 1.0572252 * xyz.z,
     )
 }
@@ -1044,10 +1044,10 @@ pub fn transform_color(from: &str, to: &str, color: Color3) -> Color3 {
 
     // When either space is not a built-in OSL name, try OCIO first
     #[cfg(feature = "vfx")]
-    if !is_builtin_space(from) || !is_builtin_space(to) {
-        if let Some(result) = transform_color_ocio(from, to, color) {
-            return result;
-        }
+    if (!is_builtin_space(from) || !is_builtin_space(to))
+        && let Some(result) = transform_color_ocio(from, to, color)
+    {
+        return result;
     }
 
     // Convert to linear RGB as intermediate

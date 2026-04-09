@@ -24,9 +24,11 @@ pub enum TextureWrap {
     PeriodicSharedBorder = 6,
 }
 
-impl TextureWrap {
-    pub fn from_str(s: &str) -> Self {
-        match s {
+impl std::str::FromStr for TextureWrap {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
             "black" => TextureWrap::Black,
             "clamp" => TextureWrap::Clamp,
             "periodic" => TextureWrap::Periodic,
@@ -34,7 +36,7 @@ impl TextureWrap {
             "periodic_pow2" => TextureWrap::PeriodicPow2,
             "periodic_sharedborder" => TextureWrap::PeriodicSharedBorder,
             _ => TextureWrap::Default,
-        }
+        })
     }
 }
 
@@ -103,15 +105,17 @@ impl Default for TextureOpt {
     }
 }
 
-impl TextureInterp {
-    pub fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
+impl std::str::FromStr for TextureInterp {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.to_lowercase().as_str() {
             "linear" | "bilinear" => TextureInterp::Bilinear,
             "cubic" | "bicubic" => TextureInterp::Bicubic,
             "smartcubic" | "smart bicubic" => TextureInterp::SmartBicubic,
             "closest" | "point" => TextureInterp::Closest,
             _ => TextureInterp::SmartBicubic,
-        }
+        })
     }
 }
 
@@ -158,22 +162,22 @@ where
         match name.as_str() {
             "swrap" => {
                 if let Some(s) = val.as_str() {
-                    opt.swrap = TextureWrap::from_str(s);
+                    opt.swrap = s.parse::<TextureWrap>().unwrap();
                 }
             }
             "twrap" => {
                 if let Some(s) = val.as_str() {
-                    opt.twrap = TextureWrap::from_str(s);
+                    opt.twrap = s.parse::<TextureWrap>().unwrap();
                 }
             }
             "rwrap" => {
                 if let Some(s) = val.as_str() {
-                    opt.rwrap = TextureWrap::from_str(s);
+                    opt.rwrap = s.parse::<TextureWrap>().unwrap();
                 }
             }
             "wrap" => {
                 if let Some(s) = val.as_str() {
-                    let w = TextureWrap::from_str(s);
+                    let w: TextureWrap = s.parse().unwrap();
                     opt.swrap = w;
                     opt.twrap = w;
                     opt.rwrap = w;
@@ -196,7 +200,7 @@ where
             }
             "interp" => {
                 if let Some(s) = val.as_str() {
-                    opt.interpmode = TextureInterp::from_str(s);
+                    opt.interpmode = s.parse::<TextureInterp>().unwrap();
                 }
             }
             "swidth" => {
@@ -436,7 +440,7 @@ pub fn texture_lookup(
     opt: &TextureOpt,
 ) -> TextureResult {
     if let Some(rs) = renderer {
-        let fh = UStringHash::from_str(filename);
+        let fh = UStringHash::hash_utf8(filename);
         let nch = opt.nchannels.max(3);
         let mut buf = vec![0.0f32; nch as usize];
         if rs
@@ -539,7 +543,7 @@ pub fn texture3d_lookup(
     opt: &TextureOpt,
 ) -> TextureResult {
     if let Some(rs) = renderer {
-        let fh = UStringHash::from_str(filename);
+        let fh = UStringHash::hash_utf8(filename);
         let nch = opt.nchannels.max(3);
         let mut buf = vec![0.0f32; nch as usize];
         let mut dresultds = vec![0.0f32; nch as usize];
@@ -609,7 +613,7 @@ pub fn environment_lookup(
     opt: &TextureOpt,
 ) -> TextureResult {
     if let Some(rs) = renderer {
-        let fh = UStringHash::from_str(filename);
+        let fh = UStringHash::hash_utf8(filename);
         let nch = opt.nchannels.max(3);
         let mut buf = vec![0.0f32; nch as usize];
         if rs
@@ -747,6 +751,12 @@ pub struct CachedTexture {
     filename: UString,
     resolution: [i32; 2],
     channels: i32,
+}
+
+impl Default for TextureCache {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TextureCache {
@@ -990,11 +1000,11 @@ mod tests {
     #[test]
     fn test_wrap_from_str_new_modes() {
         assert_eq!(
-            TextureWrap::from_str("periodic_pow2"),
+            "periodic_pow2".parse::<TextureWrap>().unwrap(),
             TextureWrap::PeriodicPow2
         );
         assert_eq!(
-            TextureWrap::from_str("periodic_sharedborder"),
+            "periodic_sharedborder".parse::<TextureWrap>().unwrap(),
             TextureWrap::PeriodicSharedBorder
         );
     }

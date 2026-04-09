@@ -213,9 +213,7 @@ impl PyReporter {
                 PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Trace reporter mutex poisoned")
             })?
             .report(iteration_count.unwrap_or(0));
-        py.import("builtins")?
-            .getattr("print")?
-            .call1((text,))?;
+        py.import("builtins")?.getattr("print")?.call1((text,))?;
         Ok(())
     }
 
@@ -228,9 +226,7 @@ impl PyReporter {
                 PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Trace reporter mutex poisoned")
             })?
             .report_times();
-        py.import("builtins")?
-            .getattr("print")?
-            .call1((text,))?;
+        py.import("builtins")?.getattr("print")?.call1((text,))?;
         Ok(())
     }
 }
@@ -328,8 +324,14 @@ def TraceMethod(f):
     )
     .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
     py.run(&code, Some(&dict), Some(&dict))?;
-    m.setattr("TraceFunction", dict.get_item("TraceFunction")?.expect("TraceFunction"))?;
-    m.setattr("TraceMethod", dict.get_item("TraceMethod")?.expect("TraceMethod"))?;
+    m.setattr(
+        "TraceFunction",
+        dict.get_item("TraceFunction")?.expect("TraceFunction"),
+    )?;
+    m.setattr(
+        "TraceMethod",
+        dict.get_item("TraceMethod")?.expect("TraceMethod"),
+    )?;
     Ok(())
 }
 

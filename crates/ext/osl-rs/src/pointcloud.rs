@@ -324,7 +324,7 @@ impl PointCloudManager {
     /// Get or create a named point cloud.
     pub fn get_or_create(&mut self, name: &str) -> &mut PointCloud {
         let uname = UString::new(name);
-        self.clouds.entry(uname).or_insert_with(PointCloud::new)
+        self.clouds.entry(uname).or_default()
     }
 
     /// Get a point cloud by name (read-only).

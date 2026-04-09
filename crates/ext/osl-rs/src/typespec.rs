@@ -64,7 +64,7 @@ impl StructSpec {
         for (i, f) in self.fields.iter().enumerate() {
             let sz = f.type_spec.simpletype().size();
             // Align to 4 bytes
-            if offset % 4 != 0 {
+            if !offset.is_multiple_of(4) {
                 offset += 4 - (offset % 4);
             }
             if i == field_index {
@@ -79,7 +79,7 @@ impl StructSpec {
     pub fn total_byte_size(&self) -> usize {
         let mut offset = 0usize;
         for f in &self.fields {
-            if offset % 4 != 0 {
+            if !offset.is_multiple_of(4) {
                 offset += 4 - (offset % 4);
             }
             offset += f.type_spec.simpletype().size();
@@ -132,10 +132,10 @@ pub fn get_struct(id: i32) -> Option<StructSpec> {
 pub fn find_struct_by_name(name: UString) -> i32 {
     with_struct_list(|list| {
         for (i, entry) in list.iter().enumerate() {
-            if let Some(s) = entry {
-                if s.name == name {
-                    return i as i32;
-                }
+            if let Some(s) = entry
+                && s.name == name
+            {
+                return i as i32;
             }
         }
         0
@@ -385,9 +385,8 @@ impl TypeSpec {
             'm'
         } else if elem == TypeDesc::STRING {
             's'
-        } else if elem == TypeDesc::NONE {
-            'x'
         } else {
+            // NONE and unknown element types
             'x'
         };
         ch.to_string()

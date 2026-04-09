@@ -104,8 +104,8 @@ fn is_void(ts: TypeSpec) -> bool {
 
 /// Check whether a list of statements contains at least one `return` at the top level.
 /// Used for the missing-return warning in non-void functions.
-fn stmts_have_return(stmts: &[Box<ASTNode>]) -> bool {
-    stmts.iter().any(|s| stmt_has_return(s))
+fn stmts_have_return(stmts: &[ASTNode]) -> bool {
+    stmts.iter().any(stmt_has_return)
 }
 
 /// Recursively check whether a statement or block contains a `return`.
@@ -123,7 +123,7 @@ fn stmt_has_return(node: &ASTNode) -> bool {
             ..
         } => {
             // Guaranteed only if both branches have a return.
-            stmt_has_return(true_stmt) && false_stmt.as_deref().map_or(false, stmt_has_return)
+            stmt_has_return(true_stmt) && false_stmt.as_deref().is_some_and(stmt_has_return)
         }
         ASTNodeKind::LoopStatement { body, .. } => stmt_has_return(body),
         _ => false,
@@ -279,6 +279,12 @@ pub struct TypeChecker {
     readonly_vars: std::collections::HashSet<String>,
 }
 
+impl Default for TypeChecker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TypeChecker {
     pub fn new() -> Self {
         Self {
@@ -293,7 +299,7 @@ impl TypeChecker {
     }
 
     /// Type-check an entire shader file.
-    pub fn check(&mut self, nodes: &mut [Box<ASTNode>]) {
+    pub fn check(&mut self, nodes: &mut [ASTNode]) {
         for node in nodes.iter_mut() {
             self.check_node(node);
         }
@@ -333,14 +339,14 @@ impl TypeChecker {
     /// Check if a variable is writable (C++ check_symbol_writeability).
     /// Returns false and emits a warning if the target is a non-output param.
     fn check_symbol_writeability(&mut self, node: &ASTNode) -> bool {
-        if let Some(name) = Self::lvalue_var_name(node) {
-            if self.readonly_vars.contains(name) {
-                self.add_warning(
-                    node.loc,
-                    format!("cannot write to non-output parameter \"{}\"", name),
-                );
-                return false;
-            }
+        if let Some(name) = Self::lvalue_var_name(node)
+            && self.readonly_vars.contains(name)
+        {
+            self.add_warning(
+                node.loc,
+                format!("cannot write to non-output parameter \"{}\"", name),
+            );
+            return false;
         }
         true
     }
@@ -395,7 +401,7 @@ impl TypeChecker {
     /// Compute the argtakesderivs bitmask for a function call.
     /// Port of C++ typecheck_builtin_specialcase derivative tracking.
     /// Bit i = arg i takes derivatives (0-indexed where arg 0 = return value).
-    fn compute_argtakesderivs(name: &str, args: &[Box<ASTNode>]) -> u32 {
+    fn compute_argtakesderivs(name: &str, args: &[ASTNode]) -> u32 {
         let nargs = args.len();
         let mut derivs: u32 = 0;
         let set = |d: &mut u32, arg: usize, val: bool| {
@@ -407,31 +413,28 @@ impl TypeChecker {
             "area" | "filterwidth" | "calculatenormal" | "Dx" | "Dy" | "Dz" => {
                 set(&mut derivs, 1, true);
             }
-            "texture" => {
+            "texture"
                 // 3-arg or if 4th arg is string -> args 2,3 take derivs
-                if nargs == 3 || (nargs > 3 && is_string(args[3].typespec)) {
+                if (nargs == 3 || (nargs > 3 && is_string(args[3].typespec))) => {
                     set(&mut derivs, 2, true);
                     set(&mut derivs, 3, true);
                 }
-            }
-            "texture3d" => {
-                if nargs == 2 || (nargs > 2 && is_string(args[2].typespec)) {
+            "texture3d"
+                if (nargs == 2 || (nargs > 2 && is_string(args[2].typespec))) => {
                     set(&mut derivs, 2, true);
                 }
-            }
-            "environment" => {
-                if nargs == 2 || (nargs > 2 && is_string(args[2].typespec)) {
+            "environment"
+                if (nargs == 2 || (nargs > 2 && is_string(args[2].typespec))) => {
                     set(&mut derivs, 2, true);
                 }
-            }
             "trace" => {
                 set(&mut derivs, 1, true);
                 set(&mut derivs, 2, true);
             }
-            "noise" | "pnoise" => {
+            "noise" | "pnoise"
                 // If first arg is a string, and is either not a literal or is "gabor",
                 // then positional args after the string take derivs
-                if !args.is_empty() && is_string(args[0].typespec) {
+                if !args.is_empty() && is_string(args[0].typespec) => {
                     let is_gabor = match &args[0].kind {
                         ASTNodeKind::Literal {
                             value: LiteralValue::String(s),
@@ -440,15 +443,14 @@ impl TypeChecker {
                     };
                     if is_gabor {
                         // Skip first arg (string), mark remaining positional args
-                        for n in 1..nargs {
-                            if is_string(args[n].typespec) {
+                        for (n, arg) in args.iter().enumerate().take(nargs).skip(1) {
+                            if is_string(arg.typespec) {
                                 break;
                             }
-                            set(&mut derivs, (n + 1) as usize, true); // +1 for return val at pos 0
+                            set(&mut derivs, n + 1, true); // +1 for return val at pos 0
                         }
                     }
                 }
-            }
             _ => {} // most functions don't take derivs
         }
         derivs
@@ -479,7 +481,7 @@ impl TypeChecker {
     /// Returns true on success.
     fn type_adjust_compound_init(
         &mut self,
-        elements: &mut Vec<Box<ASTNode>>,
+        elements: &mut [ASTNode],
         target: TypeSpec,
         loc: crate::lexer::SourceLoc,
         must_init_all: bool,
@@ -499,7 +501,7 @@ impl TypeChecker {
     /// C++ TypeAdjuster::typecheck_array.
     fn adjust_array(
         &mut self,
-        elements: &mut Vec<Box<ASTNode>>,
+        elements: &mut [ASTNode],
         target: TypeSpec,
         loc: crate::lexer::SourceLoc,
         must_init_all: bool,
@@ -575,7 +577,7 @@ impl TypeChecker {
     /// C++ TypeAdjuster::typecheck_fields.
     fn adjust_fields(
         &mut self,
-        elements: &mut Vec<Box<ASTNode>>,
+        elements: &mut [ASTNode],
         target: TypeSpec,
         loc: crate::lexer::SourceLoc,
         must_init_all: bool,
@@ -618,11 +620,7 @@ impl TypeChecker {
         }
 
         // Clone field info to avoid borrow conflict with self in recursive calls.
-        let fields: Vec<_> = spec
-            .fields
-            .iter()
-            .map(|f| (f.name.clone(), f.type_spec))
-            .collect();
+        let fields: Vec<_> = spec.fields.iter().map(|f| (f.name, f.type_spec)).collect();
         drop(spec);
 
         for (i, e) in elements.iter_mut().enumerate() {
@@ -659,7 +657,7 @@ impl TypeChecker {
     /// C++ TypeAdjuster::typecheck_init -> ASTtype_constructor::typecheck.
     fn adjust_scalar_ctor(
         &mut self,
-        elements: &mut Vec<Box<ASTNode>>,
+        elements: &mut [ASTNode],
         target: TypeSpec,
         loc: crate::lexer::SourceLoc,
         report_errors: bool,
@@ -786,10 +784,8 @@ impl TypeChecker {
         // --- Closure special cases ---
         if is_closure(l) || is_closure(r) {
             match op {
-                Operator::Add => {
-                    if is_closure(l) && is_closure(r) {
-                        return l;
-                    }
+                Operator::Add if is_closure(l) && is_closure(r) => {
+                    return l;
                 }
                 Operator::Mul => {
                     if is_closure(l) && !is_closure(r) && (is_color(r) || is_int_or_float(r)) {
@@ -1108,11 +1104,11 @@ impl TypeChecker {
                 // (unless there's a user-defined operator overload)
                 if lt.is_structure() || rt.is_structure() || lt.is_array() || rt.is_array() {
                     // Try operator overload before erroring
-                    if let Some(opw) = Self::binary_opword(op_val) {
-                        if let Some(ret) = self.lookup_operator_overload(opw) {
-                            node.typespec = ret;
-                            return;
-                        }
+                    if let Some(opw) = Self::binary_opword(op_val)
+                        && let Some(ret) = self.lookup_operator_overload(opw)
+                    {
+                        node.typespec = ret;
+                        return;
                     }
                     self.add_error(
                         loc,
@@ -1131,11 +1127,11 @@ impl TypeChecker {
                         && rt != TypeSpec::UNKNOWN
                     {
                         // Try user-defined operator overload (C++ __operator__XX__)
-                        if let Some(opw) = Self::binary_opword(op_val) {
-                            if let Some(ret) = self.lookup_operator_overload(opw) {
-                                node.typespec = ret;
-                                return;
-                            }
+                        if let Some(opw) = Self::binary_opword(op_val)
+                            && let Some(ret) = self.lookup_operator_overload(opw)
+                        {
+                            node.typespec = ret;
+                            return;
                         }
                         self.add_error(
                             loc,
@@ -1159,52 +1155,42 @@ impl TypeChecker {
                 // (unless there's a user-defined operator overload)
                 if t.is_structure() || t.is_array() {
                     // Try operator overload before erroring
-                    if let Some(opw) = Self::unary_opword(op_val) {
-                        if let Some(ret) = self.lookup_operator_overload(opw) {
-                            node.typespec = ret;
-                            return;
-                        }
+                    if let Some(opw) = Self::unary_opword(op_val)
+                        && let Some(ret) = self.lookup_operator_overload(opw)
+                    {
+                        node.typespec = ret;
+                        return;
                     }
                     self.add_error(loc, format!("can't do unary op on {:?}", t.simpletype()));
                     node.typespec = TypeSpec::UNKNOWN;
                 } else {
                     match op {
-                        Operator::Neg | Operator::Sub | Operator::Add => {
+                        Operator::Neg | Operator::Sub | Operator::Add
                             if !t.is_unknown()
                                 && !is_numeric(t)
                                 && !is_closure(t)
                                 && !is_triple(t)
-                                && !is_matrix(t)
+                                && !is_matrix(t) =>
+                        {
+                            // Try unary operator overload
+                            if let Some(opw) = Self::unary_opword(op_val)
+                                && let Some(ret) = self.lookup_operator_overload(opw)
                             {
-                                // Try unary operator overload
-                                if let Some(opw) = Self::unary_opword(op_val) {
-                                    if let Some(ret) = self.lookup_operator_overload(opw) {
-                                        node.typespec = ret;
-                                        return;
-                                    }
-                                }
-                                self.add_error(
-                                    loc,
-                                    format!("can't negate type {:?}", t.simpletype()),
-                                );
-                                node.typespec = TypeSpec::UNKNOWN;
-                            } else {
-                                node.typespec = t;
+                                node.typespec = ret;
+                                return;
                             }
+                            self.add_error(loc, format!("can't negate type {:?}", t.simpletype()));
+                            node.typespec = TypeSpec::UNKNOWN;
                         }
                         Operator::Not => {
                             node.typespec = TypeSpec::from_simple(TypeDesc::INT);
                         }
-                        Operator::BitNot => {
-                            if !is_int(t) {
-                                self.add_error(
-                                    loc,
-                                    "operator '~' can only be applied to int".to_string(),
-                                );
-                                node.typespec = TypeSpec::UNKNOWN;
-                            } else {
-                                node.typespec = t;
-                            }
+                        Operator::BitNot if !is_int(t) => {
+                            self.add_error(
+                                loc,
+                                "operator '~' can only be applied to int".to_string(),
+                            );
+                            node.typespec = TypeSpec::UNKNOWN;
                         }
                         _ => {
                             node.typespec = t;
@@ -1400,16 +1386,14 @@ impl TypeChecker {
                             ),
                         );
                     }
-                } else if is_int(ts) {
-                    if args.len() != 1 {
-                        self.add_error(
-                            loc,
-                            format!(
-                                "int constructor requires exactly 1 argument, got {}",
-                                args.len()
-                            ),
-                        );
-                    }
+                } else if is_int(ts) && args.len() != 1 {
+                    self.add_error(
+                        loc,
+                        format!(
+                            "int constructor requires exactly 1 argument, got {}",
+                            args.len()
+                        ),
+                    );
                 }
                 node.typespec = ts;
             }
@@ -1549,16 +1533,16 @@ impl TypeChecker {
                     }
                 } else {
                     // Return without value
-                    if let Some(&func_ret) = self.function_stack.last() {
-                        if !is_void(func_ret) {
-                            self.add_error(
-                                loc,
-                                format!(
-                                    "must return a value from function returning {:?}",
-                                    func_ret.simpletype()
-                                ),
-                            );
-                        }
+                    if let Some(&func_ret) = self.function_stack.last()
+                        && !is_void(func_ret)
+                    {
+                        self.add_error(
+                            loc,
+                            format!(
+                                "must return a value from function returning {:?}",
+                                func_ret.simpletype()
+                            ),
+                        );
                     }
                     // Return without value from shader body is OK (equivalent to exit())
                 }
@@ -1722,9 +1706,9 @@ impl TypeChecker {
                 let target = *typespec;
                 let source = expr.typespec;
                 // Validate cast
-                if !Self::assignable(target, source)
-                    && !(is_int(target) && is_float(source))  // (int)float is ok
-                    && !(is_triple(target) && is_triple(source))
+                if !(Self::assignable(target, source)
+                    || (is_int(target) && is_float(source)) // (int)float is ok
+                    || (is_triple(target) && is_triple(source)))
                 // any triple cast ok
                 {
                     self.add_error(
@@ -1947,18 +1931,18 @@ impl TypeChecker {
 
         // Phase 1: exact args, exact return
         for (ret, params) in candidates {
-            if try_match(params, actual_args, false).is_some() {
-                if !has_expected || *ret == expected_ret {
-                    return Some(*ret);
-                }
+            if try_match(params, actual_args, false).is_some()
+                && (!has_expected || *ret == expected_ret)
+            {
+                return Some(*ret);
             }
         }
         // Phase 2: exact args, equivalent return
         for (ret, params) in candidates {
-            if try_match(params, actual_args, false).is_some() {
-                if !has_expected || equiv_return(*ret, expected_ret) {
-                    return Some(*ret);
-                }
+            if try_match(params, actual_args, false).is_some()
+                && (!has_expected || equiv_return(*ret, expected_ret))
+            {
+                return Some(*ret);
             }
         }
         // Phase 3: exact args, any return
@@ -1971,18 +1955,18 @@ impl TypeChecker {
         }
         // Phase 4: coercible args, exact return
         for (ret, params) in candidates {
-            if try_match(params, actual_args, true).is_some() {
-                if !has_expected || *ret == expected_ret {
-                    return Some(*ret);
-                }
+            if try_match(params, actual_args, true).is_some()
+                && (!has_expected || *ret == expected_ret)
+            {
+                return Some(*ret);
             }
         }
         // Phase 5: coercible args, equivalent return
         for (ret, params) in candidates {
-            if try_match(params, actual_args, true).is_some() {
-                if !has_expected || equiv_return(*ret, expected_ret) {
-                    return Some(*ret);
-                }
+            if try_match(params, actual_args, true).is_some()
+                && (!has_expected || equiv_return(*ret, expected_ret))
+            {
+                return Some(*ret);
             }
         }
         // Phase 6: coercible args, any return
@@ -2013,13 +1997,13 @@ impl TypeChecker {
     /// optional string-value pairs begin. `tags` are output slot names;
     /// "*" means mark all.
     fn mark_optional_output(
-        args: &[Box<ASTNode>],
+        args: &[ASTNode],
         argread: &mut u32,
         argwrite: &mut u32,
         mut firstopt: usize,
         tags: &[&str],
     ) {
-        let mark_all = tags.first().map_or(false, |t| *t == "*");
+        let mark_all = tags.first().is_some_and(|t| *t == "*");
         let nargs = args.len();
 
         // Advance firstopt (0-based in args[]) to first string arg
@@ -2036,7 +2020,7 @@ impl TypeChecker {
                     value: LiteralValue::String(ref s),
                 } = args[a].kind
                 {
-                    is_output = mark_all || tags.iter().any(|t| *t == s.as_str());
+                    is_output = mark_all || tags.contains(&s.as_str());
                 } else {
                     // Non-literal string: conservatively mark as output
                     is_output = true;
@@ -2163,7 +2147,7 @@ impl TypeChecker {
         &mut self,
         func_name: &str,
         format: &str,
-        args: &[Box<ASTNode>],
+        args: &[ASTNode],
         arg_start: usize,
         loc: crate::lexer::SourceLoc,
     ) {
@@ -2286,7 +2270,7 @@ impl TypeChecker {
     /// Resolve the return type of a function call.
     /// Uses resolve_overload for functions with known overloads,
     /// falls back to pattern matching for builtins.
-    fn resolve_function_type(&self, name: &str, args: &[Box<ASTNode>]) -> TypeSpec {
+    fn resolve_function_type(&self, name: &str, args: &[ASTNode]) -> TypeSpec {
         // Arity validation against builtin table (C++ builtin_func_args)
         // (name, min_args, max_args) — max=255 means variadic
         const VARIADIC: u8 = 255;
@@ -2436,15 +2420,15 @@ impl TypeChecker {
             | "smoothstep" | "clamp" | "mix" | "min" | "max" | "fmod" | "mod" | "dot"
             | "length" | "distance" | "luminance" | "surfacearea" | "raytype" => {
                 // These return the type of their first arg, or float
-                if let Some(first) = args.first() {
-                    if is_triple(first.typespec) {
-                        // Some of these return float even with triple input
-                        match name {
-                            "dot" | "length" | "distance" | "luminance" => {
-                                return TypeSpec::from_simple(TypeDesc::FLOAT);
-                            }
-                            _ => return first.typespec,
+                if let Some(first) = args.first()
+                    && is_triple(first.typespec)
+                {
+                    // Some of these return float even with triple input
+                    match name {
+                        "dot" | "length" | "distance" | "luminance" => {
+                            return TypeSpec::from_simple(TypeDesc::FLOAT);
                         }
+                        _ => return first.typespec,
                     }
                 }
                 TypeSpec::from_simple(TypeDesc::FLOAT)
@@ -2590,14 +2574,14 @@ impl TypeChecker {
 }
 
 /// Convenience: type-check a parsed AST.
-pub fn typecheck(nodes: &mut [Box<ASTNode>]) -> Vec<TypeError> {
+pub fn typecheck(nodes: &mut [ASTNode]) -> Vec<TypeError> {
     let mut tc = TypeChecker::new();
     tc.check(nodes);
     tc.errors
 }
 
 /// Type-check and return both errors and warnings.
-pub fn typecheck_full(nodes: &mut [Box<ASTNode>]) -> (Vec<TypeError>, Vec<TypeWarning>) {
+pub fn typecheck_full(nodes: &mut [ASTNode]) -> (Vec<TypeError>, Vec<TypeWarning>) {
     let mut tc = TypeChecker::new();
     tc.check(nodes);
     (tc.errors, tc.warnings)

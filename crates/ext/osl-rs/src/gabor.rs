@@ -302,7 +302,7 @@ pub fn gabor3_deriv(p: Vec3, params: &GaborParams) -> (Float, Vec3) {
                             gabor_kernel_deriv(gp.weight, x_k_i, omega_i, phi_i, gp.a);
                         sum_val += kval;
                         // d(sum)/dp = kgrad (since dx_k_i/dp = 1 via radius*radius_inv)
-                        sum_grad = sum_grad + kgrad;
+                        sum_grad += kgrad;
                     }
                 }
             }

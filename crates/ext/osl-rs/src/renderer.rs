@@ -782,19 +782,19 @@ impl RendererServices for BasicRenderer {
         _time: Float,
     ) -> Option<Matrix44> {
         // Resolve UStringHash back to a string
-        if let Some(us) = crate::ustring::UString::from_hash(from.hash()) {
-            if let Some(mat) = self.transforms.get(us.as_str()) {
-                return Some(*mat);
-            }
+        if let Some(us) = crate::ustring::UString::from_hash(from.hash())
+            && let Some(mat) = self.transforms.get(us.as_str())
+        {
+            return Some(*mat);
         }
         None
     }
 
     fn get_matrix_named_static(&self, _sg: &ShaderGlobals, from: UStringHash) -> Option<Matrix44> {
-        if let Some(us) = crate::ustring::UString::from_hash(from.hash()) {
-            if let Some(mat) = self.transforms.get(us.as_str()) {
-                return Some(*mat);
-            }
+        if let Some(us) = crate::ustring::UString::from_hash(from.hash())
+            && let Some(mat) = self.transforms.get(us.as_str())
+        {
+            return Some(*mat);
         }
         None
     }
@@ -850,8 +850,8 @@ impl RendererServices for BasicRenderer {
         let freq = (8.0 / (1.0 + mip)).max(1.0);
         let check = ((s * freq).floor() as i32 + (t * freq).floor() as i32) & 1;
         let val = if check != 0 { 1.0 } else { 0.0 };
-        for i in 0..nch as usize {
-            result[i] = val;
+        for slot in result.iter_mut().take(nch as usize) {
+            *slot = val;
         }
         Ok(())
     }
@@ -1070,11 +1070,11 @@ impl RendererServices for BasicRenderer {
                 }
             } else if attr_type.is_float() {
                 for (i, v) in vals.iter().enumerate() {
-                    if i < indices.len() {
-                        if let Some(crate::pointcloud::PointData::Float(f)) = v {
-                            unsafe {
-                                *((out_data as *mut Float).add(i)) = *f;
-                            }
+                    if i < indices.len()
+                        && let Some(crate::pointcloud::PointData::Float(f)) = v
+                    {
+                        unsafe {
+                            *((out_data as *mut Float).add(i)) = *f;
                         }
                     }
                 }

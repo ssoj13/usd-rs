@@ -18,10 +18,7 @@ use usd_sdf::{Layer, LayerHandle};
 ///
 /// Stages created via `CreateInMemory` store `None`; those match only an **empty** query context
 /// (C++ "null" / empty `ArResolverContext`), matching OpenUSD cache semantics.
-fn resolver_query_matches_stage(
-    stage: &Arc<Stage>,
-    query: &ResolverContext,
-) -> bool {
+fn resolver_query_matches_stage(stage: &Arc<Stage>, query: &ResolverContext) -> bool {
     match stage.get_path_resolver_context() {
         Some(ctx) => ctx == *query,
         None => query.is_empty(),

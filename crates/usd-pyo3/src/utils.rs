@@ -3,10 +3,10 @@
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyModule, PyTuple, PyType};
-use usd_core::time_code::TimeCode;
 use usd_core::stage_cache::StageCache as UsdStageCache;
-use usd_utils::time_code_range::TimeCodeRange as Utcr;
+use usd_core::time_code::TimeCode;
 use usd_utils::StageCache as UtilsStageCache;
+use usd_utils::time_code_range::TimeCodeRange as Utcr;
 
 use crate::usd::{PyStageCache, PyTimeCode};
 
@@ -120,8 +120,7 @@ impl PyTimeCodeRange {
             items.push(pytc.into_any());
         }
         let list = pyo3::types::PyList::new(py, items)?;
-        list
-            .call_method0("__iter__")
+        list.call_method0("__iter__")
             .map(|iter_bound| iter_bound.into_any().unbind())
     }
 }
@@ -141,13 +140,18 @@ pub struct PyConstantsGroup;
 impl PyConstantsGroup {
     #[new]
     fn new() -> PyResult<()> {
-        Err(PyTypeError::new_err("ConstantsGroup objects cannot be created."))
+        Err(PyTypeError::new_err(
+            "ConstantsGroup objects cannot be created.",
+        ))
     }
 
     /// Builds `_all` from class body entries (Pixar-style), wraps bare functions as `staticmethod`.
     #[classmethod]
     #[pyo3(signature = (*, **kwargs))]
-    fn __init_subclass__(cls: &Bound<'_, PyType>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<()> {
+    fn __init_subclass__(
+        cls: &Bound<'_, PyType>,
+        kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<()> {
         let _ = kwargs;
         let py = cls.py();
         let dict_proxy = cls.getattr("__dict__")?;

@@ -239,7 +239,7 @@ pub enum Tok {
 }
 
 thread_local! {
-    static LEX_INT_OVERFLOW: std::cell::RefCell<Option<(usize, String)>> = std::cell::RefCell::new(None);
+    static LEX_INT_OVERFLOW: std::cell::RefCell<Option<(usize, String)>> = const { std::cell::RefCell::new(None) };
 }
 
 /// Parse decimal integer with overflow checking (C++ parity: osllex.l:195–207).
@@ -291,7 +291,7 @@ fn parse_octal(lex: &mut logos::Lexer<Tok>) -> Option<i32> {
 }
 
 fn parse_float(lex: &mut logos::Lexer<Tok>) -> Option<f32> {
-    let s = lex.slice().trim_end_matches(|c| c == 'f' || c == 'F');
+    let s = lex.slice().trim_end_matches(['f', 'F']);
     s.parse::<f32>().ok()
 }
 
@@ -455,12 +455,12 @@ impl<'input> Iterator for OslLexer<'input> {
                 };
 
                 // Error on reserved word usage (C++ parity: osllex.l RESERVED rule, errorfmt)
-                if let Tok::Identifier(ref id) = t {
-                    if is_reserved_word(id) {
-                        let loc = offset_to_loc(self.source, span.start);
-                        self.errors
-                            .push((loc, format!("'{}' is a reserved word", id)));
-                    }
+                if let Tok::Identifier(ref id) = t
+                    && is_reserved_word(id)
+                {
+                    let loc = offset_to_loc(self.source, span.start);
+                    self.errors
+                        .push((loc, format!("'{}' is a reserved word", id)));
                 }
 
                 // Check for integer overflow from parse_decimal_int/parse_hex_int

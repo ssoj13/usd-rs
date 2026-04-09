@@ -7,8 +7,8 @@
 //! All functions use `extern "C"` and `#[unsafe(no_mangle)]` to ensure
 //! symbol visibility and calling convention compatibility.
 
-use std::ffi::{CStr, CString};
-use std::os::raw::{c_char, c_float, c_int, c_void};
+use std::ffi::{CStr, CString, c_char};
+use std::os::raw::{c_float, c_int, c_void};
 use std::ptr;
 use std::sync::Arc;
 
@@ -419,8 +419,7 @@ pub extern "C" fn osl_version() -> c_int {
 /// Get a version string.
 #[unsafe(no_mangle)]
 pub extern "C" fn osl_version_string() -> *const c_char {
-    // Static string using the shared version constants
-    b"osl-rs 1.14.0\0".as_ptr() as *const c_char
+    c"osl-rs 1.14.0".as_ptr()
 }
 
 #[cfg(test)]

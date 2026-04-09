@@ -126,19 +126,19 @@ impl RendererServices for VfxRenderer {
         from: UStringHash,
         _time: Float,
     ) -> Option<Matrix44> {
-        if let Some(us) = crate::ustring::UString::from_hash(from.hash()) {
-            if let Some(mat) = self.transforms.get(us.as_str()) {
-                return Some(*mat);
-            }
+        if let Some(us) = crate::ustring::UString::from_hash(from.hash())
+            && let Some(mat) = self.transforms.get(us.as_str())
+        {
+            return Some(*mat);
         }
         None
     }
 
     fn get_matrix_named_static(&self, _sg: &ShaderGlobals, from: UStringHash) -> Option<Matrix44> {
-        if let Some(us) = crate::ustring::UString::from_hash(from.hash()) {
-            if let Some(mat) = self.transforms.get(us.as_str()) {
-                return Some(*mat);
-            }
+        if let Some(us) = crate::ustring::UString::from_hash(from.hash())
+            && let Some(mat) = self.transforms.get(us.as_str())
+        {
+            return Some(*mat);
         }
         None
     }

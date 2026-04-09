@@ -126,11 +126,7 @@ impl PyArcType {
 /// Identifies a layer stack by its root layer, session layer, and context.
 ///
 /// Mirrors `pxr.Pcp.LayerStackIdentifier` / `PcpLayerStackIdentifier`.
-#[pyclass(
-    skip_from_py_object,
-    name = "LayerStackIdentifier",
-    module = "pxr.Pcp"
-)]
+#[pyclass(skip_from_py_object, name = "LayerStackIdentifier", module = "pxr.Pcp")]
 #[derive(Clone)]
 pub struct PyLayerStackIdentifier {
     inner: LayerStackIdentifier,

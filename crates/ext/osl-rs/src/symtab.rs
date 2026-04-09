@@ -43,6 +43,12 @@ pub struct SymbolTable {
     functions: HashMap<UString, Vec<FunctionSymbol>>,
 }
 
+impl Default for SymbolTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SymbolTable {
     pub fn new() -> Self {
         let global = Scope {
@@ -159,13 +165,10 @@ impl SymbolTable {
         }
 
         // Variadic: match by prefix (for printf, format, etc.)
-        for f in overloads {
-            if !f.param_types.is_empty() && arg_types.len() >= f.param_types.len() {
-                return Some(f);
-            }
-        }
-
-        None
+        overloads
+            .iter()
+            .find(|&f| !f.param_types.is_empty() && arg_types.len() >= f.param_types.len())
+            .map(|v| v as _)
     }
 
     /// Current scope depth (0 = global).

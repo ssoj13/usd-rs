@@ -228,8 +228,8 @@ impl<'a> JournalReader<'a> {
         Self { entries, pos: 0 }
     }
 
-    /// Read the next entry.
-    pub fn next(&mut self) -> Option<&'a JournalEntry> {
+    /// Read the next entry (does not implement [`Iterator`] — use this instead of a `next` inherent method).
+    pub fn read_next(&mut self) -> Option<&'a JournalEntry> {
         if self.pos < self.entries.len() {
             let entry = &self.entries[self.pos];
             self.pos += 1;
@@ -328,8 +328,8 @@ mod tests {
 
         let mut r = JournalReader::new(w.entries());
         assert_eq!(r.remaining(), 3);
-        assert_eq!(r.next().unwrap().message, "a");
-        assert_eq!(r.next().unwrap().message, "b");
+        assert_eq!(r.read_next().unwrap().message, "a");
+        assert_eq!(r.read_next().unwrap().message, "b");
         assert_eq!(r.remaining(), 1);
     }
 

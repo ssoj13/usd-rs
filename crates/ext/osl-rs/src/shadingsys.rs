@@ -382,8 +382,8 @@ impl ShaderGroup {
             if merged_away[a] {
                 continue;
             }
-            for b in (a + 1)..nlayers {
-                if merged_away[b] {
+            for (b, merged) in merged_away.iter_mut().enumerate().take(nlayers).skip(a + 1) {
+                if *merged {
                     continue;
                 }
                 // Don't merge the last layer (it's the group entry point)
@@ -414,7 +414,7 @@ impl ShaderGroup {
 
                 // Mark merged-away instance as unused (matches C++ m_merged_unused)
                 self.layers[b].unused = true;
-                merged_away[b] = true;
+                *merged = true;
                 merges += 1;
             }
         }
@@ -709,7 +709,7 @@ fn parse_param_values(
             }
             vals.resize(n, UString::new(""));
             Ok(if vals.len() == 1 {
-                ParamValue::String(vals[0].clone())
+                ParamValue::String(vals[0])
             } else {
                 ParamValue::StringArray(vals)
             })
@@ -722,7 +722,7 @@ fn parse_param_values(
             }
             all_floats.resize(n, 0.0);
             let v = Vec3::new(
-                *all_floats.get(0).unwrap_or(&0.0),
+                *all_floats.first().unwrap_or(&0.0),
                 *all_floats.get(1).unwrap_or(&0.0),
                 *all_floats.get(2).unwrap_or(&0.0),
             );
@@ -736,9 +736,9 @@ fn parse_param_values(
         }
         "matrix" => {
             let mut m = [[0.0f32; 4]; 4];
-            for r in 0..4 {
-                for c in 0..4 {
-                    m[r][c] = parse_one_float(p);
+            for row in &mut m {
+                for cell in row.iter_mut() {
+                    *cell = parse_one_float(p);
                 }
             }
             Ok(ParamValue::Matrix(Matrix44::from_row_major(&[
@@ -989,15 +989,15 @@ impl ShadingSystem {
 
     /// Set an attribute on the shading system.
     pub fn attribute(&self, name: &str, val: AttributeValue) {
-        if name == "searchpath:shader" {
-            if let AttributeValue::String(ref s) = val {
-                *self.searchpath.lock().unwrap() = s.clone();
-            }
+        if name == "searchpath:shader"
+            && let AttributeValue::String(ref s) = val
+        {
+            *self.searchpath.lock().unwrap() = s.clone();
         }
-        if name == "strict_messages" {
-            if let AttributeValue::Int(i) = val {
-                *self.strict_messages.lock().unwrap() = i != 0;
-            }
+        if name == "strict_messages"
+            && let AttributeValue::Int(i) = val
+        {
+            *self.strict_messages.lock().unwrap() = i != 0;
         }
         if name == "raytypes" {
             if let AttributeValue::StringArray(ref arr) = val {
@@ -1449,7 +1449,6 @@ impl ShadingSystem {
 
     /// Set a parameter that will be applied to the next Shader() call.
     /// Matching C++ `ShadingSystem::Parameter(name, type, val, hints)`.
-    #[allow(clippy::fn_params_default_trait)]
     pub fn parameter(
         &self,
         group: &ShaderGroupRef,
@@ -1485,7 +1484,7 @@ impl ShadingSystem {
         let mut overrides = HashMap::new();
         let mut hints_map = HashMap::new();
         for (k, v, h) in pending {
-            overrides.insert(k.clone(), v);
+            overrides.insert(k, v);
             if h.0 != 0 {
                 hints_map.insert(k, h);
             }
@@ -1616,14 +1615,13 @@ impl ShadingSystem {
 
             // Apply connections from upstream layers
             for conn in &grp.connections {
-                if conn.dst_layer == layer_idx as i32 {
-                    if let Some(Some(src_interp)) = layer_results.get(conn.src_layer as usize) {
-                        let src_ir = oso_to_ir(&grp.layers[conn.src_layer as usize].master.oso);
-                        if let Some(val) =
-                            src_interp.get_symbol_value(&src_ir, conn.src_param.as_str())
-                        {
-                            apply_connection_value(&mut ir, conn.dst_param.as_str(), &val);
-                        }
+                if conn.dst_layer == layer_idx as i32
+                    && let Some(Some(src_interp)) = layer_results.get(conn.src_layer as usize)
+                {
+                    let src_ir = oso_to_ir(&grp.layers[conn.src_layer as usize].master.oso);
+                    if let Some(val) = src_interp.get_symbol_value(&src_ir, conn.src_param.as_str())
+                    {
+                        apply_connection_value(&mut ir, conn.dst_param.as_str(), &val);
                     }
                 }
             }
@@ -2186,19 +2184,17 @@ impl ShadingSystem {
 
         // Apply connections from already-executed upstream layers
         for conn in &ctx.connections.clone() {
-            if conn.dst_layer == layer_index as i32 {
-                if let Some(interp) = ctx.layer_interps.get(conn.src_layer as usize) {
-                    if let Some(interp) = interp {
-                        let src_ir = &ctx.layer_irs[conn.src_layer as usize];
-                        if let Some(val) = interp.get_symbol_value(src_ir, conn.src_param.as_str())
-                        {
-                            apply_connection_value(
-                                &mut ctx.layer_irs[layer_index],
-                                conn.dst_param.as_str(),
-                                &val,
-                            );
-                        }
-                    }
+            if conn.dst_layer == layer_index as i32
+                && let Some(interp) = ctx.layer_interps.get(conn.src_layer as usize)
+                && let Some(interp) = interp
+            {
+                let src_ir = &ctx.layer_irs[conn.src_layer as usize];
+                if let Some(val) = interp.get_symbol_value(src_ir, conn.src_param.as_str()) {
+                    apply_connection_value(
+                        &mut ctx.layer_irs[layer_index],
+                        conn.dst_param.as_str(),
+                        &val,
+                    );
                 }
             }
         }
@@ -2272,18 +2268,18 @@ impl ShadingSystem {
             }
         });
 
-        if let Some(idx) = layer_idx {
-            if let Some(Some(interp)) = ctx.layer_interps.get(idx) {
-                return interp.get_symbol_value(&ctx.layer_irs[idx], symbol_name);
-            }
+        if let Some(idx) = layer_idx
+            && let Some(Some(interp)) = ctx.layer_interps.get(idx)
+        {
+            return interp.get_symbol_value(&ctx.layer_irs[idx], symbol_name);
         }
 
         // Search all layers in reverse
         for i in (0..ctx.layer_interps.len()).rev() {
-            if let Some(Some(interp)) = ctx.layer_interps.get(i) {
-                if let Some(val) = interp.get_symbol_value(&ctx.layer_irs[i], symbol_name) {
-                    return Some(val);
-                }
+            if let Some(Some(interp)) = ctx.layer_interps.get(i)
+                && let Some(val) = interp.get_symbol_value(&ctx.layer_irs[i], symbol_name)
+            {
+                return Some(val);
             }
         }
         None
@@ -2783,18 +2779,20 @@ pub fn shade_image(
                 ),
             };
 
-            let mut sg = crate::shaderglobals::ShaderGlobals::default();
-            sg.p = crate::math::Vec3::new(x as f32, y as f32, 0.0);
-            sg.u = u;
-            sg.v = v;
-            sg.dudx = 1.0 / width.max(1) as f32;
-            sg.dvdy = 1.0 / height.max(1) as f32;
-            sg.dp_dx = crate::math::Vec3::new(1.0, 0.0, 0.0);
-            sg.dp_dy = crate::math::Vec3::new(0.0, 1.0, 0.0);
-            sg.dp_dz = crate::math::Vec3::new(0.0, 0.0, 1.0);
-            sg.n = crate::math::Vec3::new(0.0, 0.0, 1.0);
-            sg.ng = crate::math::Vec3::new(0.0, 0.0, 1.0);
-            sg.surfacearea = 1.0;
+            let sg = crate::shaderglobals::ShaderGlobals {
+                p: crate::math::Vec3::new(x as f32, y as f32, 0.0),
+                u,
+                v,
+                dudx: 1.0 / width.max(1) as f32,
+                dvdy: 1.0 / height.max(1) as f32,
+                dp_dx: crate::math::Vec3::new(1.0, 0.0, 0.0),
+                dp_dy: crate::math::Vec3::new(0.0, 1.0, 0.0),
+                dp_dz: crate::math::Vec3::new(0.0, 0.0, 1.0),
+                n: crate::math::Vec3::new(0.0, 0.0, 1.0),
+                ng: crate::math::Vec3::new(0.0, 0.0, 1.0),
+                surfacearea: 1.0,
+                ..Default::default()
+            };
 
             let exec_result = shading_system.execute(group, &sg)?;
             if let Some(c) = exec_result.get_vec3(output_name) {

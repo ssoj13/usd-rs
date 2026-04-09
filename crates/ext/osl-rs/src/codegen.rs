@@ -38,14 +38,14 @@ fn metadata_type_name(ts: &TypeSpec) -> String {
 
 /// String value for OSO %meta from AST init (Literal).
 fn metadata_value_str(init: &Option<Box<ASTNode>>) -> String {
-    if let Some(node) = init {
-        if let ASTNodeKind::Literal { value } = &node.kind {
-            return match value {
-                LiteralValue::Int(v) => v.to_string(),
-                LiteralValue::Float(v) => v.to_string(),
-                LiteralValue::String(s) => s.clone(),
-            };
-        }
+    if let Some(node) = init
+        && let ASTNodeKind::Literal { value } = &node.kind
+    {
+        return match value {
+            LiteralValue::Int(v) => v.to_string(),
+            LiteralValue::Float(v) => v.to_string(),
+            LiteralValue::String(s) => s.clone(),
+        };
     }
     String::new()
 }
@@ -150,6 +150,12 @@ pub struct CodeGen {
     current_line: i32,
 }
 
+impl Default for CodeGen {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CodeGen {
     pub fn new() -> Self {
         let mut cg = Self {
@@ -238,7 +244,7 @@ impl CodeGen {
     }
 
     /// Generate IR from an AST.
-    pub fn generate(&mut self, nodes: &[Box<ASTNode>]) -> ShaderIR {
+    pub fn generate(&mut self, nodes: &[ASTNode]) -> ShaderIR {
         for node in nodes {
             self.gen_node(node);
         }
@@ -286,8 +292,10 @@ impl CodeGen {
 
     /// Expand struct fields into individual sub-symbols (C++ add_struct_fields).
     /// For a struct variable "s" with fields {float a; color b;}, creates:
+    ///
     ///   - symbol "s.a" (float, fieldid=0)
     ///   - symbol "s.b" (color, fieldid=1)
+    ///
     /// Nested structs are handled recursively.
     fn add_struct_fields(&mut self, basename: &str, ts: TypeSpec, symtype: SymType, arraylen: i32) {
         let struct_id = ts.structure_id();
@@ -356,12 +364,7 @@ impl CodeGen {
     /// Init struct fields from a CompoundInitializer element list.
     /// Mirrors C++ codegen_struct_initializers: for each struct field takes
     /// the corresponding init element and emits assign to the field sub-symbol.
-    fn emit_struct_init_compound(
-        &mut self,
-        basename: &str,
-        ts: TypeSpec,
-        elements: &[Box<ASTNode>],
-    ) {
+    fn emit_struct_init_compound(&mut self, basename: &str, ts: TypeSpec, elements: &[ASTNode]) {
         let struct_id = ts.structure_id();
         if struct_id <= 0 {
             return;
@@ -370,14 +373,12 @@ impl CodeGen {
             Some(s) => s,
             None => return,
         };
-        let mut elem_idx = 0usize;
-        for field in &spec.fields {
+        for (elem_idx, field) in spec.fields.iter().enumerate() {
             if elem_idx >= elements.len() {
                 break;
             }
             let fieldname = format!("{}.{}", basename, field.name.as_str());
             let elem = &elements[elem_idx];
-            elem_idx += 1;
 
             if field.type_spec.is_structure() || field.type_spec.is_structure_array() {
                 // Nested struct: element may itself be a CompoundInitializer
@@ -385,12 +386,11 @@ impl CodeGen {
                     elements: sub_elems,
                     canconstruct,
                 } = &elem.kind
+                    && !canconstruct
                 {
-                    if !canconstruct {
-                        let sub: Vec<Box<ASTNode>> = sub_elems.iter().map(|e| e.clone()).collect();
-                        self.emit_struct_init_compound(&fieldname, field.type_spec, &sub);
-                        continue;
-                    }
+                    let sub: Vec<ASTNode> = sub_elems.to_vec();
+                    self.emit_struct_init_compound(&fieldname, field.type_spec, &sub);
+                    continue;
                 }
                 // Otherwise gen the elem and do full struct-assign
                 let src = self.gen_node(elem);
@@ -405,7 +405,7 @@ impl CodeGen {
                 let field_idx = self.find_sym_by_name(&fieldname).unwrap_or(0) as i32;
                 let val = if elem.typespec.is_unknown() {
                     if let ASTNodeKind::CompoundInitializer { .. } = &elem.kind {
-                        let mut elem_clone = elem.as_ref().clone();
+                        let mut elem_clone = elem.clone();
                         elem_clone.typespec = field.type_spec;
                         self.gen_node(&elem_clone)
                     } else {
@@ -434,14 +434,13 @@ impl CodeGen {
                 elements,
                 canconstruct,
             } = &init_expr.kind
+                && !canconstruct
             {
-                if !canconstruct {
-                    // Struct compound init: assign per-field (C++ codegen_struct_initializers)
-                    let dst_name = self.ir.symbols[sym_idx].name.as_str().to_string();
-                    let elems: Vec<Box<ASTNode>> = elements.iter().map(|e| e.clone()).collect();
-                    self.emit_struct_init_compound(&dst_name, typespec, &elems);
-                    return;
-                }
+                // Struct compound init: assign per-field (C++ codegen_struct_initializers)
+                let dst_name = self.ir.symbols[sym_idx].name.as_str().to_string();
+                let elems: Vec<ASTNode> = elements.to_vec();
+                self.emit_struct_init_compound(&dst_name, typespec, &elems);
+                return;
             }
             // Whole-struct assignment (VariableRef or canconstruct type constructor)
             let src = self.gen_node(init_expr);
@@ -491,10 +490,10 @@ impl CodeGen {
     fn const_int(&mut self, val: i32) -> i32 {
         // Check if we already have this constant
         for &(idx, ref cv) in &self.ir.const_values {
-            if let ConstValue::Int(v) = cv {
-                if *v == val {
-                    return idx as i32;
-                }
+            if let ConstValue::Int(v) = cv
+                && *v == val
+            {
+                return idx as i32;
             }
         }
         let idx = self.ir.symbols.len();
@@ -510,10 +509,10 @@ impl CodeGen {
     fn const_float(&mut self, val: f32) -> i32 {
         // Check if we already have this constant (exact bit match)
         for &(idx, ref cv) in &self.ir.const_values {
-            if let ConstValue::Float(v) = cv {
-                if v.to_bits() == val.to_bits() {
-                    return idx as i32;
-                }
+            if let ConstValue::Float(v) = cv
+                && v.to_bits() == val.to_bits()
+            {
+                return idx as i32;
             }
         }
         let idx = self.ir.symbols.len();
@@ -532,13 +531,12 @@ impl CodeGen {
     /// Add a constant Vec3 and return its symbol index.
     fn const_vec3(&mut self, v: crate::math::Vec3, ts: TypeSpec) -> i32 {
         for &(idx, ref cv) in &self.ir.const_values {
-            if let ConstValue::Vec3(existing) = cv {
-                if (existing.x - v.x).abs() < f32::EPSILON
-                    && (existing.y - v.y).abs() < f32::EPSILON
-                    && (existing.z - v.z).abs() < f32::EPSILON
-                {
-                    return idx as i32;
-                }
+            if let ConstValue::Vec3(existing) = cv
+                && (existing.x - v.x).abs() < f32::EPSILON
+                && (existing.y - v.y).abs() < f32::EPSILON
+                && (existing.z - v.z).abs() < f32::EPSILON
+            {
+                return idx as i32;
             }
         }
         let idx = self.ir.symbols.len();
@@ -554,10 +552,10 @@ impl CodeGen {
     fn const_string(&mut self, s: &str) -> i32 {
         let us = UString::new(s);
         for &(idx, ref cv) in &self.ir.const_values {
-            if let ConstValue::String(v) = cv {
-                if *v == us {
-                    return idx as i32;
-                }
+            if let ConstValue::String(v) = cv
+                && *v == us
+            {
+                return idx as i32;
             }
         }
         let idx = self.ir.symbols.len();
@@ -908,7 +906,7 @@ impl CodeGen {
                         let type_str = metadata_type_name(m_ts);
                         let val_str = metadata_value_str(m_init);
                         if m_name == "lockgeom" && type_str == "int" {
-                            sym.is_lockgeom = val_str.parse::<i32>().map_or(true, |v| v != 0);
+                            sym.is_lockgeom = val_str.parse::<i32>() != Ok(0);
                         }
                         sym.metadata.push((type_str, m_name.clone(), val_str));
                     }
@@ -1201,19 +1199,18 @@ impl CodeGen {
                                 index: arr_idx,
                                 ..
                             } = &base.kind
+                                && arr_base.typespec.is_array()
                             {
-                                if arr_base.typespec.is_array() {
-                                    let arr_base_idx = self.gen_node(arr_base);
-                                    let arr_idx_sym = self.gen_node(arr_idx);
-                                    let src = self.gen_node(expr);
-                                    let elem_ts = TypeSpec::new(base_ts);
-                                    let tmp = self.alloc_temp(elem_ts);
-                                    self.emit("aref", &[tmp, arr_base_idx, arr_idx_sym]);
-                                    let idx_sym = self.const_int(comp_idx);
-                                    self.emit_compassign(tmp, idx_sym, src);
-                                    self.emit("aassign", &[arr_base_idx, arr_idx_sym, tmp]);
-                                    return arr_base_idx;
-                                }
+                                let arr_base_idx = self.gen_node(arr_base);
+                                let arr_idx_sym = self.gen_node(arr_idx);
+                                let src = self.gen_node(expr);
+                                let elem_ts = TypeSpec::new(base_ts);
+                                let tmp = self.alloc_temp(elem_ts);
+                                self.emit("aref", &[tmp, arr_base_idx, arr_idx_sym]);
+                                let idx_sym = self.const_int(comp_idx);
+                                self.emit_compassign(tmp, idx_sym, src);
+                                self.emit("aassign", &[arr_base_idx, arr_idx_sym, tmp]);
+                                return arr_base_idx;
                             }
                             let base_idx = self.gen_node(base);
                             let src = self.gen_node(expr);
@@ -1293,6 +1290,18 @@ impl CodeGen {
             }
 
             ASTNodeKind::FunctionCall { name, args, .. } => {
+                // Detect struct type constructor (used below). Kept as a `bool` so we never use
+                // `else if { stmts; expr } { ... }`, which breaks `cargo clippy --fix` (invalid `else let`).
+                let is_struct_constructor_call = {
+                    let by_typespec = node.typespec.is_structure_based();
+                    let sid_by_name = if !by_typespec {
+                        crate::typespec::find_struct_by_name(crate::ustring::UString::new(name))
+                    } else {
+                        0
+                    };
+                    by_typespec || sid_by_name > 0
+                };
+
                 // Check if this is a user-defined function
                 if let Some(overloads) = self.user_funcs.get(name).cloned() {
                     // Collect actual argument types for overload resolution
@@ -1521,41 +1530,43 @@ impl CodeGen {
                     for (i, (formal_idx, actual_idx)) in
                         uf.formals.iter().zip(actual_indices.iter()).enumerate()
                     {
-                        if i < uf.formal_is_output.len() && uf.formal_is_output[i] {
-                            if *formal_idx >= 0 && *actual_idx >= 0 {
-                                let ftype = if i < uf.formal_types.len() {
-                                    uf.formal_types[i]
-                                } else {
-                                    TypeSpec::default()
-                                };
-                                let wb = &writeback_info[i];
-                                if ftype.is_structure() || ftype.is_structure_array() {
-                                    // Struct output: per-field copy back actual.field <- formal.field
-                                    let aname = self.ir.symbols[*actual_idx as usize]
-                                        .name
-                                        .as_str()
-                                        .to_string();
-                                    let fname = self.ir.symbols[*formal_idx as usize]
-                                        .name
-                                        .as_str()
-                                        .to_string();
-                                    self.emit_struct_assign(&aname, &fname, ftype);
-                                } else {
-                                    match wb.2 {
-                                        1 => {
-                                            // Array element: aassign(base, idx, formal)
-                                            self.emit("assign", &[*actual_idx, *formal_idx]);
-                                            self.emit("aassign", &[wb.0, wb.1, *actual_idx]);
-                                        }
-                                        2 => {
-                                            // Component: compassign(base, idx, formal)
-                                            self.emit("assign", &[*actual_idx, *formal_idx]);
-                                            self.emit_compassign(wb.0, wb.1, *actual_idx);
-                                        }
-                                        _ => {
-                                            // Simple assign back
-                                            self.emit("assign", &[*actual_idx, *formal_idx]);
-                                        }
+                        if i < uf.formal_is_output.len()
+                            && uf.formal_is_output[i]
+                            && *formal_idx >= 0
+                            && *actual_idx >= 0
+                        {
+                            let ftype = if i < uf.formal_types.len() {
+                                uf.formal_types[i]
+                            } else {
+                                TypeSpec::default()
+                            };
+                            let wb = &writeback_info[i];
+                            if ftype.is_structure() || ftype.is_structure_array() {
+                                // Struct output: per-field copy back actual.field <- formal.field
+                                let aname = self.ir.symbols[*actual_idx as usize]
+                                    .name
+                                    .as_str()
+                                    .to_string();
+                                let fname = self.ir.symbols[*formal_idx as usize]
+                                    .name
+                                    .as_str()
+                                    .to_string();
+                                self.emit_struct_assign(&aname, &fname, ftype);
+                            } else {
+                                match wb.2 {
+                                    1 => {
+                                        // Array element: aassign(base, idx, formal)
+                                        self.emit("assign", &[*actual_idx, *formal_idx]);
+                                        self.emit("aassign", &[wb.0, wb.1, *actual_idx]);
+                                    }
+                                    2 => {
+                                        // Component: compassign(base, idx, formal)
+                                        self.emit("assign", &[*actual_idx, *formal_idx]);
+                                        self.emit_compassign(wb.0, wb.1, *actual_idx);
+                                    }
+                                    _ => {
+                                        // Simple assign back
+                                        self.emit("assign", &[*actual_idx, *formal_idx]);
                                     }
                                 }
                             }
@@ -1570,18 +1581,9 @@ impl CodeGen {
                     } else {
                         -1
                     }
-                } else if {
-                    // Struct type constructor: MyStruct(field1, field2, ...)
-                    // Either typecheck resolved it to a struct TypeSpec, or we detect it
-                    // directly by looking up the name in the struct registry.
-                    let by_typespec = node.typespec.is_structure_based();
-                    let sid_by_name = if !by_typespec {
-                        crate::typespec::find_struct_by_name(crate::ustring::UString::new(name))
-                    } else {
-                        0
-                    };
-                    by_typespec || sid_by_name > 0
-                } {
+                } else if is_struct_constructor_call {
+                    // Struct type constructor: MyStruct(field1, field2, ...) — resolved via
+                    // typecheck or struct registry lookup (see `is_struct_constructor_call` above).
                     // Resolve the struct TypeSpec: either from typecheck or by name lookup.
                     let struct_ts = if node.typespec.is_structure_based() {
                         node.typespec
@@ -1599,8 +1601,7 @@ impl CodeGen {
                     let struct_id = struct_ts.structure_id();
                     if let Some(spec) = get_struct(struct_id as i32) {
                         let fields: Vec<_> = spec.fields.clone();
-                        let args_cloned: Vec<Box<ASTNode>> =
-                            args.iter().map(|a| a.clone()).collect();
+                        let args_cloned: Vec<ASTNode> = args.to_vec();
                         for (fi, field) in fields.iter().enumerate() {
                             if fi >= args_cloned.len() {
                                 break;
@@ -1890,23 +1891,21 @@ impl CodeGen {
             } => {
                 // Detect nested matrix double-index: M[row][col] → mxcompref
                 // Parser produces: Index { base: Index { base: M, index: row }, index: col }
-                if index2.is_none() {
-                    if let ASTNodeKind::Index {
+                if index2.is_none()
+                    && let ASTNodeKind::Index {
                         base: inner_base,
                         index: inner_idx,
                         index2: None,
                         ..
                     } = &base.kind
-                    {
-                        if inner_base.typespec.simpletype().is_matrix44() {
-                            let mx_idx = self.gen_node(inner_base);
-                            let row = self.gen_node(inner_idx);
-                            let col = self.gen_node(index);
-                            let result = self.alloc_temp(node.typespec);
-                            self.emit("mxcompref", &[result, mx_idx, row, col]);
-                            return result;
-                        }
-                    }
+                    && inner_base.typespec.simpletype().is_matrix44()
+                {
+                    let mx_idx = self.gen_node(inner_base);
+                    let row = self.gen_node(inner_idx);
+                    let col = self.gen_node(index);
+                    let result = self.alloc_temp(node.typespec);
+                    self.emit("mxcompref", &[result, mx_idx, row, col]);
+                    return result;
                 }
                 let base_idx = self.gen_node(base);
                 let idx = self.gen_node(index);
@@ -1982,14 +1981,13 @@ impl CodeGen {
                 let mut base_ts = base.typespec;
                 // If typespec wasn't set by typecheck (UNKNOWN), try to resolve from
                 // the already-registered symbol's TypeSpec (codegen-only path, no typecheck).
-                if !base_ts.is_structure_based() {
-                    if let ASTNodeKind::VariableRef { name: vname } = &base.kind {
-                        if let Some(idx) = self.find_sym_by_name(vname) {
-                            let sym_ts = self.ir.symbols[idx].typespec;
-                            if sym_ts.is_structure_based() {
-                                base_ts = sym_ts;
-                            }
-                        }
+                if !base_ts.is_structure_based()
+                    && let ASTNodeKind::VariableRef { name: vname } = &base.kind
+                    && let Some(idx) = self.find_sym_by_name(vname)
+                {
+                    let sym_ts = self.ir.symbols[idx].typespec;
+                    if sym_ts.is_structure_based() {
+                        base_ts = sym_ts;
                     }
                 }
                 if base_ts.is_structure_based() {
@@ -2087,7 +2085,7 @@ impl CodeGen {
     /// Resolve polymorphic function names — match C++ polymorphic dispatch.
     /// For most builtins, just return the name as-is. The interpreter handles
     /// polymorphism dynamically. For specific cases, mangle the name.
-    fn resolve_polymorphic_name(&self, name: &str, _args: &[Box<ASTNode>]) -> String {
+    fn resolve_polymorphic_name(&self, name: &str, _args: &[ASTNode]) -> String {
         // The interpreter handles most polymorphism dynamically.
         // For OSO compatibility, we emit the base name.
         // C++ oslc emits polymorphic names like "noise_fff" only for LLVM;
@@ -2107,7 +2105,7 @@ impl CodeGen {
 }
 
 /// Convenience function: generate IR from an AST.
-pub fn generate(nodes: &[Box<ASTNode>]) -> ShaderIR {
+pub fn generate(nodes: &[ASTNode]) -> ShaderIR {
     let mut codegen = CodeGen::new();
     codegen.generate(nodes)
 }
@@ -2155,7 +2153,7 @@ fn eval_const_unary(op: &str, a: &ConstValue) -> Option<ConstValue> {
 }
 
 /// Look up a symbol's constant value if it's a Const symbol.
-fn get_const_val<'a>(ir: &'a ShaderIR, sym_idx: usize) -> Option<&'a ConstValue> {
+fn get_const_val(ir: &ShaderIR, sym_idx: usize) -> Option<&ConstValue> {
     if sym_idx >= ir.symbols.len() || ir.symbols[sym_idx].symtype != SymType::Const {
         return None;
     }

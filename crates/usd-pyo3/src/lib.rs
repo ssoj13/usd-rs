@@ -27,15 +27,15 @@ mod lux;
 mod pcp;
 mod plug;
 mod sdf;
-mod shade;
 mod sdr;
+mod sdr_shader_parser_test_utils;
+mod shade;
 mod skel;
 mod tf;
 mod trace;
 mod ts;
 mod usd;
 mod utils;
-mod sdr_shader_parser_test_utils;
 mod vt;
 mod xform_img_delegate;
 

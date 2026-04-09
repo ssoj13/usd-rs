@@ -248,9 +248,10 @@ impl BSDF for DielectricBSDF {
 ///
 /// See C++ `_ref/OpenShadingLanguage/src/libbsdl/include/BSDL/SPI/bsdf_sheenltc_decl.h`
 /// for the LTC implementation which uses a 32x32 lookup table of LTC coefficients.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SheenMode {
     /// Charlie/Conty approximation (default, simpler).
+    #[default]
     Classic,
     /// Linearly Transformed Cosines (more physically accurate).
     /// TODO: Implement LTC evaluation using precomputed coefficient tables
@@ -258,12 +259,6 @@ pub enum SheenMode {
     /// bilinear interpolation in a 32x32 table indexed by (cos_theta, roughness),
     /// then evaluates/samples the transformed cosine distribution.
     Ltc,
-}
-
-impl Default for SheenMode {
-    fn default() -> Self {
-        Self::Classic
-    }
 }
 
 /// Sheen BSDF using the Charlie/Conty approximation.
@@ -472,7 +467,7 @@ impl BSDF for VolumeBSDF {
 
 /// Number of explicit lobes (R=0, TT=1, TRT=2, residual=3).
 const P_MAX: usize = 3;
-const SQRT_PI_OVER_8: Float = 0.626_657_069;
+const SQRT_PI_OVER_8: Float = 0.626_657_07;
 const FLOAT_MIN: Float = 1.175_494_4e-38;
 
 /// Chiang 2016 physically-based hair BSDF.
@@ -521,7 +516,7 @@ fn log_bessi0(x: Float) -> Float {
     } else {
         let y = 3.75 / ax;
         ax + ((1.0 / ax.sqrt())
-            * (0.398_942_28
+            * (0.398_942_3
                 + y * (0.013_285_92
                     + y * (0.002_253_19
                         + y * (-0.001_575_65
@@ -546,7 +541,7 @@ fn bessi0_times_exp(x: Float, exponent: Float) -> Float {
     } else {
         let y = 3.75 / ax;
         ((ax + exponent).exp() / ax.sqrt())
-            * (0.398_942_28
+            * (0.398_942_3
                 + y * (0.013_285_92
                     + y * (0.002_253_19
                         + y * (-0.001_575_65
@@ -588,7 +583,7 @@ fn remap_azim_rough(ar: Float) -> Float {
 
 /// Azimuthal shift angle Phi for lobe p.
 fn phi_fn(p: usize, gamma_o: Float, gamma_t: Float) -> Float {
-    if p % 2 == 0 {
+    if p.is_multiple_of(2) {
         (2 * p) as Float * gamma_t - 2.0 * gamma_o
     } else {
         (2 * p) as Float * gamma_t - 2.0 * gamma_o - PI
@@ -690,20 +685,20 @@ fn color_max(c: Color3) -> Float {
     c.x.max(c.y).max(c.z)
 }
 
+/// Output of [`HairBSDF::precompute`] — keeps the return type readable for Clippy `type_complexity`.
+type HairPrecomputeParts = (
+    [Color3; P_MAX + 1], // ap
+    [Float; P_MAX + 1],  // v (longitudinal variance)
+    [Float; P_MAX + 1],  // s (azimuthal variance)
+    Float,               // gamma_o
+    Float,               // gamma_t
+    [Float; P_MAX],      // sin2k_alpha
+    [Float; P_MAX],      // cos2k_alpha
+);
+
 impl HairBSDF {
     /// Precompute per-shading-point invariants from struct fields.
-    fn precompute(
-        &self,
-        cos_to: Float,
-    ) -> (
-        [Color3; P_MAX + 1], // ap
-        [Float; P_MAX + 1],  // v (longitudinal variance)
-        [Float; P_MAX + 1],  // s (azimuthal variance)
-        Float,               // gamma_o
-        Float,               // gamma_t
-        [Float; P_MAX],      // sin2k_alpha
-        [Float; P_MAX],      // cos2k_alpha
-    ) {
+    fn precompute(&self, cos_to: Float) -> HairPrecomputeParts {
         let eta = self.eta.max(1.001);
         let sin_to = (1.0 - cos_to * cos_to).max(0.0).sqrt();
         let gamma_o = self.h.asin();
@@ -827,14 +822,14 @@ impl BSDF for HairBSDF {
         let mut rnd_mp = u1;
         {
             let mut accum = 0.0_f32;
-            for i in 0..=P_MAX {
-                if u1 < accum + cdf[i] {
+            for (i, &cdf_i) in cdf.iter().enumerate().take(P_MAX + 1) {
+                if u1 < accum + cdf_i {
                     p = i;
                     // Remap u1 into [0,1] within selected lobe
-                    rnd_mp = ((u1 - accum) / cdf[i].max(1e-10)).clamp(0.0, 1.0);
+                    rnd_mp = ((u1 - accum) / cdf_i.max(1e-10)).clamp(0.0, 1.0);
                     break;
                 }
-                accum += cdf[i];
+                accum += cdf_i;
             }
         }
 

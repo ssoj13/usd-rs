@@ -205,7 +205,7 @@ fn emit_const_value_oso(out: &mut String, cv: &crate::codegen::ConstValue) {
     use crate::codegen::ConstValue;
     match cv {
         ConstValue::Int(v) => out.push_str(&format!("{v}")),
-        ConstValue::Float(v) => out.push_str(&format!("{}", format_float_g9(*v))),
+        ConstValue::Float(v) => out.push_str(&format_float_g9(*v).to_string()),
         ConstValue::String(s) => out.push_str(&format!("\"{}\"", escape_oso_string(s.as_str()))),
         ConstValue::Vec3(v) => out.push_str(&format!(
             "{} {} {}",
@@ -221,7 +221,7 @@ fn emit_const_value_oso(out: &mut String, cv: &crate::codegen::ConstValue) {
                         out.push(' ');
                     }
                     first = false;
-                    out.push_str(&format!("{}", format_float_g9(m.m[r][c])));
+                    out.push_str(&format_float_g9(m.m[r][c]).to_string());
                 }
             }
         }
@@ -238,7 +238,7 @@ fn emit_const_value_oso(out: &mut String, cv: &crate::codegen::ConstValue) {
                 if i > 0 {
                     out.push(' ');
                 }
-                out.push_str(&format!("{}", format_float_g9(*v)));
+                out.push_str(&format_float_g9(*v).to_string());
             }
         }
         ConstValue::StringArray(arr) => {
@@ -285,7 +285,7 @@ fn format_float_g9(v: f32) -> String {
     }
     let abs = (v as f64).abs();
     let exp = abs.log10().floor() as i32;
-    if exp < -4 || exp >= 9 {
+    if !(-4..9).contains(&exp) {
         let s = format!("{:.9e}", v);
         if let Some(pos) = s.find('e') {
             let mant = trim_trailing_zeros(&s[..pos]);
@@ -400,21 +400,21 @@ fn ir_to_oso(ir: &ShaderIR) -> String {
         ));
 
         // For constants, emit the value inline
-        if sym.symtype == SymType::Const {
-            if let Some((_, cv)) = ir.const_values.iter().find(|(cv_idx, _)| *cv_idx == idx) {
-                out.push('\t');
-                emit_const_value_oso(&mut out, cv);
-                out.push('\t');
-            }
+        if sym.symtype == SymType::Const
+            && let Some((_, cv)) = ir.const_values.iter().find(|(cv_idx, _)| *cv_idx == idx)
+        {
+            out.push('\t');
+            emit_const_value_oso(&mut out, cv);
+            out.push('\t');
         }
 
         // For params with defaults, emit the default value
-        if sym.symtype == SymType::Param || sym.symtype == SymType::OutputParam {
-            if let Some((_, cv)) = ir.param_defaults.iter().find(|(pd_idx, _)| *pd_idx == idx) {
-                out.push('\t');
-                emit_const_value_oso(&mut out, cv);
-                out.push('\t');
-            }
+        if (sym.symtype == SymType::Param || sym.symtype == SymType::OutputParam)
+            && let Some((_, cv)) = ir.param_defaults.iter().find(|(pd_idx, _)| *pd_idx == idx)
+        {
+            out.push('\t');
+            emit_const_value_oso(&mut out, cv);
+            out.push('\t');
         }
 
         let mut hints = 0;

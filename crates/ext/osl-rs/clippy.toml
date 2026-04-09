@@ -1,0 +1,4 @@
+# Many functions intentionally mirror C++/OSL reference arity (JIT trampolines, batched SIMD APIs,
+# renderer hooks). Raising the default threshold avoids per-function `allow`s while keeping the
+# lint useful for ordinary helpers.
+too-many-arguments-threshold = 22

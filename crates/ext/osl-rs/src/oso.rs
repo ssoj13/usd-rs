@@ -200,7 +200,7 @@ pub fn read_oso_file(path: &str) -> Result<OsoFile, OsoError> {
 }
 
 fn next_data_line<R: BufRead>(lines: &mut io::Lines<R>) -> Result<String, OsoError> {
-    while let Some(line) = lines.next() {
+    for line in lines.by_ref() {
         let line = line.map_err(OsoError::Io)?;
         let trimmed = line.trim();
         if trimmed.is_empty() || trimmed.starts_with('#') {
@@ -375,18 +375,18 @@ fn parse_symbol_line(line: &str, oso: &mut OsoFile) -> Result<(), OsoError> {
             } else if let Some(inner) = strip_hint_braces(tok, "%read") {
                 // %read{first,last}
                 let parts: Vec<&str> = inner.split(',').map(|s| s.trim()).collect();
-                if parts.len() >= 2 {
-                    if let (Ok(f), Ok(l)) = (parts[0].parse::<i32>(), parts[1].parse::<i32>()) {
-                        sym.read_range = Some((f, l));
-                    }
+                if parts.len() >= 2
+                    && let (Ok(f), Ok(l)) = (parts[0].parse::<i32>(), parts[1].parse::<i32>())
+                {
+                    sym.read_range = Some((f, l));
                 }
             } else if let Some(inner) = strip_hint_braces(tok, "%write") {
                 // %write{first,last}
                 let parts: Vec<&str> = inner.split(',').map(|s| s.trim()).collect();
-                if parts.len() >= 2 {
-                    if let (Ok(f), Ok(l)) = (parts[0].parse::<i32>(), parts[1].parse::<i32>()) {
-                        sym.write_range = Some((f, l));
-                    }
+                if parts.len() >= 2
+                    && let (Ok(f), Ok(l)) = (parts[0].parse::<i32>(), parts[1].parse::<i32>())
+                {
+                    sym.write_range = Some((f, l));
                 }
             } else {
                 // Unrecognized hint — store raw
@@ -478,7 +478,9 @@ fn parse_instruction_line(line: &str, oso: &mut OsoFile) -> Result<(), OsoError>
             }
         } else if tok.starts_with('$') {
             // Jump target (like $1, $2)
-            if let Ok(target) = tok[1..].parse::<i32>() {
+            if let Some(digits) = tok.strip_prefix('$')
+                && let Ok(target) = digits.parse::<i32>()
+            {
                 instr.jumps.push(target);
             }
         } else {

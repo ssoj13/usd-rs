@@ -233,11 +233,11 @@ impl DictStore {
         }
 
         // Try numeric index for arrays
-        if let Ok(idx) = key.parse::<usize>() {
-            if let Some(child) = node.get_index(idx) {
-                self.collect_recursive(child, parts, depth + 1, out);
-                return;
-            }
+        if let Ok(idx) = key.parse::<usize>()
+            && let Some(child) = node.get_index(idx)
+        {
+            self.collect_recursive(child, parts, depth + 1, out);
+            return;
         }
 
         // Named key

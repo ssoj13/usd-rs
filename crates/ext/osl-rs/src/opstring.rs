@@ -91,9 +91,7 @@ pub fn stof(s: &str) -> f32 {
     let mut saw_dot = false;
     let mut saw_e = false;
     for (i, c) in s.char_indices() {
-        if c.is_ascii_digit() {
-            end = i + 1;
-        } else if (c == '-' || c == '+') && (i == 0 || saw_e && end == i) {
+        if c.is_ascii_digit() || ((c == '-' || c == '+') && (i == 0 || saw_e && end == i)) {
             end = i + 1;
         } else if c == '.' && !saw_dot && !saw_e {
             saw_dot = true;
@@ -123,13 +121,13 @@ pub fn hash_string(s: &str) -> i32 {
 /// Regex search — returns true if `pattern` matches anywhere in `subject`.
 /// Uses the `regex` crate for full C++ std::regex parity.
 pub fn regex_search(subject: &str, pattern: &str) -> bool {
-    regex::Regex::new(pattern).map_or(false, |re| re.is_match(subject))
+    regex::Regex::new(pattern).is_ok_and(|re| re.is_match(subject))
 }
 
 /// Regex match — returns true if `pattern` matches the entire `subject`.
 pub fn regex_match(subject: &str, pattern: &str) -> bool {
     let anchored = format!("^(?:{pattern})$");
-    regex::Regex::new(&anchored).map_or(false, |re| re.is_match(subject))
+    regex::Regex::new(&anchored).is_ok_and(|re| re.is_match(subject))
 }
 
 /// Regex search with capture group positions.
@@ -155,24 +153,20 @@ pub fn regex_search_captures(
             return false;
         }
     };
-    let caps = if fullmatch {
-        re.captures(subject)
-    } else {
-        re.captures(subject)
-    };
+    let caps = re.captures(subject);
     match caps {
         Some(c) => {
             let nresults = results.len();
-            for r in 0..nresults {
+            for (r, slot) in results.iter_mut().enumerate().take(nresults) {
                 let group_idx = r / 2;
                 if let Some(m) = c.get(group_idx) {
-                    results[r] = if r & 1 == 0 {
+                    *slot = if r & 1 == 0 {
                         m.start() as i32
                     } else {
                         m.end() as i32
                     };
                 } else {
-                    results[r] = pattern.len() as i32;
+                    *slot = pattern.len() as i32;
                 }
             }
             true

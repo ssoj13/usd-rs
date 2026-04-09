@@ -1,4 +1,4 @@
-﻿//! pxr.UsdGeom — Python bindings for the USD Geometry module.
+//! pxr.UsdGeom — Python bindings for the USD Geometry module.
 //!
 //! Drop-in replacement for `pxr.UsdGeom` from C++ OpenUSD.
 //! All 38 schema classes, plus BBoxCache, XformCache, Primvar, XformOp, Tokens, Metrics.
@@ -739,10 +739,7 @@ impl PyXformCache {
     }
 
     #[pyo3(name = "GetLocalToWorldTransform")]
-    pub fn get_local_to_world_transform(
-        &mut self,
-        prim: &PyPrim,
-    ) -> crate::gf::matrix::PyMatrix4d {
+    pub fn get_local_to_world_transform(&mut self, prim: &PyPrim) -> crate::gf::matrix::PyMatrix4d {
         crate::gf::matrix::PyMatrix4d(self.0.get_local_to_world_transform(&prim.inner))
     }
 
@@ -1227,11 +1224,7 @@ impl PyXformable {
     }
     #[pyo3(name = "ComputePurpose")]
     pub fn compute_purpose(&self) -> String {
-        self.0
-            .imageable()
-            .compute_purpose()
-            .as_str()
-            .to_owned()
+        self.0.imageable().compute_purpose().as_str().to_owned()
     }
     #[pyo3(name = "MakeVisible", signature = (time=None))]
     pub fn make_visible(&self, time: Option<f64>) {
@@ -1747,10 +1740,7 @@ usd_geom_schema_with_xform!(PyMesh, no_get_path, {
     }
     /// Matches C++ `GetFaceCount(timeCode=UsdTimeCode::Default())` (`wrapMesh.cpp`).
     #[pyo3(name = "GetFaceCount", signature = (time=None))]
-    pub fn get_face_count(
-        &self,
-        time: Option<&Bound<'_, pyo3::PyAny>>,
-    ) -> PyResult<usize> {
+    pub fn get_face_count(&self, time: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<usize> {
         let t = tc_from_py_opt(time)?;
         Ok(self.0.get_face_count(t))
     }
@@ -1904,7 +1894,8 @@ usd_geom_schema_with_xform!(PyMesh, no_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.create_triangle_subdivision_rule_attr(v, write_sparsely),
+            self.0
+                .create_triangle_subdivision_rule_attr(v, write_sparsely),
         ))
     }
 
@@ -1942,7 +1933,9 @@ usd_geom_schema_with_xform!(PyMesh, no_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.point_based().create_velocities_attr(v, write_sparsely),
+            self.0
+                .point_based()
+                .create_velocities_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetAccelerationsAttr")]
@@ -1960,7 +1953,9 @@ usd_geom_schema_with_xform!(PyMesh, no_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.point_based().create_accelerations_attr(v, write_sparsely),
+            self.0
+                .point_based()
+                .create_accelerations_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetNormalsAttr")]
@@ -2279,7 +2274,9 @@ usd_geom_schema_with_xform!(PySphere, yes_get_path, {
             None => None,
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
-        Ok(PyAttribute::from_attr(self.0.create_radius_attr(v, write_sparsely)))
+        Ok(PyAttribute::from_attr(
+            self.0.create_radius_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetExtentAttr")]
     pub fn get_extent_attr(&self) -> PyAttribute {
@@ -2295,7 +2292,9 @@ usd_geom_schema_with_xform!(PySphere, yes_get_path, {
             None => None,
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
-        Ok(PyAttribute::from_attr(self.0.create_extent_attr(v, write_sparsely)))
+        Ok(PyAttribute::from_attr(
+            self.0.create_extent_attr(v, write_sparsely),
+        ))
     }
     pub fn is_valid(&self) -> bool {
         self.0.is_valid()
@@ -2777,7 +2776,9 @@ usd_geom_schema_with_xform!(PyCylinder1, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.as_cylinder().create_radius_bottom_attr(v, write_sparsely),
+            self.0
+                .as_cylinder()
+                .create_radius_bottom_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetRadiusTopAttr")]
@@ -2795,7 +2796,9 @@ usd_geom_schema_with_xform!(PyCylinder1, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.as_cylinder().create_radius_top_attr(v, write_sparsely),
+            self.0
+                .as_cylinder()
+                .create_radius_top_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetHeightAttr")]
@@ -2869,7 +2872,9 @@ usd_geom_schema_with_xform!(PyCylinder1, yes_get_path, {
 
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
-    pub fn get_static_tf_type_cylinder1(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
+    pub fn get_static_tf_type_cylinder1(
+        _cls: &Bound<'_, pyo3::types::PyType>,
+    ) -> crate::tf::PyType {
         crate::tf::PyType {
             inner: TfType::find_by_name("UsdGeomCylinder_1"),
         }
@@ -3082,7 +3087,9 @@ usd_geom_schema_with_xform!(PyCapsule1, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.as_capsule().create_radius_top_attr(v, write_sparsely),
+            self.0
+                .as_capsule()
+                .create_radius_top_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetRadiusBottomAttr")]
@@ -3100,7 +3107,9 @@ usd_geom_schema_with_xform!(PyCapsule1, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.as_capsule().create_radius_bottom_attr(v, write_sparsely),
+            self.0
+                .as_capsule()
+                .create_radius_bottom_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetHeightAttr")]
@@ -3704,15 +3713,11 @@ usd_geom_schema_with_xform!(PyCurves, yes_get_path, {
     }
     #[pyo3(name = "SetWidthsInterpolation")]
     pub fn set_widths_interpolation(&self, interpolation: &str) -> bool {
-        self.0
-            .set_widths_interpolation(&Token::new(interpolation))
+        self.0.set_widths_interpolation(&Token::new(interpolation))
     }
     /// Matches C++ `UsdGeomCurves::GetCurveCount(UsdTimeCode)`.
     #[pyo3(name = "GetCurveCount", signature = (time=None))]
-    pub fn get_curve_count(
-        &self,
-        time: Option<&Bound<'_, pyo3::PyAny>>,
-    ) -> PyResult<usize> {
+    pub fn get_curve_count(&self, time: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<usize> {
         let t = tc_from_py_opt(time)?;
         Ok(self.0.get_curve_count(t))
     }
@@ -3803,7 +3808,9 @@ usd_geom_schema_with_xform!(PyBasisCurves, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.curves().create_curve_vertex_counts_attr(v, write_sparsely),
+            self.0
+                .curves()
+                .create_curve_vertex_counts_attr(v, write_sparsely),
         ))
     }
 
@@ -3821,7 +3828,9 @@ usd_geom_schema_with_xform!(PyBasisCurves, yes_get_path, {
             None => None,
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
-        Ok(PyAttribute::from_attr(self.0.create_basis_attr(v, write_sparsely)))
+        Ok(PyAttribute::from_attr(
+            self.0.create_basis_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetTypeAttr")]
     pub fn get_type_attr(&self) -> PyAttribute {
@@ -3837,7 +3846,9 @@ usd_geom_schema_with_xform!(PyBasisCurves, yes_get_path, {
             None => None,
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
-        Ok(PyAttribute::from_attr(self.0.create_type_attr(v, write_sparsely)))
+        Ok(PyAttribute::from_attr(
+            self.0.create_type_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetWrapAttr")]
     pub fn get_wrap_attr(&self) -> PyAttribute {
@@ -3853,7 +3864,9 @@ usd_geom_schema_with_xform!(PyBasisCurves, yes_get_path, {
             None => None,
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
-        Ok(PyAttribute::from_attr(self.0.create_wrap_attr(v, write_sparsely)))
+        Ok(PyAttribute::from_attr(
+            self.0.create_wrap_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetPointsAttr")]
     pub fn get_points_attr(&self) -> PyAttribute {
@@ -3918,10 +3931,7 @@ usd_geom_schema_with_xform!(PyBasisCurves, yes_get_path, {
             .set_widths_interpolation(&Token::new(interpolation))
     }
     #[pyo3(name = "GetCurveCount", signature = (time=None))]
-    pub fn get_curve_count(
-        &self,
-        time: Option<&Bound<'_, pyo3::PyAny>>,
-    ) -> PyResult<usize> {
+    pub fn get_curve_count(&self, time: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<usize> {
         let t = tc_from_py_opt(time)?;
         Ok(self.0.curves().get_curve_count(t))
     }
@@ -4066,7 +4076,9 @@ usd_geom_schema_with_xform!(PyNurbsCurves, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.curves().create_curve_vertex_counts_attr(v, write_sparsely),
+            self.0
+                .curves()
+                .create_curve_vertex_counts_attr(v, write_sparsely),
         ))
     }
 
@@ -4133,10 +4145,7 @@ usd_geom_schema_with_xform!(PyNurbsCurves, yes_get_path, {
             .set_widths_interpolation(&Token::new(interpolation))
     }
     #[pyo3(name = "GetCurveCount", signature = (time=None))]
-    pub fn get_curve_count(
-        &self,
-        time: Option<&Bound<'_, pyo3::PyAny>>,
-    ) -> PyResult<usize> {
+    pub fn get_curve_count(&self, time: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<usize> {
         let t = tc_from_py_opt(time)?;
         Ok(self.0.curves().get_curve_count(t))
     }
@@ -4155,7 +4164,9 @@ usd_geom_schema_with_xform!(PyNurbsCurves, yes_get_path, {
             None => None,
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
-        Ok(PyAttribute::from_attr(self.0.create_order_attr(v, write_sparsely)))
+        Ok(PyAttribute::from_attr(
+            self.0.create_order_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetKnotsAttr")]
     pub fn get_knots_attr(&self) -> PyAttribute {
@@ -4171,7 +4182,9 @@ usd_geom_schema_with_xform!(PyNurbsCurves, yes_get_path, {
             None => None,
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
-        Ok(PyAttribute::from_attr(self.0.create_knots_attr(v, write_sparsely)))
+        Ok(PyAttribute::from_attr(
+            self.0.create_knots_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetRangesAttr")]
     pub fn get_ranges_attr(&self) -> PyAttribute {
@@ -4187,7 +4200,9 @@ usd_geom_schema_with_xform!(PyNurbsCurves, yes_get_path, {
             None => None,
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
-        Ok(PyAttribute::from_attr(self.0.create_ranges_attr(v, write_sparsely)))
+        Ok(PyAttribute::from_attr(
+            self.0.create_ranges_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetPointWeightsAttr")]
     pub fn get_point_weights_attr(&self) -> PyAttribute {
@@ -4303,7 +4318,9 @@ usd_geom_schema_with_xform!(PyHermiteCurves, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.curves().create_curve_vertex_counts_attr(v, write_sparsely),
+            self.0
+                .curves()
+                .create_curve_vertex_counts_attr(v, write_sparsely),
         ))
     }
 
@@ -4370,10 +4387,7 @@ usd_geom_schema_with_xform!(PyHermiteCurves, yes_get_path, {
             .set_widths_interpolation(&Token::new(interpolation))
     }
     #[pyo3(name = "GetCurveCount", signature = (time=None))]
-    pub fn get_curve_count(
-        &self,
-        time: Option<&Bound<'_, pyo3::PyAny>>,
-    ) -> PyResult<usize> {
+    pub fn get_curve_count(&self, time: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<usize> {
         let t = tc_from_py_opt(time)?;
         Ok(self.0.curves().get_curve_count(t))
     }
@@ -4453,7 +4467,9 @@ impl PyPointAndTangentArrays {
                         "Points and tangents must be the same size.",
                     ));
                 }
-                Ok(Self(PointAndTangentArrays::from_points_and_tangents(pts, tans)))
+                Ok(Self(PointAndTangentArrays::from_points_and_tangents(
+                    pts, tans,
+                )))
             }
             _ => Err(PyValueError::new_err(
                 "PointAndTangentArrays expects no arguments or (points, tangents)",
@@ -4610,7 +4626,9 @@ usd_geom_schema_with_xform!(PyNurbsPatch, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.point_based().create_velocities_attr(v, write_sparsely),
+            self.0
+                .point_based()
+                .create_velocities_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetAccelerationsAttr")]
@@ -4628,7 +4646,9 @@ usd_geom_schema_with_xform!(PyNurbsPatch, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.point_based().create_accelerations_attr(v, write_sparsely),
+            self.0
+                .point_based()
+                .create_accelerations_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetNormalsAttr")]
@@ -4979,7 +4999,8 @@ usd_geom_schema_with_xform!(PyNurbsPatch, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.create_trim_curve_vertex_counts_attr(v, write_sparsely),
+            self.0
+                .create_trim_curve_vertex_counts_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetTrimCurveKnotsAttr")]
@@ -5134,7 +5155,9 @@ usd_geom_schema_with_xform!(PyTetMesh, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.point_based().create_velocities_attr(v, write_sparsely),
+            self.0
+                .point_based()
+                .create_velocities_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetAccelerationsAttr")]
@@ -5152,7 +5175,9 @@ usd_geom_schema_with_xform!(PyTetMesh, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.point_based().create_accelerations_attr(v, write_sparsely),
+            self.0
+                .point_based()
+                .create_accelerations_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetNormalsAttr")]
@@ -5218,7 +5243,8 @@ usd_geom_schema_with_xform!(PyTetMesh, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.create_surface_face_vertex_indices_attr(v, write_sparsely),
+            self.0
+                .create_surface_face_vertex_indices_attr(v, write_sparsely),
         ))
     }
 
@@ -5712,7 +5738,8 @@ usd_geom_schema_with_xform!(PyCamera, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.create_horizontal_aperture_offset_attr(v, write_sparsely),
+            self.0
+                .create_horizontal_aperture_offset_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetVerticalApertureOffsetAttr")]
@@ -5730,7 +5757,8 @@ usd_geom_schema_with_xform!(PyCamera, yes_get_path, {
             Some(o) => Some(crate::vt::py_to_value(o)?),
         };
         Ok(PyAttribute::from_attr(
-            self.0.create_vertical_aperture_offset_attr(v, write_sparsely),
+            self.0
+                .create_vertical_aperture_offset_attr(v, write_sparsely),
         ))
     }
     #[pyo3(name = "GetFocalLengthAttr")]

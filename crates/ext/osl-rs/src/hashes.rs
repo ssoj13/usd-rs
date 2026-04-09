@@ -218,7 +218,7 @@ const fn rotate64(val: u64, shift: u32) -> u64 {
     if shift == 0 {
         val
     } else {
-        (val >> shift) | (val << (64 - shift))
+        val.rotate_right(shift)
     }
 }
 

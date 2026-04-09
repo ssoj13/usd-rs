@@ -16,13 +16,13 @@ fn bjfinal(a: u32, b: u32, c: u32) -> u32 {
     a = a.wrapping_sub(rotl(c, 11));
     let mut b = b ^ a;
     b = b.wrapping_sub(rotl(a, 25));
-    c = c ^ b;
+    c ^= b;
     c = c.wrapping_sub(rotl(b, 16));
-    a = a ^ c;
+    a ^= c;
     a = a.wrapping_sub(rotl(c, 4));
-    b = b ^ a;
+    b ^= a;
     b = b.wrapping_sub(rotl(a, 14));
-    c = c ^ b;
+    c ^= b;
     c = c.wrapping_sub(rotl(b, 24));
     c
 }
@@ -34,12 +34,12 @@ fn scramble(v0: u32, v1: u32, v2: u32) -> u32 {
 }
 
 // Skewing/unskewing factors for 2D, 3D, 4D
-const F2: Float = 0.3660254037844386; // (sqrt(3) - 1) / 2
-const G2: Float = 0.21132486540518713; // (3 - sqrt(3)) / 6
+const F2: Float = 0.366_025_42; // (sqrt(3) - 1) / 2
+const G2: Float = 0.211_324_87; // (3 - sqrt(3)) / 6
 const F3: Float = 1.0 / 3.0;
 const G3: Float = 1.0 / 6.0;
-const F4: Float = 0.30901699437494742; // (sqrt(5) - 1) / 4
-const G4: Float = 0.13819660112501053; // (5 - sqrt(5)) / 20
+const F4: Float = 0.309_017; // (sqrt(5) - 1) / 4
+const G4: Float = 0.138_196_6; // (5 - sqrt(5)) / 20
 
 // Zero gradient for inactive corners (matches C++ zero)
 const ZERO2: [Float; 2] = [0.0, 0.0];

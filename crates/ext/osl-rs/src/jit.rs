@@ -674,7 +674,7 @@ impl JitBackend for CraneliftBackend {
             // Allocate 3x space for symbols with derivatives (val, dx, dy)
             let sz = if sym.has_derivs { base_sz * 3 } else { base_sz };
             // Align to 4 bytes
-            if heap_offset % 4 != 0 {
+            if !heap_offset.is_multiple_of(4) {
                 heap_offset += 4 - (heap_offset % 4);
             }
             sym_heap_offsets.push(heap_offset);
@@ -729,10 +729,10 @@ impl JitBackend for CraneliftBackend {
             let ctx_ptr = builder.block_params(entry_block)[2];
 
             // Initialize constants and param defaults on the heap
-            emit_init_constants(&builder, &ir, heap_ptr, &sym_heap_offsets, &sym_jit_types);
+            emit_init_constants(&builder, ir, heap_ptr, &sym_heap_offsets, &sym_jit_types);
 
             // Load globals from ShaderGlobals into heap slots
-            emit_bind_globals(&mut builder, &ir, sg_ptr, heap_ptr, &sym_heap_offsets);
+            emit_bind_globals(&mut builder, ir, sg_ptr, heap_ptr, &sym_heap_offsets);
 
             // --- Emit opcodes ---
             emit_opcodes(
@@ -845,7 +845,7 @@ impl CraneliftBackend {
                     }
                 };
                 let sz = if sym.has_derivs { base_sz * 3 } else { base_sz };
-                if heap_offset % 4 != 0 {
+                if !heap_offset.is_multiple_of(4) {
                     heap_offset += 4 - (heap_offset % 4);
                 }
                 offsets.push(heap_offset);
@@ -1355,9 +1355,9 @@ unsafe fn read_matrix_from_heap(heap: *const u8, off: usize) -> crate::math::Mat
     unsafe {
         let p = heap.add(off) as *const f32;
         let mut m = [[0.0f32; 4]; 4];
-        for i in 0..4 {
-            for j in 0..4 {
-                m[i][j] = *p.add(i * 4 + j);
+        for (i, row) in m.iter_mut().enumerate() {
+            for (j, cell) in row.iter_mut().enumerate() {
+                *cell = *p.add(i * 4 + j);
             }
         }
         crate::math::Matrix44 { m }
@@ -1367,9 +1367,9 @@ unsafe fn read_matrix_from_heap(heap: *const u8, off: usize) -> crate::math::Mat
 unsafe fn write_matrix_to_heap(heap: *mut u8, off: usize, mat: &crate::math::Matrix44) {
     unsafe {
         let p = heap.add(off) as *mut f32;
-        for i in 0..4 {
-            for j in 0..4 {
-                *p.add(i * 4 + j) = mat.m[i][j];
+        for (i, row) in mat.m.iter().enumerate() {
+            for (j, val) in row.iter().enumerate() {
+                *p.add(i * 4 + j) = *val;
             }
         }
     }
@@ -1396,7 +1396,7 @@ fn parse_texture_opt_from_heap(heap: *const u8, base: usize) -> crate::texture::
     if base + 4 > 0x7fff_ffff {
         return crate::texture::TextureOpt::default();
     }
-    let n_pairs = unsafe { *(heap.add(base) as *const i32) }.max(0).min(16) as usize;
+    let n_pairs = unsafe { *(heap.add(base) as *const i32) }.clamp(0, 16) as usize;
     let mut pairs = Vec::with_capacity(n_pairs);
     for i in 0..n_pairs {
         let off = base + 4 + i * 12;
@@ -1479,7 +1479,7 @@ extern "C" fn trampoline_texture(
     } else {
         (0.0, 0.0)
     };
-    let nc = nchannels.min(4).max(1) as usize;
+    let nc = nchannels.clamp(1, 4) as usize;
     let mut result = [0.0f32; 4];
     let opt = if opt_scratch_off >= 0 {
         parse_texture_opt_from_heap(heap, opt_scratch_off as usize)
@@ -1504,8 +1504,8 @@ extern "C" fn trampoline_texture(
     );
     unsafe {
         let dst = heap.add(dst_off as usize) as *mut f32;
-        for i in 0..nc {
-            *dst.add(i) = result[i];
+        for (i, val) in result[..nc].iter().enumerate() {
+            *dst.add(i) = *val;
         }
     }
     if ok.is_ok() { 1 } else { 0 }
@@ -1550,7 +1550,7 @@ extern "C" fn trampoline_texture3d(
     } else {
         zero_v
     };
-    let nc = nchannels.min(4).max(1) as usize;
+    let nc = nchannels.clamp(1, 4) as usize;
     let mut result = [0.0f32; 4];
     let opt = if opt_scratch_off >= 0 {
         parse_texture_opt_from_heap(heap, opt_scratch_off as usize)
@@ -1574,8 +1574,8 @@ extern "C" fn trampoline_texture3d(
     );
     unsafe {
         let dst = heap.add(dst_off as usize) as *mut f32;
-        for i in 0..nc {
-            *dst.add(i) = result[i];
+        for (i, val) in result[..nc].iter().enumerate() {
+            *dst.add(i) = *val;
         }
     }
     if ok.is_ok() { 1 } else { 0 }
@@ -1614,7 +1614,7 @@ extern "C" fn trampoline_environment(
     } else {
         zero_v
     };
-    let nc = nchannels.min(4).max(1) as usize;
+    let nc = nchannels.clamp(1, 4) as usize;
     let mut result = [0.0f32; 4];
     let opt = if opt_scratch_off >= 0 {
         parse_texture_opt_from_heap(heap, opt_scratch_off as usize)
@@ -1636,8 +1636,8 @@ extern "C" fn trampoline_environment(
     );
     unsafe {
         let dst = heap.add(dst_off as usize) as *mut f32;
-        for i in 0..nc {
-            *dst.add(i) = result[i];
+        for (i, val) in result[..nc].iter().enumerate() {
+            *dst.add(i) = *val;
         }
     }
     if ok.is_ok() { 1 } else { 0 }
@@ -2339,7 +2339,7 @@ extern "C" fn trampoline_format(
         .map(|u| u.as_str().to_string())
         .unwrap_or_default();
 
-    let n = nargs.min(16).max(0) as usize;
+    let n = nargs.clamp(0, 16) as usize;
     let mut int_args = Vec::new();
     let mut float_args = Vec::new();
     let mut str_args_owned = Vec::new();
@@ -2407,8 +2407,8 @@ extern "C" fn trampoline_split(
     let count = parts.len().min(max);
 
     // Write UString hashes of the parts into the result array (i64 each)
-    for i in 0..count {
-        let us = crate::ustring::UString::new(parts[i]);
+    for (i, part) in parts.iter().enumerate().take(count) {
+        let us = crate::ustring::UString::new(part);
         let hash = us.hash() as i64;
         unsafe {
             *(heap.add(result_off as usize + i * 8) as *mut i64) = hash;
@@ -2477,9 +2477,7 @@ extern "C" fn trampoline_dict_find(
         .map(|u| u.as_str().to_string())
         .unwrap_or_default();
 
-    if path.is_empty() {
-        handle
-    } else if store.find(handle, &path).is_some() {
+    if path.is_empty() || store.find(handle, &path).is_some() {
         handle
     } else {
         -1
@@ -2595,16 +2593,16 @@ extern "C" fn trampoline_pointcloud_search(
     );
     if indices_off >= 0 {
         let ptr = unsafe { heap.add(indices_off as usize) as *mut i32 };
-        for i in 0..count as usize {
-            unsafe { *ptr.add(i) = indices[i] };
+        for (i, idx) in indices.iter().enumerate().take(count as usize) {
+            unsafe { *ptr.add(i) = *idx };
         }
     }
-    if distances_off >= 0 {
-        if let Some(ref dist) = distances_opt {
-            let ptr = unsafe { heap.add(distances_off as usize) as *mut f32 };
-            for i in 0..count as usize {
-                unsafe { *ptr.add(i) = dist[i] };
-            }
+    if distances_off >= 0
+        && let Some(ref dist) = distances_opt
+    {
+        let ptr = unsafe { heap.add(distances_off as usize) as *mut f32 };
+        for (i, d) in dist.iter().enumerate().take(count as usize) {
+            unsafe { *ptr.add(i) = *d };
         }
     }
     count
@@ -2657,8 +2655,7 @@ extern "C" fn trampoline_pointcloud_get(
         );
         if ok {
             let ptr = unsafe { heap.add(data_off as usize) as *mut f32 };
-            for i in 0..n {
-                let v = data[i];
+            for (i, v) in data.iter().enumerate() {
                 unsafe {
                     *ptr.add(i * 3) = v.x;
                     *ptr.add(i * 3 + 1) = v.y;
@@ -2679,8 +2676,8 @@ extern "C" fn trampoline_pointcloud_get(
         );
         if ok {
             let ptr = unsafe { heap.add(data_off as usize) as *mut f32 };
-            for i in 0..n {
-                unsafe { *ptr.add(i) = data[i] };
+            for (i, v) in data.iter().enumerate() {
+                unsafe { *ptr.add(i) = *v };
             }
         }
         ok
@@ -3920,10 +3917,11 @@ fn propagate_derivs_unary_f32(
 // Vec3 Dual2 derivative helpers (component-wise)
 // ---------------------------------------------------------------------------
 
-/// Propagate derivatives for Vec3 add: r = a + b => r' = a' + b' (component-wise)
-// NOTE: propagate_derivs_add/sub_vec3 replaced by propagate_derivs_addsub_vec3_mixed
-//       which correctly handles float<->vec3 mixed-type derivative layouts.
-
+/// Propagate derivatives for Vec3 add: r = a + b => r' = a' + b' (component-wise).
+///
+/// NOTE: `propagate_derivs_add/sub_vec3` was replaced by `propagate_derivs_addsub_vec3_mixed`,
+/// which correctly handles float↔vec3 mixed-type derivative layouts.
+///
 /// Mixed-type add/sub derivative propagation for Vec3 result.
 /// Handles vec3 op vec3, float op vec3, vec3 op float, and float op float (broadcast).
 /// `is_add` = true for add, false for sub.
@@ -4363,12 +4361,11 @@ fn compute_struct_field_offset(
     let field_name = ir.symbols[field_name_sym].name;
     // Look up the struct symbol's type to get the struct ID.
     let struct_id = ir.symbols[struct_sym].typespec.structure_id();
-    if struct_id > 0 {
-        if let Some(spec) = crate::typespec::get_struct(struct_id as i32) {
-            if let Some(fi) = spec.lookup_field(field_name) {
-                return spec.field_byte_offset(fi);
-            }
-        }
+    if struct_id > 0
+        && let Some(spec) = crate::typespec::get_struct(struct_id as i32)
+        && let Some(fi) = spec.lookup_field(field_name)
+    {
+        return spec.field_byte_offset(fi);
     }
     // Fallback: treat as a single float at offset 0.
     (0, 4)
@@ -4752,7 +4749,7 @@ fn emit_opcodes(
                     jtypes,
                     &args,
                     next_block,
-                    |b, a, c| emit_safe_fdiv(b, a, c),
+                    emit_safe_fdiv,
                 );
                 let dst = args[0] as usize;
                 let lhs = args[1] as usize;
@@ -5356,7 +5353,7 @@ fn emit_opcodes(
                     if (args[1] as usize) < ir.symbols.len() {
                         let s = &ir.symbols[args[1] as usize];
                         (
-                            s.typespec.simpletype().arraylen.max(1) as i32,
+                            s.typespec.simpletype().arraylen.max(1),
                             s.name.hash(),
                             op.sourcefile.hash(),
                         )
@@ -5853,7 +5850,7 @@ fn emit_opcodes(
                     if (args[0] as usize) < ir.symbols.len() {
                         let s = &ir.symbols[args[0] as usize];
                         (
-                            s.typespec.simpletype().arraylen.max(1) as i32,
+                            s.typespec.simpletype().arraylen.max(1),
                             s.name.hash(),
                             op.sourcefile.hash(),
                         )
@@ -6668,7 +6665,7 @@ fn emit_opcodes(
             "arraylength" if args.len() >= 2 => {
                 // For fixed-size arrays, the length is embedded in the type
                 let sym = &ir.symbols[args[1] as usize];
-                let len = sym.typespec.simpletype().arraylen.max(1) as i32;
+                let len = sym.typespec.simpletype().arraylen.max(1);
                 let v = builder.ins().iconst(types::I32, len as i64);
                 heap_store_i32(builder, heap, offsets[args[0] as usize], v);
                 builder.ins().jump(next_block, &[]);
@@ -7326,7 +7323,7 @@ fn emit_opcodes(
             "closure" | "diffuse" | "oren_nayar" | "phong" | "ward" | "microfacet"
             | "reflection" | "refraction" | "transparent" | "emission" | "background"
             | "holdout" | "debug" | "translucent"
-                if args.len() >= 1 =>
+                if !args.is_empty() =>
             {
                 // closure(result, closure_name_string, [N_or_param, ...])
                 // For named closures like "diffuse", the name IS the opcode name.
@@ -7519,7 +7516,7 @@ fn emit_opcodes(
                     let scratch_base = scratch_offset;
                     let types_start = scratch_base + nargs * 4;
                     for i in 0..nargs {
-                        let arg_idx = (i + 2) as usize; // skip result + fmt
+                        let arg_idx = i + 2; // skip result + fmt
                         let aoff = offsets[args[arg_idx] as usize] as i32;
                         let aoff_val = builder.ins().iconst(types::I32, aoff as i64);
                         heap_store_i32(builder, heap, scratch_base + i * 4, aoff_val);
@@ -7882,7 +7879,7 @@ fn emit_opcodes(
             }
             "pointcloud_write" if args.len() >= 3 => {
                 // pointcloud_write(result, filename, pos, "attr1", val1, "attr2", val2, ...)
-                let nattrs = ((args.len() - 3) / 2).max(0);
+                let nattrs = (args.len() - 3) / 2;
                 let scratch_base = scratch_offset;
                 let nattrs_val = builder.ins().iconst(types::I32, nattrs as i64);
                 heap_store_i32(builder, heap, scratch_base, nattrs_val);
@@ -9036,13 +9033,13 @@ impl BatchedCompiledShader {
             .map(|_| vec![0u8; self.inner.heap_size])
             .collect();
 
-        for lane in 0..WIDTH {
+        for (lane, heap) in heaps.iter_mut().enumerate().take(WIDTH) {
             if !mask.is_set(lane) {
                 continue;
             }
             // Extract a scalar ShaderGlobals for this lane
             let mut sg = bsg.extract_lane(lane);
-            self.inner.execute_with_heap(&mut sg, &mut heaps[lane]);
+            self.inner.execute_with_heap(&mut sg, heap);
             // Write back modified globals
             bsg.inject_lane(lane, &sg);
         }

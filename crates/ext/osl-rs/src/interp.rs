@@ -19,7 +19,7 @@ fn value_to_message_value(v: &Value) -> MessageValue {
     match v {
         Value::Int(i) => MessageValue::Int(*i),
         Value::Float(f) | Value::DualFloat(f, _, _) => MessageValue::Float(*f),
-        Value::String(s) => MessageValue::String(s.clone()),
+        Value::String(s) => MessageValue::String(*s),
         Value::Vec3(v) | Value::Color(v) | Value::DualVec3(v, _, _) => MessageValue::Color(*v),
         Value::IntArray(a) => MessageValue::IntArray(a.clone()),
         Value::FloatArray(a) => MessageValue::FloatArray(a.clone()),
@@ -31,7 +31,7 @@ fn message_value_to_value(m: &MessageValue) -> Value {
     match m {
         MessageValue::Int(i) => Value::Int(*i),
         MessageValue::Float(f) => Value::Float(*f),
-        MessageValue::String(s) => Value::String(s.clone()),
+        MessageValue::String(s) => Value::String(*s),
         MessageValue::Color(c)
         | MessageValue::Point(c)
         | MessageValue::Vector(c)
@@ -70,6 +70,22 @@ pub struct ExecuteMessageConfig<'a> {
     pub layeridx: i32,
     pub strict: bool,
     pub errhandler: &'a dyn ErrorHandler,
+}
+
+type UnknownCoordsysReportFn<'a> = Box<dyn Fn(&str) + 'a>;
+
+fn make_unknown_coordsys_reporter<'a>(
+    errh: Option<&'a dyn ErrorHandler>,
+    fallback: &'a std::cell::RefCell<String>,
+) -> UnknownCoordsysReportFn<'a> {
+    Box::new(move |name: &str| {
+        let msg = format!("Unknown transformation \"{}\"", name);
+        if let Some(h) = errh {
+            h.error(&msg);
+        } else {
+            *fallback.borrow_mut() = format!("ERROR: {msg}\n");
+        }
+    })
 }
 
 /// Represents a closure value in the interpreter.
@@ -148,7 +164,7 @@ impl ClosureValue {
                 let p = if params.is_empty() {
                     "()".to_string()
                 } else {
-                    let ps: Vec<String> = params.iter().map(|v| Self::fmt_param(v)).collect();
+                    let ps: Vec<String> = params.iter().map(Self::fmt_param).collect();
                     format!("({})", ps.join(", "))
                 };
                 out.push_str(&format!(
@@ -219,7 +235,7 @@ impl ClosureValue {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            _ => format!("?"),
+            _ => "?".to_string(),
         }
     }
 }
@@ -382,8 +398,8 @@ fn osl_mod_f32(a: f32, b: f32) -> f32 {
     if b == 0.0 {
         return 0.0;
     }
-    let r = a - b * (a / b).floor();
-    r
+
+    a - b * (a / b).floor()
 }
 
 /// C++-compatible safe_fmod: truncation toward zero (result sign = dividend sign).
@@ -527,9 +543,9 @@ fn dual_neg(a: &Value) -> Value {
         Value::Vec3(v) | Value::Color(v) => Value::Vec3(Vec3::new(-v.x, -v.y, -v.z)),
         Value::Matrix(m) => {
             let mut r = [[0.0f32; 4]; 4];
-            for i in 0..4 {
-                for j in 0..4 {
-                    r[i][j] = -m.m[i][j];
+            for (i, row) in r.iter_mut().enumerate() {
+                for (j, cell) in row.iter_mut().enumerate() {
+                    *cell = -m.m[i][j];
                 }
             }
             Value::Matrix(Matrix44 { m: r })
@@ -697,6 +713,12 @@ pub struct Interpreter {
     /// Dedup sets for warning/error messages (C++ m_errseen/m_warnseen).
     seen_errors: std::collections::HashSet<String>,
     seen_warnings: std::collections::HashSet<String>,
+}
+
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Interpreter {
@@ -883,13 +905,12 @@ impl Interpreter {
 
             match opname {
                 // --- Control flow ---
-                "nop" | "" => {
+                "nop" | ""
                     // nop with jump target = unconditional jump (used for loop back-edges)
-                    if op.jump[0] >= 0 {
+                    if op.jump[0] >= 0 => {
                         pc = op.jump[0] as usize;
                         continue;
                     }
-                }
 
                 "end" => break,
 
@@ -909,9 +930,9 @@ impl Interpreter {
                     break;
                 }
 
-                "functioncall" => {
+                "functioncall"
                     // jump[0] = function body start
-                    if op.jump[0] >= 0 {
+                    if op.jump[0] >= 0 => {
                         // Guard against infinite recursion (OSL doesn't allow recursion)
                         if self.call_stack.len() >= 256 {
                             // Bail out — likely infinite recursion bug
@@ -921,7 +942,6 @@ impl Interpreter {
                         pc = op.jump[0] as usize;
                         continue;
                     }
-                }
 
                 "if" if !args.is_empty() => {
                     let cond = self.get(args[0]);
@@ -1178,9 +1198,9 @@ impl Interpreter {
                         (Value::Matrix(m), _) if matches!(b, Value::Float(_) | Value::Int(_)) => {
                             let s = b.as_float();
                             let mut r = [[0.0f32; 4]; 4];
-                            for i in 0..4 {
-                                for j in 0..4 {
-                                    r[i][j] = m.m[i][j] * s;
+                            for (i, row) in r.iter_mut().enumerate() {
+                                for (j, cell) in row.iter_mut().enumerate() {
+                                    *cell = m.m[i][j] * s;
                                 }
                             }
                             Value::Matrix(Matrix44 { m: r })
@@ -1188,9 +1208,9 @@ impl Interpreter {
                         (_, Value::Matrix(m)) if matches!(a, Value::Float(_) | Value::Int(_)) => {
                             let s = a.as_float();
                             let mut r = [[0.0f32; 4]; 4];
-                            for i in 0..4 {
-                                for j in 0..4 {
-                                    r[i][j] = m.m[i][j] * s;
+                            for (i, row) in r.iter_mut().enumerate() {
+                                for (j, cell) in row.iter_mut().enumerate() {
+                                    *cell = m.m[i][j] * s;
                                 }
                             }
                             Value::Matrix(Matrix44 { m: r })
@@ -1245,9 +1265,9 @@ impl Interpreter {
                                 let s = b.as_float();
                                 let inv = safe_div_f32(1.0, s);
                                 let mut r = [[0.0f32; 4]; 4];
-                                for i in 0..4 {
-                                    for j in 0..4 {
-                                        r[i][j] = m.m[i][j] * inv;
+                                for (i, row) in r.iter_mut().enumerate() {
+                                    for (j, cell) in row.iter_mut().enumerate() {
+                                        *cell = m.m[i][j] * inv;
                                     }
                                 }
                                 Value::Matrix(Matrix44 { m: r })
@@ -1259,9 +1279,9 @@ impl Interpreter {
                                 let s = a.as_float();
                                 if let Some(inv) = crate::matrix_ops::inverse(m) {
                                     let mut r = [[0.0f32; 4]; 4];
-                                    for i in 0..4 {
-                                        for j in 0..4 {
-                                            r[i][j] = inv.m[i][j] * s;
+                                    for (i, row) in r.iter_mut().enumerate() {
+                                        for (j, cell) in row.iter_mut().enumerate() {
+                                            *cell = inv.m[i][j] * s;
                                         }
                                     }
                                     Value::Matrix(Matrix44 { m: r })
@@ -1799,7 +1819,7 @@ impl Interpreter {
                                 idx_raw,
                                 3,
                                 symname,
-                                &op.sourcefile.as_str(),
+                                op.sourcefile.as_str(),
                                 op.sourceline,
                                 &ir.shader_name,
                                 errh,
@@ -1815,7 +1835,7 @@ impl Interpreter {
                                 idx_raw,
                                 arr.len() as i32,
                                 symname,
-                                &op.sourcefile.as_str(),
+                                op.sourcefile.as_str(),
                                 op.sourceline,
                                 &ir.shader_name,
                                 errh,
@@ -1827,7 +1847,7 @@ impl Interpreter {
                                 idx_raw,
                                 arr.len() as i32,
                                 symname,
-                                &op.sourcefile.as_str(),
+                                op.sourcefile.as_str(),
                                 op.sourceline,
                                 &ir.shader_name,
                                 errh,
@@ -1839,7 +1859,7 @@ impl Interpreter {
                                 idx_raw,
                                 arr.len() as i32,
                                 symname,
-                                &op.sourcefile.as_str(),
+                                op.sourcefile.as_str(),
                                 op.sourceline,
                                 &ir.shader_name,
                                 errh,
@@ -1851,7 +1871,7 @@ impl Interpreter {
                                 idx_raw,
                                 arr.len() as i32,
                                 symname,
-                                &op.sourcefile.as_str(),
+                                op.sourcefile.as_str(),
                                 op.sourceline,
                                 &ir.shader_name,
                                 errh,
@@ -1863,7 +1883,7 @@ impl Interpreter {
                                 idx_raw,
                                 arr.len() as i32,
                                 symname,
-                                &op.sourcefile.as_str(),
+                                op.sourcefile.as_str(),
                                 op.sourceline,
                                 &ir.shader_name,
                                 errh,
@@ -1875,7 +1895,7 @@ impl Interpreter {
                                 idx_raw,
                                 arr.len() as i32,
                                 symname,
-                                &op.sourcefile.as_str(),
+                                op.sourcefile.as_str(),
                                 op.sourceline,
                                 &ir.shader_name,
                                 errh,
@@ -1919,7 +1939,7 @@ impl Interpreter {
                                 idx_raw,
                                 length,
                                 symname,
-                                &op.sourcefile.as_str(),
+                                op.sourcefile.as_str(),
                                 op.sourceline,
                                 &ir.shader_name,
                                 errh,
@@ -1933,42 +1953,36 @@ impl Interpreter {
                                         _ => v.z = f,
                                     }
                                 }
-                                Value::IntArray(arr) => {
-                                    if idx < arr.len() {
+                                Value::IntArray(arr)
+                                    if idx < arr.len() => {
                                         arr[idx] = src.as_int();
                                     }
-                                }
-                                Value::FloatArray(arr) => {
-                                    if idx < arr.len() {
+                                Value::FloatArray(arr)
+                                    if idx < arr.len() => {
                                         arr[idx] = src.as_float();
                                     }
-                                }
-                                Value::StringArray(arr) => {
-                                    if idx < arr.len() {
+                                Value::StringArray(arr)
+                                    if idx < arr.len() => {
                                         arr[idx] = src.as_string();
                                     }
-                                }
-                                Value::Vec3Array(arr) => {
-                                    if idx < arr.len() {
+                                Value::Vec3Array(arr)
+                                    if idx < arr.len() => {
                                         arr[idx] = src.as_vec3();
                                     }
-                                }
                                 Value::MatrixArray(arr) => {
-                                    if idx < arr.len() {
-                                        if let Value::Matrix(m) = &src {
+                                    if idx < arr.len()
+                                        && let Value::Matrix(m) = &src {
                                             arr[idx] = *m;
                                         }
-                                    }
                                 }
-                                Value::ClosureArray(arr) => {
-                                    if idx < arr.len() {
+                                Value::ClosureArray(arr)
+                                    if idx < arr.len() => {
                                         match src {
                                             Value::Closure(cv) => arr[idx] = Some(cv),
                                             Value::Void => arr[idx] = None,
                                             _ => {}
                                         }
                                     }
-                                }
                                 _ => {}
                             }
                         }
@@ -2927,8 +2941,7 @@ impl Interpreter {
                     let af = a.as_float();
                     let bf = b.as_float();
                     let cf = c.as_float();
-                    let r = ((af as f64 * af as f64 + bf as f64 * bf as f64 + cf as f64 * cf as f64)
-                        as f64)
+                    let r = (af as f64 * af as f64 + bf as f64 * bf as f64 + cf as f64 * cf as f64)
                         .sqrt() as f32;
                     if (a.has_derivs() || b.has_derivs() || c.has_derivs()) && r > 0.0 {
                         let dx = (af * a.dx_float() + bf * b.dx_float() + cf * c.dx_float()) / r;
@@ -3030,8 +3043,8 @@ impl Interpreter {
                 "concat" if args.len() >= 3 => {
                     // Variadic concat: concat(result, s1, s2, ..., sN)
                     let mut result = String::new();
-                    for j in 1..args.len() {
-                        if let Value::String(s) = &self.get(args[j]) {
+                    for &slot in args.iter().skip(1) {
+                        if let Value::String(s) = &self.get(slot) {
                             result.push_str(s.as_str());
                         }
                     }
@@ -3075,8 +3088,8 @@ impl Interpreter {
                 // Accept both forms:
                 // 1) legacy: (result, fmt, args...)
                 // 2) void:   (fmt, args...)
-                "printf" if args.len() >= 1 => {
-                    let start = if let Some(&sym0) = args.get(0) {
+                "printf" if !args.is_empty() => {
+                    let start = if let Some(&sym0) = args.first() {
                         match self.get(sym0) {
                             Value::String(_) => 0,
                             _ if args.len() >= 2 => 1,
@@ -3111,8 +3124,8 @@ impl Interpreter {
                     let msg = self.format_string(&args[1..]);
                     self.set(args[0], Value::String(UString::new(&msg)));
                 }
-                "warning" if args.len() >= 1 => {
-                    let start = if let Some(&sym0) = args.get(0) {
+                "warning" if !args.is_empty() => {
+                    let start = if let Some(&sym0) = args.first() {
                         match self.get(sym0) {
                             Value::String(_) => 0,
                             _ if args.len() >= 2 => 1,
@@ -3127,8 +3140,8 @@ impl Interpreter {
                         self.messages.push(format!("WARNING: {msg}\n"));
                     }
                 }
-                "error" if args.len() >= 1 => {
-                    let start = if let Some(&sym0) = args.get(0) {
+                "error" if !args.is_empty() => {
+                    let start = if let Some(&sym0) = args.first() {
                         match self.get(sym0) {
                             Value::String(_) => 0,
                             _ if args.len() >= 2 => 1,
@@ -3164,8 +3177,8 @@ impl Interpreter {
                         _ => "unknown".to_string(),
                     };
                     let mut params = Vec::new();
-                    for j in 2..args.len() {
-                        params.push(self.get(args[j]));
+                    for &slot in args.iter().skip(2) {
+                        params.push(self.get(slot));
                     }
                     let cv = ClosureValue::Component {
                         name: name.clone(),
@@ -3184,8 +3197,8 @@ impl Interpreter {
                 {
                     // args[0] = result, args[1..] = closure params
                     let mut params = Vec::new();
-                    for j in 1..args.len() {
-                        params.push(self.get(args[j]));
+                    for &slot in args.iter().skip(1) {
+                        params.push(self.get(slot));
                     }
                     let cv = ClosureValue::Component {
                         name: opname.to_string(),
@@ -3205,7 +3218,7 @@ impl Interpreter {
                         if let Some(ref mut cfg) = msg_cfg {
                             let mut on_err = |s: &str| cfg.errhandler.error(s);
                             cfg.shared_messages.setmessage_validated(
-                                name.clone(),
+                                *name,
                                 val_msg,
                                 cfg.layeridx,
                                 &mut on_err,
@@ -3236,7 +3249,7 @@ impl Interpreter {
                         // When source is "trace", delegate to renderer
                         let found = if source_str == "trace" {
                             if let Some(renderer) = &self.renderer {
-                                let name_hash = UStringHash::from_str(name.as_str());
+                                let name_hash = UStringHash::hash_utf8(name.as_str());
                                 renderer.get_trace_value(globals, name_hash).map(
                                     |attr| match attr {
                                         crate::renderer::AttributeData::Int(i) => Value::Int(i),
@@ -3263,7 +3276,7 @@ impl Interpreter {
                             let mut on_err = |s: &str| cfg.errhandler.error(s);
                             cfg.shared_messages
                                 .getmessage_validated(
-                                    name.clone(),
+                                    *name,
                                     cfg.layeridx,
                                     cfg.strict,
                                     &mut on_err,
@@ -3508,7 +3521,7 @@ impl Interpreter {
                     self.set(args[0], Value::Float(v));
                 }
 
-                "format" if args.len() >= 1 => {
+                "format" if !args.is_empty() => {
                     let result = self.format_string(&args[1..]);
                     self.set(
                         args[0],
@@ -3665,22 +3678,12 @@ impl Interpreter {
                         .as_ref()
                         .map(|c| c.errhandler as &dyn crate::shadingsys::ErrorHandler);
                     let fallback_name = std::cell::RefCell::new(String::new());
-                    let report_unknown: Option<Box<dyn Fn(&str)>> = if self.unknown_coordsys_error {
-                        Some(Box::new({
-                            let errh = errh;
-                            let fallback = &fallback_name;
-                            move |name: &str| {
-                                let msg = format!("Unknown transformation \"{}\"", name);
-                                if let Some(h) = errh {
-                                    h.error(&msg);
-                                } else {
-                                    *fallback.borrow_mut() = format!("ERROR: {msg}\n");
-                                }
-                            }
-                        }))
-                    } else {
-                        None
-                    };
+                    let report_unknown: Option<UnknownCoordsysReportFn<'_>> =
+                        if self.unknown_coordsys_error {
+                            Some(make_unknown_coordsys_reporter(errh, &fallback_name))
+                        } else {
+                            None
+                        };
                     let success = if let Some(renderer) = &self.renderer {
                         match crate::matrix_ops::get_from_to_matrix(
                             renderer.as_ref(),
@@ -3900,7 +3903,7 @@ impl Interpreter {
                             Value::String(s) => s.as_str().to_string(),
                             _ => String::new(),
                         };
-                        (UStringHash::from_str(obj.as_str()), name, 3)
+                        (UStringHash::hash_utf8(obj.as_str()), name, 3)
                     } else {
                         let name = match &self.get(args[1]) {
                             Value::String(s) => s.as_str().to_string(),
@@ -3923,7 +3926,7 @@ impl Interpreter {
                         self.set(args[dest_idx], val);
                         self.set(args[0], Value::Int(1));
                     } else if let Some(renderer) = &self.renderer {
-                        let name_hash = UStringHash::from_str(&name_str);
+                        let name_hash = UStringHash::hash_utf8(&name_str);
                         // Determine TypeDesc from destination symbol typespec (C++ inspects symbol type)
                         let attr_type = if args[dest_idx] >= 0
                             && (args[dest_idx] as usize) < ir.symbols.len()
@@ -4028,7 +4031,7 @@ impl Interpreter {
                         } else {
                             true
                         };
-                        let filename_hash = UStringHash::from_str(filename.as_str());
+                        let filename_hash = UStringHash::hash_utf8(filename.as_str());
                         let mut indices = vec![0i32; maxpoints as usize];
                         let max_pt = maxpoints as usize;
                         let derivs_offset = if center_val.has_derivs() {
@@ -4082,7 +4085,7 @@ impl Interpreter {
                     // pointcloud_get(result, filename, indices, count, attr, dest) — OSL spec
                     if let Some(renderer) = &self.renderer {
                         let filename = self.get(args[1]).as_string();
-                        let filename_hash = UStringHash::from_str(filename.as_str());
+                        let filename_hash = UStringHash::hash_utf8(filename.as_str());
                         let indices_val = self.get(args[2]);
                         let indices_full: Vec<i32> = match indices_val {
                             Value::IntArray(arr) => arr.clone(),
@@ -4092,14 +4095,12 @@ impl Interpreter {
                         let count = self.get(args[3]).as_int().max(0) as usize;
                         let indices: Vec<i32> = indices_full.into_iter().take(count).collect();
                         let attrname = self.get(args[4]).as_string();
-                        let attrname_hash = UStringHash::from_str(attrname.as_str());
+                        let attrname_hash = UStringHash::hash_utf8(attrname.as_str());
                         let dest_sym = args[5];
                         if indices.is_empty() {
                             self.set(args[0], Value::Int(1)); // success, no data to fetch
                         } else {
-                            let dest_ts = (dest_sym >= 0 && (dest_sym as usize) < ir.symbols.len())
-                                .then(|| ir.symbols[dest_sym as usize].typespec.simpletype())
-                                .unwrap_or(crate::typedesc::TypeDesc::FLOAT);
+                            let dest_ts = if dest_sym >= 0 && (dest_sym as usize) < ir.symbols.len() { ir.symbols[dest_sym as usize].typespec.simpletype() } else { crate::typedesc::TypeDesc::FLOAT };
                             let is_triple = dest_ts.aggregate
                                 == crate::typedesc::Aggregate::Vec3 as u8
                                 && dest_ts.arraylen == 0;
@@ -4158,7 +4159,7 @@ impl Interpreter {
                     // pointcloud_write(result, filename, position, "attr1", val1, "attr2", val2, ...)
                     if let Some(renderer) = &self.renderer {
                         let filename = self.get(args[1]).as_string();
-                        let filename_hash = UStringHash::from_str(filename.as_str());
+                        let filename_hash = UStringHash::hash_utf8(filename.as_str());
                         let pos = self.get(args[2]).as_vec3();
                         let nattrs = (args.len() - 3) / 2;
                         let mut names = Vec::with_capacity(nattrs);
@@ -4171,7 +4172,7 @@ impl Interpreter {
                         for i in 0..nattrs {
                             let name = self.get(args[3 + i * 2]).as_string();
                             let val = self.get(args[4 + i * 2]);
-                            names.push(UStringHash::from_str(name.as_str()));
+                            names.push(UStringHash::hash_utf8(name.as_str()));
                             match &val {
                                 Value::Float(f) => {
                                     floats.push(*f);
@@ -4421,15 +4422,12 @@ impl Interpreter {
                     match self.get(struct_idx) {
                         Value::Struct(mut fields) => {
                             let sid = ir.symbols[struct_idx as usize].typespec.structure_id();
-                            if let Some(spec) = crate::typespec::get_struct(sid as i32) {
-                                if let Some(idx) =
+                            if let Some(spec) = crate::typespec::get_struct(sid as i32)
+                                && let Some(idx) =
                                     spec.fields.iter().position(|f| f.name == field_name)
-                                {
-                                    if idx < fields.len() {
+                                    && idx < fields.len() {
                                         fields[idx] = val;
                                     }
-                                }
-                            }
                             self.set(struct_idx, Value::Struct(fields));
                         }
                         Value::Vec3(mut v) => {
@@ -4583,7 +4581,7 @@ impl Interpreter {
                         idx_raw,
                         3,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         &ir.shader_name,
                         errh,
@@ -4628,7 +4626,7 @@ impl Interpreter {
                         idx_raw,
                         3,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         &ir.shader_name,
                         errh,
@@ -4682,7 +4680,7 @@ impl Interpreter {
                         row_raw,
                         4,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         &ir.shader_name,
                         errh,
@@ -4691,7 +4689,7 @@ impl Interpreter {
                         col_raw,
                         4,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         &ir.shader_name,
                         errh,
@@ -4719,7 +4717,7 @@ impl Interpreter {
                         row_raw,
                         4,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         &ir.shader_name,
                         errh,
@@ -4728,7 +4726,7 @@ impl Interpreter {
                         col_raw,
                         4,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         &ir.shader_name,
                         errh,
@@ -4741,9 +4739,9 @@ impl Interpreter {
                     self.set(args[0], Value::Matrix(m));
                 }
 
-                "functioncall_nr" => {
+                "functioncall_nr"
                     // Same as functioncall but no return value to store (plan #52).
-                    if op.jump[0] >= 0 {
+                    if op.jump[0] >= 0 => {
                         if self.call_stack.len() >= 256 {
                             break;
                         }
@@ -4751,7 +4749,6 @@ impl Interpreter {
                         pc = op.jump[0] as usize;
                         continue;
                     }
-                }
                 "useparam" => {
                     // useparam — tells the runtime to evaluate upstream layers
                     // for the referenced parameters. In our interpreter, all
@@ -4922,20 +4919,18 @@ impl Interpreter {
                     // Similar to for — structured loop with jump targets.
                     // The inline if/nop opcodes handle the flow.
                 }
-                "break" => {
+                "break"
                     // In C++ OSO, break jumps to jump[0] (loop end).
-                    if op.jump[0] >= 0 {
+                    if op.jump[0] >= 0 => {
                         pc = op.jump[0] as usize;
                         continue;
                     }
-                }
-                "continue" => {
+                "continue"
                     // In C++ OSO, continue jumps to jump[0] (loop step/condition).
-                    if op.jump[0] >= 0 {
+                    if op.jump[0] >= 0 => {
                         pc = op.jump[0] as usize;
                         continue;
                     }
-                }
 
                 // --- Type conversion opcodes ---
                 "vector" if args.len() >= 4 => {
@@ -4961,10 +4956,10 @@ impl Interpreter {
                 }
 
                 // --- Standalone shader globals opcodes ---
-                "backfacing" if args.len() >= 1 => {
+                "backfacing" if !args.is_empty() => {
                     self.set(args[0], Value::Int(globals.backfacing));
                 }
-                "surfacearea" if args.len() >= 1 => {
+                "surfacearea" if !args.is_empty() => {
                     self.set(args[0], Value::Float(globals.surfacearea));
                 }
 
@@ -5534,7 +5529,7 @@ impl Interpreter {
         } else if let Some(m) = crate::matrix_ops::get_sg_space_matrix(globals, from_s) {
             m
         } else if let Some(renderer) = &self.renderer {
-            let h = UStringHash::from_str(from_s);
+            let h = UStringHash::hash_utf8(from_s);
             match renderer.get_matrix_named_static(globals, h) {
                 Some(m) => m,
                 None => {
@@ -5557,7 +5552,7 @@ impl Interpreter {
         } else if let Some(m) = crate::matrix_ops::get_sg_inverse_space_matrix(globals, to_s) {
             m
         } else if let Some(renderer) = &self.renderer {
-            let h = UStringHash::from_str(to_s);
+            let h = UStringHash::hash_utf8(to_s);
             match renderer.get_inverse_matrix_named_static(globals, h) {
                 Some(m) => m,
                 None => {

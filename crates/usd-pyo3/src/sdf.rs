@@ -3323,11 +3323,7 @@ fn make_basic_match_eval(pattern: &str) -> PyBasicMatchEval {
 // ============================================================================
 
 /// Wraps `usd_sdf::VariableExpression`.
-#[pyclass(
-    skip_from_py_object,
-    name = "VariableExpression",
-    module = "pxr.Sdf"
-)]
+#[pyclass(skip_from_py_object, name = "VariableExpression", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyVariableExpression {
     inner: VariableExpression,

@@ -656,8 +656,8 @@ impl<const WIDTH: usize> Mask<WIDTH> {
         }
     }
 
-    /// Bitwise NOT (complement).
-    pub fn not(self) -> Self {
+    /// Bitwise NOT (complement). Named `complement` to avoid confusion with [`std::ops::Not::not`].
+    pub fn complement(self) -> Self {
         Self {
             bits: !self.bits & ((1u32 << WIDTH) - 1),
         }
@@ -860,38 +860,39 @@ impl<const WIDTH: usize> BatchedShaderGlobals<WIDTH> {
 
     /// Extract one lane as a scalar ShaderGlobals.
     pub fn extract_lane(&self, lane: usize) -> ShaderGlobals {
-        let mut sg = ShaderGlobals::default();
-        sg.p = self.p.load(lane);
-        sg.dp_dx = self.dp_dx.load(lane);
-        sg.dp_dy = self.dp_dy.load(lane);
-        sg.dp_dz = self.dp_dz.load(lane);
-        sg.i = self.i.load(lane);
-        sg.di_dx = self.di_dx.load(lane);
-        sg.di_dy = self.di_dy.load(lane);
-        sg.n = self.n.load(lane);
-        sg.ng = self.ng.load(lane);
-        sg.u = self.u.load(lane);
-        sg.dudx = self.dudx.load(lane);
-        sg.dudy = self.dudy.load(lane);
-        sg.v = self.v.load(lane);
-        sg.dvdx = self.dvdx.load(lane);
-        sg.dvdy = self.dvdy.load(lane);
-        sg.dp_du = self.dp_du.load(lane);
-        sg.dp_dv = self.dp_dv.load(lane);
-        sg.time = self.time.load(lane);
-        sg.dtime = self.dtime.load(lane);
-        sg.dp_dtime = self.dp_dtime.load(lane);
-        sg.ps = self.ps.load(lane);
-        sg.dps_dx = self.dps_dx.load(lane);
-        sg.dps_dy = self.dps_dy.load(lane);
-        sg.object2common = self.object2common.load(lane) as TransformationPtr;
-        sg.shader2common = self.shader2common.load(lane) as TransformationPtr;
-        sg.ci = self.ci.load(lane) as ClosureColorPtr;
-        sg.surfacearea = self.surfacearea.load(lane);
-        sg.raytype = self.uniform.raytype; // uniform field
-        sg.flip_handedness = self.flip_handedness.load(lane);
-        sg.backfacing = self.backfacing.load(lane);
-        sg
+        ShaderGlobals {
+            p: self.p.load(lane),
+            dp_dx: self.dp_dx.load(lane),
+            dp_dy: self.dp_dy.load(lane),
+            dp_dz: self.dp_dz.load(lane),
+            i: self.i.load(lane),
+            di_dx: self.di_dx.load(lane),
+            di_dy: self.di_dy.load(lane),
+            n: self.n.load(lane),
+            ng: self.ng.load(lane),
+            u: self.u.load(lane),
+            dudx: self.dudx.load(lane),
+            dudy: self.dudy.load(lane),
+            v: self.v.load(lane),
+            dvdx: self.dvdx.load(lane),
+            dvdy: self.dvdy.load(lane),
+            dp_du: self.dp_du.load(lane),
+            dp_dv: self.dp_dv.load(lane),
+            time: self.time.load(lane),
+            dtime: self.dtime.load(lane),
+            dp_dtime: self.dp_dtime.load(lane),
+            ps: self.ps.load(lane),
+            dps_dx: self.dps_dx.load(lane),
+            dps_dy: self.dps_dy.load(lane),
+            object2common: self.object2common.load(lane) as TransformationPtr,
+            shader2common: self.shader2common.load(lane) as TransformationPtr,
+            ci: self.ci.load(lane) as ClosureColorPtr,
+            surfacearea: self.surfacearea.load(lane),
+            raytype: self.uniform.raytype,
+            flip_handedness: self.flip_handedness.load(lane),
+            backfacing: self.backfacing.load(lane),
+            ..Default::default()
+        }
     }
 
     /// Write a scalar ShaderGlobals back into a specific lane.
@@ -1396,7 +1397,7 @@ mod tests {
         let or = a.or(b);
         assert_eq!(or.bits(), 0b11101110);
 
-        let not_a = a.not();
+        let not_a = a.complement();
         assert_eq!(not_a.bits(), 0b01010101);
     }
 

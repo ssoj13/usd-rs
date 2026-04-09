@@ -208,6 +208,12 @@ pub struct BatchedInterpreter<const WIDTH: usize> {
     unknown_coordsys_error: bool,
 }
 
+impl<const WIDTH: usize> Default for BatchedInterpreter<WIDTH> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
     pub fn new() -> Self {
         Self {
@@ -808,11 +814,11 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
 
                     let filename_hash = filename_strings
                         .first()
-                        .map(|s| crate::ustring::UStringHash::from_str(s.as_str()))
+                        .map(|s| crate::ustring::UStringHash::hash_utf8(s.as_str()))
                         .unwrap_or_else(|| crate::ustring::UStringHash::from_hash(0));
                     let dataname_hash = dataname_strings
                         .first()
-                        .map(|s| crate::ustring::UStringHash::from_str(s.as_str()))
+                        .map(|s| crate::ustring::UStringHash::hash_utf8(s.as_str()))
                         .unwrap_or_else(|| crate::ustring::UStringHash::from_hash(0));
 
                     let mut success = Mask::none();
@@ -841,7 +847,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                 success = success.or(renderer_mask);
                             }
 
-                            let fallback_mask = mask.and(success.not());
+                            let fallback_mask = mask.and(success.complement());
                             if fallback_mask.any() {
                                 let mut fallback_out = Wide {
                                     data: [0i32; WIDTH],
@@ -901,7 +907,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                 success = success.or(renderer_mask);
                             }
 
-                            let fallback_mask = mask.and(success.not());
+                            let fallback_mask = mask.and(success.complement());
                             if fallback_mask.any() {
                                 let mut fallback_out = Wide {
                                     data: [0.0f32; WIDTH],
@@ -959,7 +965,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                 success = success.or(renderer_mask);
                             }
 
-                            let fallback_mask = mask.and(success.not());
+                            let fallback_mask = mask.and(success.complement());
                             if fallback_mask.any() {
                                 let mut fallback_out = vec![UString::empty(); WIDTH];
                                 let mut fallback_success = Mask::none();
@@ -970,11 +976,10 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                     if let Some(info) = crate::texture::gettextureinfo(
                                         filename_strings[lane].as_str(),
                                         dataname_strings[lane].as_str(),
-                                    ) {
-                                        if let crate::texture::TextureInfo::Str(v) = info {
-                                            fallback_out[lane] = UString::new(&v);
-                                            fallback_success.set(lane);
-                                        }
+                                    ) && let crate::texture::TextureInfo::Str(v) = info
+                                    {
+                                        fallback_out[lane] = UString::new(&v);
+                                        fallback_success.set(lane);
                                     }
                                 }
                                 if fallback_success.any() {
@@ -1055,7 +1060,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                     let filename_hash = match &filename_val {
                         WideValue::String(strings) => {
                             if let Some(s) = strings.first() {
-                                crate::ustring::UStringHash::from_str(s.as_str())
+                                crate::ustring::UStringHash::hash_utf8(s.as_str())
                             } else {
                                 crate::ustring::UStringHash::from_hash(0)
                             }
@@ -1148,7 +1153,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                     let name_hash = match &name_val {
                         WideValue::String(strings) => {
                             if let Some(s) = strings.first() {
-                                crate::ustring::UStringHash::from_str(s.as_str())
+                                crate::ustring::UStringHash::hash_utf8(s.as_str())
                             } else {
                                 crate::ustring::UStringHash::from_hash(0)
                             }
@@ -1216,7 +1221,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                     let filename_hash = match &filename_val {
                         WideValue::String(strings) => {
                             if let Some(s) = strings.first() {
-                                crate::ustring::UStringHash::from_str(s.as_str())
+                                crate::ustring::UStringHash::hash_utf8(s.as_str())
                             } else {
                                 crate::ustring::UStringHash::from_hash(0)
                             }
@@ -1314,7 +1319,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                     let filename_hash = match &filename_val {
                         WideValue::String(strings) => {
                             if let Some(s) = strings.first() {
-                                crate::ustring::UStringHash::from_str(s.as_str())
+                                crate::ustring::UStringHash::hash_utf8(s.as_str())
                             } else {
                                 crate::ustring::UStringHash::from_hash(0)
                             }
@@ -1790,10 +1795,10 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                             let v = x.data[lane];
                             let t = 1.0 / (1.0 + 0.3275911 * v.abs());
                             let poly = t
-                                * (0.254829592
-                                    + t * (-0.284496736
-                                        + t * (1.421413741
-                                            + t * (-1.453152027 + t * 1.061405429))));
+                                * (0.254_829_6
+                                    + t * (-0.284_496_72
+                                        + t * (1.421_413_8
+                                            + t * (-1.453_152_1 + t * 1.061_405_4))));
                             let e = 1.0 - poly * (-v * v).exp();
                             result.data[lane] = if v >= 0.0 { e } else { -e };
                         }
@@ -1810,10 +1815,10 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                             let v = x.data[lane];
                             let t = 1.0 / (1.0 + 0.3275911 * v.abs());
                             let poly = t
-                                * (0.254829592
-                                    + t * (-0.284496736
-                                        + t * (1.421413741
-                                            + t * (-1.453152027 + t * 1.061405429))));
+                                * (0.254_829_6
+                                    + t * (-0.284_496_72
+                                        + t * (1.421_413_8
+                                            + t * (-1.453_152_1 + t * 1.061_405_4))));
                             let erf = 1.0 - poly * (-v * v).exp();
                             result.data[lane] = if v >= 0.0 { 1.0 - erf } else { 1.0 + erf };
                         }
@@ -2056,10 +2061,8 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         data: [0i32; WIDTH],
                     };
                     for lane in 0..WIDTH {
-                        if mask.is_set(lane) {
-                            if lane < strings.len() {
-                                result.data[lane] = strings[lane].as_str().len() as i32;
-                            }
+                        if mask.is_set(lane) && lane < strings.len() {
+                            result.data[lane] = strings[lane].as_str().len() as i32;
                         }
                     }
                     self.set_masked(args[0], WideValue::Int(result), mask);
@@ -2074,16 +2077,14 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         data: [0i32; WIDTH],
                     };
                     for lane in 0..WIDTH {
-                        if mask.is_set(lane) {
-                            if lane < strings.len() {
-                                // FNV-1a hash
-                                let mut h: u32 = 2166136261;
-                                for b in strings[lane].as_str().bytes() {
-                                    h ^= b as u32;
-                                    h = h.wrapping_mul(16777619);
-                                }
-                                result.data[lane] = h as i32;
+                        if mask.is_set(lane) && lane < strings.len() {
+                            // FNV-1a hash
+                            let mut h: u32 = 2166136261;
+                            for b in strings[lane].as_str().bytes() {
+                                h ^= b as u32;
+                                h = h.wrapping_mul(16777619);
                             }
+                            result.data[lane] = h as i32;
                         }
                     }
                     self.set_masked(args[0], WideValue::Int(result), mask);
@@ -2103,15 +2104,13 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         data: [0i32; WIDTH],
                     };
                     for lane in 0..WIDTH {
-                        if mask.is_set(lane) {
-                            if lane < ss.len() && lane < pp.len() {
-                                result.data[lane] =
-                                    if ss[lane].as_str().starts_with(pp[lane].as_str()) {
-                                        1
-                                    } else {
-                                        0
-                                    };
-                            }
+                        if mask.is_set(lane) && lane < ss.len() && lane < pp.len() {
+                            result.data[lane] = if ss[lane].as_str().starts_with(pp[lane].as_str())
+                            {
+                                1
+                            } else {
+                                0
+                            };
                         }
                     }
                     self.set_masked(args[0], WideValue::Int(result), mask);
@@ -2131,15 +2130,12 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         data: [0i32; WIDTH],
                     };
                     for lane in 0..WIDTH {
-                        if mask.is_set(lane) {
-                            if lane < ss.len() && lane < sf.len() {
-                                result.data[lane] =
-                                    if ss[lane].as_str().ends_with(sf[lane].as_str()) {
-                                        1
-                                    } else {
-                                        0
-                                    };
-                            }
+                        if mask.is_set(lane) && lane < ss.len() && lane < sf.len() {
+                            result.data[lane] = if ss[lane].as_str().ends_with(sf[lane].as_str()) {
+                                1
+                            } else {
+                                0
+                            };
                         }
                     }
                     self.set_masked(args[0], WideValue::Int(result), mask);
@@ -2157,12 +2153,9 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                     };
                     let mut result = vec![UString::empty(); WIDTH];
                     for lane in 0..WIDTH {
-                        if mask.is_set(lane) {
-                            if lane < ss1.len() && lane < ss2.len() {
-                                let combined =
-                                    format!("{}{}", ss1[lane].as_str(), ss2[lane].as_str());
-                                result[lane] = UString::new(&combined);
-                            }
+                        if mask.is_set(lane) && lane < ss1.len() && lane < ss2.len() {
+                            let combined = format!("{}{}", ss1[lane].as_str(), ss2[lane].as_str());
+                            result[lane] = UString::new(&combined);
                         }
                     }
                     self.set_masked(args[0], WideValue::String(result), mask);
@@ -2177,14 +2170,12 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                     };
                     let mut result = vec![UString::empty(); WIDTH];
                     for lane in 0..WIDTH {
-                        if mask.is_set(lane) {
-                            if lane < ss.len() {
-                                let src = ss[lane].as_str();
-                                let st = (start.data[lane].max(0) as usize).min(src.len());
-                                let ln = (length.data[lane].max(0) as usize)
-                                    .min(src.len().saturating_sub(st));
-                                result[lane] = UString::new(&src[st..st + ln]);
-                            }
+                        if mask.is_set(lane) && lane < ss.len() {
+                            let src = ss[lane].as_str();
+                            let st = (start.data[lane].max(0) as usize).min(src.len());
+                            let ln = (length.data[lane].max(0) as usize)
+                                .min(src.len().saturating_sub(st));
+                            result[lane] = UString::new(&src[st..st + ln]);
                         }
                     }
                     self.set_masked(args[0], WideValue::String(result), mask);
@@ -2199,11 +2190,9 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         data: [0i32; WIDTH],
                     };
                     for lane in 0..WIDTH {
-                        if mask.is_set(lane) {
-                            if lane < ss.len() {
-                                result.data[lane] =
-                                    ss[lane].as_str().trim().parse::<i32>().unwrap_or(0);
-                            }
+                        if mask.is_set(lane) && lane < ss.len() {
+                            result.data[lane] =
+                                ss[lane].as_str().trim().parse::<i32>().unwrap_or(0);
                         }
                     }
                     self.set_masked(args[0], WideValue::Int(result), mask);
@@ -2218,11 +2207,9 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         data: [0.0f32; WIDTH],
                     };
                     for lane in 0..WIDTH {
-                        if mask.is_set(lane) {
-                            if lane < ss.len() {
-                                result.data[lane] =
-                                    ss[lane].as_str().trim().parse::<f32>().unwrap_or(0.0);
-                            }
+                        if mask.is_set(lane) && lane < ss.len() {
+                            result.data[lane] =
+                                ss[lane].as_str().trim().parse::<f32>().unwrap_or(0.0);
                         }
                     }
                     self.set_masked(args[0], WideValue::Float(result), mask);
@@ -2238,13 +2225,11 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         data: [0i32; WIDTH],
                     };
                     for lane in 0..WIDTH {
-                        if mask.is_set(lane) {
-                            if lane < ss.len() {
-                                let bytes = ss[lane].as_str().as_bytes();
-                                let i = idx.data[lane];
-                                if i >= 0 && (i as usize) < bytes.len() {
-                                    result.data[lane] = bytes[i as usize] as i32;
-                                }
+                        if mask.is_set(lane) && lane < ss.len() {
+                            let bytes = ss[lane].as_str().as_bytes();
+                            let i = idx.data[lane];
+                            if i >= 0 && (i as usize) < bytes.len() {
+                                result.data[lane] = bytes[i as usize] as i32;
                             }
                         }
                     }
@@ -2285,10 +2270,9 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                     let arg_vals: Vec<WideValue<WIDTH>> =
                         (2..args.len()).map(|j| self.get(args[j])).collect();
                     let mut result_strings = vec![UString::empty(); WIDTH];
-                    for lane in 0..WIDTH {
+                    for (lane, out) in result_strings.iter_mut().enumerate().take(WIDTH) {
                         if mask.is_set(lane) {
-                            result_strings[lane] =
-                                UString::new(&batched_format_string(&fmt_str, &arg_vals, lane));
+                            *out = UString::new(&batched_format_string(&fmt_str, &arg_vals, lane));
                         }
                     }
                     self.set_masked(args[0], WideValue::String(result_strings), mask);
@@ -2545,7 +2529,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         &idx_raw,
                         3,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         mask,
                     );
@@ -2576,7 +2560,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         &idx_raw,
                         3,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         mask,
                     );
@@ -2792,7 +2776,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         data: [Matrix44::IDENTITY; WIDTH],
                     };
                     let mut success_data = [0i32; WIDTH];
-                    for lane in 0..WIDTH {
+                    for (lane, success_slot) in success_data.iter_mut().enumerate().take(WIDTH) {
                         if !mask.is_set(lane) {
                             continue;
                         }
@@ -2815,7 +2799,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                             renderer.get_matrix_named(
                                 globals,
                                 lane_mask,
-                                crate::ustring::UStringHash::from_str(from_s),
+                                crate::ustring::UStringHash::hash_utf8(from_s),
                                 &globals.time,
                                 &mut m_from,
                             )
@@ -2827,7 +2811,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                             renderer.get_inverse_matrix_named(
                                 globals,
                                 lane_mask,
-                                crate::ustring::UStringHash::from_str(to_s),
+                                crate::ustring::UStringHash::hash_utf8(to_s),
                                 &globals.time,
                                 &mut m_to,
                             )
@@ -2840,7 +2824,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         }
                         m_result.data[lane] =
                             crate::matrix_ops::matmul(&m_to.data[lane], &m_from.data[lane]);
-                        success_data[lane] = if ok { 1 } else { 0 };
+                        *success_slot = if ok { 1 } else { 0 };
                     }
                     self.set_masked(m_arg, WideValue::Matrix(m_result), mask);
                     self.set_masked(args[0], WideValue::Int(Wide { data: success_data }), mask);
@@ -2869,7 +2853,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                 }
 
                 // --- Misc ops ---
-                "backfacing" if args.len() >= 1 => {
+                "backfacing" if !args.is_empty() => {
                     let mut result = Wide {
                         data: [0i32; WIDTH],
                     };
@@ -3024,59 +3008,56 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                 crate::pointcloud::PointCloudManager::new(),
                             ))
                         });
-                    if let WideValue::String(fnames) = &filename {
-                        if let Some(fname) = fnames.first() {
-                            if let Ok(guard) = mgr.read() {
-                                if let Some(cloud) = guard.get(fname.as_str()) {
-                                    let mut lane_indices: Vec<Vec<i32>> =
-                                        (0..WIDTH).map(|_| Vec::new()).collect();
-                                    let mut lane_distances: Vec<Vec<f32>> =
-                                        (0..WIDTH).map(|_| Vec::new()).collect();
-                                    for lane in 0..WIDTH {
-                                        if mask.is_set(lane) {
-                                            let sr = crate::pointcloud::pointcloud_search(
-                                                cloud,
-                                                center.data[lane],
-                                                radius.data[lane],
-                                                maxpts.data[lane].max(0) as usize,
-                                                sort.data[lane] != 0,
-                                            );
-                                            result.data[lane] = sr.indices.len() as i32;
-                                            lane_indices[lane] =
-                                                sr.indices.iter().map(|&i| i as i32).collect();
-                                            lane_distances[lane] =
-                                                sr.distances_sq.iter().map(|&d| d.sqrt()).collect();
-                                        }
-                                    }
-                                    // Parse optional output args: "index", indices_sym, "distance", distances_sym
-                                    let mut i = 6;
-                                    while i + 1 < args.len() {
-                                        let name_val = self.get(args[i]);
-                                        let name = match &name_val {
-                                            WideValue::String(ss) => ss
-                                                .first()
-                                                .map(|s| s.as_str().to_string())
-                                                .unwrap_or_default(),
-                                            _ => String::new(),
-                                        };
-                                        let sym = args[i + 1];
-                                        if name == "index" && sym >= 0 {
-                                            self.set_masked(
-                                                sym,
-                                                WideValue::IntArray(lane_indices.clone()),
-                                                mask,
-                                            );
-                                        } else if name == "distance" && sym >= 0 {
-                                            self.set_masked(
-                                                sym,
-                                                WideValue::FloatArray(lane_distances.clone()),
-                                                mask,
-                                            );
-                                        }
-                                        i += 2;
-                                    }
-                                }
+                    if let WideValue::String(fnames) = &filename
+                        && let Some(fname) = fnames.first()
+                        && let Ok(guard) = mgr.read()
+                        && let Some(cloud) = guard.get(fname.as_str())
+                    {
+                        let mut lane_indices: Vec<Vec<i32>> =
+                            (0..WIDTH).map(|_| Vec::new()).collect();
+                        let mut lane_distances: Vec<Vec<f32>> =
+                            (0..WIDTH).map(|_| Vec::new()).collect();
+                        for lane in 0..WIDTH {
+                            if mask.is_set(lane) {
+                                let sr = crate::pointcloud::pointcloud_search(
+                                    cloud,
+                                    center.data[lane],
+                                    radius.data[lane],
+                                    maxpts.data[lane].max(0) as usize,
+                                    sort.data[lane] != 0,
+                                );
+                                result.data[lane] = sr.indices.len() as i32;
+                                lane_indices[lane] = sr.indices.iter().map(|&i| i as i32).collect();
+                                lane_distances[lane] =
+                                    sr.distances_sq.iter().map(|&d| d.sqrt()).collect();
                             }
+                        }
+                        // Parse optional output args: "index", indices_sym, "distance", distances_sym
+                        let mut i = 6;
+                        while i + 1 < args.len() {
+                            let name_val = self.get(args[i]);
+                            let name = match &name_val {
+                                WideValue::String(ss) => ss
+                                    .first()
+                                    .map(|s| s.as_str().to_string())
+                                    .unwrap_or_default(),
+                                _ => String::new(),
+                            };
+                            let sym = args[i + 1];
+                            if name == "index" && sym >= 0 {
+                                self.set_masked(
+                                    sym,
+                                    WideValue::IntArray(lane_indices.clone()),
+                                    mask,
+                                );
+                            } else if name == "distance" && sym >= 0 {
+                                self.set_masked(
+                                    sym,
+                                    WideValue::FloatArray(lane_distances.clone()),
+                                    mask,
+                                );
+                            }
+                            i += 2;
                         }
                     }
                     self.set_masked(args[0], WideValue::Int(result), mask);
@@ -3108,66 +3089,78 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                     {
                         let fname = fnames.first().map(|s| s.as_str()).unwrap_or("");
                         let attr = attrs.first().map(|s| s.as_str()).unwrap_or("");
-                        if let Ok(guard) = mgr.read() {
-                            if let Some(cloud) = guard.get(fname) {
-                                let mut dest_arrs: Vec<Vec<Vec3>> =
-                                    (0..WIDTH).map(|_| Vec::new()).collect();
-                                let mut dest_floats: Vec<Vec<f32>> =
-                                    (0..WIDTH).map(|_| Vec::new()).collect();
-                                let mut use_vec3 = false;
-                                for lane in 0..WIDTH {
-                                    if mask.is_set(lane) && lane < indices_arrs.len() {
-                                        let cnt = count_val.data[lane].max(0) as usize;
-                                        let inds: Vec<usize> = indices_arrs[lane]
-                                            .iter()
-                                            .take(cnt)
-                                            .map(|&i| i as usize)
-                                            .collect();
-                                        if inds.is_empty() {
-                                            result.data[lane] = 1;
+                        if let Ok(guard) = mgr.read()
+                            && let Some(cloud) = guard.get(fname)
+                        {
+                            let mut dest_arrs: Vec<Vec<Vec3>> =
+                                (0..WIDTH).map(|_| Vec::new()).collect();
+                            let mut dest_floats: Vec<Vec<f32>> =
+                                (0..WIDTH).map(|_| Vec::new()).collect();
+                            let mut use_vec3 = false;
+                            for lane in 0..WIDTH {
+                                if mask.is_set(lane) && lane < indices_arrs.len() {
+                                    let cnt = count_val.data[lane].max(0) as usize;
+                                    let inds: Vec<usize> = indices_arrs[lane]
+                                        .iter()
+                                        .take(cnt)
+                                        .map(|&i| i as usize)
+                                        .collect();
+                                    if inds.is_empty() {
+                                        result.data[lane] = 1;
+                                    } else {
+                                        let vals = crate::pointcloud::pointcloud_get(
+                                            cloud,
+                                            &inds,
+                                            crate::ustring::UString::new(attr),
+                                        );
+                                        if let Some(Some(crate::pointcloud::PointData::Vec3(_))) =
+                                            vals.first()
+                                        {
+                                            use_vec3 = true;
+                                            dest_arrs[lane] = vals
+                                                .iter()
+                                                .filter_map(|o| {
+                                                    o.and_then(|pd| {
+                                                        if let crate::pointcloud::PointData::Vec3(
+                                                            v,
+                                                        ) = pd
+                                                        {
+                                                            Some(*v)
+                                                        } else {
+                                                            None
+                                                        }
+                                                    })
+                                                })
+                                                .collect();
                                         } else {
-                                            let vals = crate::pointcloud::pointcloud_get(
-                                                cloud,
-                                                &inds,
-                                                crate::ustring::UString::new(attr),
-                                            );
-                                            if let Some(Some(crate::pointcloud::PointData::Vec3(
-                                                _,
-                                            ))) = vals.first()
-                                            {
-                                                use_vec3 = true;
-                                                dest_arrs[lane] = vals.iter().filter_map(|o| {
-                                                o.and_then(|pd| if let crate::pointcloud::PointData::Vec3(v) = pd {
-                                                    Some(*v) } else { None })
-                                            }).collect();
-                                            } else {
-                                                dest_floats[lane] = vals.iter().filter_map(|o| {
-                                                o.and_then(|pd| if let crate::pointcloud::PointData::Float(f) = pd {
-                                                    Some(*f) } else { None })
-                                            }).collect();
-                                            }
-                                            result.data[lane] = if vals.iter().any(|o| o.is_some())
-                                            {
-                                                1
-                                            } else {
-                                                0
-                                            };
+                                            dest_floats[lane] = vals
+                                                .iter()
+                                                .filter_map(|o| {
+                                                    o.and_then(|pd| {
+                                                        if let crate::pointcloud::PointData::Float(
+                                                            f,
+                                                        ) = pd
+                                                        {
+                                                            Some(*f)
+                                                        } else {
+                                                            None
+                                                        }
+                                                    })
+                                                })
+                                                .collect();
                                         }
+                                        result.data[lane] = if vals.iter().any(|o| o.is_some()) {
+                                            1
+                                        } else {
+                                            0
+                                        };
                                     }
                                 }
-                                if use_vec3 {
-                                    self.set_masked(
-                                        dest_sym,
-                                        WideValue::Vec3Array(dest_arrs),
-                                        mask,
-                                    );
-                                } else {
-                                    self.set_masked(
-                                        dest_sym,
-                                        WideValue::FloatArray(dest_floats),
-                                        mask,
-                                    );
-                                }
+                            }
+                            if use_vec3 {
+                                self.set_masked(dest_sym, WideValue::Vec3Array(dest_arrs), mask);
+                            } else {
+                                self.set_masked(dest_sym, WideValue::FloatArray(dest_floats), mask);
                             }
                         }
                     }
@@ -3302,14 +3295,13 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         let attr = attrs.first().map(|a| a.as_str()).unwrap_or("");
                         let mut str_results = vec![UString::empty(); WIDTH];
                         let mut any_found = false;
-                        for lane in 0..WIDTH {
-                            if mask.is_set(lane) {
-                                if let Some(s) =
+                        for (lane, out) in str_results.iter_mut().enumerate().take(WIDTH) {
+                            if mask.is_set(lane)
+                                && let Some(s) =
                                     self.dict_store.dict_value_str(ids.data[lane], attr)
-                                {
-                                    str_results[lane] = UString::new(&s);
-                                    any_found = true;
-                                }
+                            {
+                                *out = UString::new(&s);
+                                any_found = true;
                             }
                         }
                         if any_found {
@@ -3343,28 +3335,28 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                 }
                 "setmessage" if args.len() >= 3 => {
                     let name_val = self.get(args[1]);
-                    if let WideValue::String(names) = &name_val {
-                        if let Some(name) = names.first() {
-                            let val = self.get(args[2]);
-                            self.message_store.insert(name.as_str().to_string(), val);
-                        }
+                    if let WideValue::String(names) = &name_val
+                        && let Some(name) = names.first()
+                    {
+                        let val = self.get(args[2]);
+                        self.message_store.insert(name.as_str().to_string(), val);
                     }
                 }
                 "getmessage" if args.len() >= 3 => {
                     let name_val = self.get(args[1]);
-                    if let WideValue::String(names) = &name_val {
-                        if let Some(name) = names.first() {
-                            if let Some(val) = self.message_store.get(name.as_str()).cloned() {
-                                self.set_masked(args[0], val, mask);
-                            } else {
-                                self.set_masked(
-                                    args[0],
-                                    WideValue::Int(Wide {
-                                        data: [0i32; WIDTH],
-                                    }),
-                                    mask,
-                                );
-                            }
+                    if let WideValue::String(names) = &name_val
+                        && let Some(name) = names.first()
+                    {
+                        if let Some(val) = self.message_store.get(name.as_str()).cloned() {
+                            self.set_masked(args[0], val, mask);
+                        } else {
+                            self.set_masked(
+                                args[0],
+                                WideValue::Int(Wide {
+                                    data: [0i32; WIDTH],
+                                }),
+                                mask,
+                            );
                         }
                     }
                 }
@@ -3411,7 +3403,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                     &idx_raw,
                                     len,
                                     symname,
-                                    &op.sourcefile.as_str(),
+                                    op.sourcefile.as_str(),
                                     op.sourceline,
                                     mask,
                                 ),
@@ -3425,7 +3417,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                     &idx_raw,
                                     len,
                                     symname,
-                                    &op.sourcefile.as_str(),
+                                    op.sourcefile.as_str(),
                                     op.sourceline,
                                     mask,
                                 ),
@@ -3439,7 +3431,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                     &idx_raw,
                                     len,
                                     symname,
-                                    &op.sourcefile.as_str(),
+                                    op.sourcefile.as_str(),
                                     op.sourceline,
                                     mask,
                                 ),
@@ -3453,7 +3445,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                     &idx_raw,
                                     len,
                                     symname,
-                                    &op.sourcefile.as_str(),
+                                    op.sourcefile.as_str(),
                                     op.sourceline,
                                     mask,
                                 ),
@@ -3467,7 +3459,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                     &idx_raw,
                                     len,
                                     symname,
-                                    &op.sourcefile.as_str(),
+                                    op.sourcefile.as_str(),
                                     op.sourceline,
                                     mask,
                                 ),
@@ -3479,7 +3471,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                 &idx_raw,
                                 3,
                                 symname,
-                                &op.sourcefile.as_str(),
+                                op.sourcefile.as_str(),
                                 op.sourceline,
                                 mask,
                             ),
@@ -3576,7 +3568,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                                 &idx_raw,
                                 length,
                                 symname,
-                                &op.sourcefile.as_str(),
+                                op.sourcefile.as_str(),
                                 op.sourceline,
                                 mask,
                             );
@@ -3769,7 +3761,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         &row_raw,
                         4,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         mask,
                     );
@@ -3777,7 +3769,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         &col_raw,
                         4,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         mask,
                     );
@@ -3810,7 +3802,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         &row_raw,
                         4,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         mask,
                     );
@@ -3818,7 +3810,7 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         &col_raw,
                         4,
                         symname,
-                        &op.sourcefile.as_str(),
+                        op.sourcefile.as_str(),
                         op.sourceline,
                         mask,
                     );
@@ -3951,19 +3943,19 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
         // Try IR const_values first
         let ui = idx as usize;
         for (ci, cv) in &ir.const_values {
-            if *ci == ui {
-                if let ConstValue::String(s) = cv {
-                    return s.as_str();
-                }
+            if *ci == ui
+                && let ConstValue::String(s) = cv
+            {
+                return s.as_str();
             }
         }
         // Fall back to runtime values (lane 0)
-        if idx >= 0 && ui < self.values.len() {
-            if let WideValue::String(ref strings) = self.values[ui] {
-                if let Some(s) = strings.first() {
-                    return s.as_str();
-                }
-            }
+        if idx >= 0
+            && ui < self.values.len()
+            && let WideValue::String(ref strings) = self.values[ui]
+            && let Some(s) = strings.first()
+        {
+            return s.as_str();
         }
         ""
     }
@@ -4055,10 +4047,8 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
                         dst.resize(WIDTH, UString::empty());
                     }
                     for lane in 0..WIDTH {
-                        if mask.is_set(lane) {
-                            if lane < src.len() {
-                                dst[lane] = src[lane];
-                            }
+                        if mask.is_set(lane) && lane < src.len() {
+                            dst[lane] = src[lane];
                         }
                     }
                 }
@@ -4160,12 +4150,11 @@ impl<const WIDTH: usize> BatchedInterpreter<WIDTH> {
     /// Extract a string result from a specific lane.
     pub fn get_string(&self, ir: &ShaderIR, name: &str, lane: usize) -> Option<String> {
         for (i, sym) in ir.symbols.iter().enumerate() {
-            if sym.name == name {
-                if let WideValue::String(ss) = &self.values[i] {
-                    if lane < ss.len() {
-                        return Some(ss[lane].as_str().to_string());
-                    }
-                }
+            if sym.name == name
+                && let WideValue::String(ss) = &self.values[i]
+                && lane < ss.len()
+            {
+                return Some(ss[lane].as_str().to_string());
             }
         }
         None
@@ -4196,10 +4185,8 @@ fn batched_format_string<const WIDTH: usize>(
         match av {
             WideValue::Int(w) => int_args.push(w.data[lane]),
             WideValue::Float(w) => float_args.push(w.data[lane]),
-            WideValue::String(ss) => {
-                if lane < ss.len() {
-                    str_args.push(ss[lane].as_str().to_string());
-                }
+            WideValue::String(ss) if lane < ss.len() => {
+                str_args.push(ss[lane].as_str().to_string());
             }
             _ => {}
         }
@@ -4378,10 +4365,10 @@ fn wide_mul<const WIDTH: usize>(
         (WideValue::Closure(c), WideValue::Float(w))
         | (WideValue::Float(w), WideValue::Closure(c)) => {
             let mut result = Vec::with_capacity(WIDTH);
-            for lane in 0..WIDTH {
+            for (lane, cl) in c.iter().enumerate().take(WIDTH) {
                 if mask.is_set(lane) {
                     let weight = Color3::splat(w.data[lane]);
-                    let closure = c[lane].as_ref().map(|cc| {
+                    let closure = cl.as_ref().map(|cc| {
                         Box::new(ClosureValue::Mul {
                             weight,
                             closure: cc.clone(),
@@ -4397,10 +4384,10 @@ fn wide_mul<const WIDTH: usize>(
         (WideValue::Closure(c), WideValue::Vec3(w))
         | (WideValue::Vec3(w), WideValue::Closure(c)) => {
             let mut result = Vec::with_capacity(WIDTH);
-            for lane in 0..WIDTH {
+            for (lane, cl) in c.iter().enumerate().take(WIDTH) {
                 if mask.is_set(lane) {
                     let weight = Color3::new(w.data[lane].x, w.data[lane].y, w.data[lane].z);
-                    let closure = c[lane].as_ref().map(|cc| {
+                    let closure = cl.as_ref().map(|cc| {
                         Box::new(ClosureValue::Mul {
                             weight,
                             closure: cc.clone(),

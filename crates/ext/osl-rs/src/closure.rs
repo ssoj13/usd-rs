@@ -137,9 +137,10 @@ pub type ClosureRef = Arc<ClosureNode>;
 /// enum instead of raw bytes for safety.
 ///
 /// See C++ `oslclosure.h` ClosureComponent::data().
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum ClosureParams {
     /// No parameters (e.g. transparent, background closures).
+    #[default]
     None,
     /// Single normal vector (e.g. diffuse(N), translucent(N)).
     Normal(Vec3),
@@ -166,12 +167,6 @@ pub enum ClosureParams {
     },
     /// Generic param storage for custom or complex closures.
     Generic(Vec<u8>),
-}
-
-impl Default for ClosureParams {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 /// A node in the closure color tree.

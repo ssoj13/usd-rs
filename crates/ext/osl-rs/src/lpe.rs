@@ -308,13 +308,13 @@ impl LPESymbol {
             LPESymbol::Object => ord == 4,
             LPESymbol::Stop => ord == 5,
             LPESymbol::Scattering(sk) => {
-                if ord < 6 || ord >= 14 {
+                if !(6..14).contains(&ord) {
                     return false;
                 }
                 (ord - 6) % 4 == scat_offset(*sk)
             }
             LPESymbol::DirectedScatter(dk, sk) => {
-                if ord < 6 || ord >= 14 {
+                if !(6..14).contains(&ord) {
                     return false;
                 }
                 let idx = ord - 6;
@@ -326,7 +326,7 @@ impl LPESymbol {
                 dir_ok && idx % 4 == scat_offset(*sk)
             }
             LPESymbol::Direction(dk) => {
-                if ord < 6 || ord >= 14 {
+                if !(6..14).contains(&ord) {
                     return false;
                 }
                 let idx = ord - 6;
@@ -883,7 +883,7 @@ impl<'a> LPEParser<'a> {
     /// Parse an unsigned integer from the input.
     fn parse_uint(&mut self) -> Result<usize, String> {
         let start = self.pos;
-        while self.peek().map_or(false, |c| c.is_ascii_digit()) {
+        while self.peek().is_some_and(|c| c.is_ascii_digit()) {
             self.advance();
         }
         if self.pos == start {
@@ -1006,7 +1006,7 @@ impl<'a> LPEParser<'a> {
         // For negated classes, determine position from ORIGINAL symbols
         // (before negation), matching C++ parseNegor behavior.
         let neg_pos = if negate {
-            let positions: Vec<Option<u8>> = syms.iter().map(|s| builtin_label_pos(s)).collect();
+            let positions: Vec<Option<u8>> = syms.iter().map(builtin_label_pos).collect();
             if positions.iter().all(|p| *p == Some(0)) {
                 Some(0u8)
             } else if positions.iter().all(|p| *p == Some(1)) {
@@ -1063,8 +1063,7 @@ impl<'a> LPEParser<'a> {
                 // If originals were pos 1, the negated result acts at pos 1.
                 (np == 0, np == 1)
             } else {
-                let positions: Vec<Option<u8>> =
-                    syms.iter().map(|s| builtin_label_pos(s)).collect();
+                let positions: Vec<Option<u8>> = syms.iter().map(builtin_label_pos).collect();
                 (
                     positions.iter().all(|p| *p == Some(0)),
                     positions.iter().all(|p| *p == Some(1)),
@@ -1282,10 +1281,10 @@ pub fn nfa_to_dfa(nfa: &LPENFA) -> LPEDFA {
             let mut targets = HashSet::new();
             for &ns in &current_nfa {
                 for &(ref sym, target) in &nfa.states[ns].transitions {
-                    if let Some(sym) = sym {
-                        if sym.matches_ordinal(event_ord, total) {
-                            targets.insert(target);
-                        }
+                    if let Some(sym) = sym
+                        && sym.matches_ordinal(event_ord, total)
+                    {
+                        targets.insert(target);
                     }
                 }
             }

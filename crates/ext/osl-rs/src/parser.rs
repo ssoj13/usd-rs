@@ -300,12 +300,12 @@ impl<'a> Parser<'a> {
 
     // ----- Top-level parsing -----
 
-    pub fn parse_shader_file(&mut self) -> ParseResult<Vec<Box<ASTNode>>> {
+    pub fn parse_shader_file(&mut self) -> ParseResult<Vec<ASTNode>> {
         let mut declarations = Vec::new();
 
         while !self.at_eof() {
             match self.parse_declaration() {
-                Ok(node) => declarations.push(node),
+                Ok(node) => declarations.push(*node),
                 Err(e) => {
                     self.errors.push(e);
                     self.recover();
@@ -375,18 +375,18 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_struct_fields(&mut self) -> ParseResult<Vec<Box<ASTNode>>> {
+    fn parse_struct_fields(&mut self) -> ParseResult<Vec<ASTNode>> {
         let loc = self.loc();
         let ts = self.parse_typespec()?;
         let mut fields = Vec::new();
 
         let name = self.expect_identifier()?;
-        fields.push(self.make_struct_field(name, ts.clone(), loc)?);
+        fields.push(*self.make_struct_field(name, ts, loc)?);
 
         while self.eat(&Tok::Comma) {
             let nloc = self.loc();
             let nname = self.expect_identifier()?;
-            fields.push(self.make_struct_field(nname, ts.clone(), nloc)?);
+            fields.push(*self.make_struct_field(nname, ts, nloc)?);
         }
 
         self.expect(&Tok::Semi)?;
@@ -479,7 +479,7 @@ impl<'a> Parser<'a> {
                 shader_type,
                 name,
                 formals,
-                statements: vec![statements],
+                statements: vec![*statements],
                 metadata,
             },
             loc,
@@ -542,7 +542,7 @@ impl<'a> Parser<'a> {
                 name,
                 return_type,
                 formals,
-                statements: vec![statements],
+                statements: vec![*statements],
                 metadata,
                 is_builtin: false,
             },
@@ -552,17 +552,17 @@ impl<'a> Parser<'a> {
 
     // ----- Parameter/formal parsing -----
 
-    fn parse_formal_params(&mut self) -> ParseResult<Vec<Box<ASTNode>>> {
+    fn parse_formal_params(&mut self) -> ParseResult<Vec<ASTNode>> {
         self.expect(&Tok::LParen)?;
         let mut params = Vec::new();
 
         if !self.at(&Tok::RParen) {
-            params.push(self.parse_formal_param()?);
+            params.push(*self.parse_formal_param()?);
             while self.eat(&Tok::Comma) {
                 if self.at(&Tok::RParen) {
                     break;
                 }
-                params.push(self.parse_formal_param()?);
+                params.push(*self.parse_formal_param()?);
             }
         }
 
@@ -642,7 +642,7 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_metadata_list(&mut self) -> ParseResult<Vec<Box<ASTNode>>> {
+    fn parse_metadata_list(&mut self) -> ParseResult<Vec<ASTNode>> {
         let mut metadata = Vec::new();
 
         loop {
@@ -680,7 +680,7 @@ impl<'a> Parser<'a> {
                     None
                 };
 
-                metadata.push(Box::new(ASTNode::new(
+                metadata.push(ASTNode::new(
                     self.alloc.alloc(),
                     ASTNodeKind::VariableDeclaration {
                         name,
@@ -692,7 +692,7 @@ impl<'a> Parser<'a> {
                         metadata: Vec::new(),
                     },
                     loc,
-                )));
+                ));
 
                 if !self.eat(&Tok::Comma) {
                     break;
@@ -714,7 +714,7 @@ impl<'a> Parser<'a> {
         let mut statements = Vec::new();
         while !self.at(&Tok::RBrace) && !self.at_eof() {
             match self.parse_statement() {
-                Ok(stmt) => statements.push(stmt),
+                Ok(stmt) => statements.push(*stmt),
                 Err(e) => {
                     self.errors.push(e);
                     self.recover_to_next_statement();
@@ -926,26 +926,20 @@ impl<'a> Parser<'a> {
             return self.parse_function_declaration(name, typespec, loc);
         }
 
-        let first =
-            self.parse_variable_declaration_rest(name, typespec.clone(), false, is_output, loc)?;
+        let first = self.parse_variable_declaration_rest(name, typespec, false, is_output, loc)?;
 
         if !self.at(&Tok::Comma) {
             self.expect(&Tok::Semi)?;
             return Ok(first);
         }
 
-        let mut stmts = vec![first];
+        let mut stmts = vec![*first];
         while self.eat(&Tok::Comma) {
             let dloc = self.loc();
             let dname = self.expect_identifier()?;
-            let decl = self.parse_variable_declaration_rest(
-                dname,
-                typespec.clone(),
-                false,
-                is_output,
-                dloc,
-            )?;
-            stmts.push(decl);
+            let decl =
+                self.parse_variable_declaration_rest(dname, typespec, false, is_output, dloc)?;
+            stmts.push(*decl);
         }
 
         self.expect(&Tok::Semi)?;
@@ -1024,11 +1018,11 @@ impl<'a> Parser<'a> {
         if self.eat(&Tok::OrOr) {
             return true;
         }
-        if let Tok::Identifier(s) = self.current() {
-            if s == "or" {
-                self.advance();
-                return true;
-            }
+        if let Tok::Identifier(s) = self.current()
+            && s == "or"
+        {
+            self.advance();
+            return true;
         }
         false
     }
@@ -1037,11 +1031,11 @@ impl<'a> Parser<'a> {
         if self.eat(&Tok::AndAnd) {
             return true;
         }
-        if let Tok::Identifier(s) = self.current() {
-            if s == "and" {
-                self.advance();
-                return true;
-            }
+        if let Tok::Identifier(s) = self.current()
+            && s == "and"
+        {
+            self.advance();
+            return true;
         }
         false
     }
@@ -1246,20 +1240,20 @@ impl<'a> Parser<'a> {
             Tok::Plus => {
                 // Unary + is a no-op (C++ oslgram.y:784)
                 self.advance();
-                return self.parse_unary();
+                self.parse_unary()
             }
             Tok::Minus => {
                 self.advance();
                 let expr = self.parse_unary()?;
                 // C++ oslgram.y:786-790: negate numeric literals in-place
-                if let ASTNodeKind::Literal { ref value } = expr.kind {
-                    if matches!(value, LiteralValue::Int(_) | LiteralValue::Float(_)) {
-                        let mut node = *expr;
-                        if let ASTNodeKind::Literal { ref mut value } = node.kind {
-                            value.negate();
-                        }
-                        return Ok(Box::new(node));
+                if let ASTNodeKind::Literal { ref value } = expr.kind
+                    && matches!(value, LiteralValue::Int(_) | LiteralValue::Float(_))
+                {
+                    let mut node = *expr;
+                    if let ASTNodeKind::Literal { ref mut value } = node.kind {
+                        value.negate();
                     }
+                    return Ok(Box::new(node));
                 }
                 Ok(Box::new(ASTNode::new(
                     self.alloc.alloc(),
@@ -1449,7 +1443,7 @@ impl<'a> Parser<'a> {
                             self.alloc.alloc(),
                             ASTNodeKind::TypeConstructor {
                                 typespec: ts,
-                                args: vec![expr],
+                                args: vec![*expr],
                             },
                             loc,
                         )));
@@ -1465,9 +1459,9 @@ impl<'a> Parser<'a> {
                             loc,
                         ));
                         if self.at(&Tok::Comma) {
-                            let mut elems = vec![first];
+                            let mut elems = vec![*first];
                             while self.eat(&Tok::Comma) {
-                                elems.push(self.parse_expression()?);
+                                elems.push(*self.parse_expression()?);
                             }
                             self.expect(&Tok::RParen)?;
                             return Ok(Box::new(ASTNode::new(
@@ -1492,9 +1486,9 @@ impl<'a> Parser<'a> {
                 // Comma operator: (a, b, c) -> CommaOperator (C++ ASTcomma_operator)
                 // NOT CompoundInitializer — that's only for {a, b, c}
                 if self.at(&Tok::Comma) {
-                    let mut exprs = vec![first];
+                    let mut exprs = vec![*first];
                     while self.eat(&Tok::Comma) {
-                        exprs.push(self.parse_expression()?);
+                        exprs.push(*self.parse_expression()?);
                     }
                     self.expect(&Tok::RParen)?;
                     // C++ parity: warn about comma operator in parens (oslgram.y:798-807)
@@ -1516,12 +1510,12 @@ impl<'a> Parser<'a> {
                 self.advance();
                 let mut elements = Vec::new();
                 if !self.at(&Tok::RBrace) {
-                    elements.push(self.parse_expression()?);
+                    elements.push(*self.parse_expression()?);
                     while self.eat(&Tok::Comma) {
                         if self.at(&Tok::RBrace) {
                             break;
                         }
-                        elements.push(self.parse_expression()?);
+                        elements.push(*self.parse_expression()?);
                     }
                 } else if !self.in_shader_formals {
                     // C++ parity (oslgram.y:488-497): empty `{}` only allowed for shader params
@@ -1549,12 +1543,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_arg_list(&mut self) -> ParseResult<Vec<Box<ASTNode>>> {
+    fn parse_arg_list(&mut self) -> ParseResult<Vec<ASTNode>> {
         let mut args = Vec::new();
         if !self.at(&Tok::RParen) {
-            args.push(self.parse_expression()?);
+            args.push(*self.parse_expression()?);
             while self.eat(&Tok::Comma) {
-                args.push(self.parse_expression()?);
+                args.push(*self.parse_expression()?);
             }
         }
         Ok(args)
@@ -1601,7 +1595,7 @@ impl<'a> Parser<'a> {
 
 /// Parse result including both AST and any warnings.
 pub struct ParseOutput {
-    pub ast: Vec<Box<ASTNode>>,
+    pub ast: Vec<ASTNode>,
     pub warnings: Vec<String>,
 }
 

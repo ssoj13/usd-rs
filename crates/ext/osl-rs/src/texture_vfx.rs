@@ -156,9 +156,8 @@ impl VfxTextureSystem {
 
         match self.inner.texture3d(filename, p.x, p.y, p.z, &opts) {
             Ok(color) => {
-                for i in 0..nch.min(result.len()) {
-                    result[i] = color[i];
-                }
+                let n = nch.min(result.len());
+                result[..n].copy_from_slice(&color[..n]);
                 Ok(())
             }
             Err(e) => Err(e.to_string()),
@@ -186,9 +185,8 @@ impl VfxTextureSystem {
             .environment(filename, &dir, EnvLayout::LatLong, &opts)
         {
             Ok(color) => {
-                for i in 0..nch.min(result.len()) {
-                    result[i] = color[i];
-                }
+                let n = nch.min(result.len());
+                result[..n].copy_from_slice(&color[..n]);
                 Ok(())
             }
             Err(e) => Err(e.to_string()),

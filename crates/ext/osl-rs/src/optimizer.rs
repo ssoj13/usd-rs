@@ -172,10 +172,10 @@ fn ensure_const_float(ir: &mut ShaderIR, val: f32) -> i32 {
 
     // Check if we already have this constant
     for &(idx, ref cv) in &ir.const_values {
-        if let ConstValue::Float(v) = cv {
-            if (*v - val).abs() < f32::EPSILON {
-                return idx as i32;
-            }
+        if let ConstValue::Float(v) = cv
+            && (*v - val).abs() < f32::EPSILON
+        {
+            return idx as i32;
         }
     }
 
@@ -201,10 +201,10 @@ fn ensure_const_int(ir: &mut ShaderIR, val: i32) -> i32 {
     use crate::typespec::TypeSpec;
 
     for &(idx, ref cv) in &ir.const_values {
-        if let ConstValue::Int(v) = cv {
-            if *v == val {
-                return idx as i32;
-            }
+        if let ConstValue::Int(v) = cv
+            && *v == val
+        {
+            return idx as i32;
         }
     }
 
@@ -285,10 +285,10 @@ fn ensure_const_str(ir: &mut ShaderIR, val: &str) -> i32 {
     use crate::typespec::TypeSpec;
 
     for &(idx, ref cv) in &ir.const_values {
-        if let ConstValue::String(s) = cv {
-            if s == val {
-                return idx as i32;
-            }
+        if let ConstValue::String(s) = cv
+            && s == val
+        {
+            return idx as i32;
         }
     }
 
@@ -607,85 +607,86 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
             let dst_idx = ir.args[firstarg] as usize;
             let src_idx = ir.args[firstarg + 1] as usize;
 
-            if src_idx < ir.symbols.len() && ir.symbols[src_idx].symtype == SymType::Const {
-                if let Some(v) = get_const_float(ir, src_idx) {
-                    let result = match opname.as_str() {
-                        "sin" => Some(v.sin()),
-                        "cos" => Some(v.cos()),
-                        "tan" => Some(v.tan()),
-                        "asin" => Some(v.clamp(-1.0, 1.0).asin()),
-                        "acos" => Some(v.clamp(-1.0, 1.0).acos()),
-                        "atan" => Some(v.atan()),
-                        "sinh" => Some(v.sinh()),
-                        "cosh" => Some(v.cosh()),
-                        "tanh" => Some(v.tanh()),
-                        "exp" => Some(v.exp()),
-                        "exp2" => Some(v.exp2()),
-                        "expm1" => Some(v.exp() - 1.0),
-                        "log" => {
-                            if v > 0.0 {
-                                Some(v.ln())
-                            } else {
-                                None
-                            }
-                        }
-                        "log2" => {
-                            if v > 0.0 {
-                                Some(v.log2())
-                            } else {
-                                None
-                            }
-                        }
-                        "log10" => {
-                            if v > 0.0 {
-                                Some(v.log10())
-                            } else {
-                                None
-                            }
-                        }
-                        "sqrt" => {
-                            if v >= 0.0 {
-                                Some(v.sqrt())
-                            } else {
-                                None
-                            }
-                        }
-                        "inversesqrt" => {
-                            if v > 0.0 {
-                                Some(1.0 / v.sqrt())
-                            } else {
-                                None
-                            }
-                        }
-                        "cbrt" => Some(v.cbrt()),
-                        "abs" | "fabs" => Some(v.abs()),
-                        "floor" => Some(v.floor()),
-                        "ceil" => Some(v.ceil()),
-                        "round" => Some(v.round()),
-                        "trunc" => Some(v.trunc()),
-                        "sign" => Some(if v > 0.0 {
-                            1.0
-                        } else if v < 0.0 {
-                            -1.0
+            if src_idx < ir.symbols.len()
+                && ir.symbols[src_idx].symtype == SymType::Const
+                && let Some(v) = get_const_float(ir, src_idx)
+            {
+                let result = match opname.as_str() {
+                    "sin" => Some(v.sin()),
+                    "cos" => Some(v.cos()),
+                    "tan" => Some(v.tan()),
+                    "asin" => Some(v.clamp(-1.0, 1.0).asin()),
+                    "acos" => Some(v.clamp(-1.0, 1.0).acos()),
+                    "atan" => Some(v.atan()),
+                    "sinh" => Some(v.sinh()),
+                    "cosh" => Some(v.cosh()),
+                    "tanh" => Some(v.tanh()),
+                    "exp" => Some(v.exp()),
+                    "exp2" => Some(v.exp2()),
+                    "expm1" => Some(v.exp() - 1.0),
+                    "log" => {
+                        if v > 0.0 {
+                            Some(v.ln())
                         } else {
-                            0.0
-                        }),
-                        "radians" => Some(v * std::f32::consts::PI / 180.0),
-                        "degrees" => Some(v * 180.0 / std::f32::consts::PI),
-                        "erf" => Some(libm::erff(v)),
-                        "erfc" => Some(libm::erfcf(v)),
-                        _ => None,
-                    };
-                    if let Some(result_val) = result {
-                        let const_idx = ensure_const_float(ir, result_val);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = const_idx;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
+                            None
+                        }
                     }
+                    "log2" => {
+                        if v > 0.0 {
+                            Some(v.log2())
+                        } else {
+                            None
+                        }
+                    }
+                    "log10" => {
+                        if v > 0.0 {
+                            Some(v.log10())
+                        } else {
+                            None
+                        }
+                    }
+                    "sqrt" => {
+                        if v >= 0.0 {
+                            Some(v.sqrt())
+                        } else {
+                            None
+                        }
+                    }
+                    "inversesqrt" => {
+                        if v > 0.0 {
+                            Some(1.0 / v.sqrt())
+                        } else {
+                            None
+                        }
+                    }
+                    "cbrt" => Some(v.cbrt()),
+                    "abs" | "fabs" => Some(v.abs()),
+                    "floor" => Some(v.floor()),
+                    "ceil" => Some(v.ceil()),
+                    "round" => Some(v.round()),
+                    "trunc" => Some(v.trunc()),
+                    "sign" => Some(if v > 0.0 {
+                        1.0
+                    } else if v < 0.0 {
+                        -1.0
+                    } else {
+                        0.0
+                    }),
+                    "radians" => Some(v * std::f32::consts::PI / 180.0),
+                    "degrees" => Some(v * 180.0 / std::f32::consts::PI),
+                    "erf" => Some(libm::erff(v)),
+                    "erfc" => Some(libm::erfcf(v)),
+                    _ => None,
+                };
+                if let Some(result_val) = result {
+                    let const_idx = ensure_const_float(ir, result_val);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = const_idx;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
                 }
             }
         }
@@ -695,17 +696,18 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
             let dst_idx = ir.args[firstarg] as usize;
             let src_idx = ir.args[firstarg + 1] as usize;
 
-            if src_idx < ir.symbols.len() && ir.symbols[src_idx].symtype == SymType::Const {
-                if let Some(v) = get_const_int(ir, src_idx) {
-                    let const_idx = ensure_const_int(ir, v.abs());
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = const_idx;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+            if src_idx < ir.symbols.len()
+                && ir.symbols[src_idx].symtype == SymType::Const
+                && let Some(v) = get_const_int(ir, src_idx)
+            {
+                let const_idx = ensure_const_int(ir, v.abs());
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = const_idx;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -719,26 +721,24 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && src2_idx < ir.symbols.len()
                 && ir.symbols[src1_idx].symtype == SymType::Const
                 && ir.symbols[src2_idx].symtype == SymType::Const
-            {
-                if let (Some(v1), Some(v2)) =
+                && let (Some(v1), Some(v2)) =
                     (get_const_int(ir, src1_idx), get_const_int(ir, src2_idx))
-                {
-                    let result = match opname.as_str() {
-                        "bitand" => Some(v1 & v2),
-                        "bitor" => Some(v1 | v2),
-                        "xor" => Some(v1 ^ v2),
-                        _ => None,
-                    };
-                    if let Some(result_val) = result {
-                        let const_idx = ensure_const_int(ir, result_val);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = const_idx;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
-                    }
+            {
+                let result = match opname.as_str() {
+                    "bitand" => Some(v1 & v2),
+                    "bitor" => Some(v1 | v2),
+                    "xor" => Some(v1 ^ v2),
+                    _ => None,
+                };
+                if let Some(result_val) = result {
+                    let const_idx = ensure_const_int(ir, result_val);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = const_idx;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
                 }
             }
         }
@@ -748,17 +748,18 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
             let dst_idx = ir.args[firstarg] as usize;
             let src_idx = ir.args[firstarg + 1] as usize;
 
-            if src_idx < ir.symbols.len() && ir.symbols[src_idx].symtype == SymType::Const {
-                if let Some(v) = get_const_int(ir, src_idx) {
-                    let const_idx = ensure_const_int(ir, !v);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = const_idx;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+            if src_idx < ir.symbols.len()
+                && ir.symbols[src_idx].symtype == SymType::Const
+                && let Some(v) = get_const_int(ir, src_idx)
+            {
+                let const_idx = ensure_const_int(ir, !v);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = const_idx;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -772,25 +773,23 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && src2_idx < ir.symbols.len()
                 && ir.symbols[src1_idx].symtype == SymType::Const
                 && ir.symbols[src2_idx].symtype == SymType::Const
-            {
-                if let (Some(v1), Some(v2)) =
+                && let (Some(v1), Some(v2)) =
                     (get_const_int(ir, src1_idx), get_const_int(ir, src2_idx))
-                {
-                    let result = match opname.as_str() {
-                        "and" => Some(if v1 != 0 && v2 != 0 { 1 } else { 0 }),
-                        "or" => Some(if v1 != 0 || v2 != 0 { 1 } else { 0 }),
-                        _ => None,
-                    };
-                    if let Some(result_val) = result {
-                        let const_idx = ensure_const_int(ir, result_val);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = const_idx;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
-                    }
+            {
+                let result = match opname.as_str() {
+                    "and" => Some(if v1 != 0 && v2 != 0 { 1 } else { 0 }),
+                    "or" => Some(if v1 != 0 || v2 != 0 { 1 } else { 0 }),
+                    _ => None,
+                };
+                if let Some(result_val) = result {
+                    let const_idx = ensure_const_int(ir, result_val);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = const_idx;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
                 }
             }
         }
@@ -808,22 +807,21 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && ir.symbols[val_idx].symtype == SymType::Const
                 && ir.symbols[lo_idx].symtype == SymType::Const
                 && ir.symbols[hi_idx].symtype == SymType::Const
-            {
-                if let (Some(val), Some(lo), Some(hi)) = (
+                && let (Some(val), Some(lo), Some(hi)) = (
                     get_const_float(ir, val_idx),
                     get_const_float(ir, lo_idx),
                     get_const_float(ir, hi_idx),
-                ) {
-                    let result = val.clamp(lo, hi);
-                    let const_idx = ensure_const_float(ir, result);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = const_idx;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+                )
+            {
+                let result = val.clamp(lo, hi);
+                let const_idx = ensure_const_float(ir, result);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = const_idx;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -841,42 +839,40 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && src2_idx < ir.symbols.len()
                 && ir.symbols[src1_idx].symtype == SymType::Const
                 && ir.symbols[src2_idx].symtype == SymType::Const
-            {
-                if let (Some(v1), Some(v2)) =
+                && let (Some(v1), Some(v2)) =
                     (get_const_float(ir, src1_idx), get_const_float(ir, src2_idx))
-                {
-                    let result = match opname.as_str() {
-                        "atan2" => Some(v1.atan2(v2)),
-                        "pow" => Some(v1.powf(v2)),
-                        "min" => Some(v1.min(v2)),
-                        "max" => Some(v1.max(v2)),
-                        "step" => Some(if v2 < v1 { 0.0 } else { 1.0 }),
-                        "fmod" => {
-                            if v2 != 0.0 {
-                                Some(v1 % v2)
-                            } else {
-                                None
-                            }
+            {
+                let result = match opname.as_str() {
+                    "atan2" => Some(v1.atan2(v2)),
+                    "pow" => Some(v1.powf(v2)),
+                    "min" => Some(v1.min(v2)),
+                    "max" => Some(v1.max(v2)),
+                    "step" => Some(if v2 < v1 { 0.0 } else { 1.0 }),
+                    "fmod" => {
+                        if v2 != 0.0 {
+                            Some(v1 % v2)
+                        } else {
+                            None
                         }
-                        "safe_div" => {
-                            if v2 != 0.0 {
-                                Some(v1 / v2)
-                            } else {
-                                Some(0.0)
-                            }
-                        }
-                        _ => None,
-                    };
-                    if let Some(result_val) = result {
-                        let const_idx = ensure_const_float(ir, result_val);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = const_idx;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
                     }
+                    "safe_div" => {
+                        if v2 != 0.0 {
+                            Some(v1 / v2)
+                        } else {
+                            Some(0.0)
+                        }
+                    }
+                    _ => None,
+                };
+                if let Some(result_val) = result {
+                    let const_idx = ensure_const_float(ir, result_val);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = const_idx;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
                 }
             }
         }
@@ -900,27 +896,28 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
             let src1_idx = ir.args[firstarg + 1] as usize;
             let src2_idx = ir.args[firstarg + 2] as usize;
 
-            if src2_idx < ir.symbols.len() && ir.symbols[src2_idx].symtype == SymType::Const {
-                if let Some(v) = get_const_float(ir, src2_idx) {
-                    if (v - 1.0).abs() < f32::EPSILON {
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = src1_idx as i32;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
-                    }
-                    if v == 0.0 {
-                        let zero_idx = ensure_const_float(ir, 0.0);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = zero_idx;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
-                    }
+            if src2_idx < ir.symbols.len()
+                && ir.symbols[src2_idx].symtype == SymType::Const
+                && let Some(v) = get_const_float(ir, src2_idx)
+            {
+                if (v - 1.0).abs() < f32::EPSILON {
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = src1_idx as i32;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
+                }
+                if v == 0.0 {
+                    let zero_idx = ensure_const_float(ir, 0.0);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = zero_idx;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
                 }
             }
         }
@@ -931,18 +928,18 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
             let src1_idx = ir.args[firstarg + 1] as usize;
             let src2_idx = ir.args[firstarg + 2] as usize;
 
-            if src2_idx < ir.symbols.len() && ir.symbols[src2_idx].symtype == SymType::Const {
-                if let Some(v) = get_const_float(ir, src2_idx) {
-                    if v == 0.0 {
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = src1_idx as i32;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
-                    }
-                }
+            if src2_idx < ir.symbols.len()
+                && ir.symbols[src2_idx].symtype == SymType::Const
+                && let Some(v) = get_const_float(ir, src2_idx)
+                && v == 0.0
+            {
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = src1_idx as i32;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -952,18 +949,18 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
             let src1_idx = ir.args[firstarg + 1] as usize;
             let src2_idx = ir.args[firstarg + 2] as usize;
 
-            if src2_idx < ir.symbols.len() && ir.symbols[src2_idx].symtype == SymType::Const {
-                if let Some(v) = get_const_float(ir, src2_idx) {
-                    if (v - 1.0).abs() < f32::EPSILON {
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = src1_idx as i32;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
-                    }
-                }
+            if src2_idx < ir.symbols.len()
+                && ir.symbols[src2_idx].symtype == SymType::Const
+                && let Some(v) = get_const_float(ir, src2_idx)
+                && (v - 1.0).abs() < f32::EPSILON
+            {
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = src1_idx as i32;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -973,53 +970,54 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         // False branch = opcodes[jump[1]..end)
         if opname == "if" && nargs >= 1 {
             let cond_idx = ir.args[firstarg] as usize;
-            if cond_idx < ir.symbols.len() && ir.symbols[cond_idx].symtype == SymType::Const {
-                if let Some(cv) = get_const_int(ir, cond_idx) {
-                    let true_start = ir.opcodes[i].jump[0];
-                    let false_start = ir.opcodes[i].jump[1];
-                    if cv != 0 {
-                        // Condition is true: nop the if, nop the false branch
-                        ir.opcodes[i].op = UString::new("nop");
-                        ir.opcodes[i].nargs = 0;
-                        // Find end of else-block: the NOP before false_start
-                        // has jump[0] = end_of_if (our codegen inserts it)
-                        if false_start >= 0 {
-                            let fs = false_start as usize;
-                            // Look for end marker: NOP just before false_start
-                            let else_end = if fs > 0 && ir.opcodes[fs - 1].jump[0] >= 0 {
-                                ir.opcodes[fs - 1].jump[0] as usize
-                            } else {
-                                ir.opcodes.len() // fallback: nop to end
-                            };
-                            for j in fs..else_end {
-                                if j < ir.opcodes.len() {
-                                    ir.opcodes[j].op = UString::new("nop");
-                                    ir.opcodes[j].nargs = 0;
-                                }
+            if cond_idx < ir.symbols.len()
+                && ir.symbols[cond_idx].symtype == SymType::Const
+                && let Some(cv) = get_const_int(ir, cond_idx)
+            {
+                let true_start = ir.opcodes[i].jump[0];
+                let false_start = ir.opcodes[i].jump[1];
+                if cv != 0 {
+                    // Condition is true: nop the if, nop the false branch
+                    ir.opcodes[i].op = UString::new("nop");
+                    ir.opcodes[i].nargs = 0;
+                    // Find end of else-block: the NOP before false_start
+                    // has jump[0] = end_of_if (our codegen inserts it)
+                    if false_start >= 0 {
+                        let fs = false_start as usize;
+                        // Look for end marker: NOP just before false_start
+                        let else_end = if fs > 0 && ir.opcodes[fs - 1].jump[0] >= 0 {
+                            ir.opcodes[fs - 1].jump[0] as usize
+                        } else {
+                            ir.opcodes.len() // fallback: nop to end
+                        };
+                        for j in fs..else_end {
+                            if j < ir.opcodes.len() {
+                                ir.opcodes[j].op = UString::new("nop");
+                                ir.opcodes[j].nargs = 0;
                             }
                         }
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
-                    } else {
-                        // Condition is false: nop the if, nop the true branch
-                        ir.opcodes[i].op = UString::new("nop");
-                        ir.opcodes[i].nargs = 0;
-                        // Nop true branch: opcodes[true_start..false_start)
-                        if true_start >= 0 && false_start >= 0 {
-                            let ts = true_start as usize;
-                            let fs = false_start as usize;
-                            for j in ts..fs {
-                                if j < ir.opcodes.len() {
-                                    ir.opcodes[j].op = UString::new("nop");
-                                    ir.opcodes[j].nargs = 0;
-                                }
-                            }
-                        }
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
                     }
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
+                } else {
+                    // Condition is false: nop the if, nop the true branch
+                    ir.opcodes[i].op = UString::new("nop");
+                    ir.opcodes[i].nargs = 0;
+                    // Nop true branch: opcodes[true_start..false_start)
+                    if true_start >= 0 && false_start >= 0 {
+                        let ts = true_start as usize;
+                        let fs = false_start as usize;
+                        for j in ts..fs {
+                            if j < ir.opcodes.len() {
+                                ir.opcodes[j].op = UString::new("nop");
+                                ir.opcodes[j].nargs = 0;
+                            }
+                        }
+                    }
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
                 }
             }
         }
@@ -1033,18 +1031,17 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && b_idx < ir.symbols.len()
                 && ir.symbols[a_idx].symtype == SymType::Const
                 && ir.symbols[b_idx].symtype == SymType::Const
+                && let (Some(a), Some(b)) = (get_const_vec3(ir, a_idx), get_const_vec3(ir, b_idx))
             {
-                if let (Some(a), Some(b)) = (get_const_vec3(ir, a_idx), get_const_vec3(ir, b_idx)) {
-                    let result = a.x * b.x + a.y * b.y + a.z * b.z;
-                    let ci = ensure_const_float(ir, result);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ci;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+                let result = a.x * b.x + a.y * b.y + a.z * b.z;
+                let ci = ensure_const_float(ir, result);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ci;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1057,22 +1054,21 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && c_idx < ir.symbols.len()
                 && ir.symbols[v_idx].symtype == SymType::Const
                 && ir.symbols[c_idx].symtype == SymType::Const
+                && let (Some(v), Some(ci)) = (get_const_vec3(ir, v_idx), get_const_int(ir, c_idx))
             {
-                if let (Some(v), Some(ci)) = (get_const_vec3(ir, v_idx), get_const_int(ir, c_idx)) {
-                    let val = match ci {
-                        0 => v.x,
-                        1 => v.y,
-                        _ => v.z,
-                    };
-                    let ri = ensure_const_float(ir, val);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ri;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+                let val = match ci {
+                    0 => v.x,
+                    1 => v.y,
+                    _ => v.z,
+                };
+                let ri = ensure_const_float(ir, val);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ri;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1080,66 +1076,60 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if opname == "compassign" && nargs >= 3 {
             let v_idx = ir.args[firstarg] as usize;
             let c_idx = ir.args[firstarg + 1] as usize;
-            if c_idx < ir.symbols.len() && ir.symbols[c_idx].symtype == SymType::Const {
-                if let Some(comp) = get_const_int(ir, c_idx) {
-                    if comp == 0 && i + 2 < ir.opcodes.len() {
-                        // Check if next two are compassign for same dst with indices 1 and 2
-                        let op1 = &ir.opcodes[i + 1];
-                        let op2 = &ir.opcodes[i + 2];
-                        if op1.op == "compassign"
-                            && op2.op == "compassign"
-                            && op1.nargs >= 3
-                            && op2.nargs >= 3
+            if c_idx < ir.symbols.len()
+                && ir.symbols[c_idx].symtype == SymType::Const
+                && let Some(comp) = get_const_int(ir, c_idx)
+                && comp == 0
+                && i + 2 < ir.opcodes.len()
+            {
+                // Check if next two are compassign for same dst with indices 1 and 2
+                let op1 = &ir.opcodes[i + 1];
+                let op2 = &ir.opcodes[i + 2];
+                if op1.op == "compassign"
+                    && op2.op == "compassign"
+                    && op1.nargs >= 3
+                    && op2.nargs >= 3
+                {
+                    let v1 = ir.args[op1.firstarg as usize] as usize;
+                    let c1 = ir.args[op1.firstarg as usize + 1] as usize;
+                    let v2 = ir.args[op2.firstarg as usize] as usize;
+                    let c2 = ir.args[op2.firstarg as usize + 1] as usize;
+                    if v1 == v_idx
+                        && v2 == v_idx
+                        && c1 < ir.symbols.len()
+                        && c2 < ir.symbols.len()
+                        && ir.symbols[c1].symtype == SymType::Const
+                        && ir.symbols[c2].symtype == SymType::Const
+                        && let (Some(1), Some(2)) = (get_const_int(ir, c1), get_const_int(ir, c2))
+                    {
+                        // All three are const-index compassign: get values
+                        let val0_idx = ir.args[firstarg + 2] as usize;
+                        let val1_idx = ir.args[op1.firstarg as usize + 2] as usize;
+                        let val2_idx = ir.args[op2.firstarg as usize + 2] as usize;
+                        if val0_idx < ir.symbols.len()
+                            && val1_idx < ir.symbols.len()
+                            && val2_idx < ir.symbols.len()
+                            && ir.symbols[val0_idx].symtype == SymType::Const
+                            && ir.symbols[val1_idx].symtype == SymType::Const
+                            && ir.symbols[val2_idx].symtype == SymType::Const
+                            && let (Some(x), Some(y), Some(z)) = (
+                                get_const_float(ir, val0_idx),
+                                get_const_float(ir, val1_idx),
+                                get_const_float(ir, val2_idx),
+                            )
                         {
-                            let v1 = ir.args[op1.firstarg as usize] as usize;
-                            let c1 = ir.args[op1.firstarg as usize + 1] as usize;
-                            let v2 = ir.args[op2.firstarg as usize] as usize;
-                            let c2 = ir.args[op2.firstarg as usize + 1] as usize;
-                            if v1 == v_idx
-                                && v2 == v_idx
-                                && c1 < ir.symbols.len()
-                                && c2 < ir.symbols.len()
-                                && ir.symbols[c1].symtype == SymType::Const
-                                && ir.symbols[c2].symtype == SymType::Const
-                            {
-                                if let (Some(1), Some(2)) =
-                                    (get_const_int(ir, c1), get_const_int(ir, c2))
-                                {
-                                    // All three are const-index compassign: get values
-                                    let val0_idx = ir.args[firstarg + 2] as usize;
-                                    let val1_idx = ir.args[op1.firstarg as usize + 2] as usize;
-                                    let val2_idx = ir.args[op2.firstarg as usize + 2] as usize;
-                                    if val0_idx < ir.symbols.len()
-                                        && val1_idx < ir.symbols.len()
-                                        && val2_idx < ir.symbols.len()
-                                        && ir.symbols[val0_idx].symtype == SymType::Const
-                                        && ir.symbols[val1_idx].symtype == SymType::Const
-                                        && ir.symbols[val2_idx].symtype == SymType::Const
-                                    {
-                                        if let (Some(x), Some(y), Some(z)) = (
-                                            get_const_float(ir, val0_idx),
-                                            get_const_float(ir, val1_idx),
-                                            get_const_float(ir, val2_idx),
-                                        ) {
-                                            let vec_ci = ensure_const_vec3(
-                                                ir,
-                                                crate::math::Vec3 { x, y, z },
-                                            );
-                                            ir.opcodes[i].op = UString::new("assign");
-                                            ir.opcodes[i].nargs = 2;
-                                            ir.args[firstarg] = v_idx as i32;
-                                            ir.args[firstarg + 1] = vec_ci;
-                                            ir.opcodes[i + 1].op = UString::new("nop");
-                                            ir.opcodes[i + 1].nargs = 0;
-                                            ir.opcodes[i + 2].op = UString::new("nop");
-                                            ir.opcodes[i + 2].nargs = 0;
-                                            stats.constant_folds += 1;
-                                            changed = true;
-                                            continue;
-                                        }
-                                    }
-                                }
-                            }
+                            let vec_ci = ensure_const_vec3(ir, crate::math::Vec3 { x, y, z });
+                            ir.opcodes[i].op = UString::new("assign");
+                            ir.opcodes[i].nargs = 2;
+                            ir.args[firstarg] = v_idx as i32;
+                            ir.args[firstarg + 1] = vec_ci;
+                            ir.opcodes[i + 1].op = UString::new("nop");
+                            ir.opcodes[i + 1].nargs = 0;
+                            ir.opcodes[i + 2].op = UString::new("nop");
+                            ir.opcodes[i + 2].nargs = 0;
+                            stats.constant_folds += 1;
+                            changed = true;
+                            continue;
                         }
                     }
                 }
@@ -1150,77 +1140,75 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if opname == "mxcompassign" && nargs >= 4 {
             let mx_idx = ir.args[firstarg] as usize;
             let r_idx = ir.args[firstarg + 1] as usize;
-            if r_idx < ir.symbols.len() && ir.symbols[r_idx].symtype == SymType::Const {
-                if let Some(0) = get_const_int(ir, r_idx) {
-                    // Check if next 15 ops are mxcompassign for same matrix
-                    if i + 15 < ir.opcodes.len() {
-                        let mut vals = [0.0f32; 16];
-                        let mut all_ok = true;
-                        for k in 0..16 {
-                            let op_k = &ir.opcodes[i + k];
-                            if op_k.op != "mxcompassign" || op_k.nargs < 4 {
-                                all_ok = false;
-                                break;
-                            }
-                            let m = ir.args[op_k.firstarg as usize] as usize;
-                            let r = ir.args[op_k.firstarg as usize + 1] as usize;
-                            let c = ir.args[op_k.firstarg as usize + 2] as usize;
-                            let v = ir.args[op_k.firstarg as usize + 3] as usize;
-                            if m != mx_idx {
-                                all_ok = false;
-                                break;
-                            }
-                            if r >= ir.symbols.len()
-                                || c >= ir.symbols.len()
-                                || v >= ir.symbols.len()
-                            {
-                                all_ok = false;
-                                break;
-                            }
-                            if ir.symbols[r].symtype != SymType::Const
-                                || ir.symbols[c].symtype != SymType::Const
-                                || ir.symbols[v].symtype != SymType::Const
-                            {
-                                all_ok = false;
-                                break;
-                            }
-                            if let (Some(ri), Some(ci), Some(fv)) = (
-                                get_const_int(ir, r),
-                                get_const_int(ir, c),
-                                get_const_float(ir, v),
-                            ) {
-                                let idx_k = (ri * 4 + ci) as usize;
-                                if idx_k < 16 {
-                                    vals[idx_k] = fv;
-                                } else {
-                                    all_ok = false;
-                                    break;
-                                }
+            if r_idx < ir.symbols.len()
+                && ir.symbols[r_idx].symtype == SymType::Const
+                && let Some(0) = get_const_int(ir, r_idx)
+            {
+                // Check if next 15 ops are mxcompassign for same matrix
+                if i + 15 < ir.opcodes.len() {
+                    let mut vals = [0.0f32; 16];
+                    let mut all_ok = true;
+                    for k in 0..16 {
+                        let op_k = &ir.opcodes[i + k];
+                        if op_k.op != "mxcompassign" || op_k.nargs < 4 {
+                            all_ok = false;
+                            break;
+                        }
+                        let m = ir.args[op_k.firstarg as usize] as usize;
+                        let r = ir.args[op_k.firstarg as usize + 1] as usize;
+                        let c = ir.args[op_k.firstarg as usize + 2] as usize;
+                        let v = ir.args[op_k.firstarg as usize + 3] as usize;
+                        if m != mx_idx {
+                            all_ok = false;
+                            break;
+                        }
+                        if r >= ir.symbols.len() || c >= ir.symbols.len() || v >= ir.symbols.len() {
+                            all_ok = false;
+                            break;
+                        }
+                        if ir.symbols[r].symtype != SymType::Const
+                            || ir.symbols[c].symtype != SymType::Const
+                            || ir.symbols[v].symtype != SymType::Const
+                        {
+                            all_ok = false;
+                            break;
+                        }
+                        if let (Some(ri), Some(ci), Some(fv)) = (
+                            get_const_int(ir, r),
+                            get_const_int(ir, c),
+                            get_const_float(ir, v),
+                        ) {
+                            let idx_k = (ri * 4 + ci) as usize;
+                            if idx_k < 16 {
+                                vals[idx_k] = fv;
                             } else {
                                 all_ok = false;
                                 break;
                             }
+                        } else {
+                            all_ok = false;
+                            break;
                         }
-                        if all_ok {
-                            let mut m = crate::math::Matrix44::default();
-                            for row in 0..4 {
-                                for col in 0..4 {
-                                    m.m[row][col] = vals[row * 4 + col];
-                                }
+                    }
+                    if all_ok {
+                        let mut m = crate::math::Matrix44::default();
+                        for row in 0..4 {
+                            for col in 0..4 {
+                                m.m[row][col] = vals[row * 4 + col];
                             }
-                            let mc = ensure_const_matrix(ir, m);
-                            ir.opcodes[i].op = UString::new("assign");
-                            ir.opcodes[i].nargs = 2;
-                            ir.args[firstarg] = mx_idx as i32;
-                            ir.args[firstarg + 1] = mc;
-                            for k in 1..16 {
-                                ir.opcodes[i + k].op = UString::new("nop");
-                                ir.opcodes[i + k].nargs = 0;
-                            }
-                            stats.constant_folds += 1;
-                            changed = true;
-                            continue;
                         }
+                        let mc = ensure_const_matrix(ir, m);
+                        ir.opcodes[i].op = UString::new("assign");
+                        ir.opcodes[i].nargs = 2;
+                        ir.args[firstarg] = mx_idx as i32;
+                        ir.args[firstarg + 1] = mc;
+                        for k in 1..16 {
+                            ir.opcodes[i + k].op = UString::new("nop");
+                            ir.opcodes[i + k].nargs = 0;
+                        }
+                        stats.constant_folds += 1;
+                        changed = true;
+                        continue;
                     }
                 }
             }
@@ -1235,35 +1223,34 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && idx_idx < ir.symbols.len()
                 && ir.symbols[arr_idx].symtype == SymType::Const
                 && ir.symbols[idx_idx].symtype == SymType::Const
+                && let Some(index) = get_const_int(ir, idx_idx)
             {
-                if let Some(index) = get_const_int(ir, idx_idx) {
-                    let index = index as usize;
-                    // Try float array
-                    if let Some(arr) = get_const_float_array(ir, arr_idx) {
-                        if index < arr.len() {
-                            let ci = ensure_const_float(ir, arr[index]);
-                            ir.opcodes[i].op = UString::new("assign");
-                            ir.opcodes[i].nargs = 2;
-                            ir.args[firstarg] = dst_idx as i32;
-                            ir.args[firstarg + 1] = ci;
-                            stats.constant_folds += 1;
-                            changed = true;
-                            continue;
-                        }
-                    }
-                    // Try int array
-                    if let Some(arr) = get_const_int_array(ir, arr_idx) {
-                        if index < arr.len() {
-                            let ci = ensure_const_int(ir, arr[index]);
-                            ir.opcodes[i].op = UString::new("assign");
-                            ir.opcodes[i].nargs = 2;
-                            ir.args[firstarg] = dst_idx as i32;
-                            ir.args[firstarg + 1] = ci;
-                            stats.constant_folds += 1;
-                            changed = true;
-                            continue;
-                        }
-                    }
+                let index = index as usize;
+                // Try float array
+                if let Some(arr) = get_const_float_array(ir, arr_idx)
+                    && index < arr.len()
+                {
+                    let ci = ensure_const_float(ir, arr[index]);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = ci;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
+                }
+                // Try int array
+                if let Some(arr) = get_const_int_array(ir, arr_idx)
+                    && index < arr.len()
+                {
+                    let ci = ensure_const_int(ir, arr[index]);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = ci;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
                 }
             }
         }
@@ -1291,63 +1278,64 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if opname == "aassign" && nargs >= 3 {
             let arr_idx = ir.args[firstarg] as usize;
             let idx0 = ir.args[firstarg + 1] as usize;
-            if idx0 < ir.symbols.len() && ir.symbols[idx0].symtype == SymType::Const {
-                if let Some(0) = get_const_int(ir, idx0) {
-                    // Determine array length from type
-                    let arrlen = ir.symbols[arr_idx].typespec.simpletype().arraylen as usize;
-                    if arrlen > 0 && i + arrlen - 1 < ir.opcodes.len() {
-                        let mut vals = Vec::with_capacity(arrlen);
-                        let mut all_ok = true;
-                        for k in 0..arrlen {
-                            let op_k = &ir.opcodes[i + k];
-                            if op_k.op != "aassign" || op_k.nargs < 3 {
-                                all_ok = false;
-                                break;
-                            }
-                            let a = ir.args[op_k.firstarg as usize] as usize;
-                            let ci = ir.args[op_k.firstarg as usize + 1] as usize;
-                            let vi = ir.args[op_k.firstarg as usize + 2] as usize;
-                            if a != arr_idx {
-                                all_ok = false;
-                                break;
-                            }
-                            if ci >= ir.symbols.len() || vi >= ir.symbols.len() {
-                                all_ok = false;
-                                break;
-                            }
-                            if ir.symbols[ci].symtype != SymType::Const
-                                || ir.symbols[vi].symtype != SymType::Const
-                            {
-                                all_ok = false;
-                                break;
-                            }
-                            if let (Some(idx_k), Some(fv)) =
-                                (get_const_int(ir, ci), get_const_float(ir, vi))
-                            {
-                                if idx_k as usize != k {
-                                    all_ok = false;
-                                    break;
-                                }
-                                vals.push(fv);
-                            } else {
-                                all_ok = false;
-                                break;
-                            }
+            if idx0 < ir.symbols.len()
+                && ir.symbols[idx0].symtype == SymType::Const
+                && let Some(0) = get_const_int(ir, idx0)
+            {
+                // Determine array length from type
+                let arrlen = ir.symbols[arr_idx].typespec.simpletype().arraylen as usize;
+                if arrlen > 0 && i + arrlen - 1 < ir.opcodes.len() {
+                    let mut vals = Vec::with_capacity(arrlen);
+                    let mut all_ok = true;
+                    for k in 0..arrlen {
+                        let op_k = &ir.opcodes[i + k];
+                        if op_k.op != "aassign" || op_k.nargs < 3 {
+                            all_ok = false;
+                            break;
                         }
-                        if all_ok && vals.len() == arrlen {
-                            let ac = ensure_const_float_array(ir, &vals);
-                            ir.opcodes[i].op = UString::new("assign");
-                            ir.opcodes[i].nargs = 2;
-                            ir.args[firstarg] = arr_idx as i32;
-                            ir.args[firstarg + 1] = ac;
-                            for k in 1..arrlen {
-                                ir.opcodes[i + k].op = UString::new("nop");
-                                ir.opcodes[i + k].nargs = 0;
-                            }
-                            stats.constant_folds += 1;
-                            changed = true;
-                            continue;
+                        let a = ir.args[op_k.firstarg as usize] as usize;
+                        let ci = ir.args[op_k.firstarg as usize + 1] as usize;
+                        let vi = ir.args[op_k.firstarg as usize + 2] as usize;
+                        if a != arr_idx {
+                            all_ok = false;
+                            break;
                         }
+                        if ci >= ir.symbols.len() || vi >= ir.symbols.len() {
+                            all_ok = false;
+                            break;
+                        }
+                        if ir.symbols[ci].symtype != SymType::Const
+                            || ir.symbols[vi].symtype != SymType::Const
+                        {
+                            all_ok = false;
+                            break;
+                        }
+                        if let (Some(idx_k), Some(fv)) =
+                            (get_const_int(ir, ci), get_const_float(ir, vi))
+                        {
+                            if idx_k as usize != k {
+                                all_ok = false;
+                                break;
+                            }
+                            vals.push(fv);
+                        } else {
+                            all_ok = false;
+                            break;
+                        }
+                    }
+                    if all_ok && vals.len() == arrlen {
+                        let ac = ensure_const_float_array(ir, &vals);
+                        ir.opcodes[i].op = UString::new("assign");
+                        ir.opcodes[i].nargs = 2;
+                        ir.args[firstarg] = arr_idx as i32;
+                        ir.args[firstarg + 1] = ac;
+                        for k in 1..arrlen {
+                            ir.opcodes[i + k].op = UString::new("nop");
+                            ir.opcodes[i + k].nargs = 0;
+                        }
+                        stats.constant_folds += 1;
+                        changed = true;
+                        continue;
                     }
                 }
             }
@@ -1359,17 +1347,18 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if opname == "strlen" && nargs >= 2 {
             let dst_idx = ir.args[firstarg] as usize;
             let s_idx = ir.args[firstarg + 1] as usize;
-            if s_idx < ir.symbols.len() && ir.symbols[s_idx].symtype == SymType::Const {
-                if let Some(s) = get_const_str(ir, s_idx) {
-                    let ci = ensure_const_int(ir, s.len() as i32);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ci;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+            if s_idx < ir.symbols.len()
+                && ir.symbols[s_idx].symtype == SymType::Const
+                && let Some(s) = get_const_str(ir, s_idx)
+            {
+                let ci = ensure_const_int(ir, s.len() as i32);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ci;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1377,23 +1366,24 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if opname == "hash" && nargs >= 2 {
             let dst_idx = ir.args[firstarg] as usize;
             let s_idx = ir.args[firstarg + 1] as usize;
-            if s_idx < ir.symbols.len() && ir.symbols[s_idx].symtype == SymType::Const {
-                if let Some(s) = get_const_str(ir, s_idx) {
-                    // Simple hash: use FNV-1a
-                    let mut h = 0x811c9dc5u32;
-                    for b in s.bytes() {
-                        h ^= b as u32;
-                        h = h.wrapping_mul(0x01000193);
-                    }
-                    let ci = ensure_const_int(ir, h as i32);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ci;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
+            if s_idx < ir.symbols.len()
+                && ir.symbols[s_idx].symtype == SymType::Const
+                && let Some(s) = get_const_str(ir, s_idx)
+            {
+                // Simple hash: use FNV-1a
+                let mut h = 0x811c9dc5u32;
+                for b in s.bytes() {
+                    h ^= b as u32;
+                    h = h.wrapping_mul(0x01000193);
                 }
+                let ci = ensure_const_int(ir, h as i32);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ci;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1406,18 +1396,17 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && i_idx < ir.symbols.len()
                 && ir.symbols[s_idx].symtype == SymType::Const
                 && ir.symbols[i_idx].symtype == SymType::Const
+                && let (Some(s), Some(ci)) = (get_const_str(ir, s_idx), get_const_int(ir, i_idx))
             {
-                if let (Some(s), Some(ci)) = (get_const_str(ir, s_idx), get_const_int(ir, i_idx)) {
-                    let val = s.as_bytes().get(ci as usize).copied().unwrap_or(0) as i32;
-                    let ri = ensure_const_int(ir, val);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ri;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+                let val = s.as_bytes().get(ci as usize).copied().unwrap_or(0) as i32;
+                let ri = ensure_const_int(ir, val);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ri;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1430,19 +1419,17 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && suf_idx < ir.symbols.len()
                 && ir.symbols[s_idx].symtype == SymType::Const
                 && ir.symbols[suf_idx].symtype == SymType::Const
+                && let (Some(s), Some(suf)) = (get_const_str(ir, s_idx), get_const_str(ir, suf_idx))
             {
-                if let (Some(s), Some(suf)) = (get_const_str(ir, s_idx), get_const_str(ir, suf_idx))
-                {
-                    let val = if s.ends_with(&suf) { 1 } else { 0 };
-                    let ci = ensure_const_int(ir, val);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ci;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+                let val = if s.ends_with(&suf) { 1 } else { 0 };
+                let ci = ensure_const_int(ir, val);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ci;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1455,19 +1442,17 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && pre_idx < ir.symbols.len()
                 && ir.symbols[s_idx].symtype == SymType::Const
                 && ir.symbols[pre_idx].symtype == SymType::Const
+                && let (Some(s), Some(pre)) = (get_const_str(ir, s_idx), get_const_str(ir, pre_idx))
             {
-                if let (Some(s), Some(pre)) = (get_const_str(ir, s_idx), get_const_str(ir, pre_idx))
-                {
-                    let val = if s.starts_with(&pre) { 1 } else { 0 };
-                    let ci = ensure_const_int(ir, val);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ci;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+                let val = if s.starts_with(&pre) { 1 } else { 0 };
+                let ci = ensure_const_int(ir, val);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ci;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1475,18 +1460,19 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if opname == "stoi" && nargs >= 2 {
             let dst_idx = ir.args[firstarg] as usize;
             let s_idx = ir.args[firstarg + 1] as usize;
-            if s_idx < ir.symbols.len() && ir.symbols[s_idx].symtype == SymType::Const {
-                if let Some(s) = get_const_str(ir, s_idx) {
-                    let val = s.trim().parse::<i32>().unwrap_or(0);
-                    let ci = ensure_const_int(ir, val);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ci;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+            if s_idx < ir.symbols.len()
+                && ir.symbols[s_idx].symtype == SymType::Const
+                && let Some(s) = get_const_str(ir, s_idx)
+            {
+                let val = s.trim().parse::<i32>().unwrap_or(0);
+                let ci = ensure_const_int(ir, val);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ci;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1494,18 +1480,19 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if opname == "stof" && nargs >= 2 {
             let dst_idx = ir.args[firstarg] as usize;
             let s_idx = ir.args[firstarg + 1] as usize;
-            if s_idx < ir.symbols.len() && ir.symbols[s_idx].symtype == SymType::Const {
-                if let Some(s) = get_const_str(ir, s_idx) {
-                    let val = s.trim().parse::<f32>().unwrap_or(0.0);
-                    let ci = ensure_const_float(ir, val);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ci;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+            if s_idx < ir.symbols.len()
+                && ir.symbols[s_idx].symtype == SymType::Const
+                && let Some(s) = get_const_str(ir, s_idx)
+            {
+                let val = s.trim().parse::<f32>().unwrap_or(0.0);
+                let ci = ensure_const_float(ir, val);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ci;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1552,25 +1539,24 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && ir.symbols[s_idx].symtype == SymType::Const
                 && ir.symbols[start_idx].symtype == SymType::Const
                 && ir.symbols[len_idx].symtype == SymType::Const
-            {
-                if let (Some(s), Some(start), Some(len)) = (
+                && let (Some(s), Some(start), Some(len)) = (
                     get_const_str(ir, s_idx),
                     get_const_int(ir, start_idx),
                     get_const_int(ir, len_idx),
-                ) {
-                    let start = start.max(0) as usize;
-                    let len = len.max(0) as usize;
-                    let end = (start + len).min(s.len());
-                    let result = if start < s.len() { &s[start..end] } else { "" };
-                    let ci = ensure_const_str(ir, result);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ci;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+                )
+            {
+                let start = start.max(0) as usize;
+                let len = len.max(0) as usize;
+                let end = (start + len).min(s.len());
+                let result = if start < s.len() { &s[start..end] } else { "" };
+                let ci = ensure_const_str(ir, result);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ci;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1578,56 +1564,56 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if opname == "format" && nargs >= 3 {
             let dst_idx = ir.args[firstarg] as usize;
             let fmt_idx = ir.args[firstarg + 1] as usize;
-            if fmt_idx < ir.symbols.len() && ir.symbols[fmt_idx].symtype == SymType::Const {
-                if let Some(fmt_str) = get_const_str(ir, fmt_idx) {
-                    let mut all_const = true;
-                    let mut arg_vals: Vec<String> = Vec::new();
-                    for j in 2..nargs {
-                        let ai = ir.args[firstarg + j] as usize;
-                        if ai >= ir.symbols.len() || ir.symbols[ai].symtype != SymType::Const {
-                            all_const = false;
-                            break;
-                        }
-                        if let Some(iv) = get_const_int(ir, ai) {
-                            arg_vals.push(iv.to_string());
-                        } else if let Some(fv) = get_const_float(ir, ai) {
-                            arg_vals.push(format!("{fv}"));
-                        } else if let Some(sv) = get_const_str(ir, ai) {
-                            arg_vals.push(sv);
-                        } else {
-                            all_const = false;
-                            break;
-                        }
+            if fmt_idx < ir.symbols.len()
+                && ir.symbols[fmt_idx].symtype == SymType::Const
+                && let Some(fmt_str) = get_const_str(ir, fmt_idx)
+            {
+                let mut all_const = true;
+                let mut arg_vals: Vec<String> = Vec::new();
+                for j in 2..nargs {
+                    let ai = ir.args[firstarg + j] as usize;
+                    if ai >= ir.symbols.len() || ir.symbols[ai].symtype != SymType::Const {
+                        all_const = false;
+                        break;
                     }
-                    if all_const {
-                        // Simple substitution: replace %d, %f, %s, %g with arg values
-                        let mut result = String::new();
-                        let mut chars = fmt_str.chars().peekable();
-                        let mut arg_i = 0;
-                        while let Some(c) = chars.next() {
-                            if c == '%' {
-                                if let Some(&spec) = chars.peek() {
-                                    if matches!(spec, 'd' | 'f' | 's' | 'g' | 'i') {
-                                        chars.next();
-                                        if arg_i < arg_vals.len() {
-                                            result.push_str(&arg_vals[arg_i]);
-                                            arg_i += 1;
-                                        }
-                                        continue;
-                                    }
-                                }
+                    if let Some(iv) = get_const_int(ir, ai) {
+                        arg_vals.push(iv.to_string());
+                    } else if let Some(fv) = get_const_float(ir, ai) {
+                        arg_vals.push(format!("{fv}"));
+                    } else if let Some(sv) = get_const_str(ir, ai) {
+                        arg_vals.push(sv);
+                    } else {
+                        all_const = false;
+                        break;
+                    }
+                }
+                if all_const {
+                    // Simple substitution: replace %d, %f, %s, %g with arg values
+                    let mut result = String::new();
+                    let mut chars = fmt_str.chars().peekable();
+                    let mut arg_i = 0;
+                    while let Some(c) = chars.next() {
+                        if c == '%'
+                            && let Some(&spec) = chars.peek()
+                            && matches!(spec, 'd' | 'f' | 's' | 'g' | 'i')
+                        {
+                            chars.next();
+                            if arg_i < arg_vals.len() {
+                                result.push_str(&arg_vals[arg_i]);
+                                arg_i += 1;
                             }
-                            result.push(c);
+                            continue;
                         }
-                        let ci = ensure_const_str(ir, &result);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = ci;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
+                        result.push(c);
                     }
+                    let ci = ensure_const_str(ir, &result);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = ci;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
                 }
             }
         }
@@ -1641,23 +1627,21 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 && pat_idx < ir.symbols.len()
                 && ir.symbols[subj_idx].symtype == SymType::Const
                 && ir.symbols[pat_idx].symtype == SymType::Const
-            {
-                if let (Some(subj), Some(pat)) =
+                && let (Some(subj), Some(pat)) =
                     (get_const_str(ir, subj_idx), get_const_str(ir, pat_idx))
-                {
-                    // Only fold literal patterns (no regex metacharacters)
-                    let is_literal = !pat.contains(|c: char| ".*+?[](){}|\\^$".contains(c));
-                    if is_literal {
-                        let val = if subj.contains(&pat) { 1 } else { 0 };
-                        let ci = ensure_const_int(ir, val);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = ci;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
-                    }
+            {
+                // Only fold literal patterns (no regex metacharacters)
+                let is_literal = !pat.contains(|c: char| ".*+?[](){}|\\^$".contains(c));
+                if is_literal {
+                    let val = if subj.contains(&pat) { 1 } else { 0 };
+                    let ci = ensure_const_int(ir, val);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = ci;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
                 }
             }
         }
@@ -1666,35 +1650,34 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if opname == "split" && nargs >= 3 {
             let dst_idx = ir.args[firstarg] as usize;
             let s_idx = ir.args[firstarg + 1] as usize;
-            if s_idx < ir.symbols.len() && ir.symbols[s_idx].symtype == SymType::Const {
-                if let Some(s) = get_const_str(ir, s_idx) {
-                    let sep = if nargs >= 4 {
-                        let sep_idx = ir.args[firstarg + 3] as usize;
-                        if sep_idx < ir.symbols.len()
-                            && ir.symbols[sep_idx].symtype == SymType::Const
-                        {
-                            get_const_str(ir, sep_idx)
-                        } else {
-                            None
-                        }
+            if s_idx < ir.symbols.len()
+                && ir.symbols[s_idx].symtype == SymType::Const
+                && let Some(s) = get_const_str(ir, s_idx)
+            {
+                let sep = if nargs >= 4 {
+                    let sep_idx = ir.args[firstarg + 3] as usize;
+                    if sep_idx < ir.symbols.len() && ir.symbols[sep_idx].symtype == SymType::Const {
+                        get_const_str(ir, sep_idx)
                     } else {
-                        Some(" \t\n".to_string()) // default whitespace
-                    };
-                    if let Some(sep) = sep {
-                        let count = if sep.len() == 1 {
-                            s.split(sep.chars().next().unwrap()).count() as i32
-                        } else {
-                            s.split_whitespace().count() as i32
-                        };
-                        let ci = ensure_const_int(ir, count);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[firstarg] = dst_idx as i32;
-                        ir.args[firstarg + 1] = ci;
-                        stats.constant_folds += 1;
-                        changed = true;
-                        continue;
+                        None
                     }
+                } else {
+                    Some(" \t\n".to_string()) // default whitespace
+                };
+                if let Some(sep) = sep {
+                    let count = if sep.len() == 1 {
+                        s.split(sep.chars().next().unwrap()).count() as i32
+                    } else {
+                        s.split_whitespace().count() as i32
+                    };
+                    let ci = ensure_const_int(ir, count);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[firstarg] = dst_idx as i32;
+                    ir.args[firstarg + 1] = ci;
+                    stats.constant_folds += 1;
+                    changed = true;
+                    continue;
                 }
             }
         }
@@ -1747,36 +1730,37 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         // C++ constfold_sincos: compute both sin and cos at compile time
         if opname == "sincos" && nargs >= 3 {
             let angle_idx = ir.args[firstarg] as usize;
-            if angle_idx < ir.symbols.len() && ir.symbols[angle_idx].symtype == SymType::Const {
-                if let Some(angle) = get_const_float(ir, angle_idx) {
-                    let sin_val = angle.sin();
-                    let cos_val = angle.cos();
-                    let sin_dst = ir.args[firstarg + 1];
-                    let cos_dst = ir.args[firstarg + 2];
-                    let sin_ci = ensure_const_float(ir, sin_val);
-                    let cos_ci = ensure_const_float(ir, cos_val);
-                    // Replace sincos with assign to sin_dst
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = sin_dst;
-                    ir.args[firstarg + 1] = sin_ci;
-                    // Insert a new assign op for cos_dst right after
-                    let cos_fa = ir.args.len() as i32;
-                    ir.args.push(cos_dst);
-                    ir.args.push(cos_ci);
-                    let mut cos_op = crate::symbol::Opcode::new(
-                        UString::new("assign"),
-                        UString::default(),
-                        cos_fa,
-                        2,
-                    );
-                    cos_op.argwrite = 1;
-                    cos_op.argread = !1u32;
-                    ir.opcodes.insert(i + 1, cos_op);
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+            if angle_idx < ir.symbols.len()
+                && ir.symbols[angle_idx].symtype == SymType::Const
+                && let Some(angle) = get_const_float(ir, angle_idx)
+            {
+                let sin_val = angle.sin();
+                let cos_val = angle.cos();
+                let sin_dst = ir.args[firstarg + 1];
+                let cos_dst = ir.args[firstarg + 2];
+                let sin_ci = ensure_const_float(ir, sin_val);
+                let cos_ci = ensure_const_float(ir, cos_val);
+                // Replace sincos with assign to sin_dst
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = sin_dst;
+                ir.args[firstarg + 1] = sin_ci;
+                // Insert a new assign op for cos_dst right after
+                let cos_fa = ir.args.len() as i32;
+                ir.args.push(cos_dst);
+                ir.args.push(cos_ci);
+                let mut cos_op = crate::symbol::Opcode::new(
+                    UString::new("assign"),
+                    UString::default(),
+                    cos_fa,
+                    2,
+                );
+                cos_op.argwrite = 1;
+                cos_op.argread = !1u32;
+                ir.opcodes.insert(i + 1, cos_op);
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1785,31 +1769,32 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if opname == "normalize" && nargs >= 2 {
             let dst_idx = ir.args[firstarg] as usize;
             let v_idx = ir.args[firstarg + 1] as usize;
-            if v_idx < ir.symbols.len() && ir.symbols[v_idx].symtype == SymType::Const {
-                if let Some(v) = get_const_vec3(ir, v_idx) {
-                    let len = (v.x * v.x + v.y * v.y + v.z * v.z).sqrt();
-                    let result = if len > 0.0 {
-                        crate::math::Vec3 {
-                            x: v.x / len,
-                            y: v.y / len,
-                            z: v.z / len,
-                        }
-                    } else {
-                        crate::math::Vec3 {
-                            x: 0.0,
-                            y: 0.0,
-                            z: 0.0,
-                        }
-                    };
-                    let ci = ensure_const_vec3(ir, result);
-                    ir.opcodes[i].op = UString::new("assign");
-                    ir.opcodes[i].nargs = 2;
-                    ir.args[firstarg] = dst_idx as i32;
-                    ir.args[firstarg + 1] = ci;
-                    stats.constant_folds += 1;
-                    changed = true;
-                    continue;
-                }
+            if v_idx < ir.symbols.len()
+                && ir.symbols[v_idx].symtype == SymType::Const
+                && let Some(v) = get_const_vec3(ir, v_idx)
+            {
+                let len = (v.x * v.x + v.y * v.y + v.z * v.z).sqrt();
+                let result = if len > 0.0 {
+                    crate::math::Vec3 {
+                        x: v.x / len,
+                        y: v.y / len,
+                        z: v.z / len,
+                    }
+                } else {
+                    crate::math::Vec3 {
+                        x: 0.0,
+                        y: 0.0,
+                        z: 0.0,
+                    }
+                };
+                let ci = ensure_const_vec3(ir, result);
+                ir.opcodes[i].op = UString::new("assign");
+                ir.opcodes[i].nargs = 2;
+                ir.args[firstarg] = dst_idx as i32;
+                ir.args[firstarg + 1] = ci;
+                stats.constant_folds += 1;
+                changed = true;
+                continue;
             }
         }
 
@@ -1991,11 +1976,11 @@ fn constant_fold(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 if let Some(&const_idx) = propagated.get(&sym_idx) {
                     ir.args[arg_pos] = const_idx as i32;
                     changed = true;
-                } else if let Some(&alias_idx) = aliases.get(&sym_idx) {
-                    if alias_idx != sym_idx {
-                        ir.args[arg_pos] = alias_idx as i32;
-                        changed = true;
-                    }
+                } else if let Some(&alias_idx) = aliases.get(&sym_idx)
+                    && alias_idx != sym_idx
+                {
+                    ir.args[arg_pos] = alias_idx as i32;
+                    changed = true;
                 }
             }
         }
@@ -2541,10 +2526,10 @@ fn peephole2(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
 /// Helper: find or add a constant int to the IR.
 fn find_or_add_const_int(ir: &mut ShaderIR, val: i32) -> i32 {
     for &(idx, ref cv) in &ir.const_values {
-        if let ConstValue::Int(v) = cv {
-            if *v == val {
-                return idx as i32;
-            }
+        if let ConstValue::Int(v) = cv
+            && *v == val
+        {
+            return idx as i32;
         }
     }
     let idx = ir.symbols.len();
@@ -2717,24 +2702,23 @@ fn coerce_assigned_constant(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
         if dst_type.aggregate == crate::typedesc::Aggregate::Vec3 as u8
             && src_type.aggregate == crate::typedesc::Aggregate::Scalar as u8
             && ir.symbols[src_idx].symtype == SymType::Const
+            && let Some(fval) = get_const_float(ir, src_idx)
         {
-            if let Some(fval) = get_const_float(ir, src_idx) {
-                // Create a Vec3 constant and replace
-                let v = crate::math::Vec3::new(fval, fval, fval);
-                let new_idx = ir.symbols.len();
-                let name = format!("$coerce_v{fval}");
-                let mut sym = Symbol::new(
-                    UString::new(&name),
-                    ir.symbols[dst_idx].typespec,
-                    SymType::Const,
-                );
-                sym.initializers = 1;
-                ir.symbols.push(sym);
-                ir.const_values.push((new_idx, ConstValue::Vec3(v)));
-                ir.args[fa + 1] = new_idx as i32;
-                stats.constant_folds += 1;
-                changed = true;
-            }
+            // Create a Vec3 constant and replace
+            let v = crate::math::Vec3::new(fval, fval, fval);
+            let new_idx = ir.symbols.len();
+            let name = format!("$coerce_v{fval}");
+            let mut sym = Symbol::new(
+                UString::new(&name),
+                ir.symbols[dst_idx].typespec,
+                SymType::Const,
+            );
+            sym.initializers = 1;
+            ir.symbols.push(sym);
+            ir.const_values.push((new_idx, ConstValue::Vec3(v)));
+            ir.args[fa + 1] = new_idx as i32;
+            stats.constant_folds += 1;
+            changed = true;
         }
     }
     changed
@@ -2896,10 +2880,8 @@ fn opt_fold_getattribute(ir: &mut ShaderIR, _stats: &mut OptStats) -> bool {
 /// Matches C++ `mark_outgoing_connections`.
 pub fn mark_outgoing_connections(ir: &mut ShaderIR, connected_outputs: &[&str]) {
     for sym in ir.symbols.iter_mut() {
-        if sym.symtype == SymType::OutputParam {
-            if connected_outputs.contains(&sym.name.as_str()) {
-                sym.connected_down = true;
-            }
+        if sym.symtype == SymType::OutputParam && connected_outputs.contains(&sym.name.as_str()) {
+            sym.connected_down = true;
         }
     }
 }
@@ -3026,14 +3008,7 @@ fn peephole_arith(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                         changed = true;
                     }
                     // mul(dst, x, 0.0) or mul(dst, 0.0, x) -> assign(dst, 0.0)
-                    else if c2 == Some(0.0) {
-                        let zero = ensure_const_float(ir, 0.0);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[fa + 1] = zero;
-                        stats.peephole_opts += 1;
-                        changed = true;
-                    } else if c1 == Some(0.0) {
+                    else if matches!(c2, Some(0.0)) || matches!(c1, Some(0.0)) {
                         let zero = ensure_const_float(ir, 0.0);
                         ir.opcodes[i].op = UString::new("assign");
                         ir.opcodes[i].nargs = 2;
@@ -3070,15 +3045,14 @@ fn peephole_arith(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                         changed = true;
                     }
                 }
-                "sub" => {
+                "sub"
                     // sub(dst, x, 0.0) -> assign(dst, x)
-                    if c2 == Some(0.0) {
+                    if c2 == Some(0.0) => {
                         ir.opcodes[i].op = UString::new("assign");
                         ir.opcodes[i].nargs = 2;
                         stats.peephole_opts += 1;
                         changed = true;
                     }
-                }
                 "div" => {
                     // div(dst, x, 1.0) -> assign(dst, x)
                     if c2 == Some(1.0) {
@@ -3087,17 +3061,8 @@ fn peephole_arith(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                         stats.peephole_opts += 1;
                         changed = true;
                     }
-                    // OSL semantics: div(dst, x, 0.0) -> assign(dst, 0.0)
-                    else if c2 == Some(0.0) {
-                        let zero = ensure_const_float(ir, 0.0);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[fa + 1] = zero;
-                        stats.peephole_opts += 1;
-                        changed = true;
-                    }
-                    // div(dst, 0.0, x) -> assign(dst, 0.0)
-                    else if c1 == Some(0.0) {
+                    // OSL semantics: div(dst, x, 0.0) / div(dst, 0.0, x) -> assign(dst, 0.0)
+                    else if matches!(c2, Some(0.0)) || matches!(c1, Some(0.0)) {
                         let zero = ensure_const_float(ir, 0.0);
                         ir.opcodes[i].op = UString::new("assign");
                         ir.opcodes[i].nargs = 2;
@@ -3106,25 +3071,16 @@ fn peephole_arith(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                         changed = true;
                     }
                 }
-                "mod" => {
-                    // OSL semantics: mod(dst, x, 0.0) -> assign(dst, 0.0)
-                    if c2 == Some(0.0) {
-                        let zero = ensure_const_float(ir, 0.0);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[fa + 1] = zero;
-                        stats.peephole_opts += 1;
-                        changed = true;
-                    }
-                    // mod(dst, 0.0, x) -> assign(dst, 0.0)
-                    else if c1 == Some(0.0) {
-                        let zero = ensure_const_float(ir, 0.0);
-                        ir.opcodes[i].op = UString::new("assign");
-                        ir.opcodes[i].nargs = 2;
-                        ir.args[fa + 1] = zero;
-                        stats.peephole_opts += 1;
-                        changed = true;
-                    }
+                "mod"
+                    // OSL semantics: mod(dst, x, 0.0) / mod(dst, 0.0, x) -> assign(dst, 0.0)
+                    if matches!(c2, Some(0.0)) || matches!(c1, Some(0.0)) =>
+                {
+                    let zero = ensure_const_float(ir, 0.0);
+                    ir.opcodes[i].op = UString::new("assign");
+                    ir.opcodes[i].nargs = 2;
+                    ir.args[fa + 1] = zero;
+                    stats.peephole_opts += 1;
+                    changed = true;
                 }
                 _ => {}
             }
@@ -3171,12 +3127,12 @@ fn copy_propagate(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 break;
             }
             let sym_idx = ir.args[fa + j] as usize;
-            if let Some(&replacement) = alias.get(&sym_idx) {
-                if replacement < ir.symbols.len() {
-                    ir.args[fa + j] = replacement as i32;
-                    stats.copies_propagated += 1;
-                    changed = true;
-                }
+            if let Some(&replacement) = alias.get(&sym_idx)
+                && replacement < ir.symbols.len()
+            {
+                ir.args[fa + j] = replacement as i32;
+                stats.copies_propagated += 1;
+                changed = true;
             }
         }
 
@@ -3288,18 +3244,18 @@ fn useless_assign_elim(ir: &mut ShaderIR, stats: &mut OptStats) -> bool {
                 let knargs = ir.opcodes[k].nargs as usize;
                 let kfa = ir.opcodes[k].firstarg as usize;
                 for j in 1..knargs {
-                    if kfa + j < ir.args.len() {
-                        if ir.args[kfa + j] as usize == *sym_idx {
-                            has_read = true;
-                            break;
-                        }
+                    if kfa + j < ir.args.len() && ir.args[kfa + j] as usize == *sym_idx {
+                        has_read = true;
+                        break;
                     }
                 }
                 // Also check if arg[0] is read (e.g., compound assign)
-                if knargs >= 1 && kfa < ir.args.len() {
-                    if ir.args[kfa] as usize == *sym_idx && (ir.opcodes[k].argread & 1) != 0 {
-                        has_read = true;
-                    }
+                if knargs >= 1
+                    && kfa < ir.args.len()
+                    && ir.args[kfa] as usize == *sym_idx
+                    && (ir.opcodes[k].argread & 1) != 0
+                {
+                    has_read = true;
                 }
                 if has_read {
                     break;

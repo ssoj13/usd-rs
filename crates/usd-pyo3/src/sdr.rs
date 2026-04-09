@@ -5,15 +5,13 @@ use pyo3::types::{PyAny, PyDict, PyList};
 use std::collections::HashMap;
 use usd_tf::Token;
 
-use usd_sdr::{
-    SdrRegistry, SdrSdfTypeIndicator, SdrShaderNodeDiscoveryResult, SdrVersion,
-};
 use usd_sdr::declare::SdrIdentifier;
 use usd_sdr::parser_plugin::SdrParserPluginRef;
 use usd_sdr::sdrosl_parser::SdrOslParserPlugin;
 use usd_sdr::shader_node::SdrShaderNode;
 use usd_sdr::shader_property::SdrShaderProperty;
 use usd_sdr::tokens;
+use usd_sdr::{SdrRegistry, SdrSdfTypeIndicator, SdrShaderNodeDiscoveryResult, SdrVersion};
 
 use crate::sdf::PyValueTypeName;
 use crate::sdr_shader_parser_test_utils;
@@ -255,7 +253,10 @@ impl PyShaderProperty {
 
     #[pyo3(name = "GetTypeAsSdfType")]
     fn get_type_as_sdf_type(&self, py: Python<'_>) -> PyResult<Py<PySdfTypeIndicator>> {
-        Py::new(py, PySdfTypeIndicator::new(self.inner.get_type_as_sdf_type()))
+        Py::new(
+            py,
+            PySdfTypeIndicator::new(self.inner.get_type_as_sdf_type()),
+        )
     }
 
     #[pyo3(name = "IsAssetIdentifier")]

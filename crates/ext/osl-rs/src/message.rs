@@ -56,7 +56,7 @@ impl MessageStore {
 
     /// Set a message value (simple path, no validation).
     pub fn setmessage(&mut self, name: UString, value: MessageValue) {
-        self.messages.insert(name.clone(), value);
+        self.messages.insert(name, value);
         self.set_flags.insert(name, true);
     }
 
@@ -87,9 +87,8 @@ impl MessageStore {
                 }
             }
         }
-        self.validated
-            .insert(name.clone(), MessageEntry::Set(layeridx));
-        self.messages.insert(name.clone(), value);
+        self.validated.insert(name, MessageEntry::Set(layeridx));
+        self.messages.insert(name, value);
         self.set_flags.insert(name, true);
     }
 
@@ -125,8 +124,7 @@ impl MessageStore {
             }
         }
         if strict {
-            self.validated
-                .insert(name.clone(), MessageEntry::Queried(layeridx));
+            self.validated.insert(name, MessageEntry::Queried(layeridx));
         }
         None
     }

@@ -119,17 +119,17 @@ pub enum ASTNodeKind {
     ShaderDeclaration {
         shader_type: String,
         name: String,
-        formals: Vec<Box<ASTNode>>,
-        statements: Vec<Box<ASTNode>>,
-        metadata: Vec<Box<ASTNode>>,
+        formals: Vec<ASTNode>,
+        statements: Vec<ASTNode>,
+        metadata: Vec<ASTNode>,
     },
 
     FunctionDeclaration {
         name: String,
         return_type: TypeSpec,
-        formals: Vec<Box<ASTNode>>,
-        statements: Vec<Box<ASTNode>>,
-        metadata: Vec<Box<ASTNode>>,
+        formals: Vec<ASTNode>,
+        statements: Vec<ASTNode>,
+        metadata: Vec<ASTNode>,
         is_builtin: bool,
     },
 
@@ -141,11 +141,11 @@ pub enum ASTNodeKind {
         is_param: bool,
         is_output: bool,
         is_metadata: bool,
-        metadata: Vec<Box<ASTNode>>,
+        metadata: Vec<ASTNode>,
     },
 
     CompoundInitializer {
-        elements: Vec<Box<ASTNode>>,
+        elements: Vec<ASTNode>,
         /// Whether this initializer can be used as a type constructor
         /// (C++ ast.h:778 m_ctor / canconstruct flag).
         canconstruct: bool,
@@ -202,7 +202,7 @@ pub enum ASTNodeKind {
     },
 
     CommaOperator {
-        exprs: Vec<Box<ASTNode>>,
+        exprs: Vec<ASTNode>,
     },
 
     TypecastExpression {
@@ -212,12 +212,12 @@ pub enum ASTNodeKind {
 
     TypeConstructor {
         typespec: TypeSpec,
-        args: Vec<Box<ASTNode>>,
+        args: Vec<ASTNode>,
     },
 
     FunctionCall {
         name: String,
-        args: Vec<Box<ASTNode>>,
+        args: Vec<ASTNode>,
         /// Per-arg read bitmask (C++ ast.h:1018 m_argread). Bit i = arg i is read.
         /// Set by typecheck_builtin_specialcase for functions with special R/W semantics.
         argread: u32,
@@ -257,12 +257,12 @@ pub enum ASTNodeKind {
 
     /// A block of statements: { stmt1; stmt2; ... }
     CompoundStatement {
-        statements: Vec<Box<ASTNode>>,
+        statements: Vec<ASTNode>,
     },
 
     /// Flat list of statements (no new scope) - e.g. multi-var declarations
     StatementList {
-        statements: Vec<Box<ASTNode>>,
+        statements: Vec<ASTNode>,
     },
 
     /// An empty statement (just a semicolon).
@@ -271,7 +271,7 @@ pub enum ASTNodeKind {
     /// Struct declaration: `struct name { type field; ... };`
     StructDeclaration {
         name: String,
-        fields: Vec<Box<ASTNode>>, // Each is a VariableDeclaration
+        fields: Vec<ASTNode>, // Each is a VariableDeclaration
     },
 }
 
@@ -368,7 +368,7 @@ impl ASTNode {
     pub fn call(
         alloc: &mut NodeIdAllocator,
         name: String,
-        args: Vec<Box<Self>>,
+        args: Vec<Self>,
         loc: SourceLoc,
     ) -> Box<Self> {
         Box::new(ASTNode::new(
@@ -516,7 +516,7 @@ impl ASTNode {
                 true_stmt.print_impl(out, indent + 1);
                 out.push_str(&format!("{pad}}}"));
                 if let Some(fs) = false_stmt {
-                    out.push_str(&format!(" else {{\n"));
+                    out.push_str(" else {\n");
                     fs.print_impl(out, indent + 1);
                     out.push_str(&format!("{pad}}}"));
                 }
@@ -746,7 +746,7 @@ impl ASTNode {
                 }
             }
             ASTNodeKind::ReturnStatement { expr } => {
-                if let Some(e) = expr {
+                if let Some(e) = expr.as_ref() {
                     e.walk(visitor);
                 }
             }
@@ -808,7 +808,7 @@ impl ASTNode {
 }
 
 /// Pretty-print an entire AST.
-pub fn print_ast(nodes: &[Box<ASTNode>]) -> String {
+pub fn print_ast(nodes: &[ASTNode]) -> String {
     let mut out = String::new();
     for node in nodes {
         out.push_str(&node.print(0));

@@ -25,10 +25,10 @@ use super::interpolation::InterpolationType;
 use super::load_rules::StageLoadRules;
 use super::population_mask::StagePopulationMask;
 use super::prim::Prim;
-use super::stage_cache_context::StageCacheContext;
 use super::prim_data::PrimData;
 use super::prim_flags::{PrimFlags, PrimFlagsPredicate};
 use super::prim_range;
+use super::stage_cache_context::StageCacheContext;
 
 // ============================================================================
 // Global State
@@ -453,7 +453,12 @@ impl Stage {
         resolver_context: Option<ResolverContext>,
         load: InitialLoadSet,
     ) -> Result<Arc<Self>, Error> {
-        Self::open_with_layer_impl(root_layer, Some(Some(session_layer)), resolver_context, load)
+        Self::open_with_layer_impl(
+            root_layer,
+            Some(Some(session_layer)),
+            resolver_context,
+            load,
+        )
     }
 
     /// If any `UsdStageCacheContext` binds a readable cache, return a matching stage when present.
@@ -474,21 +479,18 @@ impl Stage {
                 (None, Some(res)) => cache.find_one_matching_with_resolver(&root_handle, res),
                 (None, None) => cache.find_one_matching(&root_handle),
                 // Explicit `sessionLayer=None` — only stages with no session layer.
-                (Some(None), Some(res)) => cache.find_one_matching_with_session_and_resolver(
-                    &root_handle,
-                    None,
-                    res,
-                ),
+                (Some(None), Some(res)) => {
+                    cache.find_one_matching_with_session_and_resolver(&root_handle, None, res)
+                }
                 (Some(None), None) => cache.find_one_matching_with_session(&root_handle, None),
                 (Some(Some(sess)), Some(res)) => cache.find_one_matching_with_session_and_resolver(
                     &root_handle,
                     Some(&sess.get_handle()),
                     res,
                 ),
-                (Some(Some(sess)), None) => cache.find_one_matching_with_session(
-                    &root_handle,
-                    Some(&sess.get_handle()),
-                ),
+                (Some(Some(sess)), None) => {
+                    cache.find_one_matching_with_session(&root_handle, Some(&sess.get_handle()))
+                }
             };
             if found.is_some() {
                 return found;
@@ -575,14 +577,15 @@ impl Stage {
         crate::schema_registry::register_builtin_schemas();
 
         // Auto-create resolver context from root layer if not provided (C++ `_CreatePathResolverContext`)
-        let resolver_context = resolver_context
-            .or_else(|| Some(Self::create_path_resolver_context_for_root_layer(root_layer.as_ref())));
+        let resolver_context = resolver_context.or_else(|| {
+            Some(Self::create_path_resolver_context_for_root_layer(
+                root_layer.as_ref(),
+            ))
+        });
 
-        if let Some(cached) = Self::try_find_in_readable_stage_caches(
-            &root_layer,
-            &session_spec,
-            &resolver_context,
-        ) {
+        if let Some(cached) =
+            Self::try_find_in_readable_stage_caches(&root_layer, &session_spec, &resolver_context)
+        {
             return Ok(cached);
         }
 
@@ -664,14 +667,14 @@ impl Stage {
 
         // Auto-create resolver context from opened root layer if not provided (same as `Open(SdfLayer)`)
         let resolver_context = resolver_context.or_else(|| {
-            Some(Self::create_path_resolver_context_for_root_layer(root_layer.as_ref()))
+            Some(Self::create_path_resolver_context_for_root_layer(
+                root_layer.as_ref(),
+            ))
         });
 
-        if let Some(cached) = Self::try_find_in_readable_stage_caches(
-            &root_layer,
-            &session_spec,
-            &resolver_context,
-        ) {
+        if let Some(cached) =
+            Self::try_find_in_readable_stage_caches(&root_layer, &session_spec, &resolver_context)
+        {
             return Ok(cached);
         }
 

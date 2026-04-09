@@ -131,9 +131,9 @@ pub fn inverse(m: &Matrix44) -> Option<Matrix44> {
 /// Multiply a 4×4 matrix by another 4×4 matrix.
 pub fn matmul(a: &Matrix44, b: &Matrix44) -> Matrix44 {
     let mut r = [[0.0f32; 4]; 4];
-    for i in 0..4 {
-        for j in 0..4 {
-            r[i][j] = a.m[i][0] * b.m[0][j]
+    for (i, row) in r.iter_mut().enumerate() {
+        for (j, cell) in row.iter_mut().enumerate() {
+            *cell = a.m[i][0] * b.m[0][j]
                 + a.m[i][1] * b.m[1][j]
                 + a.m[i][2] * b.m[2][j]
                 + a.m[i][3] * b.m[3][j];

@@ -213,9 +213,7 @@ impl PyResolverContext {
     ) -> PyResult<Py<Self>> {
         let mut context_objs = Vec::new();
         if let Some(d) = ctx.get::<DefaultResolverContext>() {
-            context_objs.push(PyDefaultResolverContext {
-                inner: d.clone(),
-            });
+            context_objs.push(PyDefaultResolverContext { inner: d.clone() });
         }
         Py::new(py, Self { context_objs })
     }
@@ -902,11 +900,7 @@ impl PyResolver {
 /// Context manager that binds an ArResolverContext for the duration of a block.
 ///
 /// Mirrors `pxr.Ar.ResolverContextBinder`.
-#[pyclass(
-    skip_from_py_object,
-    name = "ResolverContextBinder",
-    module = "pxr.Ar"
-)]
+#[pyclass(skip_from_py_object, name = "ResolverContextBinder", module = "pxr.Ar")]
 pub struct PyResolverContextBinder {
     context: PyResolverContext,
     binder: Option<RustBinder>,
@@ -962,11 +956,7 @@ impl PyResolverContextBinder {
 /// Context manager for resolver caching scope.
 ///
 /// Mirrors `pxr.Ar.ResolverScopedCache`.
-#[pyclass(
-    skip_from_py_object,
-    name = "ResolverScopedCache",
-    module = "pxr.Ar"
-)]
+#[pyclass(skip_from_py_object, name = "ResolverScopedCache", module = "pxr.Ar")]
 pub struct PyResolverScopedCache {
     cache: Option<RustScopedCache>,
 }

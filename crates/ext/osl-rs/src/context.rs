@@ -839,7 +839,7 @@ pub struct ContextPool {
 
 impl ContextPool {
     pub fn new(num_threads: usize) -> Self {
-        let pool = (0..num_threads).map(|i| ShadingContext::new(i)).collect();
+        let pool = (0..num_threads).map(ShadingContext::new).collect();
         Self {
             pool,
             next_thread: 0,
