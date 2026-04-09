@@ -10,6 +10,18 @@ use usd_tf;
 
 use crate::tf::PyType;
 
+/// SDR parser plugin **Tf** type names used when `plugInfo.json` has not registered them (e.g. tests with
+/// `PXR_SDR_SKIP_PARSER_PLUGIN_DISCOVERY`). Matches C++ plugin class identifiers under `pxr/usd/plugin/sdr*/`.
+fn is_builtin_sdr_parser_plugin_type_name(name: &str) -> bool {
+    matches!(
+        name,
+        "SdrOslParserPlugin"
+            | "SdrArgsParserPlugin"
+            | "SdrGlslfxParserPlugin"
+            | "UsdShadeShaderDefParserPlugin"
+    )
+}
+
 // ============================================================================
 // Registry (PlugRegistry)
 // ============================================================================
@@ -66,19 +78,29 @@ impl PyPlugRegistry {
 
     /// Resolve a registered plugin implementation type by name (see `plugInfo.json` / TfType map).
     ///
-    /// Returns [`Tf.Type`] registered for `name`, or **unknown** if not found (truth-tested in tests).
+    /// Returns [`Tf.Type`] for `name`, or **`None`** if the type cannot be resolved (truth-tested in tests).
+    ///
+    /// When `plugInfo.json` has not registered a type (e.g. tests set `PXR_SDR_SKIP_PARSER_PLUGIN_DISCOVERY=1`),
+    /// built-in **SDR parser plugin** class names still resolve via `Tf` name-only declaration — parity with
+    /// OpenUSD tests that call `FindTypeByName("SdrOslParserPlugin")` before `Sdr.Registry().SetExtraParserPlugins([...])`.
     #[pyo3(name = "FindTypeByName")]
     fn find_type_by_name(&self, py: Python<'_>, name: &str) -> PyResult<Option<Py<PyType>>> {
         let reg = PlugRegistry::get_instance();
-        if reg.find_type_by_name(name).is_none() {
+        let inner = if reg.find_type_by_name(name).is_some() {
+            usd_tf::TfType::find_by_name(name)
+        } else if is_builtin_sdr_parser_plugin_type_name(name) {
+            usd_tf::declare_by_name(name)
+        } else {
+            let t = usd_tf::TfType::find_by_name(name);
+            if t.is_unknown() {
+                return Ok(None);
+            }
+            t
+        };
+        if inner.is_unknown() {
             return Ok(None);
         }
-        Ok(Some(Py::new(
-            py,
-            PyType {
-                inner: usd_tf::TfType::find_by_name(name),
-            },
-        )?))
+        Ok(Some(Py::new(py, PyType { inner })?))
     }
 
     fn __repr__(&self) -> &str {

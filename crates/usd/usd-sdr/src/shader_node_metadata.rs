@@ -323,7 +323,12 @@ impl SdrShaderNodeMetadata {
             return strings.into_iter().map(|s| Token::new(&s)).collect();
         }
         if let Some(s) = self.get_item_value_as::<String>(&tokens().node_metadata.open_pages) {
-            return s.split(',').map(|part| Token::new(part.trim())).collect();
+            // Matches `CreateStringFromStringVec` / `string_vec_val` — pipe-delimited.
+            return s
+                .split('|')
+                .filter(|part| !part.is_empty())
+                .map(|part| Token::new(part.trim()))
+                .collect();
         }
         Vec::new()
     }
@@ -398,7 +403,11 @@ impl SdrShaderNodeMetadata {
             return strings;
         }
         if let Some(s) = self.get_item_value_as::<String>(&tokens().node_metadata.primvars) {
-            return s.split(',').map(|part| part.trim().to_string()).collect();
+            return s
+                .split('|')
+                .filter(|p| !p.is_empty())
+                .map(|p| p.trim().to_string())
+                .collect();
         }
         Vec::new()
     }

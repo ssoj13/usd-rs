@@ -577,7 +577,18 @@ Imageable, Xformable, Xform, Boundable, Scope, Gprim, Mesh, Sphere, Cube, Cone, 
 
 **`GetType(property)`:** возвращает `Tf.Type`, сопоставляя SDF-тип свойства через `ValueTypeName::cpp_type_name()` и `TfType::find_by_name` (эквивалент Python: `property.GetTypeAsSdfType().GetSdfType().type`).
 
-**Проверка паритета:** после `maturin develop` прогнать тесты референса, которые импортируют `pxr.Sdr.shaderParserTestUtils`, например (пути от корня OpenUSD): `pxr/usd/plugin/sdrOsl/testenv/testOslParser.py`, `pxr/usd/usdShade/testenv/testUsdShadeShaderDef.py` (секции с `shaderParserTestUtils` / `TestShaderPropertiesNode*`). Локально: соответствующие тесты под `crates/usd-pyo3/tests/`, если перенесены.
+**Проверка паритета:** после `maturin develop` прогнать тесты референса, которые импортируют `pxr.Sdr.shaderParserTestUtils`, например (пути от корня OpenUSD): `pxr/usd/plugin/sdrOsl/testenv/testOslParser.py`, `pxr/usd/usdShade/testenv/testUsdShadeShaderDef.py` (секции с `shaderParserTestUtils` / `TestShaderPropertiesNode*`). Локально: `crates/usd-pyo3/tests/usd/plugin/sdrOsl/testOslParser.py` и т.д. (нужен `OPENUSD_SRC_ROOT`).
+
+**Сопутствующие правки порта (2026-04):**
+
+| Тема | Суть |
+|------|------|
+| `Plug.Registry.FindTypeByName` | Если тип не из `plugInfo.json`, для имён классов парсеров SDR (`SdrOslParserPlugin`, …) вызывается `Tf.declare_by_name` — иначе тесты с `PXR_SDR_SKIP_PARSER_PLUGIN_DISCOVERY=1` получают `None`. См. `crates/usd-pyo3/src/plug.rs`. |
+| `Sdr.NodeDiscoveryResult` | Как в OpenUSD Python: kwargs **`sourceCode`**, **`blindData`**, **`subIdentifier`** (camelCase), опциональные хвостовые аргументы позиционно. См. `sdr.rs`. |
+| `Sdr.Registry.GetShaderNodeByIdentifier` | Второй аргумент **`type_priority`** опционален (`None` по умолчанию), как в референсе. |
+| Реестр `usd_sdr` | Тип обнаружения **`oso`** обслуживает **`osl_parser::OslParserPlugin`** (байткод `.oso`); JSON **`.sdrOsl`** — только **`sdrosl_parser::SdrOslParserPlugin`** (раньше `oso` дублировался JSON-плагином, узел не парсился). `SetExtraParserPlugins` вставляет тот же **`OslParserPlugin`**, что и C++ OSL parser. |
+
+**Остаётся:** `testOslParser.py` может ещё падать на тонком паритете метаданных / `Tf.Type` для строк и т.д. относительно эталонного OSL — это уже **`usd_sdr` + osl-rs**, не модуль `shaderParserTestUtils`.
 
 ---
 

@@ -149,7 +149,10 @@ fn meta_constants_group_len(cls: &Bound<'_, PyAny>) -> PyResult<usize> {
 
 #[pyfunction]
 #[pyo3(name = "meta_constants_group_contains")]
-fn meta_constants_group_contains(cls: &Bound<'_, PyAny>, value: &Bound<'_, PyAny>) -> PyResult<bool> {
+fn meta_constants_group_contains(
+    cls: &Bound<'_, PyAny>,
+    value: &Bound<'_, PyAny>,
+) -> PyResult<bool> {
     let _all = cls.getattr("_all")?;
     Ok(_all.contains(value)?)
 }
@@ -184,12 +187,24 @@ pub fn register_constants_group(py: Python<'_>, cg_mod: &Bound<'_, PyModule>) ->
     let type_obj = builtins.getattr("type")?;
     let object = builtins.getattr("object")?;
 
-    let f_meta_new: Py<PyAny> = wrap_pyfunction!(meta_constants_group_new, cg_mod)?.into_any().unbind();
-    let f_setattr: Py<PyAny> = wrap_pyfunction!(meta_constants_group_setattr, cg_mod)?.into_any().unbind();
-    let f_delattr: Py<PyAny> = wrap_pyfunction!(meta_constants_group_delattr, cg_mod)?.into_any().unbind();
-    let f_len: Py<PyAny> = wrap_pyfunction!(meta_constants_group_len, cg_mod)?.into_any().unbind();
-    let f_contains: Py<PyAny> = wrap_pyfunction!(meta_constants_group_contains, cg_mod)?.into_any().unbind();
-    let f_iter: Py<PyAny> = wrap_pyfunction!(meta_constants_group_iter, cg_mod)?.into_any().unbind();
+    let f_meta_new: Py<PyAny> = wrap_pyfunction!(meta_constants_group_new, cg_mod)?
+        .into_any()
+        .unbind();
+    let f_setattr: Py<PyAny> = wrap_pyfunction!(meta_constants_group_setattr, cg_mod)?
+        .into_any()
+        .unbind();
+    let f_delattr: Py<PyAny> = wrap_pyfunction!(meta_constants_group_delattr, cg_mod)?
+        .into_any()
+        .unbind();
+    let f_len: Py<PyAny> = wrap_pyfunction!(meta_constants_group_len, cg_mod)?
+        .into_any()
+        .unbind();
+    let f_contains: Py<PyAny> = wrap_pyfunction!(meta_constants_group_contains, cg_mod)?
+        .into_any()
+        .unbind();
+    let f_iter: Py<PyAny> = wrap_pyfunction!(meta_constants_group_iter, cg_mod)?
+        .into_any()
+        .unbind();
 
     let exec_meta = PyCFunction::new_closure(
         py,
@@ -200,21 +215,36 @@ pub fn register_constants_group(py: Python<'_>, cg_mod: &Bound<'_, PyModule>) ->
             let ns_any = args.get_item(0)?;
             let ns = ns_any.cast::<PyDict>()?;
             ns.set_item("__new__", f_meta_new.clone_ref(py))?;
-            let d_setattr = Py::new(py, PyDunderBindingDescr {
-                inner: f_setattr.clone_ref(py),
-            })?;
-            let d_delattr = Py::new(py, PyDunderBindingDescr {
-                inner: f_delattr.clone_ref(py),
-            })?;
-            let d_len = Py::new(py, PyDunderBindingDescr {
-                inner: f_len.clone_ref(py),
-            })?;
-            let d_contains = Py::new(py, PyDunderBindingDescr {
-                inner: f_contains.clone_ref(py),
-            })?;
-            let d_iter = Py::new(py, PyDunderBindingDescr {
-                inner: f_iter.clone_ref(py),
-            })?;
+            let d_setattr = Py::new(
+                py,
+                PyDunderBindingDescr {
+                    inner: f_setattr.clone_ref(py),
+                },
+            )?;
+            let d_delattr = Py::new(
+                py,
+                PyDunderBindingDescr {
+                    inner: f_delattr.clone_ref(py),
+                },
+            )?;
+            let d_len = Py::new(
+                py,
+                PyDunderBindingDescr {
+                    inner: f_len.clone_ref(py),
+                },
+            )?;
+            let d_contains = Py::new(
+                py,
+                PyDunderBindingDescr {
+                    inner: f_contains.clone_ref(py),
+                },
+            )?;
+            let d_iter = Py::new(
+                py,
+                PyDunderBindingDescr {
+                    inner: f_iter.clone_ref(py),
+                },
+            )?;
             ns.set_item("__setattr__", d_setattr)?;
             ns.set_item("__delattr__", d_delattr)?;
             ns.set_item("__len__", d_len)?;
@@ -227,16 +257,13 @@ pub fn register_constants_group(py: Python<'_>, cg_mod: &Bound<'_, PyModule>) ->
     let bases_meta = PyTuple::new(py, [type_obj])?;
     let kwds_none = PyDict::new(py);
     let meta = new_class.call(
-        (
-            "_MetaConstantsGroup",
-            bases_meta,
-            kwds_none,
-            exec_meta,
-        ),
+        ("_MetaConstantsGroup", bases_meta, kwds_none, exec_meta),
         None,
     )?;
 
-    let f_cg_new: Py<PyAny> = wrap_pyfunction!(constants_group_instance_new, cg_mod)?.into_any().unbind();
+    let f_cg_new: Py<PyAny> = wrap_pyfunction!(constants_group_instance_new, cg_mod)?
+        .into_any()
+        .unbind();
     let exec_cg = PyCFunction::new_closure(
         py,
         None,
@@ -257,15 +284,7 @@ pub fn register_constants_group(py: Python<'_>, cg_mod: &Bound<'_, PyModule>) ->
     let bases_cg = PyTuple::new(py, [object])?;
     let kwds = PyDict::new(py);
     kwds.set_item("metaclass", &meta)?;
-    let cg = new_class.call(
-        (
-            "ConstantsGroup",
-            bases_cg,
-            kwds,
-            exec_cg,
-        ),
-        None,
-    )?;
+    let cg = new_class.call(("ConstantsGroup", bases_cg, kwds, exec_cg), None)?;
 
     cg_mod.setattr("_MetaConstantsGroup", meta)?;
     cg_mod.setattr("ConstantsGroup", cg)?;

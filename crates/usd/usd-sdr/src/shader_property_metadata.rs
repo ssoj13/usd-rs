@@ -15,6 +15,21 @@ use std::collections::HashMap;
 use usd_tf::Token;
 use usd_vt::Value;
 
+/// Parses bool-like legacy strings from shader parsers (`"1"`/`"0"`, etc.).
+/// Matches OpenUSD `SdrShaderPropertyMetadata` legacy ingestion (`"1"` is true).
+fn parse_legacy_bool_str(s: &str) -> Option<bool> {
+    let t = s.trim();
+    if t.is_empty() {
+        return None;
+    }
+    let lower = t.to_ascii_lowercase();
+    match lower.as_str() {
+        "1" | "true" | "t" | "yes" => Some(true),
+        "0" | "false" | "f" | "no" => Some(false),
+        _ => t.parse().ok(),
+    }
+}
+
 /// Metadata container for shader properties.
 ///
 /// Contains both generic key-value metadata and named metadata with
@@ -280,9 +295,8 @@ impl SdrShaderPropertyMetadata {
     pub fn get_is_dynamic_array(&self) -> bool {
         self.get_item_value_as::<bool>(&tokens().property_metadata.is_dynamic_array)
             .or_else(|| {
-                // Try parsing from string
                 self.get_item_value_as::<String>(&tokens().property_metadata.is_dynamic_array)
-                    .and_then(|s| s.parse().ok())
+                    .and_then(|s| parse_legacy_bool_str(&s))
             })
             .unwrap_or(false)
     }
@@ -347,7 +361,7 @@ impl SdrShaderPropertyMetadata {
         self.get_item_value_as::<bool>(&tokens().property_metadata.connectable)
             .or_else(|| {
                 self.get_item_value_as::<String>(&tokens().property_metadata.connectable)
-                    .and_then(|s| s.parse().ok())
+                    .and_then(|s| parse_legacy_bool_str(&s))
             })
             .unwrap_or(true) // Default is connectable
     }
@@ -443,13 +457,23 @@ impl SdrShaderPropertyMetadata {
     }
 
     /// Gets the isAssetIdentifier metadata value.
+    ///
+    /// The OSL parser sets `__SDR__isAssetIdentifier` to an **empty** string as a
+    /// presence flag (OpenUSD `inject_parser_metadata`); treat that as `true`.
     pub fn get_is_asset_identifier(&self) -> bool {
-        self.get_item_value_as::<bool>(&tokens().property_metadata.is_asset_identifier)
-            .or_else(|| {
-                self.get_item_value_as::<String>(&tokens().property_metadata.is_asset_identifier)
-                    .and_then(|s| s.parse().ok())
-            })
-            .unwrap_or(false)
+        if !self.has_is_asset_identifier() {
+            return false;
+        }
+        if let Some(b) = self.get_item_value_as::<bool>(&tokens().property_metadata.is_asset_identifier) {
+            return b;
+        }
+        if let Some(s) = self.get_item_value_as::<String>(&tokens().property_metadata.is_asset_identifier) {
+            if s.is_empty() {
+                return true;
+            }
+            return parse_legacy_bool_str(&s).unwrap_or(false);
+        }
+        true
     }
 
     /// Sets the isAssetIdentifier metadata value.

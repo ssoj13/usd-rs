@@ -118,17 +118,23 @@ impl SdrRegistry {
     /// Called automatically during registry initialization.
     /// Registers:
     /// - `SdrArgsParserPlugin` for .args files (RenderMan)
-    /// - `SdrOslParserPlugin` for .sdrOsl/.oso files (OSL JSON)
+    /// - `OslParserPlugin` (`osl_parser`) for compiled `.oso` OSL bytecode
+    /// - `SdrOslParserPlugin` (`sdrosl_parser`) for JSON `.sdrOsl` definitions only
     /// - `UsdShadersParserPlugin` for built-in USD shaders
     fn register_default_parsers(&self) {
         use super::args_parser::SdrArgsParserPlugin;
+        use super::osl_parser::OslParserPlugin;
         use super::sdrosl_parser::SdrOslParserPlugin;
         use super::usd_shaders::UsdShadersParserPlugin;
 
         // RenderMan Args parser (.args files)
         self.register_parser_plugin(Box::new(SdrArgsParserPlugin::new()));
 
-        // SdrOsl JSON parser (.sdrOsl, .oso files)
+        // Compiled .oso shaders (C++ `SdrOslParserPlugin` / oslParser.cpp) — register before JSON sdrOsl
+        // so discovery type `oso` maps to bytecode parsing, not JSON.
+        self.register_parser_plugin(Box::new(OslParserPlugin::new()));
+
+        // JSON .sdrOsl shader definitions (no `oso` — see `sdrosl_parser`)
         self.register_parser_plugin(Box::new(SdrOslParserPlugin::new()));
 
         // Built-in USD shaders (UsdPreviewSurface, UsdUVTexture, etc.)

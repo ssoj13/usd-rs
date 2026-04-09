@@ -6,6 +6,7 @@
 //!
 //! This mirrors the C++ `OSLQuery` class API.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::path::Path;
 
@@ -197,6 +198,12 @@ impl OslQuery {
         self.shader_type = oso.shader_type;
         self.shader_type_name = UString::new(oso.shader_type.name());
 
+        self.metadata = oso
+            .shader_metadata
+            .iter()
+            .map(|(mtype, mname, mval)| parameter_from_shader_meta_triple(mtype, mname, mval))
+            .collect();
+
         for sym in &oso.symbols {
             match sym.symtype {
                 SymType::Param | SymType::OutputParam => {
@@ -220,8 +227,23 @@ impl OslQuery {
                         p.fields = sym.fields.iter().map(|s| UString::new(s)).collect();
                     }
 
-                    // Wire parsed hints as metadata
-                    p.metadata = parse_hints_as_metadata(&sym.hints);
+                    // Wire parsed hints as metadata; merge structured `%meta` triples from oso
+                    // (see `parse_symbol_line`) without duplicating names already parsed from hints.
+                    let mut meta_params = parse_hints_as_metadata(&sym.hints);
+                    let mut seen: HashSet<String> = meta_params
+                        .iter()
+                        .map(|p| p.name.as_str().to_string())
+                        .collect();
+                    for (mtype, mname, mval) in &sym.metadata {
+                        if seen.insert(mname.clone()) {
+                            meta_params.push(parameter_from_shader_meta_triple(
+                                mtype.as_str(),
+                                mname.as_str(),
+                                mval.as_str(),
+                            ));
+                        }
+                    }
+                    p.metadata = meta_params;
 
                     self.params.push(p);
                 }
@@ -231,6 +253,32 @@ impl OslQuery {
 
         true
     }
+}
+
+/// Build a [`Parameter`] from a `%meta{type,name,value}` triple on the shader declaration line.
+fn parameter_from_shader_meta_triple(mtype: &str, mname: &str, mval: &str) -> Parameter {
+    let mut mp = Parameter::new();
+    mp.name = UString::new(mname);
+    mp.type_desc = parse_meta_type(mtype);
+    match mtype {
+        "int" => {
+            if let Ok(v) = mval.parse::<i32>() {
+                mp.idefault.push(v);
+                mp.valid_default = true;
+            }
+        }
+        "float" => {
+            if let Ok(v) = mval.parse::<f32>() {
+                mp.fdefault.push(v);
+                mp.valid_default = true;
+            }
+        }
+        _ => {
+            mp.sdefault.push(UString::new(mval));
+            mp.valid_default = true;
+        }
+    }
+    mp
 }
 
 impl Default for OslQuery {
@@ -435,6 +483,26 @@ end
         assert_eq!(p.fdefault, vec![0.5]);
 
         assert!(q.getparam_by_name("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_shader_declaration_metadata() {
+        let oso = r#"OpenShadingLanguage 1.00
+shader TestNodeOSL %meta{string,category,"testing"} %meta{string,label,"TestNodeLabel"} %meta{string,primvars,"a|b|c"}
+param float Kd 0.5
+code ___main___
+	end
+end
+"#;
+        let mut q = OslQuery::new();
+        assert!(q.open_bytecode(oso));
+        let meta = q.metadata();
+        let labels: Vec<&str> = meta.iter().map(|p| p.name.as_str()).collect();
+        assert!(labels.contains(&"label"));
+        assert!(labels.contains(&"primvars"));
+        let label = meta.iter().find(|p| p.name.as_str() == "label").unwrap();
+        assert_eq!(label.sdefault.len(), 1);
+        assert_eq!(label.sdefault[0].as_str(), "TestNodeLabel");
     }
 
     #[test]

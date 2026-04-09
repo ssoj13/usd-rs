@@ -18,6 +18,7 @@
 
 ## Последнее обновление
 
+- **2026-04-09 (ё):** **Sdr / Plug / реестр:** `FindTypeByName` — встроенные имена парсеров через `Tf::declare_by_name`; **`oso` → `OslParserPlugin`**, **`sdrOsl` → JSON** (`sdrosl_parser` без дубля `oso`); `NodeDiscoveryResult` / `GetShaderNodeByIdentifier` — паритет kwargs и optional `type_priority`. Прогон: `pytest .../testOslParser.py` при `OPENUSD_SRC_ROOT` — setup проходит; полный зелёный паритет с upstream OSL может требовать доработок **osl-rs / метаданных** (см. **DEVIATIONS §21** хвост).
 - **2026-04-09 (е):** **`Sdr.shaderParserTestUtils`:** реализация в Rust, политика одного `.pyd`; документация **PYTHON_API_DEVIATIONS G4 / §21**, **PYTHON_API_PARITY** (инвариант 5, журнал, очередь). `cargo check -p usd-pyo3`; pytest по парсерам — при наличии тестов / `OPENUSD` дерева.
 - **2026-04-09 (д):** **`UsdGeom.NurbsCurves`:** `GetPointWeightsAttr` / `CreatePointWeightsAttr`; kwargs на Order/Knots/Ranges; делегаты **`Curves`**; **`GetSchemaAttributeNames`**. **`UsdGeom.HermiteCurves`:** делегаты **`Curves`**; kwargs **`CreateTangentsAttr`**; **`GetSchemaAttributeNames`**. **`UsdGeom.Sphere`:** **`GetExtentAttr`** / **`CreateExtentAttr`**; kwargs radius/extent; **`GetSchemaAttributeNames`**.
 - **2026-04-09 (г):** **`UsdGeom.Mesh`** (`wrapMesh.cpp`): kwargs на **Create** для топологии / subdiv / creases / PointBased vel·norm·accel; **`GetFaceCount(time)`**; **`SHARPNESS_INFINITE`** как class attr.

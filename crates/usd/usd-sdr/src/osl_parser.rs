@@ -11,11 +11,12 @@
 //! - Pure Rust, no C/C++ dependencies
 //! - Interfaces and API match the C++ `SdrOslParserPlugin` exactly
 
-use super::declare::{SdrOptionVec, SdrTokenMap, SdrTokenVec};
+use super::declare::{SdrOptionVec, SdrStringVec, SdrTokenMap, SdrTokenVec};
 use super::discovery_result::SdrShaderNodeDiscoveryResult;
 use super::parser_plugin::{SdrParserPlugin, get_invalid_shader_node};
 use super::shader_metadata_helpers::{
-    is_property_a_terminal, is_property_an_asset_identifier, is_truthy, option_vec_val,
+    create_string_from_string_vec, is_property_a_terminal, is_property_an_asset_identifier,
+    is_truthy, option_vec_val,
 };
 use super::shader_node::{SdrShaderNode, SdrShaderNodeUniquePtr};
 use super::shader_property::SdrShaderProperty;
@@ -26,6 +27,8 @@ use usd_tf::Token;
 use usd_vt::Value;
 
 use osl_rs::oslquery::{OslQuery, Parameter as OslParameter};
+use osl_rs::{Aggregate, BaseType, VecSemantics};
+use std::collections::BTreeMap;
 
 // ---------------------------------------------------------------------------
 // Private tokens (matches C++ TF_DEFINE_PRIVATE_TOKENS)
@@ -33,7 +36,6 @@ use osl_rs::oslquery::{OslQuery, Parameter as OslParameter};
 
 /// Tokens local to the OSL parser plugin.
 /// Matches `_tokens` in the C++ `oslParser.cpp`.
-#[allow(dead_code)] // C++ parity: all fields present; page_open_str/open_str reserved for future use
 struct OslParserTokens {
     array_size: &'static str,
     page_str: &'static str,
@@ -340,6 +342,9 @@ impl OslParserPlugin {
 
     /// Gets a common type + array size (if array) from the OSL parameter.
     /// Matches C++ `_getTypeName`.
+    ///
+    /// Uses the binary `TypeDesc` (OIIO layout), not `Display` stringification:
+    /// arrays of `color` must keep the element semantic (`color[2]`, not `float`).
     fn get_type_name(&self, param: &OslParameter, metadata: &SdrTokenMap) -> (Token, usize) {
         let prop_types = &tokens().property_types;
 
@@ -353,24 +358,41 @@ impl OslParserPlugin {
             return (prop_types.terminal.clone(), 0);
         }
 
-        // Get the OSL type string (e.g., "color", "float", "int[3]")
-        let mut type_name = param.type_desc.to_string();
-        let mut array_size: usize = 0;
+        let td = &param.type_desc;
+        let array_size = if td.arraylen > 0 {
+            td.arraylen as usize
+        } else {
+            0
+        };
 
-        // Check for array syntax: "color[3]"
-        if let Some(bracket_pos) = type_name.find('[') {
-            // Try to parse the array size
-            let after_bracket = &type_name[bracket_pos + 1..];
-            if let Some(end_bracket) = after_bracket.find(']') {
-                let size_str = &after_bracket[..end_bracket];
-                array_size = size_str.parse().unwrap_or(0);
-                // Dynamic arrays like "color[]" will have array_size == 0;
-                // they NEED isDynamicArray metadata set to 1
+        // Strip array: `color[2]` → element type `color` + array_size 2
+        let elem = td.elementtype();
+        let bt = elem.base_type();
+        let ag = elem.agg();
+        let vs = elem.vec_semantics();
+
+        let type_name = match (bt, ag, vs) {
+            (BaseType::Int32, Aggregate::Scalar, _) => prop_types.int.clone(),
+            (BaseType::String, Aggregate::Scalar, _) => prop_types.string.clone(),
+            (BaseType::Float, Aggregate::Scalar, _) => prop_types.float.clone(),
+            (BaseType::Double, Aggregate::Scalar, _) => prop_types.float.clone(),
+            (BaseType::Float, Aggregate::Vec3, VecSemantics::Color) => prop_types.color.clone(),
+            (BaseType::Float, Aggregate::Vec3, VecSemantics::Point) => prop_types.point.clone(),
+            (BaseType::Float, Aggregate::Vec3, VecSemantics::Normal) => prop_types.normal.clone(),
+            (BaseType::Float, Aggregate::Vec3, VecSemantics::Vector) => prop_types.vector.clone(),
+            (BaseType::Float, Aggregate::Matrix44, VecSemantics::NoXform) => {
+                prop_types.matrix.clone()
             }
-            type_name = type_name[..bracket_pos].to_string();
-        }
+            (BaseType::Float, Aggregate::Matrix33, VecSemantics::NoXform) => {
+                prop_types.matrix.clone()
+            }
+            _ => {
+                // Unusual OSL aggregates (e.g. half); keep a stable fallback.
+                prop_types.float.clone()
+            }
+        };
 
-        (Token::new(&type_name), array_size)
+        (type_name, array_size)
     }
 
     // -----------------------------------------------------------------------
@@ -531,7 +553,7 @@ impl SdrParserPlugin for OslParserPlugin {
         }
 
         // The sdrDefinitionNameFallbackPrefix is found in the node metadata.
-        let metadata = self.get_node_metadata(&osl_query, &discovery_result.metadata);
+        let mut metadata = self.get_node_metadata(&osl_query, &discovery_result.metadata);
         let fallback_prefix = metadata
             .get(&Token::new(TOKENS.sdr_definition_name_fallback_prefix))
             .cloned()
@@ -540,7 +562,14 @@ impl SdrParserPlugin for OslParserPlugin {
         // Generate properties
         let properties = self.get_node_properties(&osl_query, discovery_result, &fallback_prefix);
 
-        // Determine context
+        // Populate open pages from property metadata (matches C++ `_GetOpenPages`).
+        let open_pages = get_open_pages_from_properties(&properties);
+        if !open_pages.is_empty() {
+            let nm = tokens().node_metadata.open_pages.clone();
+            metadata.insert(nm, create_string_from_string_vec(&open_pages));
+        }
+
+        // Determine context (C++ `_setSdrContext` runs after open pages are merged).
         let context = self.get_sdr_context_from_schema_base(&metadata);
 
         let node_metadata =
@@ -594,26 +623,72 @@ fn get_param_as_string(param: &OslParameter) -> String {
 /// Returns the set of standard SDR property metadata keys.
 /// Used to filter non-standard keys into hints.
 fn get_standard_property_metadata_keys() -> Vec<String> {
-    // Matches SdrPropertyMetadata->allTokens from C++
+    // Matches `SDR_PROPERTY_METADATA_TOKENS` / `SdrPropertyMetadata->allTokens` (OpenUSD).
     vec![
-        "options".into(),
-        "page".into(),
-        "help".into(),
         "label".into(),
+        "help".into(),
+        "page".into(),
+        "renderType".into(),
+        "role".into(),
         "widget".into(),
-        "connectable".into(),
+        "hints".into(),
+        "options".into(),
         "isDynamicArray".into(),
+        "tupleSize".into(),
+        "connectable".into(),
+        "tag".into(),
+        "shownIf".into(),
+        "validConnectionTypes".into(),
         "vstructMemberOf".into(),
         "vstructMemberName".into(),
         "vstructConditionalExpr".into(),
-        "validConnectionTypes".into(),
         "__SDR__isAssetIdentifier".into(),
         "__SDR__implementationName".into(),
+        "sdrUsdDefinitionType".into(),
         "__SDR__defaultinput".into(),
         "__SDR__target".into(),
         "__SDR__colorspace".into(),
-        "sdrUsdDefinitionType".into(),
     ]
+}
+
+/// Extract open pages from parameter metadata (matches C++ `_GetOpenPages`).
+fn get_open_pages_from_properties(properties: &[Box<SdrShaderProperty>]) -> SdrStringVec {
+    let page_tok = Token::new(TOKENS.page_str);
+    let open_tok = Token::new(TOKENS.open_str);
+    let page_open_tok = Token::new(TOKENS.page_open_str);
+
+    let mut open_status_map: BTreeMap<String, bool> = BTreeMap::new();
+
+    for prop in properties {
+        let metadata = prop.get_metadata();
+        let mut page: Option<String> = None;
+        let mut open_state: Option<bool> = None;
+
+        let mut keys: Vec<&Token> = metadata.keys().collect();
+        keys.sort_by_key(|k| k.as_str());
+
+        for key in keys {
+            if *key == page_tok {
+                page = metadata.get(key).cloned();
+            } else if *key == open_tok {
+                open_state = Some(is_truthy(&open_tok, metadata));
+            } else if *key == page_open_tok {
+                open_state = Some(is_truthy(&page_open_tok, metadata));
+            }
+        }
+
+        if let (Some(page), Some(open_st)) = (page, open_state) {
+            open_status_map
+                .entry(page)
+                .and_modify(|st| *st &= open_st)
+                .or_insert(open_st);
+        }
+    }
+
+    open_status_map
+        .into_iter()
+        .filter_map(|(name, open)| if open { Some(name) } else { None })
+        .collect()
 }
 
 #[cfg(test)]

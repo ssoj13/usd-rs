@@ -155,8 +155,8 @@ pub fn is_property_an_asset_identifier(metadata: &SdrTokenMap) -> bool {
     if let Some(widget) = metadata.get(&tokens().property_metadata.widget) {
         let widget_lower = widget.to_lowercase();
         return widget_lower == WIDGET_FILENAME
-            || widget_lower == WIDGET_FILE_INPUT
-            || widget_lower == WIDGET_ASSET_ID_INPUT;
+            || widget_lower == WIDGET_FILE_INPUT.to_lowercase()
+            || widget_lower == WIDGET_ASSET_ID_INPUT.to_lowercase();
     }
     false
 }

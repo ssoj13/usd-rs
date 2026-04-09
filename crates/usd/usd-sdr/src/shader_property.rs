@@ -12,6 +12,7 @@
 
 use super::declare::{SdrOptionVec, SdrTokenMap, SdrTokenVec};
 use super::sdf_type_indicator::SdrSdfTypeIndicator;
+use super::shader_metadata_helpers::get_role_from_metadata;
 use super::shader_property_metadata::SdrShaderPropertyMetadata;
 use super::tokens::tokens;
 use usd_tf::Token;
@@ -133,7 +134,14 @@ impl SdrShaderProperty {
             .map(|s| Token::new(&s))
             .unwrap_or_default();
 
-        let legacy_metadata = metadata.encode_legacy_metadata();
+        let mut legacy_metadata = metadata.encode_legacy_metadata();
+        // OpenUSD `shaderParserTestUtils`: `GetMetadata()` must include the same
+        // string keys as the legacy named-metadata map, while non-standard keys
+        // also remain in `GetHints()`. C++ effectively surfaces hint keys on the
+        // deprecated `GetMetadata()` map for string-valued entries.
+        for (k, v) in &hints {
+            legacy_metadata.insert(k.clone(), v.clone());
+        }
 
         Self {
             name,
@@ -171,12 +179,13 @@ impl SdrShaderProperty {
         array_size: usize,
         metadata: &SdrShaderPropertyMetadata,
     ) -> (Token, usize) {
-        let role = metadata.get_role();
-        if prop_type.as_str().is_empty() || role.is_empty() {
+        // Matches C++ `GetRoleFromMetadata` + `_ConvertSdrPropertyTypeAndArraySize`:
+        // conversion runs only when role metadata exists and is a valid token.
+        let role_tok = get_role_from_metadata(metadata);
+        if prop_type.as_str().is_empty() || role_tok.is_empty() {
             return (prop_type, array_size);
         }
 
-        let role_tok = Token::new(&role);
         let types = &tokens().property_types;
         let roles = &tokens().property_role;
 

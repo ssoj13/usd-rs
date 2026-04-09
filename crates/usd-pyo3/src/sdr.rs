@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use usd_tf::Token;
 
 use usd_sdr::declare::SdrIdentifier;
+use usd_sdr::osl_parser::OslParserPlugin;
 use usd_sdr::parser_plugin::SdrParserPluginRef;
-use usd_sdr::sdrosl_parser::SdrOslParserPlugin;
 use usd_sdr::shader_node::SdrShaderNode;
 use usd_sdr::shader_property::SdrShaderProperty;
 use usd_sdr::tokens;
@@ -57,6 +57,7 @@ pub struct PyNodeDiscoveryResult {
 #[pymethods]
 impl PyNodeDiscoveryResult {
     #[new]
+    #[allow(non_snake_case)]
     #[pyo3(
         signature = (
             identifier,
@@ -67,11 +68,10 @@ impl PyNodeDiscoveryResult {
             source_type,
             uri,
             resolved_uri,
-            *,
-            source_code = None,
+            sourceCode = None,
             metadata = None,
-            blind_data = None,
-            sub_identifier = None,
+            blindData = None,
+            subIdentifier = None,
         )
     )]
     #[allow(clippy::too_many_arguments)]
@@ -84,10 +84,10 @@ impl PyNodeDiscoveryResult {
         source_type: &str,
         uri: &str,
         resolved_uri: &str,
-        source_code: Option<&str>,
+        sourceCode: Option<&str>,
         metadata: Option<HashMap<String, String>>,
-        blind_data: Option<&str>,
-        sub_identifier: Option<&str>,
+        blindData: Option<&str>,
+        subIdentifier: Option<&str>,
     ) -> PyResult<Self> {
         let mut meta: HashMap<Token, String> = HashMap::new();
         if let Some(m) = metadata {
@@ -104,10 +104,10 @@ impl PyNodeDiscoveryResult {
             Token::new(source_type),
             uri.to_string(),
             resolved_uri.to_string(),
-            source_code.unwrap_or("").to_string(),
+            sourceCode.unwrap_or("").to_string(),
             meta,
-            blind_data.unwrap_or("").to_string(),
-            Token::new(sub_identifier.unwrap_or("")),
+            blindData.unwrap_or("").to_string(),
+            Token::new(subIdentifier.unwrap_or("")),
         );
         Ok(Self { inner })
     }
@@ -332,9 +332,8 @@ impl PyShaderNode {
 
     #[pyo3(name = "GetFunction")]
     fn get_function(&self) -> String {
-        // C++ `SdrShaderNode::GetFunction` — entry point in the shader source; aligns with
-        // `get_implementation_name()` in `usd_sdr` (see `shader_node.rs`).
-        self.inner.get_implementation_name()
+        // C++ `SdrShaderNode::GetFunction` / `_function` — from discovery `function` (Rust: `family`).
+        self.inner.get_family().as_str().to_string()
     }
 
     #[pyo3(name = "GetResolvedDefinitionURI")]
@@ -499,7 +498,7 @@ impl PySdrRegistry {
             if let Ok(pyty) = item.cast::<PyType>() {
                 let name = pyty.borrow().inner.type_name();
                 if name.contains("SdrOslParserPlugin") || name.contains("OslParser") {
-                    out.push(Box::new(SdrOslParserPlugin::new()) as SdrParserPluginRef);
+                    out.push(Box::new(OslParserPlugin::new()) as SdrParserPluginRef);
                 }
             }
         }
@@ -510,6 +509,7 @@ impl PySdrRegistry {
     }
 
     #[pyo3(name = "GetShaderNodeByIdentifier")]
+    #[pyo3(signature = (id, type_priority = None))]
     fn get_shader_node_by_identifier(
         &self,
         py: Python<'_>,

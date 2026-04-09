@@ -45,6 +45,8 @@ pub struct OsoFile {
     pub instructions: Vec<OsoInstruction>,
     /// Code section markers.
     pub code_markers: Vec<(i32, String)>,
+    /// Shader-level `%meta{type,name,value}` from the `shader` / `surface` / … declaration line.
+    pub shader_metadata: Vec<(String, String, String)>,
 }
 
 /// A symbol as declared in the .oso file.
@@ -147,6 +149,7 @@ pub fn read_oso<R: BufRead>(reader: R) -> Result<OsoFile, OsoError> {
         symbols: Vec::new(),
         instructions: Vec::new(),
         code_markers: Vec::new(),
+        shader_metadata: Vec::new(),
     };
 
     // First line: version (skip empty/comment lines)
@@ -231,13 +234,35 @@ fn parse_version(line: &str, oso: &mut OsoFile) -> Result<(), OsoError> {
 }
 
 fn parse_shader_decl(line: &str, oso: &mut OsoFile) -> Result<(), OsoError> {
-    // "surface my_shader" or "shader my_shader"
-    let parts: Vec<&str> = line.split_whitespace().collect();
-    if parts.len() < 2 {
+    // "shader MyName %meta{string,label,...} ..." — use the same tokenizer as symbol lines
+    // so `%meta{...}` survives (quoted values, commas inside braces).
+    let tokens: Vec<&str> = tokenize_oso_line(line);
+    if tokens.len() < 2 {
         return Err(OsoError::InvalidShaderType(line.to_string()));
     }
-    oso.shader_type = ShaderType::from_name(parts[0]);
-    oso.shader_name = parts[1].to_string();
+    oso.shader_type = ShaderType::from_name(tokens[0]);
+    oso.shader_name = tokens[1].to_string();
+
+    let mut i = 2usize;
+    while i < tokens.len() {
+        let tok = tokens[i];
+        if tok.starts_with('%') {
+            if let Some(inner) = strip_hint_braces(tok, "%meta") {
+                let parts: Vec<&str> = inner.splitn(3, ',').collect();
+                if parts.len() == 3 {
+                    let mtype = parts[0].trim();
+                    let mname = parts[1].trim();
+                    let mval = parts[2].trim().trim_matches('"');
+                    oso.shader_metadata.push((
+                        mtype.to_string(),
+                        mname.to_string(),
+                        mval.to_string(),
+                    ));
+                }
+            }
+        }
+        i += 1;
+    }
     Ok(())
 }
 
@@ -270,6 +295,8 @@ fn parse_type_string(s: &str) -> TypeSpec {
         "normal" => TypeDesc::NORMAL,
         "matrix" => TypeDesc::MATRIX,
         "void" => TypeDesc::NONE,
+        // Placeholder for `param struct StructName paramName` — full struct typing comes from hints.
+        "struct" => TypeDesc::UNKNOWN,
         _ => TypeDesc::UNKNOWN,
     };
 
@@ -312,12 +339,28 @@ fn parse_symbol_line(line: &str, oso: &mut OsoFile) -> Result<(), OsoError> {
         None => return Ok(()), // Not a symbol line, skip
     };
 
-    if tokens.len() < 3 {
-        return Err(OsoError::InvalidSymbol(line.to_string()));
-    }
-
-    let typespec = parse_type_string(tokens[1]);
-    let name = tokens[2].to_string();
+    // `param struct MyStruct myParam`  →  symtype, "struct", struct name, param name, ...
+    let (typespec, name, structname, is_struct, mut i) =
+        if tokens.len() >= 4 && tokens[1] == "struct" {
+            (
+                parse_type_string("struct"),
+                tokens[3].to_string(),
+                tokens[2].to_string(),
+                true,
+                4usize,
+            )
+        } else {
+            if tokens.len() < 3 {
+                return Err(OsoError::InvalidSymbol(line.to_string()));
+            }
+            (
+                parse_type_string(tokens[1]),
+                tokens[2].to_string(),
+                String::new(),
+                false,
+                3usize,
+            )
+        };
 
     let mut sym = OsoSymbol {
         symtype,
@@ -327,8 +370,8 @@ fn parse_symbol_line(line: &str, oso: &mut OsoFile) -> Result<(), OsoError> {
         fdefault: Vec::new(),
         sdefault: Vec::new(),
         hints: Vec::new(),
-        is_struct: false,
-        structname: String::new(),
+        is_struct,
+        structname,
         fields: Vec::new(),
         lockgeom: None,
         metadata: Vec::new(),
@@ -342,7 +385,6 @@ fn parse_symbol_line(line: &str, oso: &mut OsoFile) -> Result<(), OsoError> {
     let is_string_type = sym.typespec.is_string_based();
 
     // Parse remaining tokens as defaults and hints
-    let mut i = 3;
     while i < tokens.len() {
         let tok = tokens[i];
         if tok.starts_with('%') {

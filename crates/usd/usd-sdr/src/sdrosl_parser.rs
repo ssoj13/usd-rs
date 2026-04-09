@@ -78,10 +78,9 @@ impl SdrOslParserPlugin {
     /// Creates a new SdrOsl parser plugin.
     pub fn new() -> Self {
         Self {
-            discovery_types: vec![
-                Token::new(SDROSL_DISCOVERY_TYPE),
-                Token::new(SDROSL_DISCOVERY_TYPE_ALT),
-            ],
+            // Only JSON `.sdrOsl` — compiled `.oso` bytecode is handled by `osl_parser::OslParserPlugin`
+            // (same as C++: one plugin per discovery type; "oso" must not map to JSON parsing).
+            discovery_types: vec![Token::new(SDROSL_DISCOVERY_TYPE)],
             source_type: Token::new(SDROSL_SOURCE_TYPE),
         }
     }
