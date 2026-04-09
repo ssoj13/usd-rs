@@ -11,7 +11,7 @@ use crate::bsdf::{
     BSDF, BSDFEval, BSDFSample, fresnel_dielectric, reflect, refract, sample_cosine_hemisphere,
 };
 use crate::math::{Color3, Vec3};
-use std::f32::consts::PI;
+use std::f32::consts::{LN_2, PI};
 
 // ====== Metal BSDF (complex Fresnel) ======
 
@@ -563,7 +563,7 @@ fn mp(cos_ti: Float, cos_to: Float, sin_ti: Float, sin_to: Float, v: Float) -> F
     let b = sin_ti * sin_to / v;
     if v <= 0.1 {
         // Log-domain computation to avoid overflow
-        (log_bessi0(a) - b - 1.0 / v + 0.6931 + (1.0 / (2.0 * v)).ln()).exp()
+        (log_bessi0(a) - b - 1.0 / v + LN_2 + (1.0 / (2.0 * v)).ln()).exp()
     } else {
         bessi0_times_exp(a, -b) / ((1.0 / v).sinh() * 2.0 * v)
     }

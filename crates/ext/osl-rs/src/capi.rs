@@ -329,8 +329,16 @@ pub extern "C" fn osl_luminance(r: c_float, g: c_float, b: c_float) -> c_float {
 }
 
 /// Compute blackbody color for a given temperature.
+///
+/// # Safety
+/// Each of `r`, `g`, `b` may be null; when non-null, must point to a writable `c_float`.
 #[unsafe(no_mangle)]
-pub extern "C" fn osl_blackbody(temp: c_float, r: *mut c_float, g: *mut c_float, b: *mut c_float) {
+pub unsafe extern "C" fn osl_blackbody(
+    temp: c_float,
+    r: *mut c_float,
+    g: *mut c_float,
+    b: *mut c_float,
+) {
     let color = crate::color::blackbody(temp);
     unsafe {
         if !r.is_null() {
