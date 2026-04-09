@@ -8,7 +8,7 @@
 //! `C:\projects\projects.rust.cg\usd-refs\OpenUSD` (see `STRUCTURE.md`).
 //!
 //! Module hierarchy matches C++ OpenUSD:
-//!   pxr.Tf, pxr.Gf, pxr.Vt, pxr.Trace, pxr.Sdf, pxr.Pcp, pxr.Ar, pxr.Usd,
+//!   pxr.Tf, pxr.Gf, pxr.Vt, pxr.Trace, pxr.Work, pxr.Sdf, pxr.Pcp, pxr.Ar, pxr.Usd,
 //!   pxr.UsdGeom, pxr.UsdShade, pxr.UsdLux, pxr.UsdSkel, ...
 
 // CamelCase method names are intentional — mirrors C++ OpenUSD Python API exactly.
@@ -37,6 +37,7 @@ mod ts;
 mod usd;
 mod utils;
 mod vt;
+mod work;
 mod xform_img_delegate;
 
 use pyo3::prelude::*;
@@ -49,6 +50,7 @@ fn _usd(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     register_sub(py, m, "Gf", gf::register)?;
     register_sub(py, m, "Vt", vt::register)?;
     register_sub(py, m, "Trace", trace::register)?;
+    register_sub(py, m, "Work", work::register)?;
 
     // Core USD modules
     register_sub(py, m, "Ar", ar::register)?;
