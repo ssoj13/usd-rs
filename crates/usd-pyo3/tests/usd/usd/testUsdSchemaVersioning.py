@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import os, unittest
-from pxr_rs import Plug, Usd, Tf
+from pxr import Plug, Usd, Tf
 
 # Map the version policy enum to reduce text clutter.
 VersionPolicy = Usd.SchemaRegistry.VersionPolicy

@@ -5,10 +5,10 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Gf
-from pxr_rs import Tf
-from pxr_rs import Usd
-from pxr_rs import UsdUtils
+from pxr import Gf
+from pxr import Tf
+from pxr import Usd
+from pxr import UsdUtils
 
 import unittest
 

@@ -6,8 +6,8 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs.Usdviewq.freeCamera import FreeCamera
-from pxr_rs import Gf
+from pxr.Usdviewq.freeCamera import FreeCamera
+from pxr import Gf
 
 # Remove any unwanted visuals from the view.
 def _modifySettings(appController):

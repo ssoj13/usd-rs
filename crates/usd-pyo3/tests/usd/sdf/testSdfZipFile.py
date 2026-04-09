@@ -9,7 +9,7 @@ import os
 import unittest
 import zipfile
 
-from pxr_rs import Sdf
+from pxr import Sdf
 
 class TestSdfZipFile(unittest.TestCase):
     def _ValidateSourceAndZippedFile(self, srcFile, zipFile, fileInZip, 

@@ -10,7 +10,7 @@ from __future__ import division
 import sys
 import unittest
 import math
-from pxr_rs import Gf, Tf
+from pxr import Gf, Tf
 
 def err( msg ):
     return "ERROR: " + msg + " failed"

@@ -10,7 +10,7 @@ import os
 import tempfile
 import unittest
 
-from pxr_rs import Ar
+from pxr import Ar
 
 class TestArOpenAsset(unittest.TestCase):
 

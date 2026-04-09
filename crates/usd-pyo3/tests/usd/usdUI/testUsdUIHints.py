@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Sdf, Tf, Usd, UsdUI
+from pxr import Sdf, Tf, Usd, UsdUI
 import unittest
 
 class TestUsdUIHints(unittest.TestCase):

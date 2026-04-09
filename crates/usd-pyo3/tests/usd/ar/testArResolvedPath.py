@@ -7,7 +7,7 @@
 #
 import unittest
 
-from pxr_rs import Ar
+from pxr import Ar
 
 class TestArResolvedPath(unittest.TestCase):
     def test_Basic(self):

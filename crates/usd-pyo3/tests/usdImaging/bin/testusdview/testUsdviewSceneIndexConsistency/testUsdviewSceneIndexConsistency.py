@@ -5,8 +5,8 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 #
-from pxr_rs import UsdShade
-from pxr_rs import Sdf
+from pxr import UsdShade
+from pxr import Sdf
 
 # Remove any unwanted visuals from the view, and enable autoClip
 def _modifySettings(appController):

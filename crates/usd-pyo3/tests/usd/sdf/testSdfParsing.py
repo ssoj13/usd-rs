@@ -17,7 +17,7 @@
 
 from __future__ import print_function
 import sys, os, difflib, unittest, platform
-from pxr_rs import Tf, Sdf
+from pxr import Tf, Sdf
 
 # Default encoding on Windows in python 3+ is not UTF-8, but it is on Linux &
 # Mac.  Provide a wrapper here so we specify that in that case.
@@ -268,7 +268,7 @@ class TestSdfParsing(unittest.TestCase):
         print("LAYERDIR: %s"%layerDir)
 
         # Register test plugin containing plugin metadata definitions.
-        from pxr_rs import Plug
+        from pxr import Plug
         Plug.Registry().RegisterPlugins(layerDir)
 
         def GenerateBaselines(testFiles, baselineDir):

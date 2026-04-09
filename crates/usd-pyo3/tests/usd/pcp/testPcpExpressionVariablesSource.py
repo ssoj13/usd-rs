@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Pcp, Sdf
+from pxr import Pcp, Sdf
 
 class TestPcpExpressionVariablesSource(unittest.TestCase):
     def test_Basic(self):

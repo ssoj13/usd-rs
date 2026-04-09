@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Sdf, Usd, UsdShade
+from pxr import Sdf, Usd, UsdShade
 import unittest
 
 # TODO: add tests for binding with UsdMaterial

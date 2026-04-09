@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Plug, Sdf, Tf, Usd
+from pxr import Plug, Sdf, Tf, Usd
 import os, unittest, shutil
 
 class TestUsdExternalAssetDependencies(unittest.TestCase):

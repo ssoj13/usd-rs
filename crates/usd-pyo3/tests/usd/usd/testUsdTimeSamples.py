@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import sys, os, unittest
-from pxr_rs import Sdf,Usd,Vt,Tf, Gf
+from pxr import Sdf,Usd,Vt,Tf, Gf
 
 class TestUsdTimeSamples(unittest.TestCase):
     def test_Basic(self):

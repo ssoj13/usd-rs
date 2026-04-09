@@ -7,7 +7,7 @@
 # https://openusd.org/license.
 
 import sys, unittest
-from pxr_rs import Sdf,Usd,Tf
+from pxr import Sdf,Usd,Tf
 
 allFormats = ['usd' + c for c in 'ac']
 
@@ -481,7 +481,7 @@ class TestUsdStage(unittest.TestCase):
         # will be reported.
         srcPrimPath = s.GetPrototypes()[0]._GetSourcePrimIndex().rootNode.path
         
-        from pxr_rs import Pcp
+        from pxr import Pcp
         expectedErrors = [ (Pcp.ErrorType_InvalidSublayerPath, "/"),
                                (Pcp.ErrorType_ArcCycle, "/Main/First"),
                                (Pcp.ErrorType_ArcCycle, "/Main/Second"),

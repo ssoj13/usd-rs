@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import sys, os, unittest
-from pxr_rs import Tf, Usd, Sdf, UsdGeom, UsdShade, Gf, UsdPhysics
+from pxr import Tf, Usd, Sdf, UsdGeom, UsdShade, Gf, UsdPhysics
 
 class TestUsdPhysicsRigidBodyAPI(unittest.TestCase):
 

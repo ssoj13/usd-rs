@@ -9,7 +9,7 @@
 # PcpLayerStack erroneously blowing its relocations when an insignificant
 # change to the layer stack was being processed.
 
-from pxr_rs import Sdf, Pcp
+from pxr import Sdf, Pcp
 import unittest
 
 class TestPcpRegressionBugs_bug82180(unittest.TestCase):

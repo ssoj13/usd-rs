@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, os, unittest
-from pxr_rs import Tf, Usd, UsdGeom
+from pxr import Tf, Usd, UsdGeom
 
 class TestUsdGeomMetrics(unittest.TestCase):
 

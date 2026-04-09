@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Tf, Sdf, UsdUtils
+from pxr import Tf, Sdf, UsdUtils
 import unittest
 
 class TestUsdUtilsStitch(unittest.TestCase):

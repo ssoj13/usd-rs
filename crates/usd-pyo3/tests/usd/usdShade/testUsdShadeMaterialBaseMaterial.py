@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Sdf, Usd, UsdShade, UsdGeom
+from pxr import Sdf, Usd, UsdShade, UsdGeom
 import os, unittest
 
 class TestUsdShadeMaterialBaseMaterial(unittest.TestCase):

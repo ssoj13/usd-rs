@@ -16,7 +16,7 @@ use usd_ts::types::{InterpMode, TangentAlgorithm};
 /// A time-value spline with knots.
 ///
 /// Matches C++ `TsSpline`.
-#[pyclass(skip_from_py_object, name = "Spline", module = "pxr_rs.Ts")]
+#[pyclass(skip_from_py_object, name = "Spline", module = "pxr.Ts")]
 #[derive(Clone)]
 pub struct PySpline {
     pub(crate) inner: Spline,
@@ -51,7 +51,7 @@ impl PySpline {
 /// A single knot in a spline, holding time + value + tangent info.
 ///
 /// Matches C++ `TsKnot`.
-#[pyclass(skip_from_py_object, name = "Knot", module = "pxr_rs.Ts")]
+#[pyclass(skip_from_py_object, name = "Knot", module = "pxr.Ts")]
 #[derive(Clone)]
 pub struct PyKnot {
     pub(crate) inner: Knot,
@@ -99,7 +99,7 @@ impl PyKnot {
 /// Interpolation mode for a spline segment.
 ///
 /// Matches C++ `TsInterpMode` values.
-#[pyclass(skip_from_py_object, name = "InterpMode", module = "pxr_rs.Ts")]
+#[pyclass(skip_from_py_object, name = "InterpMode", module = "pxr.Ts")]
 #[derive(Clone)]
 pub struct PyInterpMode {
     inner: InterpMode,
@@ -123,7 +123,7 @@ impl PyInterpMode {
 /// Algorithm for computing tangent values.
 ///
 /// Matches C++ `TsTangentAlgorithm` values.
-#[pyclass(skip_from_py_object, name = "TangentAlgorithm", module = "pxr_rs.Ts")]
+#[pyclass(skip_from_py_object, name = "TangentAlgorithm", module = "pxr.Ts")]
 #[derive(Clone)]
 pub struct PyTangentAlgorithm {
     inner: TangentAlgorithm,

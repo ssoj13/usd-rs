@@ -7,8 +7,8 @@
 #
 from __future__ import print_function
 
-from pxr_rs.Usdviewq.common import Usd, UsdGeom
-from pxr_rs import Vt, Gf, Sdf
+from pxr.Usdviewq.common import Usd, UsdGeom
+from pxr import Vt, Gf, Sdf
 
 # Remove any unwanted visuals from the view, and enable autoClip
 def _modifySettings(appController):

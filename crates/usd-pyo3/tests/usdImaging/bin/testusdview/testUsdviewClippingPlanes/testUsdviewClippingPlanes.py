@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Gf
+from pxr import Gf
 
 # Remove any unwanted visuals from the view, and enable autoClip
 def _modifySettings(appController):

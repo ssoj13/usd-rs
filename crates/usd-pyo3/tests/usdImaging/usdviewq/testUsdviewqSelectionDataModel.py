@@ -9,9 +9,9 @@
 import unittest
 from collections import OrderedDict
 
-from pxr_rs import Sdf
-from pxr_rs.Usdviewq.selectionDataModel import ALL_INSTANCES, SelectionDataModel
-from pxr_rs.Usdviewq.customAttributes import ComputedPropertyNames
+from pxr import Sdf
+from pxr.Usdviewq.selectionDataModel import ALL_INSTANCES, SelectionDataModel
+from pxr.Usdviewq.customAttributes import ComputedPropertyNames
 
 
 class FakePrim:

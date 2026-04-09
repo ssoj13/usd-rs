@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import sys, os
-from pxr_rs import Trace, Tf
+from pxr import Trace, Tf
 
 
 # ----------------------------------------------------------------------------

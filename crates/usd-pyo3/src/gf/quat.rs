@@ -18,7 +18,7 @@ fn hash_f64_2(a: f64, b: f64, c: f64, d: f64) -> u64 {
 // Quatd
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Quatd", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Quatd", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyQuatd(pub Quatd);
 
@@ -260,7 +260,7 @@ impl PyQuatd {
 // Quatf
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Quatf", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Quatf", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyQuatf(pub Quatf);
 
@@ -499,7 +499,7 @@ impl PyQuatf {
 // Quath (half-precision — Python boundary uses f32)
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Quath", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Quath", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyQuath(pub Quath);
 
@@ -755,7 +755,7 @@ impl PyQuath {
 // Quaternion (legacy GfQuaternion, double real + double imaginary)
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Quaternion", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Quaternion", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyQuaternion(pub Quaternion);
 
@@ -1005,7 +1005,7 @@ impl PyQuaternion {
 // DualQuatd
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "DualQuatd", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "DualQuatd", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyDualQuatd(pub DualQuatd);
 
@@ -1210,7 +1210,7 @@ impl PyDualQuatd {
 // DualQuatf
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "DualQuatf", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "DualQuatf", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyDualQuatf(pub DualQuatf);
 
@@ -1406,7 +1406,7 @@ impl PyDualQuatf {
 // DualQuath
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "DualQuath", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "DualQuath", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyDualQuath(pub DualQuath);
 

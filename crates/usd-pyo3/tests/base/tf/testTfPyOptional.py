@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 import sys
-from pxr_rs import Tf
+from pxr import Tf
 import unittest
 
 TestStd = Tf.Tf_TestPyOptionalStd

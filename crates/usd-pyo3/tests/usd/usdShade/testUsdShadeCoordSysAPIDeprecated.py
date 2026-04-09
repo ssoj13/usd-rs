@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, unittest
-from pxr_rs import Usd, UsdShade, UsdGeom, Sdf, Tf
+from pxr import Usd, UsdShade, UsdGeom, Sdf, Tf
 
 class TestUsdShadeCoordSysAPI(unittest.TestCase):
     def test_CoordSysNonAppliedDeprecated(self):

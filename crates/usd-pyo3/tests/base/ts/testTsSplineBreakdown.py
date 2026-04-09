@@ -7,7 +7,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Gf, Ts
+from pxr import Gf, Ts
 
 import dataclasses
 from typing import Union

@@ -9,7 +9,7 @@ from __future__ import division
 
 import sys, math
 import unittest
-from pxr_rs import Gf
+from pxr import Gf
 
 # Tuples of quaternion type, vec3 type, and closeVal
 testClasses = (

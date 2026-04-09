@@ -7,7 +7,7 @@
 
 # pylint: disable=range-builtin-not-iterating
 
-from pxr_rs import Sdf, Tf, Gf, Vt
+from pxr import Sdf, Tf, Gf, Vt
 import sys, unittest
 
 # This class is derived by format-specific test cases below.
@@ -554,7 +554,7 @@ def Xform "Prim"
 
         # Test that SetSpline results in a coding error when trying to set a
         # spline on an attribute that doesn't support splines.
-        from pxr_rs import Ts
+        from pxr import Ts
         e = splineLayer.GetAttributeAtPath('/Prim.e')
         self.assertFalse(Ts.Spline.IsSupportedValueType(e.typeName.type))
         self.assertFalse(e.HasInfo('spline'))

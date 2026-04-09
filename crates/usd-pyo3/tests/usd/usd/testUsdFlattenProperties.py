@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import os, unittest
-from pxr_rs import Usd, Sdf, Tf, Plug
+from pxr import Usd, Sdf, Tf, Plug
 
 class TestUsdFlattenProperties(unittest.TestCase):
     @classmethod

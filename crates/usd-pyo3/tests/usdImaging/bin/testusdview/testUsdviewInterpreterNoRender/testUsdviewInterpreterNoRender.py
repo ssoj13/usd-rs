@@ -10,7 +10,7 @@
 from __future__ import print_function
 import sys
 
-from pxr_rs.Usdviewq.qt import QtCore, QtGui, QtWidgets
+from pxr.Usdviewq.qt import QtCore, QtGui, QtWidgets
 
 def _emitShowInterpreter(appController):
     appController._ui.showInterpreter.triggered.emit() 

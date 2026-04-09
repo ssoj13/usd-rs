@@ -7,7 +7,7 @@
 #
 
 import unittest
-from pxr_rs import UsdRi, Sdf
+from pxr import UsdRi, Sdf
 
 class TestUsdRiUtilities(unittest.TestCase):
     def test_RmanConversions(self):

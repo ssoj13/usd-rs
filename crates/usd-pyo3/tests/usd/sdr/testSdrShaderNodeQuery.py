@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Sdr, Tf, Usd, UsdShade
+from pxr import Sdr, Tf, Usd, UsdShade
 
 class TestSdrShaderNodeQuery(unittest.TestCase):
 

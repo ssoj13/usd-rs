@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, os, traceback, unittest
-from pxr_rs import Sdf
+from pxr import Sdf
 
 goodPaths = {
     # Roots

@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest
-from pxr_rs import Kind, Sdf, Tf, Usd
+from pxr import Kind, Sdf, Tf, Usd
 
 _LAYER_CONTENTS = '''#usda 1.0
 def Sphere "Ref1" (

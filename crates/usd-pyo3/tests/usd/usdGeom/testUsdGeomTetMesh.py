@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, unittest
-from pxr_rs import Usd, UsdGeom, Vt, Gf
+from pxr import Usd, UsdGeom, Vt, Gf
 
 class TestUsdGeomTetMesh(unittest.TestCase):
     # Tests time varying topology and surface computation for a rightHanded

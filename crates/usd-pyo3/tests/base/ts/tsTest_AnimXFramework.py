@@ -7,12 +7,12 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs.Ts import TsTest_Museum as Museum
-from pxr_rs.Ts import TsTest_AnimXEvaluator as Evaluator
-from pxr_rs.Ts import TsTest_Baseliner as Baseliner
-from pxr_rs.Ts import TsTest_SampleTimes as STimes
-from pxr_rs.Ts import TsTest_Grapher as Grapher
-from pxr_rs.Ts import TsTest_Comparator as Comparator
+from pxr.Ts import TsTest_Museum as Museum
+from pxr.Ts import TsTest_AnimXEvaluator as Evaluator
+from pxr.Ts import TsTest_Baseliner as Baseliner
+from pxr.Ts import TsTest_SampleTimes as STimes
+from pxr.Ts import TsTest_Grapher as Grapher
+from pxr.Ts import TsTest_Comparator as Comparator
 
 import unittest
 

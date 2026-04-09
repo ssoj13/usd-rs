@@ -1,4 +1,4 @@
-# Рабочая память: OpenUSD Python-паритет (pxr_rs)
+# Рабочая память: OpenUSD Python-паритет (pxr)
 
 **Назначение:** короткий контекст между сессиями; детали отклонений — в [`PYTHON_API_DEVIATIONS.md`](PYTHON_API_DEVIATIONS.md), инварианты — в [`PYTHON_API_PARITY.md`](PYTHON_API_PARITY.md).
 

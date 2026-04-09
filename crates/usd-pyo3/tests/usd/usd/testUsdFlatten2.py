@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import argparse
-from pxr_rs import Sdf, Usd
+from pxr import Sdf, Usd
 
 # Parse options.
 parser = argparse.ArgumentParser()

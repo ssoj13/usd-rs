@@ -5,9 +5,9 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Usd, UsdLux
-from pxr_rs.UsdUtils.constantsGroup import ConstantsGroup
-from pxr_rs.Usdviewq.qt import QtWidgets
+from pxr import Usd, UsdLux
+from pxr.UsdUtils.constantsGroup import ConstantsGroup
+from pxr.Usdviewq.qt import QtWidgets
 
 class MetadataKeys(ConstantsGroup):
     ROOT_METADATA_KEY = "upAxis"

@@ -12,7 +12,7 @@ import math
 import random
 import unittest
 
-from pxr_rs import Gf
+from pxr import Gf
 
 epsilon = 1e-6
 

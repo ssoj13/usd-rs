@@ -16,8 +16,8 @@ class TestUsdLoadUnloadDeepNestedInstancing(unittest.TestCase):
     # 1. Tests a scenario where normal prim and prototypes for an instance under
     # this normal prim are present in subtreesToLoad in parallel 
     def test_PrototypeIsDescendant(self):
-        from pxr_rs import Sdf
-        from pxr_rs import Usd
+        from pxr import Sdf
+        from pxr import Usd
 
         stage = Usd.Stage.Open("Mountain.usd")
         self.assertEqual(len(stage.GetPrototypes()), 60)
@@ -43,8 +43,8 @@ class TestUsdLoadUnloadDeepNestedInstancing(unittest.TestCase):
     # Tests the scenario where 2 prototypes' sourcePath have an
     # ancestor/descendant relationship. 
     def test_PrototypeAndNestedPrototypePath(self):
-        from pxr_rs import Sdf
-        from pxr_rs import Usd
+        from pxr import Sdf
+        from pxr import Usd
 
         stage = Usd.Stage.Open("Earth.usd")
         self.assertEqual(len(stage.GetPrototypes()), 61)

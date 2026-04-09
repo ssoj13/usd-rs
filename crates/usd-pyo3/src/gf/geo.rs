@@ -47,7 +47,7 @@ fn hash_i32_n(vals: &[i32]) -> u64 {
 // Rotation
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Rotation", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Rotation", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyRotation(pub Rotation);
 
@@ -447,7 +447,7 @@ impl PyRotation {
 // Range1d / Range1f
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Range1d", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Range1d", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyRange1d(pub Range1d);
 
@@ -557,7 +557,7 @@ impl PyRange1d {
     }
 }
 
-#[pyclass(skip_from_py_object, name = "Range1f", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Range1f", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyRange1f(pub Range1f);
 
@@ -656,7 +656,7 @@ impl PyRange1f {
 // Range2d / Range2f  — min()/max() return &Vec2<T>, copy with *
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Range2d", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Range2d", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyRange2d(pub Range2d);
 
@@ -745,7 +745,7 @@ impl PyRange2d {
     }
 }
 
-#[pyclass(skip_from_py_object, name = "Range2f", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Range2f", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyRange2f(pub Range2f);
 
@@ -817,7 +817,7 @@ impl PyRange2f {
 // Range3d / Range3f
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Range3d", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Range3d", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyRange3d(pub Range3d);
 
@@ -922,7 +922,7 @@ impl PyRange3d {
     }
 }
 
-#[pyclass(skip_from_py_object, name = "Range3f", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Range3f", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyRange3f(pub Range3f);
 
@@ -997,7 +997,7 @@ impl PyRange3f {
 // BBox3d — range()/matrix()/inverse_matrix() return references, dereference
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "BBox3d", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "BBox3d", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyBBox3d(pub BBox3d);
 
@@ -1144,7 +1144,7 @@ impl PyBBox3d {
 // Interval — is_min_closed()/is_max_closed() (not min_closed()/max_closed())
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Interval", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Interval", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyInterval(pub Interval);
 
@@ -1283,7 +1283,7 @@ impl PyInterval {
 // MultiInterval — no & or | operators; use add/remove/intersect methods
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "MultiInterval", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "MultiInterval", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyMultiInterval(pub MultiInterval);
 
@@ -1394,7 +1394,7 @@ impl PyMultiInterval {
 // Rect2i — area() returns u64, cast to i64 for Python int compat
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Rect2i", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Rect2i", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyRect2i(pub Rect2i);
 
@@ -1612,7 +1612,7 @@ impl PyRect2i {
 // Size2 / Size3
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Size2", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Size2", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PySize2(pub Size2);
 
@@ -1745,7 +1745,7 @@ impl PySize2 {
     }
 }
 
-#[pyclass(skip_from_py_object, name = "Size3", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Size3", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PySize3(pub Size3);
 
@@ -1895,7 +1895,7 @@ impl PySize3 {
 // Transform
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Transform", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Transform", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyTransform(pub usd_gf::Transform);
 
@@ -2138,7 +2138,7 @@ pub(crate) fn schema_float_to_python_double(x: f32) -> f64 {
     ((f64::from(x)) * 1_000_000.0).round() / 1_000_000.0
 }
 
-#[pyclass(skip_from_py_object, name = "Camera", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Camera", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyCamera(pub usd_gf::Camera);
 
@@ -2442,7 +2442,7 @@ impl PyCamera {
 // Plane — no set_normal/set_distance; rebuild via from_normal_distance
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Plane", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Plane", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyPlane(pub usd_gf::Plane);
 
@@ -2618,7 +2618,7 @@ impl PyPlane {
 // Line — set() takes values by value; direction()/origin() return &Vec3d
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Line", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Line", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyLine(pub usd_gf::Line);
 
@@ -2697,7 +2697,7 @@ impl PyLine {
 // LineSeg
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "LineSeg", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "LineSeg", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyLineSeg(pub usd_gf::LineSeg);
 
@@ -2767,7 +2767,7 @@ impl PyLineSeg {
 // Ray — set() takes values, transform() mutates; use transformed() for immut
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Ray", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Ray", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyRay(pub usd_gf::Ray);
 
@@ -2997,7 +2997,7 @@ impl PyRay {
 // Frustum
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Frustum", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Frustum", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyFrustum(pub Frustum);
 
@@ -3472,7 +3472,7 @@ fn proj_type_to_int(pt: ProjectionType) -> i32 {
 // ColorSpaceNames — static holder for predefined name tokens
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "ColorSpaceNames", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "ColorSpaceNames", module = "pxr.Gf")]
 pub struct PyColorSpaceNames;
 
 #[pymethods]
@@ -3573,7 +3573,7 @@ impl PyColorSpaceNames {
 // ColorSpace
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "ColorSpace", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "ColorSpace", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyColorSpace(pub ColorSpace);
 
@@ -3634,7 +3634,7 @@ impl PyColorSpace {
 // Color
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Color", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Color", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyColor(pub Color);
 

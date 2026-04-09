@@ -7,7 +7,7 @@
 #
 from __future__ import print_function
 
-from pxr_rs import Trace, Tf
+from pxr import Trace, Tf
 
 
 gc = Trace.Collector()

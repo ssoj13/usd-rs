@@ -9,7 +9,7 @@
 import unittest
 import os, json
 
-from pxr_rs.Usdviewq.settings import StateSource, Settings
+from pxr.Usdviewq.settings import StateSource, Settings
 
 
 TEST_SETTINGS_VERSION = "1"

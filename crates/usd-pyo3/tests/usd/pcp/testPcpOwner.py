@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 from __future__ import print_function
-from pxr_rs import Tf, Pcp, Sdf
+from pxr import Tf, Pcp, Sdf
 import os, sys, unittest
 
 class TestPcpOwner(unittest.TestCase):

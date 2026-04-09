@@ -12,7 +12,7 @@ from __future__ import division
 import array
 import unittest
 import sys, math
-from pxr_rs import Gf, Vt
+from pxr import Gf, Vt
 
 class TestVtArray(unittest.TestCase):
 

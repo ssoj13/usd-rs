@@ -24,7 +24,7 @@ use usd_ar::{
 /// A resolved asset path — the physical location after resolution.
 ///
 /// Mirrors `pxr.Ar.ResolvedPath` / `ArResolvedPath`.
-#[pyclass(skip_from_py_object, name = "ResolvedPath", module = "pxr_rs.Ar")]
+#[pyclass(skip_from_py_object, name = "ResolvedPath", module = "pxr.Ar")]
 #[derive(Clone)]
 pub struct PyResolvedPath {
     inner: ResolvedPath,
@@ -110,7 +110,7 @@ impl PyResolvedPath {
 /// Default resolver context with search paths.
 ///
 /// Mirrors `pxr.Ar.DefaultResolverContext` / `ArDefaultResolverContext`.
-#[pyclass(from_py_object, name = "DefaultResolverContext", module = "pxr_rs.Ar")]
+#[pyclass(from_py_object, name = "DefaultResolverContext", module = "pxr.Ar")]
 #[derive(Clone)]
 pub struct PyDefaultResolverContext {
     inner: DefaultResolverContext,
@@ -177,7 +177,7 @@ impl PyDefaultResolverContext {
 /// Mirrors `pxr.Ar.ResolverContext` / `ArResolverContext`.
 ///
 /// Can hold one or more context objects (e.g. DefaultResolverContext).
-#[pyclass(from_py_object, name = "ResolverContext", module = "pxr_rs.Ar")]
+#[pyclass(from_py_object, name = "ResolverContext", module = "pxr.Ar")]
 #[derive(Clone)]
 pub struct PyResolverContext {
     /// The wrapped context objects (currently only DefaultResolverContext).
@@ -328,7 +328,7 @@ impl std::hash::Hash for PyDefaultResolverContext {
 /// Metadata about a resolved asset.
 ///
 /// Mirrors `pxr.Ar.AssetInfo` / `ArAssetInfo`.
-#[pyclass(skip_from_py_object, name = "AssetInfo", module = "pxr_rs.Ar")]
+#[pyclass(skip_from_py_object, name = "AssetInfo", module = "pxr.Ar")]
 #[derive(Clone)]
 pub struct PyAssetInfo {
     inner: AssetInfo,
@@ -490,7 +490,7 @@ impl PyAssetInfo {
 /// A timestamp for an asset (Unix time, or invalid/NaN).
 ///
 /// Mirrors `pxr.Ar.Timestamp` / `ArTimestamp`.
-#[pyclass(skip_from_py_object, name = "Timestamp", module = "pxr_rs.Ar")]
+#[pyclass(skip_from_py_object, name = "Timestamp", module = "pxr.Ar")]
 #[derive(Clone, Copy)]
 pub struct PyTimestamp {
     inner: Timestamp,
@@ -592,7 +592,7 @@ impl PyTimestamp {
 /// A resolved asset that can be read.
 ///
 /// Mirrors `pxr.Ar.Asset` — supports context manager protocol.
-#[pyclass(skip_from_py_object, name = "Asset", module = "pxr_rs.Ar")]
+#[pyclass(skip_from_py_object, name = "Asset", module = "pxr.Ar")]
 pub struct PyAsset {
     asset: Option<Arc<dyn Asset>>,
 }
@@ -685,7 +685,7 @@ impl PyAsset {
 /// Default filesystem-based asset resolver.
 ///
 /// Mirrors `pxr.Ar.DefaultResolver` / `ArDefaultResolver`.
-#[pyclass(skip_from_py_object, name = "DefaultResolver", module = "pxr_rs.Ar")]
+#[pyclass(skip_from_py_object, name = "DefaultResolver", module = "pxr.Ar")]
 pub struct PyDefaultResolver;
 
 #[pymethods]
@@ -713,7 +713,7 @@ impl PyDefaultResolver {
 /// Mirrors `pxr.Ar.Resolver` / `ArResolver`.
 ///
 /// Obtain via `Ar.GetResolver()`.
-#[pyclass(skip_from_py_object, name = "Resolver", module = "pxr_rs.Ar")]
+#[pyclass(skip_from_py_object, name = "Resolver", module = "pxr.Ar")]
 pub struct PyResolver;
 
 #[pymethods]
@@ -891,7 +891,7 @@ impl PyResolver {
 #[pyclass(
     skip_from_py_object,
     name = "ResolverContextBinder",
-    module = "pxr_rs.Ar"
+    module = "pxr.Ar"
 )]
 pub struct PyResolverContextBinder {
     context: PyResolverContext,
@@ -951,7 +951,7 @@ impl PyResolverContextBinder {
 #[pyclass(
     skip_from_py_object,
     name = "ResolverScopedCache",
-    module = "pxr_rs.Ar"
+    module = "pxr.Ar"
 )]
 pub struct PyResolverScopedCache {
     cache: Option<RustScopedCache>,
@@ -990,7 +990,7 @@ impl PyResolverScopedCache {
 // ============================================================================
 
 /// Notice namespace class for asset resolver notices.
-#[pyclass(skip_from_py_object, name = "Notice", module = "pxr_rs.Ar")]
+#[pyclass(skip_from_py_object, name = "Notice", module = "pxr.Ar")]
 pub struct PyArNotice;
 
 #[pymethods]
@@ -1001,7 +1001,7 @@ impl PyArNotice {
 }
 
 /// Notice sent when the resolver's state changes.
-#[pyclass(skip_from_py_object, name = "ResolverChanged", module = "pxr_rs.Ar")]
+#[pyclass(skip_from_py_object, name = "ResolverChanged", module = "pxr.Ar")]
 #[derive(Clone)]
 pub struct PyResolverChanged {
     context: Option<PyResolverContext>,

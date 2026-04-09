@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, os, unittest
-from pxr_rs import Usd, UsdGeom, Sdf, Tf
+from pxr import Usd, UsdGeom, Sdf, Tf
 
 class TestUsdGeomMotionAPI(unittest.TestCase):
     def test_Basic(self):

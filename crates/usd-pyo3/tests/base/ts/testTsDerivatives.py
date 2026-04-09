@@ -7,7 +7,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Ts
+from pxr import Ts
 
 import unittest
 

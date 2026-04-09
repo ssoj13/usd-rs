@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import unittest
-from pxr_rs import Sdf
+from pxr import Sdf
 
 allFormats = ['usda', 'usdc']
 
@@ -46,7 +46,7 @@ class TestUsdDataFormats(unittest.TestCase):
         """ Regression test to ensure that VtDictionaries holding SdfAssetPath
             can be represented in all formats.
         """
-        from pxr_rs import Usd
+        from pxr import Usd
         for fmt in allFormats:
             s = Usd.Stage.CreateNew('test.' + fmt)
             p = s.DefinePrim("/X", 'Scope')

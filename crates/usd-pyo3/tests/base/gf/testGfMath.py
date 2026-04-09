@@ -10,7 +10,7 @@ from __future__ import division
 import sys
 import math
 import unittest
-from pxr_rs.Gf import *
+from pxr.Gf import *
 
 def err( msg ):
     return "ERROR: " + msg + " failed"
@@ -31,7 +31,7 @@ class TestGfMath(unittest.TestCase):
         self.assertTrue(t1 > 0 and t1 < .5 and t2 > .5 and t2 < 1)
 
     def test_HalfRoundTrip(self):
-        from pxr_rs.Gf import _HalfRoundTrip
+        from pxr.Gf import _HalfRoundTrip
         self.assertEqual(1.0, _HalfRoundTrip(1.0))
         self.assertEqual(1.0, _HalfRoundTrip(1))
         self.assertEqual(2.0, _HalfRoundTrip(2))

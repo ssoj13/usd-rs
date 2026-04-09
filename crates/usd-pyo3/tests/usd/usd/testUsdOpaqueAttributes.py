@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import unittest
-from pxr_rs import Sdf, Tf, Usd
+from pxr import Sdf, Tf, Usd
 
 class TestUsdDataFormats(unittest.TestCase):
     def test_NoAuthoredValue(self):

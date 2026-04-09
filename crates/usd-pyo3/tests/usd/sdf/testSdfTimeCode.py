@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 from __future__ import division
-from pxr_rs import Sdf, Tf
+from pxr import Sdf, Tf
 import itertools, unittest
 
 # Test the basics of SdfTimeCode which is a special typed wrapper around 

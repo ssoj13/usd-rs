@@ -19,7 +19,7 @@ use usd_plug::PlugRegistry;
 /// reg = Plug.Registry()
 /// reg.RegisterPlugins("/path/to/plugins")
 /// ```
-#[pyclass(skip_from_py_object, name = "Registry", module = "pxr_rs.Plug")]
+#[pyclass(skip_from_py_object, name = "Registry", module = "pxr.Plug")]
 pub struct PyPlugRegistry;
 
 #[pymethods]
@@ -74,7 +74,7 @@ impl PyPlugRegistry {
 /// Python test modules derive from these to test plugin discovery.
 macro_rules! test_plug_base {
     ($name:ident, $py_name:literal) => {
-        #[pyclass(subclass, name = $py_name, module = "pxr_rs.Plug")]
+        #[pyclass(subclass, name = $py_name, module = "pxr.Plug")]
         pub struct $name;
 
         #[pymethods]
@@ -102,7 +102,7 @@ test_plug_base!(PyTestPlugBase4, "_TestPlugBase4");
 // ============================================================================
 
 /// Wraps a single discovered plugin (mirrors `pxr.Plug.Plugin`).
-#[pyclass(name = "Plugin", module = "pxr_rs.Plug")]
+#[pyclass(name = "Plugin", module = "pxr.Plug")]
 pub struct PyPlugin {
     name: String,
 }

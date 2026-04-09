@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, os, unittest
-from pxr_rs import Usd, UsdGeom, UsdVol, Sdf
+from pxr import Usd, UsdGeom, UsdVol, Sdf
 
 class TestUsdVolVolume(unittest.TestCase):
 

@@ -1,7 +1,7 @@
 # usd-rs PyO3 Python API Parity — Task Snapshot
 
 **Date:** 2026-04-07
-**Goal:** Full parity with C++ OpenUSD Python API (`pxr`). Package: `pxr_rs` (`import pxr_rs as pxr`).
+**Goal:** Full parity with C++ OpenUSD Python API (`pxr`). Package: `pxr` (`import pxr as pxr`).
 **Ref tests:** `crates/usd-pyo3/tests/` — ported from `C:\projects\projects.rust.cg\usd-refs\OpenUSD`
 
 **Parity memory (checklist + changelog):** `md/PYTHON_API_PARITY.md`  

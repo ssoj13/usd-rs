@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import os, unittest
-from pxr_rs import Usd, Tf
+from pxr import Usd, Tf
 
 class TestUsdReadOutOfBounds(unittest.TestCase):
 

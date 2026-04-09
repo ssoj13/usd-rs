@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Ar, Sdf, Usd, UsdUtils
+from pxr import Ar, Sdf, Usd, UsdUtils
 
 import argparse, os, shutil, sys
 

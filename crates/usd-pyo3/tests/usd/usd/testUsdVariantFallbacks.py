@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import os, sys, unittest
-from pxr_rs import Gf, Sdf, Usd, Plug
+from pxr import Gf, Sdf, Usd, Plug
 
 class TestUsdVariantFallback(unittest.TestCase):
     def test_Basic(self):

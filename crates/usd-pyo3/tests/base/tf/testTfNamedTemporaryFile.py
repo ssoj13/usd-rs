@@ -13,7 +13,7 @@ Tests for Tf's NamedTemporaryFile wrapper
 from __future__ import print_function
 
 import unittest, os
-from pxr_rs import Tf
+from pxr import Tf
 
 class TestNamedTemporaryFile(unittest.TestCase):
     def setUp(self):

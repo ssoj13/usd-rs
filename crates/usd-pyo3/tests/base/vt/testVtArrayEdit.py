@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Vt
+from pxr import Vt
 import unittest
 
 class TestVtArrayEdit(unittest.TestCase):

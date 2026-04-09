@@ -7,7 +7,7 @@
 #
 import unittest
 
-from pxr_rs import Ar, Tf
+from pxr import Ar, Tf
 
 class TestArPackageUtils(unittest.TestCase):
     def test_IsPackageRelativePath(self):

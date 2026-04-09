@@ -10,7 +10,7 @@
 from __future__ import print_function
 import sys
 
-from pxr_rs.Usdviewq.qt import QtCore, QtGui, QtWidgets
+from pxr.Usdviewq.qt import QtCore, QtGui, QtWidgets
 
 def _emitCollapseAllAction(appController):
     appController._ui.actionCollapse_All.triggered.emit() 
@@ -37,7 +37,7 @@ class EscapeSender(QtCore.QObject):
                 appController)
 
 def _testBasic(appController):
-    from pxr_rs import Sdf
+    from pxr import Sdf
 
     #
     # First test that right/left keys sent to a TreeView will navigate the 

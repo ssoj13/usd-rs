@@ -3,9 +3,9 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "pxr-rs"
+name = "pxr"
 version = "0.1.0"
-description = "Pure Rust OpenUSD Python bindings"
+description = "Pure Rust OpenUSD Python bindings (`import pxr`); built locally via maturin, not published to PyPI"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 keywords = ["usd", "openusd", "3d", "graphics", "vfx"]
@@ -19,8 +19,8 @@ classifiers = [
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
-module-name = "pxr_rs._usd"
-python-packages = ["pxr_rs"]
+module-name = "pxr._usd"
+python-packages = ["pxr"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

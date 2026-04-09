@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Sdf, Usd, Gf, Vt, Plug
+from pxr import Sdf, Usd, Gf, Vt, Plug
 import os, unittest
 
 

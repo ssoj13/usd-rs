@@ -1227,6 +1227,17 @@ impl Value {
         if let Some(arr) = self.get::<crate::Array<T>>() {
             return Some(arr.as_slice().to_vec());
         }
+        // Python and some authors store `token[]` as `vector<string>`; map to `Vec<Token>`.
+        if TypeId::of::<T>() == TypeId::of::<usd_tf::Token>() {
+            if let Some(strings) = self.get::<Vec<String>>() {
+                let tokens: Vec<usd_tf::Token> = strings
+                    .iter()
+                    .map(|s| usd_tf::Token::new(s.as_str()))
+                    .collect();
+                let boxed: Box<dyn Any> = Box::new(tokens);
+                return boxed.downcast::<Vec<T>>().ok().map(|boxed| *boxed);
+            }
+        }
         // USDA may store homogeneous arrays as Vec<Value>. Bridge common scalar
         // array cases so higher layers don't need format-specific fallbacks.
         if let Some(values) = self.get::<Vec<Value>>() {

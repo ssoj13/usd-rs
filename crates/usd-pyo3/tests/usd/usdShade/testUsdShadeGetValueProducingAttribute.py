@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import unittest
-from pxr_rs import Usd, UsdShade, Sdf
+from pxr import Usd, UsdShade, Sdf
 
 Input = UsdShade.AttributeType.Input
 Output = UsdShade.AttributeType.Output

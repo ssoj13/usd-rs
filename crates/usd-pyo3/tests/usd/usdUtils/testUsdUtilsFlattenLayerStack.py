@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import UsdUtils, Sdf, Usd, Ar, Gf, Vt
+from pxr import UsdUtils, Sdf, Usd, Ar, Gf, Vt
 import os, unittest
 
 class TestUsdUtilsFlattenLayerStack(unittest.TestCase):

@@ -9,7 +9,7 @@
 # recomputing its relocation tables when a prim that supplies 
 # relocations was removed.
 
-from pxr_rs import Pcp, Sdf
+from pxr import Pcp, Sdf
 import unittest
 
 class TestPcpRegressionBugs_bug101300(unittest.TestCase):

@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import os, sys, unittest
-from pxr_rs import Gf, Tf, Sdf, Pcp, Usd
+from pxr import Gf, Tf, Sdf, Pcp, Usd
 
 allFormats = ['usd' + x for x in 'ac']
 

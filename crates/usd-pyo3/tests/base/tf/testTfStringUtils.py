@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Tf
+from pxr import Tf
 import logging
 import unittest
 

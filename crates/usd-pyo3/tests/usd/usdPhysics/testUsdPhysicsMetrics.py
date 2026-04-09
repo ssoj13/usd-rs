@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, os, unittest
-from pxr_rs import Tf, Usd, UsdPhysics
+from pxr import Tf, Usd, UsdPhysics
 
 class TestUsdPhysicsMetrics(unittest.TestCase):
 

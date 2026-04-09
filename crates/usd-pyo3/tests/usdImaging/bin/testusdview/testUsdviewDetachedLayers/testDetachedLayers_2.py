@@ -7,7 +7,7 @@
 #
 
 def testUsdviewInputFunction(appController):
-    from pxr_rs import Sdf
+    from pxr import Sdf
     
     assert not Sdf.Layer.Find('root.usd').IsDetached()
     assert Sdf.Layer.Find('foo.usd').IsDetached()

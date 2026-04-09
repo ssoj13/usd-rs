@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Gf, Vt, Usd, UsdGeom
+from pxr import Gf, Vt, Usd, UsdGeom
 import unittest
 
 class TestUsdGeomExtentFromPlugins(unittest.TestCase):

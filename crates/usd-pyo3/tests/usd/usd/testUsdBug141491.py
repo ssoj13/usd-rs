@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Sdf, Usd
+from pxr import Sdf, Usd
 
 def TestBug141491():
     """

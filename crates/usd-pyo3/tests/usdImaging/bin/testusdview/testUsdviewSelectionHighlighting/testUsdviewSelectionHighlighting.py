@@ -6,8 +6,8 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Sdf
-from pxr_rs.Usdviewq.qt import QtWidgets
+from pxr import Sdf
+from pxr.Usdviewq.qt import QtWidgets
 
 # Remove any unwanted visuals from the view.
 def _modifySettings(appController):

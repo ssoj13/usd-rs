@@ -8,7 +8,7 @@
 # pylint: disable=map-builtin-not-iterating
 
 import unittest
-from pxr_rs import Sdf, Tf, Usd
+from pxr import Sdf, Tf, Usd
 
 allFormats = ['usd' + x for x in 'ac']
 

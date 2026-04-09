@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 from __future__ import division
-from pxr_rs import UsdUtils, Usd, Sdf, UsdGeom, Gf, Tf
+from pxr import UsdUtils, Usd, Sdf, UsdGeom, Gf, Tf
 
 import unittest
 
@@ -226,7 +226,7 @@ class TestUsdUtilsSparseAuthoring(unittest.TestCase):
 
     def test_MatchDefault(self):
         s = Usd.Stage.CreateInMemory()
-        from pxr_rs import UsdGeom
+        from pxr import UsdGeom
         sphere = UsdGeom.Sphere.Define(s, Sdf.Path("/Sphere"))
         radius = sphere.CreateRadiusAttr()
         attrValueWriter = UsdUtils.SparseAttrValueWriter(radius, 
@@ -245,7 +245,7 @@ class TestUsdUtilsSparseAuthoring(unittest.TestCase):
         
     def test_SparseValueWriter(self):
         s = Usd.Stage.CreateInMemory()
-        from pxr_rs import UsdGeom
+        from pxr import UsdGeom
         cylinder = UsdGeom.Cylinder.Define(s, Sdf.Path("/Cylinder"))
         radius = cylinder.CreateRadiusAttr()
         height = cylinder.CreateHeightAttr()

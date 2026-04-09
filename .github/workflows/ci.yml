@@ -94,5 +94,5 @@ jobs:
       - name: Upload Python wheel
         uses: actions/upload-artifact@v7
         with:
-          name: pxr-rs-wheel-${{ runner.os }}
+          name: pxr-wheel-${{ runner.os }}
           path: target/wheels/*.whl

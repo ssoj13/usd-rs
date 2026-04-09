@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Plug, Sdf, Usd, Tf, UsdValidation
+from pxr import Plug, Sdf, Usd, Tf, UsdValidation
 
 
 class TestUsdValidationError(unittest.TestCase):

@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 #
-from pxr_rs import Tf
+from pxr import Tf
 import sys
 
 # Python 3 buffers output by default. We monkey-patch the print function here

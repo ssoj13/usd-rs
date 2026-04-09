@@ -7,7 +7,7 @@
 #
 
 import unittest
-from pxr_rs import Gf
+from pxr import Gf
 
 def colorApproxEq(c1, c2):
     return Gf.IsClose(c1.GetRGB(), c2.GetRGB(), 1e-5)

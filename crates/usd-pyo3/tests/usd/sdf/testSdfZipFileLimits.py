@@ -9,7 +9,7 @@ import os
 import unittest
 import zipfile
 
-from pxr_rs import Sdf, Tf
+from pxr import Sdf, Tf
 
 MAX_ZIPFILE_ENTRY_SIZE = Tf.GetEnvSetting('SDF_MAX_ZIPFILE_ENTRY_SIZE')
 MAX_ZIPFILE_SIZE = Tf.GetEnvSetting('SDF_MAX_ZIPFILE_SIZE')

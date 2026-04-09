@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Usd, UsdSkel, Vt, Sdf, Gf, Tf
+from pxr import Usd, UsdSkel, Vt, Sdf, Gf, Tf
 import unittest, random
 
 

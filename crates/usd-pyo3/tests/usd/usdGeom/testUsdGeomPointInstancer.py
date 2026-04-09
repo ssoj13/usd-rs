@@ -7,7 +7,7 @@
 
 # pylint: disable=range-builtin-not-iterating
 
-from pxr_rs import Gf, Usd, UsdGeom
+from pxr import Gf, Usd, UsdGeom
 import unittest
 
 class TestUsdGeomPointInstancer(unittest.TestCase):

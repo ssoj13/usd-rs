@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, unittest
-from pxr_rs import Usd, UsdGeom
+from pxr import Usd, UsdGeom
 
 class TestUsdGeomBasisCurves(unittest.TestCase):
     def test_InterpolationTypes(self):

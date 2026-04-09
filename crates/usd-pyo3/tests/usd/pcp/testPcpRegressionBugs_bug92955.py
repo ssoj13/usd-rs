@@ -8,7 +8,7 @@
 # Regression test for bug 92955.  Removing a class should not cause
 # unrelated spooky sites to be flushed.
 
-from pxr_rs import Pcp, Sdf
+from pxr import Pcp, Sdf
 import unittest
 
 class TestPcpRegressionBugs_bug92955(unittest.TestCase):

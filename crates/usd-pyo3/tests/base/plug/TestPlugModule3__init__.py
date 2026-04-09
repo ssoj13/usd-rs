@@ -4,7 +4,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 #
-from pxr_rs import Plug, Tf
+from pxr import Plug, Tf
 
 class TestPlugPythonDerived3_3(Plug._TestPlugBase3):
     def GetTypeName(self):

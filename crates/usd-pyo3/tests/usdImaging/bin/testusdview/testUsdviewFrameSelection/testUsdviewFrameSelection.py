@@ -6,9 +6,9 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs.Usdviewq.qt import QtWidgets
-from pxr_rs.Usdviewq.selectionDataModel import ALL_INSTANCES
-from pxr_rs.Usdviewq.common import SelectionHighlightModes
+from pxr.Usdviewq.qt import QtWidgets
+from pxr.Usdviewq.selectionDataModel import ALL_INSTANCES
+from pxr.Usdviewq.common import SelectionHighlightModes
 
 # Remove any unwanted visuals from the view.
 def _modifySettings(appController):

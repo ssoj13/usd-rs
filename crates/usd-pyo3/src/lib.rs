@@ -68,8 +68,8 @@ fn register_sub(
     let sub = PyModule::new(py, name)?;
     f(py, &sub)?;
     parent.add_submodule(&sub)?;
-    // Register in sys.modules so `from pxr_rs.Gf import *` works
-    let full_name = format!("pxr_rs.{name}");
+    // Register in sys.modules so `from pxr.Gf import *` works
+    let full_name = format!("pxr.{name}");
     py.import("sys")?
         .getattr("modules")?
         .set_item(&full_name, &sub)?;

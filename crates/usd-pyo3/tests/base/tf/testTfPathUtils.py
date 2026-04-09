@@ -8,7 +8,7 @@
 
 import logging
 import os
-from pxr_rs import Tf
+from pxr import Tf
 import unittest
 import platform
 

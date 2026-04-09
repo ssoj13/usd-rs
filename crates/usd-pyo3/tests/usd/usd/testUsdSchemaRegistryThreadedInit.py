@@ -7,7 +7,7 @@
 
 import unittest, threading
 
-from pxr_rs import Usd
+from pxr import Usd
 
 class TestUsdSchemaRegistryThreadedInit(unittest.TestCase):
     def test_ThreadedInit(self):

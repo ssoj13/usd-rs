@@ -11,7 +11,7 @@
 
 from __future__ import print_function
 import sys, os, argparse, re
-from pxr_rs import Pcp, Sdf, Work
+from pxr import Pcp, Sdf, Work
 
 # Parse options.
 parser = argparse.ArgumentParser()

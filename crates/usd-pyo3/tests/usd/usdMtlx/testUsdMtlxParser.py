@@ -8,7 +8,7 @@
 import os
 os.environ['PXR_MTLX_STDLIB_SEARCH_PATHS'] = os.getcwd()
 
-from pxr_rs import Tf, Sdr
+from pxr import Tf, Sdr
 import unittest
 
 class TestParser(unittest.TestCase):

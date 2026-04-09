@@ -8,7 +8,7 @@
 # pylint: disable=map-builtin-not-iterating
 
 import sys, unittest
-from pxr_rs import Sdf, Usd, UsdGeom, Vt, Gf, Tf
+from pxr import Sdf, Usd, UsdGeom, Vt, Gf, Tf
 
 class TestUsdGeomSchemata(unittest.TestCase):
     def test_Basic(self):
@@ -368,7 +368,7 @@ class TestUsdGeomSchemata(unittest.TestCase):
         self.assertTrue(do.Get() is None)
 
     def test_Camera(self):
-        from pxr_rs import Gf
+        from pxr import Gf
 
         stage = Usd.Stage.CreateInMemory()
 
@@ -447,7 +447,7 @@ class TestUsdGeomSchemata(unittest.TestCase):
 
     def test_ComputeExtent(self):
 
-        from pxr_rs import Gf
+        from pxr import Gf
 
         # Create some simple test cases
         allPoints = [
@@ -620,7 +620,7 @@ class TestUsdGeomSchemata(unittest.TestCase):
             self.assertTrue(Gf.IsClose(a, b, 1e-5))
 
     def test_Bug116593(self):
-        from pxr_rs import Gf
+        from pxr import Gf
 
         s = Usd.Stage.CreateInMemory()
         prim = s.DefinePrim('/sphere', typeName='Sphere')
@@ -638,7 +638,7 @@ class TestUsdGeomSchemata(unittest.TestCase):
         self.assertEqual(UsdGeom.ModelAPI(prim).GetExtentsHint()[1], Gf.Vec3f(1,1,1))
 
     def test_Typed(self):
-        from pxr_rs import Tf
+        from pxr import Tf
         xform = Tf.Type.FindByName("UsdGeomXform")
         imageable = Tf.Type.FindByName("UsdGeomImageable")
         geomModelAPI = Tf.Type.FindByName("UsdGeomModelAPI")
@@ -648,7 +648,7 @@ class TestUsdGeomSchemata(unittest.TestCase):
         self.assertFalse(Usd.SchemaRegistry.IsTyped(geomModelAPI))    
         
     def test_Concrete(self):
-        from pxr_rs import Tf
+        from pxr import Tf
         xform = Tf.Type.FindByName("UsdGeomXform")
         imageable = Tf.Type.FindByName("UsdGeomImageable")
         geomModelAPI = Tf.Type.FindByName("UsdGeomModelAPI")
@@ -680,7 +680,7 @@ class TestUsdGeomSchemata(unittest.TestCase):
             self.assertFalse(UsdGeom.ModelAPI.Apply(Usd.Prim()))
 
     def test_IsATypeless(self):
-        from pxr_rs import Usd, Tf
+        from pxr import Usd, Tf
         s = Usd.Stage.CreateInMemory()
         spherePrim = s.DefinePrim('/sphere', typeName='Sphere')
         typelessPrim = s.DefinePrim('/regular')
@@ -700,7 +700,7 @@ class TestUsdGeomSchemata(unittest.TestCase):
             self.assertFalse(typelessPrim.IsA(t))
 
     def test_HasAPI(self):
-        from pxr_rs import Usd, Tf
+        from pxr import Usd, Tf
         s = Usd.Stage.CreateInMemory()
         prim = s.DefinePrim('/prim')
 

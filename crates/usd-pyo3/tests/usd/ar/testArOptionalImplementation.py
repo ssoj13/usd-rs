@@ -8,7 +8,7 @@
 import argparse
 import os
 
-from pxr_rs import Plug, Ar, Tf
+from pxr import Plug, Ar, Tf
 
 def SetupPlugins():
     # Register test resolver plugins

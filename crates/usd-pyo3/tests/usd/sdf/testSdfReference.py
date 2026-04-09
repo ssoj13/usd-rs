@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Sdf, Tf
+from pxr import Sdf, Tf
 import unittest
 
 class TestSdfReferences(unittest.TestCase):

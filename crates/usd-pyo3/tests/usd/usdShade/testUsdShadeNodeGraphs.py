@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Sdf, Usd, UsdShade
+from pxr import Sdf, Usd, UsdShade
 import unittest
 
 NODEGRAPH_PATH = Sdf.Path('/MyNodeGraph')

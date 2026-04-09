@@ -18,7 +18,7 @@ use usd_sdf::Path;
 /// Describes the type of arc connecting two nodes in the prim index.
 ///
 /// Mirrors `pxr.Pcp.ArcType` / `PcpArcType` from C++ OpenUSD.
-#[pyclass(skip_from_py_object, name = "ArcType", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "ArcType", module = "pxr.Pcp")]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct PyArcType {
     inner: ArcType,
@@ -129,7 +129,7 @@ impl PyArcType {
 #[pyclass(
     skip_from_py_object,
     name = "LayerStackIdentifier",
-    module = "pxr_rs.Pcp"
+    module = "pxr.Pcp"
 )]
 #[derive(Clone)]
 pub struct PyLayerStackIdentifier {
@@ -238,7 +238,7 @@ impl PyLayerStackIdentifier {
 /// A site specifies a path in a layer stack of scene description.
 ///
 /// Mirrors `pxr.Pcp.Site` / `PcpSite`.
-#[pyclass(skip_from_py_object, name = "Site", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "Site", module = "pxr.Pcp")]
 #[derive(Clone)]
 pub struct PySite {
     inner: Site,
@@ -309,7 +309,7 @@ impl PySite {
 /// Maps values from one namespace (and time domain) to another.
 ///
 /// Mirrors `pxr.Pcp.MapFunction` / `PcpMapFunction`.
-#[pyclass(skip_from_py_object, name = "MapFunction", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "MapFunction", module = "pxr.Pcp")]
 #[derive(Clone)]
 pub struct PyMapFunction {
     inner: MapFunction,
@@ -429,7 +429,7 @@ impl PyMapFunction {
 /// A composed stack of layers contributing opinions.
 ///
 /// Mirrors `pxr.Pcp.LayerStack` / `PcpLayerStack`.
-#[pyclass(skip_from_py_object, name = "LayerStack", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "LayerStack", module = "pxr.Pcp")]
 #[derive(Clone)]
 pub struct PyLayerStack {
     inner: std::sync::Arc<LayerStack>,
@@ -496,7 +496,7 @@ impl PyLayerStack {
 /// A reference to a node in the prim index graph.
 ///
 /// Mirrors `pxr.Pcp.NodeRef` / `PcpNodeRef`.
-#[pyclass(skip_from_py_object, name = "NodeRef", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "NodeRef", module = "pxr.Pcp")]
 #[derive(Clone)]
 pub struct PyNodeRef {
     inner: usd_pcp::NodeRef,
@@ -613,7 +613,7 @@ impl PyNodeRef {
 /// An index of all sites of scene description contributing opinions to a prim.
 ///
 /// Mirrors `pxr.Pcp.PrimIndex` / `PcpPrimIndex`.
-#[pyclass(skip_from_py_object, name = "PrimIndex", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "PrimIndex", module = "pxr.Pcp")]
 #[derive(Clone)]
 pub struct PyPrimIndex {
     pub(crate) inner: PrimIndex,
@@ -717,7 +717,7 @@ impl PyPrimIndex {
 /// Context for making requests of the Pcp composition algorithm.
 ///
 /// Mirrors `pxr.Pcp.Cache` / `PcpCache`.
-#[pyclass(skip_from_py_object, name = "Cache", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "Cache", module = "pxr.Pcp")]
 pub struct PyCache {
     inner: std::sync::Arc<Cache>,
 }
@@ -845,7 +845,7 @@ impl PyCache {
 /// Base class for all PCP errors.
 ///
 /// Mirrors `pxr.Pcp.Error` / `PcpError`.
-#[pyclass(skip_from_py_object, name = "Error", module = "pxr_rs.Pcp", subclass)]
+#[pyclass(skip_from_py_object, name = "Error", module = "pxr.Pcp", subclass)]
 pub struct PyPcpError {
     pub message: String,
     pub error_type: String,
@@ -891,7 +891,7 @@ impl PyPcpError {
 /// Records the dependency of a prim index on a site.
 ///
 /// Mirrors `pxr.Pcp.Dependency` / `PcpDependency`.
-#[pyclass(skip_from_py_object, name = "Dependency", module = "pxr_rs.Pcp")]
+#[pyclass(skip_from_py_object, name = "Dependency", module = "pxr.Pcp")]
 #[derive(Clone)]
 pub struct PyDependency {
     index_path: String,

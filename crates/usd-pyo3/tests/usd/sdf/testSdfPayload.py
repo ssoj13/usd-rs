@@ -7,7 +7,7 @@
 
 # pylint: disable=zip-builtin-not-iterating
 
-from pxr_rs import Sdf, Tf
+from pxr import Sdf, Tf
 import itertools, unittest
 
 class TestSdfPayload(unittest.TestCase):

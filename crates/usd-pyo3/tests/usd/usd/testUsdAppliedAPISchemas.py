@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import os, unittest
-from pxr_rs import Plug, Sdf, Usd, Vt, Tf, Gf
+from pxr import Plug, Sdf, Usd, Vt, Tf, Gf
 
 class TestUsdAppliedAPISchemas(unittest.TestCase):
     @classmethod

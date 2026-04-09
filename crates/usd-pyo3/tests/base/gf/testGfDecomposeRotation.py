@@ -15,7 +15,7 @@ import random
 import unittest
 import sys
 
-from pxr_rs import Gf
+from pxr import Gf
 
 fbAxis = Gf.Vec3d(1, 0, 0)
 lrAxis = Gf.Vec3d(0, 1, 0)

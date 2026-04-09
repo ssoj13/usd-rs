@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 import os, tempfile, unittest
-from pxr_rs import Plug, Sdf, Tf
+from pxr import Plug, Sdf, Tf
 
 class TestSdfCapabilities(unittest.TestCase):
     @classmethod

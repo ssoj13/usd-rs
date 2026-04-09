@@ -8,8 +8,8 @@
 import sys
 import unittest
 
-from pxr_rs import Tf
-from pxr_rs import Usd
+from pxr import Tf
+from pxr import Usd
 
 
 class TestUsdGeomTypeRegistry(unittest.TestCase):

@@ -4,7 +4,7 @@
 #
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
-from pxr_rs import Sdf, Usd, Vt, Gf, Tf, UsdAbc
+from pxr import Sdf, Usd, Vt, Gf, Tf, UsdAbc
 import sys, os, tempfile, unittest
 
 class TestUsdAbcAlembicData(unittest.TestCase):

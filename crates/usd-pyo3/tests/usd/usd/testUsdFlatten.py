@@ -9,7 +9,7 @@
 
 from __future__ import print_function
 import os, shutil, sys, unittest
-from pxr_rs import Usd, Sdf, Tf
+from pxr import Usd, Sdf, Tf
 
 def _CompareFlattened(layerFile, primPath, timeRange):
     composed = Usd.Stage.Open(layerFile)

@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Sdf
+from pxr import Sdf
 
 def _setPaths(appController, pathStrs):
     pathWidget = appController._ui.currentPathWidget

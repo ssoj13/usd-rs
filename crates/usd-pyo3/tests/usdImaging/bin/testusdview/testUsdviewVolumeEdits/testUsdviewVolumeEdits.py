@@ -7,8 +7,8 @@
 #
 
 from __future__ import print_function
-from pxr_rs.Usdviewq.common import Sdf, Usd
-from pxr_rs import Gf, UsdGeom, UsdVol
+from pxr.Usdviewq.common import Sdf, Usd
+from pxr import Gf, UsdGeom, UsdVol
 
 imageIdx = 0
 

@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 from __future__ import print_function
-from pxr_rs import Ar, Tf, Sdf, Usd, UsdMtlx, UsdShade
+from pxr import Ar, Tf, Sdf, Usd, UsdMtlx, UsdShade
 import unittest
 
 def _EmptyLayer():

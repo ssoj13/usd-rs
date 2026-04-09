@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Sdf, Usd, UsdLux, UsdRi
+from pxr import Sdf, Usd, UsdLux, UsdRi
 import unittest
 
 def SetEaseOut(spline):

@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Sdf, Pcp, Plug, Tf, Vt
+from pxr import Sdf, Pcp, Plug, Tf, Vt
 import os, unittest
 
 # Get whether the env var is set for using attribute values instead of field

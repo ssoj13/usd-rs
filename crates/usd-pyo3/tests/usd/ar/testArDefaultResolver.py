@@ -8,7 +8,7 @@
 import os
 import pathlib
 import sys
-from pxr_rs import Ar, Tf
+from pxr import Ar, Tf
 
 import unittest
 import shutil

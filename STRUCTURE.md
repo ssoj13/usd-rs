@@ -14,7 +14,7 @@ the same architecture, APIs, and behavior as the C++ reference at `_ref/OpenUSD/
 - **Renderer**: wgpu (not OpenGL/Vulkan directly)
 - **UI**: egui (not Qt)
 - **Build**: Cargo workspace (71 members), vcpkg at `c:/vcpkg`
-- **Python**: PyO3/maturin bindings (`pxr_rs` package)
+- **Python**: PyO3/maturin bindings (`pxr` package)
 - **Build tool**: `bootstrap.py` (build, test, check, Python bindings)
 - **Reference**: `_ref/OpenUSD/pxr/` — always consult before implementing
 - **Stats**: ~2480 `.rs` files, ~130k lines of Rust (crates + src + vendor)
@@ -89,7 +89,7 @@ usd-rs/
     usd-view/                # Viewer application (egui + wgpu)
     usd-pyo3/                # Python bindings (PyO3/maturin)
       src/                   # 18 .rs files: lib, tf, gf/*, sdf, pcp, ar, vt, usd, ...
-      pxr_rs/                # Python package root (pxr_rs._usd)
+      pxr/                # Python package root (pxr._usd)
       pyproject.toml         # maturin build config
     ext/                     # External/vendored libraries
       draco-rs/              # Google Draco mesh compression (7 sub-crates + fuzz)
@@ -142,10 +142,10 @@ usd-rs/
 
 ## Python Bindings (usd-pyo3)
 
-PyO3/maturin-based Python bindings exposing USD-RS as a `pxr_rs` Python package.
+PyO3/maturin-based Python bindings exposing USD-RS as a `pxr` Python package.
 
 - **Crate**: `crates/usd-pyo3/` — builds native extension `_usd` (cdylib)
-- **Python package**: `pxr_rs` — importable as `from pxr_rs import _usd`
+- **Python package**: `pxr` — importable as `from pxr import _usd`
 - **PyO3 version**: 0.28
 - **Build**: `maturin develop` or `python bootstrap.py b p`
 - **Module structure** (18 source files):
@@ -582,7 +582,7 @@ usd-pyo3 <- usd-tf, usd-gf, usd-vt, usd-sdf, usd-pcp, usd-ar, usd-core, usd-geom
 - Branch: `main`, build: 0 errors, 0 warnings
 - 71 workspace members, ~2480 `.rs` files, ~130k LOC Rust
 - Imaging pipeline functional (wgpu backend) with GPU display color path and HDR-capable present preference
-- `usd-pyo3` Python bindings added (PyO3 0.28, maturin, `pxr_rs` package) — covers Tf, Gf, Vt, Sdf, Pcp, Ar, Kind, Usd, Geom, Shade, Lux, Skel
+- `usd-pyo3` Python bindings added (PyO3 0.28, maturin, `pxr` package) — covers Tf, Gf, Vt, Sdf, Pcp, Ar, Kind, Usd, Geom, Shade, Lux, Skel
 - `bootstrap.py` build tool added — unified build/test/check/Python commands
 - `usd-imaging` scene-index parity tightened for xform flattening, render settings/products, root overrides, `ri_pxr`, and skel legacy adapters
 - `usd-app-utils::FrameRecorder` placeholder removed; recording now routes through `usd-imaging` engine and supports `.exr`

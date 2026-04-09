@@ -4,8 +4,8 @@
 #
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
-from pxr_rs import UsdUtils
-from pxr_rs import Sdf
+from pxr import UsdUtils
+from pxr import Sdf
 
 def Test(usdFile, outFile, fn, keepEmptyPathsInArrays = False):
     layer = Sdf.Layer.FindOrOpen(usdFile)

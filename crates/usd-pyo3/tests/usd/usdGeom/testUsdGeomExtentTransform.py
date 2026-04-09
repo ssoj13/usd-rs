@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Vt, Gf, Sdf, Usd, UsdGeom
+from pxr import Vt, Gf, Sdf, Usd, UsdGeom
 
 
 # A transform matrix which has rotation, translation, and scale. Since the scale

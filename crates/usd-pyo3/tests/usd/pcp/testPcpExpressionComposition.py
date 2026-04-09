@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Pcp, Sdf, Tf
+from pxr import Pcp, Sdf, Tf
 
 INCREMENTAL_CHANGES = Tf.GetEnvSetting(
     'PCP_ENABLE_MINIMAL_CHANGES_FOR_LAYER_OPERATIONS')

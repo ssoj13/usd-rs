@@ -72,7 +72,7 @@ A ground-up pure Rust port of Pixar's OpenUSD (Universal Scene Description) — 
 ### Python Bindings
 - `pyo3` 0.28 — Rust↔Python FFI (extension-module mode)
 - `maturin` 1.x — build backend for Python wheels from Rust cdylib
-- Python package: `pxr_rs` — drop-in replacement for Pixar's `pxr` (`import pxr_rs as pxr`)
+- Python package: `pxr` — drop-in replacement for Pixar's `pxr` (`import pxr as pxr`)
 ### Miscellaneous
 - `rfd` 0.17 — native file dialogs
 - `dirs` 6 — platform config directories
@@ -86,7 +86,7 @@ A ground-up pure Rust port of Pixar's OpenUSD (Universal Scene Description) — 
 - Feature flags: `wgpu` (default), `mtlx-rs`, `nightly`, `dev_build`, `jemalloc`
 - Release profile: `lto = false`, `codegen-units = 1`
 - `bootstrap.py` — unified build script: `b` (build all), `b p` (build Python wheel via maturin), `t` (test), `t p` (Python tests via pytest), `ch` (clippy+fmt)
-- Python bindings: `maturin build -m crates/usd-pyo3/Cargo.toml --release` produces `pxr_rs` wheel; `pyproject.toml` in `crates/usd-pyo3/`
+- Python bindings: `maturin build -m crates/usd-pyo3/Cargo.toml --release` produces `pxr` wheel; `pyproject.toml` in `crates/usd-pyo3/`
 ## CI/CD
 - GitHub Actions (`.github/workflows/`)
 - Matrix: ubuntu-latest, macos-latest, windows-latest
@@ -183,10 +183,10 @@ A ground-up pure Rust port of Pixar's OpenUSD (Universal Scene Description) — 
 - File watcher for hot-reload
 - Persistence via RON serialization
 ### Python Bindings (usd-pyo3)
-- `usd-pyo3` — PyO3 cdylib crate exposing USD API to Python as `pxr_rs._usd`
+- `usd-pyo3` — PyO3 cdylib crate exposing USD API to Python as `pxr._usd`
 - Modules: Tf, Gf (vec/matrix/quat/geo), Vt, Ar, Kind, Sdf, Pcp, Usd, UsdGeom, UsdShade, UsdLux, UsdSkel, Cli
 - 18 source files (~15.7k LOC), wraps base + core + schema crates
-- Python package `pxr_rs/` with `__init__.py` re-exports — drop-in for `pxr`
+- Python package `pxr/` with `__init__.py` re-exports — drop-in for `pxr`
 - Build: `maturin build` / `maturin develop` (requires Python 3.9+)
 ### Proc Macro Crate
 - `usd-derive-macros` — custom derive macros for USD schema types
@@ -199,7 +199,7 @@ A ground-up pure Rust port of Pixar's OpenUSD (Universal Scene Description) — 
 - **CLI binary:** `src/bin/usd/main.rs` — subcommands (cat, diff, tree, view, dump, etc.)
 - **Viewer binary:** `crates/usd-view/src/main.rs` → `launcher.rs` → egui app loop
 - **Library facade:** `src/lib.rs` — re-exports all sub-crates
-- **Python bindings:** `crates/usd-pyo3/` — maturin-built wheel, `import pxr_rs`
+- **Python bindings:** `crates/usd-pyo3/` — maturin-built wheel, `import pxr`
 - **Build script:** `bootstrap.py` — unified build/test/check CLI
 - **Test data:** `data/usd/`, `data/abc/`, `data/hdr/`
 <!-- GSD:architecture-end -->

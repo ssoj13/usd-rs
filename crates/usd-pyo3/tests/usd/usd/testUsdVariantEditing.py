@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import os, sys
-from pxr_rs import Gf, Tf, Sdf, Usd
+from pxr import Gf, Tf, Sdf, Usd
 
 def OpenLayer(name):
     layerFile = '%s.usda' % name

@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, os, unittest
-from pxr_rs import Gf, Usd, UsdGeom, Sdf, Tf
+from pxr import Gf, Usd, UsdGeom, Sdf, Tf
 
 class TestUsdGeomConstraintTarget(unittest.TestCase):
     def test_Basic(self):

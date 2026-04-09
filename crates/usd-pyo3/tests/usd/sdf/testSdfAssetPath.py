@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Sdf
+from pxr import Sdf
 import unittest
 
 class TestSdfAssetPath(unittest.TestCase):

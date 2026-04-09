@@ -8,7 +8,7 @@
 import os
 os.environ['PXR_MTLX_PLUGIN_SEARCH_PATHS'] = os.getcwd()
 
-from pxr_rs import Sdr, Sdr, Gf
+from pxr import Sdr, Sdr, Gf
 import unittest
 
 class TestDiscovery(unittest.TestCase):

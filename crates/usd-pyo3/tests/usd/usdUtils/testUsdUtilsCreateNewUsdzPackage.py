@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 from __future__ import print_function
-from pxr_rs import Ar, Sdf, Usd, UsdUtils
+from pxr import Ar, Sdf, Usd, UsdUtils
 
 import argparse, contextlib, sys
 

@@ -4,7 +4,7 @@
 #
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
-from pxr_rs import Ar, Sdf, UsdUtils
+from pxr import Ar, Sdf, UsdUtils
 import os, shutil
 import unittest
 

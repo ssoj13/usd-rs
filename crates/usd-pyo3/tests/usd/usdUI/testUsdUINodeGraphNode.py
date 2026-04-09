@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Usd, UsdUI, Gf
+from pxr import Usd, UsdUI, Gf
 import unittest
 
 class TestUsdUINodeGraphNode(unittest.TestCase):

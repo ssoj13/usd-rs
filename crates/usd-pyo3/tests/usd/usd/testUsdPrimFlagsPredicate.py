@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest
-from pxr_rs import Usd, Tf
+from pxr import Usd, Tf
 
 class TestPrimFlagsPredicate(unittest.TestCase):
     def setUp(self):

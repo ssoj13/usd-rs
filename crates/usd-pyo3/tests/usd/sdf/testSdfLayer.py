@@ -14,12 +14,12 @@ sdfTestResolver = "Sdf_TestResolver"
 preferredResolver = os.environ.get(
     "TEST_SDF_LAYER_RESOLVER", sdfTestResolver)
 
-from pxr_rs import Ar
+from pxr import Ar
 Ar.SetPreferredResolver(preferredResolver)
 
 # Import other modules from pxr after Ar to ensure we don't pull on Ar
 # before the preferred resolver has been specified.
-from pxr_rs import Sdf, Tf, Plug
+from pxr import Sdf, Tf, Plug
 
 class TestSdfLayer(unittest.TestCase):
     @classmethod

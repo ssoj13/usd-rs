@@ -6,9 +6,9 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs.Usdviewq.qt import QtWidgets
-from pxr_rs.Usdviewq.common import SelectionHighlightModes
-from pxr_rs import UsdGeom
+from pxr.Usdviewq.qt import QtWidgets
+from pxr.Usdviewq.common import SelectionHighlightModes
+from pxr import UsdGeom
 
 def _waitForRefresh():
     import time
@@ -28,7 +28,7 @@ def _modifySettings(appController):
 # non-instancable-by-Hydra prims (i.e., no rprims).
 #
 def _testInstancingEdits6146(appController):
-    from pxr_rs import Sdf
+    from pxr import Sdf
 
     testALayer = Sdf.Layer.FindOrOpen("usd-6146/testA.usda")
     appController._dataModel.stage.GetRootLayer().TransferContent(testALayer)
@@ -44,7 +44,7 @@ def _testInstancingEdits6146(appController):
 # Test a case where we deactivate the parent prim of a native instance.
 #   
 def _testDeactivatingInstanceParent11237(appController):
-    from pxr_rs import Sdf
+    from pxr import Sdf
 
     testLayer = Sdf.Layer.FindOrOpen("usd-11237/instanceWithParent.usda")
     appController._dataModel.stage.GetRootLayer().TransferContent(testLayer)
@@ -58,7 +58,7 @@ def _testDeactivatingInstanceParent11237(appController):
 # Tests whether visibility authored on a PointInstancer is respected.
 #
 def _testInstancerVisibilityEdits(appController):
-    from pxr_rs import Sdf
+    from pxr import Sdf
 
     testLayer = Sdf.Layer.FindOrOpen("usd-11149/instancerVisibility.usda")
     appController._dataModel.stage.GetRootLayer().TransferContent(testLayer)
@@ -73,7 +73,7 @@ def _testInstancerVisibilityEdits(appController):
 # native instances.
 #
 def _testCompleteResyncWithNativeInstances(appController):
-    from pxr_rs import Sdf
+    from pxr import Sdf
 
     appController._dataModel.stage.GetRootLayer().Clear()
 

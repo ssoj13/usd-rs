@@ -9,7 +9,7 @@
 import os
 import unittest
 
-from pxr_rs import Plug, Ar, Tf
+from pxr import Plug, Ar, Tf
 
 # Test plugins are installed relative to this script
 testRoot = os.path.join(os.path.dirname(__file__), 'ArPlugins')

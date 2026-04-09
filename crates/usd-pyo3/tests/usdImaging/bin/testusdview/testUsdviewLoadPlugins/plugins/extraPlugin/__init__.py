@@ -6,8 +6,8 @@
 #
 from __future__ import print_function
 
-from pxr_rs import Tf
-from pxr_rs.Usdviewq.plugin import PluginContainer
+from pxr import Tf
+from pxr.Usdviewq.plugin import PluginContainer
 
 
 class ExtraContainer(PluginContainer):

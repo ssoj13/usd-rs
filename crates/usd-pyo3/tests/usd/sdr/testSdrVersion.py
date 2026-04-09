@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Sdr
+from pxr import Sdr
 import unittest
 
 class TestVersion(unittest.TestCase):

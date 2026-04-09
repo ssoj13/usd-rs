@@ -29,7 +29,7 @@ A few points setting the right context:
 | **Schemas** (16) | usd-geom, usd-shade, usd-lux, usd-skel, usd-vol, usd-physics, ... | Geometry, materials, lights, skeletal animation, volumes, physics |
 | **Imaging** (22) | usd-hd, usd-hdx, usd-hd-st, usd-hgi, usd-hgi-wgpu, usd-hdsi, ... | Hydra scene index chain, Storm renderer, wgpu GPU backend |
 | **Viewer** | usd-view | egui-based viewer (usdview equivalent) with dockable panels |
-| **Python** | usd-pyo3 | PyO3 bindings: `import pxr_rs as pxr` — drop-in for Pixar's `pxr` |
+| **Python** | usd-pyo3 | PyO3 bindings: `import pxr as pxr` — drop-in for Pixar's `pxr` |
 | **External** (6) | opensubdiv-rs, mtlx-rs, osl-rs, draco-rs, gltf-rs, pxr-lz4 | Independent Rust ports of OpenSubdiv 3.7, MaterialX, Open Shading Language, Draco mesh compression, and LZ4 decompression. gltf-rs is a fork of the [gltf](https://crates.io/crates/gltf) crate (MIT/Apache-2.0). |
 
 ## What works
@@ -63,7 +63,7 @@ A few points setting the right context:
 
 **Python bindings** — 16 modules (Tf, Gf, Vt, Sdf, Pcp, Ar, Kind, Usd, UsdGeom, UsdShade, UsdLux, UsdSkel, Plug, Ts, Work, Cli). PyO3 0.28, Python 3.11–3.14.
 
-**CLI tools** — `usd cat/tree/dump/diff/resolve/edit/stitch/zip/view/meshdump/dumpcrate` — all as a single `usd` binary, also callable from Python via `pxr_rs.Cli`.
+**CLI tools** — `usd cat/tree/dump/diff/resolve/edit/stitch/zip/view/meshdump/dumpcrate` — all as a single `usd` binary, also callable from Python via `pxr.Cli`.
 
 **mtlx-rs** — MaterialX port (55k LOC, 800+ tests): core document model, node graphs, shader generation backends for GLSL, WGSL (via naga), MSL, MDL, OSL, Slang.
 
@@ -90,8 +90,8 @@ A few points setting the right context:
 ## Python bindings
 
 ```python
-import pxr_rs as pxr
-from pxr_rs import Tf, Gf, Sdf, Usd, UsdGeom
+import pxr as pxr
+from pxr import Tf, Gf, Sdf, Usd, UsdGeom
 
 stage = pxr.Usd.Stage.Open("scene.usda")
 for prim in stage.Traverse():

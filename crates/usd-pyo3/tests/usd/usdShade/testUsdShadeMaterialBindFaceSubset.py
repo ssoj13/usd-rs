@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Usd, UsdGeom, UsdShade, Vt
+from pxr import Usd, UsdGeom, UsdShade, Vt
 import unittest
 
 class TestUsdShadeMaterialBindFaceSubset(unittest.TestCase):

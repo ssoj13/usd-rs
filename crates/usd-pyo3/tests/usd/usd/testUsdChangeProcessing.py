@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys
-from pxr_rs import Sdf,Usd,Pcp
+from pxr import Sdf,Usd,Pcp
 
 def RenamingSpec():
     '''Test renaming a SdfPrimSpec.'''

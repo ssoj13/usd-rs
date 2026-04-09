@@ -15,7 +15,7 @@ Usage:
     python bootstrap.py b             # Build everything (release)
     python bootstrap.py b p           # Build Python bindings
     python bootstrap.py b -d          # Build all in debug
-    python bootstrap.py t             # Run tests
+    python bootstrap.py t             # cargo test --workspace (+ auto OPENUSD if sibling usd-refs/OpenUSD)
     python bootstrap.py ch            # Clippy + fmt
 """
 
@@ -233,9 +233,9 @@ def run_tests(debug: bool, target: str | None = None) -> int:
 			err("Tests FAILED")
 		return code
 	step(f"Mode: {mode_str(debug)}")
-	step("Running cargo test...")
+	step("Running cargo test --workspace...")
 	print()
-	cmd = ["cargo", "test"]
+	cmd = ["cargo", "test", "--workspace"]
 	if not debug:
 		cmd.append("--release")
 	code, _, ms = run(cmd)

@@ -1,4 +1,4 @@
-"""pytest conftest for pxr_rs Python binding tests.
+"""pytest conftest for pxr Python binding tests.
 
 Test data is **not** in this repository. Clone OpenUSD and set **OPENUSD_SRC_ROOT**
 to its root (directory containing ``pxr/``). Per-module data:
@@ -128,9 +128,9 @@ collect_ignore_glob = [
 ]
 
 try:
-    import pxr_rs
+    import pxr
 except ImportError:
     def pytest_collection_modifyitems(items):
-        skip = pytest.mark.skip(reason="pxr_rs not installed")
+        skip = pytest.mark.skip(reason="pxr not installed")
         for item in items:
             item.add_marker(skip)

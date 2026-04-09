@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Sdf, Vt, Gf, Tf
+from pxr import Sdf, Vt, Gf, Tf
 import unittest
 
 class TestSdfTypes(unittest.TestCase):

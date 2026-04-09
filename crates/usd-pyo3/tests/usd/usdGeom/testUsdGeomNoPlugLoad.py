@@ -9,7 +9,7 @@
 # functionality will work using only information loaded from usdGeom's
 # plugInfo.json and generated schema, without loading the library.
 
-from pxr_rs import Plug, Usd
+from pxr import Plug, Usd
 import unittest
 
 class TestUsdGeomNoPlugLoad(unittest.TestCase):

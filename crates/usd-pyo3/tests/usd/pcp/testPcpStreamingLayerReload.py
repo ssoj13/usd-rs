@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Sdf, Pcp, Plug, Vt
+from pxr import Sdf, Pcp, Plug, Vt
 import os, unittest
 
 class TestPcpStreamingLayerReload(unittest.TestCase):

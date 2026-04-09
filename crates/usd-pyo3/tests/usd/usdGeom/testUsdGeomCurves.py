@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Usd, UsdGeom, Sdf
+from pxr import Usd, UsdGeom, Sdf
 
 class TestBasisCurves(unittest.TestCase):
     def setUp(self):

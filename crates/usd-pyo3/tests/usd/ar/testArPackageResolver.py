@@ -13,7 +13,7 @@ import unittest
 # this test.
 os.environ["PXR_AR_DISABLE_PLUGIN_RESOLVER"] = "1"
 
-from pxr_rs import Plug, Ar, Tf
+from pxr import Plug, Ar, Tf
 
 class TestArPackageResolver(unittest.TestCase):
     @classmethod

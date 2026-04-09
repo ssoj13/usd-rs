@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import sys, os, unittest
-from pxr_rs import Sdf, Tf, Usd, UsdGeom
+from pxr import Sdf, Tf, Usd, UsdGeom
 
 class TestUsdGeomPurposeVisibility(unittest.TestCase):
     def test_ComputeVisibility(self):

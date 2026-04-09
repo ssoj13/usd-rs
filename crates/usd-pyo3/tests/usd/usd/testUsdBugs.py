@@ -11,7 +11,7 @@ import unittest
 
 class TestUsdBugs(unittest.TestCase):
     def test_153956(self):
-        from pxr_rs import Sdf
+        from pxr import Sdf
 
         # Create a crate-backed .usd file and populate it with an
         # attribute connection. These files do not store specs for
@@ -42,7 +42,7 @@ class TestUsdBugs(unittest.TestCase):
         primSpec.name = "Test2"
 
     def test_141718(self):
-        from pxr_rs import Sdf
+        from pxr import Sdf
         crateLayer = Sdf.Layer.CreateAnonymous('.usdc')
         prim = Sdf.CreatePrimInLayer(crateLayer, '/Prim')
         rel = Sdf.RelationshipSpec(prim, 'myRel', custom=False)
@@ -53,7 +53,7 @@ class TestUsdBugs(unittest.TestCase):
         p.RemoveProperty(p.relationships['myRel'])
 
     def test_155392(self):
-        from pxr_rs import Sdf, Usd
+        from pxr import Sdf, Usd
         # Usd should maintain load state across instancing changes.
         l1 = Sdf.Layer.CreateAnonymous('.usda')
         l2 = Sdf.Layer.CreateAnonymous('.usda')
@@ -166,7 +166,7 @@ class TestUsdBugs(unittest.TestCase):
             ]]))
 
     def test_156222(self):
-        from pxr_rs import Sdf, Usd
+        from pxr import Sdf, Usd
 
         # Test that removing all instances for a prototype prim and adding a new
         # instance with the same instancing key as the prototype causes the new
@@ -214,7 +214,7 @@ class TestUsdBugs(unittest.TestCase):
 
     def test_157758(self):
         # Test that setting array values with various python sequences works.
-        from pxr_rs import Usd, Sdf, Vt
+        from pxr import Usd, Sdf, Vt
         s = Usd.Stage.CreateInMemory()
         p = s.DefinePrim('/testPrim')
         a = p.CreateAttribute('points', Sdf.ValueTypeNames.Float3Array)
@@ -230,7 +230,7 @@ class TestUsdBugs(unittest.TestCase):
     def test_160884(self):
         # Test that opening a stage that has a mask pointing beneath an instance
         # doesn't crash.
-        from pxr_rs import Usd, Sdf
+        from pxr import Usd, Sdf
         import random
         allFormats = ['usd' + x for x in 'ac']
         for fmt in allFormats:
@@ -308,7 +308,7 @@ class TestUsdBugs(unittest.TestCase):
     def test_USD_4712(self):
         # Test that activating a prim auto-includes payloads of new descendants
         # if the ancestors' payloads were already included.
-        from pxr_rs import Usd, Sdf
+        from pxr import Usd, Sdf
         l1 = Sdf.Layer.CreateAnonymous('.usd')
         l1.ImportFromString('''#usda 1.0
             (
@@ -364,7 +364,7 @@ class TestUsdBugs(unittest.TestCase):
     def test_USD_4936(self):
         # Test that relationships resolve correctly with nested instancing and
         # instance proxies within prototypes.
-        from pxr_rs import Usd, Sdf
+        from pxr import Usd, Sdf
         l1 = Sdf.Layer.CreateAnonymous('.usd')
         l1.ImportFromString('''#usda 1.0
             def "W" {
@@ -396,7 +396,7 @@ class TestUsdBugs(unittest.TestCase):
         self.assertEqual(wab.GetRelationship('r').GetTargets(), [Sdf.Path('/W/A/B/D')])
 
     def test_USD_5196(self):
-        from pxr_rs import Usd, Sdf, Vt, Tf
+        from pxr import Usd, Sdf, Vt, Tf
         import os, random
         # Test that usdc files corrupted by truncation (such that the table of
         # contents is past the end of the file) are detected and fail to open
@@ -421,7 +421,7 @@ class TestUsdBugs(unittest.TestCase):
 
     def test_USD_5045(self):
         # USD-5045 is github issue #753
-        from pxr_rs import Usd
+        from pxr import Usd
         nullPrim = Usd.Prim()
         with self.assertRaises(RuntimeError):
             nullPrim.IsDefined()
@@ -430,7 +430,7 @@ class TestUsdBugs(unittest.TestCase):
         # This interaction between nested instancing, load/unload, activation,
         # and inherits triggered a corruption of instancing data structures and
         # ultimately a crash bug in the USD core.
-        from pxr_rs import Usd, Sdf
+        from pxr import Usd, Sdf
         lpay = Sdf.Layer.CreateAnonymous('.usda')
         lpay.ImportFromString('''#usda 1.0
 def "innerM" (
@@ -473,7 +473,7 @@ def "OtherWorld"
         self.assertTrue(p.GetPrototype())
 
     def test_USD_5386(self):
-        from pxr_rs import Usd, Sdf
+        from pxr import Usd, Sdf
         # This is github issue #883.
         def MakeLayer(text, *args):
             l = Sdf.Layer.CreateAnonymous('.usda')
@@ -544,7 +544,7 @@ def "geo" ( append payload = @%s@ )
         # prim paths when populating prototype prim hierarchies.  This test
         # ensures that masks with paths descendant to instances work as
         # expected.
-        from pxr_rs import Usd, Sdf
+        from pxr import Usd, Sdf
         l = Sdf.Layer.CreateAnonymous('.usda')
         l.ImportFromString('''#usda 1.0
         def Sphere "test"
@@ -781,7 +781,7 @@ def "geo" ( append payload = @%s@ )
         # We used to potentially access nonexistent prims if callers created
         # collections on one stage and then tried to use them to match objects
         # on other stages.  Now we check this case and raise an error.
-        from pxr_rs import Usd, Sdf, Tf
+        from pxr import Usd, Sdf, Tf
         stage1 = Usd.Stage.CreateInMemory()
         scope = stage1.DefinePrim('/Scope')
         targetColl = Usd.CollectionAPI.Apply(scope.GetPrim(), 'target')

@@ -8,7 +8,7 @@
 from __future__ import division
 
 import sys, math, unittest
-from pxr_rs import Gf
+from pxr import Gf
 
 vecIntTypes = [ Gf.Vec2i, Gf.Vec3i, Gf.Vec4i ]
 vecDoubleTypes = [ Gf.Vec2d, Gf.Vec3d, Gf.Vec4d ]

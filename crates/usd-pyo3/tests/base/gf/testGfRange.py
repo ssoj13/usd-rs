@@ -11,7 +11,7 @@ from __future__ import division
 
 import sys, math
 import unittest
-from pxr_rs import Gf, Tf
+from pxr import Gf, Tf
 
 def makeValue( Value, vals ):
     if Value == float:

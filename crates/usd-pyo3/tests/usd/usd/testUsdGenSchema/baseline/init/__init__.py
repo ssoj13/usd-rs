@@ -5,6 +5,6 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Tf
+from pxr import Tf
 Tf.PreparePythonModule()
 del Tf

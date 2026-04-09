@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Sdf, Usd, UsdMedia
+from pxr import Sdf, Usd, UsdMedia
 import unittest, math
 
 class TestUsdMediaSpatialAudio(unittest.TestCase):

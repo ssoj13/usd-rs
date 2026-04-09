@@ -4,7 +4,7 @@
 #
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
-from pxr_rs import Usd, UsdGeom, Gf, Vt
+from pxr import Usd, UsdGeom, Gf, Vt
 import unittest
 
 class TestUsdAbcUvWrite(unittest.TestCase):

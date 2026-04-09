@@ -6,8 +6,8 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs.Usdviewq.common import Usd, UsdGeom
-from pxr_rs import Vt, Gf
+from pxr.Usdviewq.common import Usd, UsdGeom
+from pxr import Vt, Gf
 
 # Remove any unwanted visuals from the view, and enable autoClip
 def _modifySettings(appController):

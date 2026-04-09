@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 #
-from pxr_rs.Usdviewq.qt import QtWidgets
+from pxr.Usdviewq.qt import QtWidgets
 
 def _selectPrims(appController, paths):
     selection = appController._dataModel.selection

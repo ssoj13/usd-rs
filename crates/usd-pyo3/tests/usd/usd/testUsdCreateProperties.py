@@ -9,7 +9,7 @@
 
 from __future__ import print_function
 import sys, os, unittest
-from pxr_rs import Usd, Sdf, Gf, Tf
+from pxr import Usd, Sdf, Gf, Tf
 
 allFormats = ['usd' + x for x in 'ac']
 
@@ -285,7 +285,7 @@ class TestUsdCreateProperties(unittest.TestCase):
                 s.GetPrimAtPath('/test').GetAttribute('x').Clear()
 
     def test_GetSetNumpy(self):
-        from pxr_rs import Vt
+        from pxr import Vt
 
         # Skip test if numpy not available.
         try:
@@ -312,7 +312,7 @@ class TestUsdCreateProperties(unittest.TestCase):
             assert Vt.Vec3fArray.FromNumpy(gn) == a
 
     def test_SetArraysWithLists(self):
-        from pxr_rs import Vt, Sdf
+        from pxr import Vt, Sdf
         for fmt in allFormats:
             s = Usd.Stage.CreateInMemory('SetArraysWithListsTest.'+fmt)
             prim = s.OverridePrim('/test')

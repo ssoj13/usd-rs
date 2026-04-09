@@ -8,7 +8,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Tf, Sdf, Usd, UsdRi, UsdShade
+from pxr import Tf, Sdf, Usd, UsdRi, UsdShade
 import unittest
 
 class TestUsdRiSchemata(unittest.TestCase):

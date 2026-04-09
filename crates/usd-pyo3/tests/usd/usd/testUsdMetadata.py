@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import sys, os, unittest
-from pxr_rs import Sdf, Usd, Tf, Plug
+from pxr import Sdf, Usd, Tf, Plug
 
 allFormats = ['usd' + x for x in 'ac']
 
@@ -366,7 +366,7 @@ class TestUsdMetadata(unittest.TestCase):
 
     def test_BasicCustomData(self):
         '''Test basic CustomData API, including by-key-path API'''
-        from pxr_rs import Vt
+        from pxr import Vt
 
         for fmt in allFormats:
             s = Usd.Stage.CreateInMemory('TestBasicCustomData.'+fmt)

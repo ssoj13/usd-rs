@@ -11,7 +11,7 @@ import os
 import time
 import unittest
 
-from pxr_rs import Tf
+from pxr import Tf
 
 class TestFileUtils(unittest.TestCase):
     """

@@ -8,7 +8,7 @@
 import os
 import unittest
 
-from pxr_rs import Plug, Usd, UsdValidation
+from pxr import Plug, Usd, UsdValidation
 
 
 class TestUsdValidationRegistryPy(unittest.TestCase):

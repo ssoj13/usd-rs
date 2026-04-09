@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Sdf, Tf, UsdUtils, Vt, Gf
+from pxr import Sdf, Tf, UsdUtils, Vt, Gf
 import unittest
 
 class TestUsdUtilsStitchClips(unittest.TestCase):
@@ -109,7 +109,7 @@ class TestUsdUtilsStitchClips(unittest.TestCase):
 
     def test_FilePermissions(self):
         import os, stat
-        from pxr_rs import Tf
+        from pxr import Tf
         rootLayerFile = 'permissions.usd'
         clipPath = Sdf.Path('/World/fx/points')
         rootLayer = Sdf.Layer.CreateNew(rootLayerFile)

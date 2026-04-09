@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Pcp, Sdf
+from pxr import Pcp, Sdf
 import unittest
 
 class TestPcpInstanceKey(unittest.TestCase):

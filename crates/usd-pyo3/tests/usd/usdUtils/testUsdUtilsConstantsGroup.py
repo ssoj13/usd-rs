@@ -9,7 +9,7 @@
 import sys
 import unittest
 
-from pxr_rs.UsdUtils.constantsGroup import ConstantsGroup
+from pxr.UsdUtils.constantsGroup import ConstantsGroup
 
 class TestConstantsGroup(unittest.TestCase):
 

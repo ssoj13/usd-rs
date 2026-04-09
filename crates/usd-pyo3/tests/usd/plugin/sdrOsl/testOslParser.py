@@ -11,8 +11,8 @@ import os
 os.environ['PXR_SDR_SKIP_PARSER_PLUGIN_DISCOVERY'] = "1"
 
 import unittest
-from pxr_rs import Plug, Sdr
-from pxr_rs.Sdr import shaderParserTestUtils as utils
+from pxr import Plug, Sdr
+from pxr.Sdr import shaderParserTestUtils as utils
 
 class TestShaderNode(unittest.TestCase):
     @classmethod

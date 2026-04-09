@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Sdf
+from pxr import Sdf
 
 # Remove any unwanted visuals from the view and set complexity.
 def _modifySettings(appController):

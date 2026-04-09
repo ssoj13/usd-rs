@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import shutil, os, unittest
-from pxr_rs import Sdf, Usd, Tf
+from pxr import Sdf, Usd, Tf
 
 def DiffLayers(layer1, layer2):
     assert layer1.ExportToString() == layer2.ExportToString()

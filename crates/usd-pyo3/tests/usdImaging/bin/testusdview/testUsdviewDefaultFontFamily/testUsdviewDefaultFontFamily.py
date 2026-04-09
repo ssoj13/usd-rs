@@ -6,8 +6,8 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs.Usdviewq.qt import QtWidgets
-from pxr_rs.Usdviewq.common import DefaultFontFamily
+from pxr.Usdviewq.qt import QtWidgets
+from pxr.Usdviewq.common import DefaultFontFamily
 
 def _testDefaultFontFamily(appController):
     assert appController._mainWindow.font().family() == \

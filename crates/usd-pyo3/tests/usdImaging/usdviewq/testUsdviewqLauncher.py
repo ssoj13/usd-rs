@@ -8,7 +8,7 @@
 
 import unittest
 
-from pxr_rs.Usdviewq import Launcher, InvalidUsdviewOption
+from pxr.Usdviewq import Launcher, InvalidUsdviewOption
 
 
 class ValidationOnlyLauncher(Launcher):

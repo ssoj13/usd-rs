@@ -1,8 +1,8 @@
-# pxr_rs (usd-pyo3) — паритет с OpenUSD Python API
+# pxr (usd-pyo3) — паритет с OpenUSD Python API
 
 **Референс C++ / Python:** `C:\projects\projects.rust.cg\usd-refs\OpenUSD`  
 **Крейт:** `crates/usd-pyo3`  
-**Пакет:** `pxr_rs` (`import pxr_rs as pxr`)  
+**Пакет:** `pxr` (`import pxr as pxr`)  
 **Правило:** любая публичная поведенческая деталь — сверка с `wrap*.cpp` / `tf*.py` / тестами `pxr/usd/...` в референсе. Отклонения считаются багами, пока не задокументированы как намеренные ограничения порта.
 
 **Рабочая память (очередь wrap, процесс):** [`md/PYTHON_API_WORK.md`](PYTHON_API_WORK.md).  

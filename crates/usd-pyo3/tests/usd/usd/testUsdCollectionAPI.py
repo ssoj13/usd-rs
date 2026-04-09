@@ -9,7 +9,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Usd, Vt, Sdf, Tf
+from pxr import Usd, Vt, Sdf, Tf
 import unittest
 
 stage = Usd.Stage.Open("./Test.usda")

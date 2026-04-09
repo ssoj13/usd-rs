@@ -6,9 +6,9 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Sdf
-from pxr_rs.Usdviewq.selectionDataModel import ALL_INSTANCES
-from pxr_rs.Usdviewq.qt import QtCore
+from pxr import Sdf
+from pxr.Usdviewq.selectionDataModel import ALL_INSTANCES
+from pxr.Usdviewq.qt import QtCore
 
 INSTANCER_PATH = "/Foo/Cube/Instancer"
 PROTO_PATH = "/Foo/Cube/Instancer/Protos/Proto1/cube"

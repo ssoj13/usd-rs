@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest
-from pxr_rs import Gf, Sdf, Tf, Usd, UsdShade
+from pxr import Gf, Sdf, Tf, Usd, UsdShade
 
 class TestCache(Usd.ColorSpaceHashCache):
     def IsCached(self, path, name):

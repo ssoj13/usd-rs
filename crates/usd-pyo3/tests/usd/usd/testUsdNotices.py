@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import contextlib, os, platform, sys, unittest
-from pxr_rs import Ar,Sdf,Usd,Tf
+from pxr import Ar,Sdf,Usd,Tf
 
 allFormats = ['usd' + x for x in 'ac']
 

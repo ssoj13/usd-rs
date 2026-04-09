@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest
-from pxr_rs import Sdf, Usd
+from pxr import Sdf, Usd
 
 class TestUsdResolveTargetPy(unittest.TestCase):
     """ 

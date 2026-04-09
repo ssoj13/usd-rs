@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Pcp, Sdf, Tf
+from pxr import Pcp, Sdf, Tf
 
 def _FormatPath(pathInput):
     return Sdf.Path(pathInput) if pathInput else Sdf.Path()

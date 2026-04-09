@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import os, unittest
-from pxr_rs import Usd, UsdPhysics, Gf, UsdGeom, Sdf, UsdShade, Plug, Tf
+from pxr import Usd, UsdPhysics, Gf, UsdGeom, Sdf, UsdShade, Plug, Tf
 
 
 toleranceEpsilon = 0.01

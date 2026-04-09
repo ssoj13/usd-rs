@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import os, sys, unittest
-from pxr_rs import Gf, Tf, Sdf, Pcp, Usd
+from pxr import Gf, Tf, Sdf, Pcp, Usd
 
 class TestUsdEditTarget(unittest.TestCase):
     def test_PathTranslationAndValueResolution(self):

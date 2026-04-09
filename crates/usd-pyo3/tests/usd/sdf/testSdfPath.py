@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import sys, unittest
-from pxr_rs import Sdf, Tf
+from pxr import Sdf, Tf
 
 class TestSdfPath(unittest.TestCase):
     def test_Basic(self):

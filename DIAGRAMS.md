@@ -144,7 +144,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    A["Python: import pxr_rs"] --> B["pxr_rs._usd (native extension)"]
+    A["Python: import pxr"] --> B["pxr._usd (native extension)"]
     B --> C["register_sub per module"]
     C --> D["pxr.Tf → usd-tf"]
     C --> E["pxr.Gf → usd-gf"]
@@ -162,7 +162,7 @@ flowchart TD
 
     subgraph build ["Build: maturin + pyo3"]
         Q["pyproject.toml"] --> R["maturin build"]
-        R --> S["pxr_rs wheel (CPython ≥3.9)"]
+        R --> S["pxr wheel (CPython ≥3.9)"]
     end
 ```
 

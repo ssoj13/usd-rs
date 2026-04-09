@@ -14,7 +14,7 @@ to exercise.
 '''
 from __future__ import print_function
 
-from pxr_rs import Sdf, Pcp, Tf
+from pxr import Sdf, Pcp, Tf
 import functools, os, unittest
 
 class TestPcpDependencies(unittest.TestCase):

@@ -6,8 +6,8 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs.Usdviewq.qt import QtWidgets
-from pxr_rs.Usdviewq.common import SelectionHighlightModes
+from pxr.Usdviewq.qt import QtWidgets
+from pxr.Usdviewq.common import SelectionHighlightModes
 
 # XXX We will probably want harness-level facilities for this, as it
 # will be required for any tests that do stage mutations, as we only
@@ -45,7 +45,7 @@ def _emitReopen_StageAction(appController):
 # camera posiiton, and that Reopen Stage fully resets the scene and camera.
 #
 def _testReloadReopen(appController):
-    from pxr_rs import Usd, UsdGeom
+    from pxr import Usd, UsdGeom
 
     #
     # Frame the front sphere, and color it red

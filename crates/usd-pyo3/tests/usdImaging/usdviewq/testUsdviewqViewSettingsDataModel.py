@@ -8,10 +8,10 @@
 
 import unittest
 
-from pxr_rs.Usdviewq.viewSettingsDataModel import (ClearColors, HighlightColors,
+from pxr.Usdviewq.viewSettingsDataModel import (ClearColors, HighlightColors,
     ViewSettingsDataModel)
-from pxr_rs.Usdviewq.common import CameraMaskModes, SelectionHighlightModes
-from pxr_rs.UsdAppUtils.complexityArgs import RefinementComplexities
+from pxr.Usdviewq.common import CameraMaskModes, SelectionHighlightModes
+from pxr.UsdAppUtils.complexityArgs import RefinementComplexities
 
 
 class SignalCounter(object):

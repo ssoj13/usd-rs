@@ -9,7 +9,7 @@
 # within a variant that's being used by a prim index should
 # cause that prim index to be updated.
 
-from pxr_rs import Sdf, Pcp
+from pxr import Sdf, Pcp
 import unittest
 
 class testPcpRegressionBugs_bug90706(unittest.TestCase):

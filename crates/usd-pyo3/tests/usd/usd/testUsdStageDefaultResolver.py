@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Ar, Sdf, Usd
+from pxr import Ar, Sdf, Usd
 
 class TestUsdStageDefaultResolver(unittest.TestCase):
     @classmethod

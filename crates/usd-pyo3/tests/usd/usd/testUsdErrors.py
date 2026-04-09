@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 import sys, os, unittest
-from pxr_rs import Usd, Tf
+from pxr import Usd, Tf
 
 class TestErrors(unittest.TestCase):
     def test_Errors(self):

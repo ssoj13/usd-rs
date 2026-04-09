@@ -44,7 +44,7 @@ fn extract_path(obj: &Bound<'_, PyAny>) -> PyResult<Path> {
 /// Path addressing a location in a USD scene graph.
 ///
 /// Wraps `usd_sdf::Path`. Mirrors C++ `SdfPath` as exposed by `wrapPath.cpp`.
-#[pyclass(from_py_object, name = "Path", module = "pxr_rs.Sdf")]
+#[pyclass(from_py_object, name = "Path", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPath {
     pub(crate) inner: Path,
@@ -701,7 +701,7 @@ impl PyPath {
 /// Time offset and scale applied when referencing layers.
 ///
 /// Wraps `usd_sdf::LayerOffset`. Mirrors C++ `SdfLayerOffset`.
-#[pyclass(from_py_object, name = "LayerOffset", module = "pxr_rs.Sdf")]
+#[pyclass(from_py_object, name = "LayerOffset", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyLayerOffset {
     inner: LayerOffset,
@@ -805,7 +805,7 @@ impl PyLayerOffset {
 /// Container for scene description (prims, properties, metadata).
 ///
 /// Wraps `Arc<usd_sdf::Layer>`. Mirrors C++ `SdfLayer` as exposed by `wrapLayer.cpp`.
-#[pyclass(from_py_object, name = "Layer", module = "pxr_rs.Sdf")]
+#[pyclass(from_py_object, name = "Layer", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyLayer {
     inner: Arc<Layer>,
@@ -1766,7 +1766,7 @@ impl PyLayer {
 /// Scene description for a single prim in a layer.
 ///
 /// Wraps `usd_sdf::PrimSpec`. Mirrors C++ `SdfPrimSpec`.
-#[pyclass(skip_from_py_object, name = "PrimSpec", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "PrimSpec", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPrimSpec {
     inner: PrimSpec,
@@ -2163,7 +2163,7 @@ impl PyPrimSpec {
 /// Scene description for an attribute in a layer.
 ///
 /// Wraps `usd_sdf::AttributeSpec`. Mirrors C++ `SdfAttributeSpec`.
-#[pyclass(skip_from_py_object, name = "AttributeSpec", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "AttributeSpec", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyAttributeSpec {
     inner: AttributeSpec,
@@ -2515,7 +2515,7 @@ impl PyAttributeSpec {
 /// Property spec (attribute or relationship) within a layer.
 ///
 /// Wraps `usd_sdf::PropertySpec`. Mirrors C++ `SdfPropertySpec`.
-#[pyclass(skip_from_py_object, name = "PropertySpec", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "PropertySpec", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPropertySpec {
     inner: PropertySpec,
@@ -2564,7 +2564,7 @@ impl PyPropertySpec {
 // ============================================================================
 
 /// List of PropertySpec objects that supports indexing by int and by name.
-#[pyclass(skip_from_py_object, name = "_PropertySpecList", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "_PropertySpecList", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPropertySpecList {
     items: Vec<PropertySpec>,
@@ -2652,7 +2652,7 @@ impl PyPropertySpecListIter {
 // ============================================================================
 
 /// List of PrimSpec objects that supports indexing by int and by name.
-#[pyclass(skip_from_py_object, name = "_PrimSpecList", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "_PrimSpecList", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPrimSpecList {
     items: Vec<PrimSpec>,
@@ -2756,7 +2756,7 @@ impl PyPrimSpecListIter {
 /// Specifier for a prim: `Def`, `Over`, or `Class`.
 ///
 /// Wraps `usd_sdf::Specifier`. Mirrors C++ `SdfSpecifier`.
-#[pyclass(skip_from_py_object, name = "Specifier", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "Specifier", module = "pxr.Sdf")]
 #[derive(Clone, Copy)]
 pub struct PySpecifier {
     inner: Specifier,
@@ -2822,7 +2822,7 @@ impl PySpecifier {
 /// with Sdf.ChangeBlock():
 ///     # make many changes...
 /// ```
-#[pyclass(skip_from_py_object, name = "ChangeBlock", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "ChangeBlock", module = "pxr.Sdf")]
 pub struct PyChangeBlock {
     // Held alive for the duration of the with-block; drop triggers flush.
     _block: usd_sdf::ChangeBlock,
@@ -2944,7 +2944,7 @@ fn pyobject_to_vt_value(py: Python<'_>, obj: &Py<PyAny>) -> usd_vt::Value {
 /// An attribute's value type name (e.g. "double", "float3", "token").
 ///
 /// Matches C++ `SdfValueTypeName`.
-#[pyclass(skip_from_py_object, name = "ValueTypeName", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "ValueTypeName", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyValueTypeName {
     pub(crate) name: String,
@@ -2985,7 +2985,7 @@ impl PyValueTypeName {
 /// Registered at module level via `setattr` in `register()` rather than
 /// `#[classattr]`, because PyO3 proc-macro attributes can't be generated
 /// from `macro_rules!` inside `#[pymethods]`.
-#[pyclass(skip_from_py_object, name = "ValueTypeNames", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "ValueTypeNames", module = "pxr.Sdf")]
 pub struct PyValueTypeNames;
 
 /// Add all standard value type name constants as class attributes on
@@ -3137,7 +3137,7 @@ fn register_value_type_names(py: Python<'_>) -> PyResult<()> {
 /// A path expression that can match paths using patterns and set operations.
 ///
 /// Matches C++ `SdfPathExpression`.
-#[pyclass(skip_from_py_object, name = "PathExpression", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "PathExpression", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPathExpression {
     inner: PathExpression,
@@ -3274,7 +3274,7 @@ impl PyPathExpression {
 /// Evaluator returned by `Sdf._MakeBasicMatchEval`.
 ///
 /// Wraps `PathExpressionEval<()>` with a simple `Match(path)` API.
-#[pyclass(skip_from_py_object, name = "_BasicMatchEval", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "_BasicMatchEval", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyBasicMatchEval {
     eval: PathExpressionEval<()>,
@@ -3326,7 +3326,7 @@ fn make_basic_match_eval(pattern: &str) -> PyBasicMatchEval {
 #[pyclass(
     skip_from_py_object,
     name = "VariableExpression",
-    module = "pxr_rs.Sdf"
+    module = "pxr.Sdf"
 )]
 #[derive(Clone)]
 pub struct PyVariableExpression {
@@ -3410,23 +3410,23 @@ impl PyVariableExpression {
 /// Stub for `Sdf.VariableExpressionASTNodes`.
 ///
 /// Contains marker classes for AST node types used in variable expression tests.
-#[pyclass(skip_from_py_object, name = "LiteralNode", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "LiteralNode", module = "pxr.Sdf")]
 pub struct PyLiteralNode;
 
-#[pyclass(skip_from_py_object, name = "VariableNode", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "VariableNode", module = "pxr.Sdf")]
 pub struct PyVariableNode;
 
-#[pyclass(skip_from_py_object, name = "ListNode", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "ListNode", module = "pxr.Sdf")]
 pub struct PyListNode;
 
-#[pyclass(skip_from_py_object, name = "FunctionNode", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "FunctionNode", module = "pxr.Sdf")]
 pub struct PyFunctionNode;
 
 // ============================================================================
 // SdfAssetPath
 // ============================================================================
 
-#[pyclass(from_py_object, name = "AssetPath", module = "pxr_rs.Sdf")]
+#[pyclass(from_py_object, name = "AssetPath", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyAssetPath {
     inner: AssetPath,
@@ -3583,7 +3583,7 @@ impl PyAssetPath {
 // SdfTimeCode
 // ============================================================================
 
-#[pyclass(from_py_object, name = "TimeCode", module = "pxr_rs.Sdf")]
+#[pyclass(from_py_object, name = "TimeCode", module = "pxr.Sdf")]
 #[derive(Clone, Copy)]
 pub struct PyTimeCode {
     inner: TimeCode,
@@ -3702,7 +3702,7 @@ fn extract_tc(obj: &Bound<'_, PyAny>) -> PyResult<f64> {
 // SdfPayload
 // ============================================================================
 
-#[pyclass(from_py_object, name = "Payload", module = "pxr_rs.Sdf")]
+#[pyclass(from_py_object, name = "Payload", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPayload {
     inner: Payload,
@@ -3883,7 +3883,7 @@ fn payload_cmp(a: &Payload, b: &Payload) -> std::cmp::Ordering {
 // SdfReference
 // ============================================================================
 
-#[pyclass(from_py_object, name = "Reference", module = "pxr_rs.Sdf")]
+#[pyclass(from_py_object, name = "Reference", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyReference {
     inner: Reference,
@@ -4055,7 +4055,7 @@ fn ref_tuple(r: &Reference) -> (String, String, i64, i64, usize) {
 
 macro_rules! define_list_op {
     ($py_name:ident, $py_class_name:literal, $item_ty:ty) => {
-        #[pyclass(skip_from_py_object, name = $py_class_name, module = "pxr_rs.Sdf")]
+        #[pyclass(skip_from_py_object, name = $py_class_name, module = "pxr.Sdf")]
         #[derive(Clone)]
         pub struct $py_name {
             inner: ListOp<$item_ty>,
@@ -4243,7 +4243,7 @@ define_list_op!(PyTokenListOp, "TokenListOp", String);
 // PathListOp — ListOp<Path> with Python Path conversion
 // ============================================================================
 
-#[pyclass(skip_from_py_object, name = "PathListOp", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "PathListOp", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPathListOp {
     pub(crate) inner: PathListOp,
@@ -4333,7 +4333,7 @@ impl PyPathListOp {
 // ReferenceListOp — ListOp<Reference> with Python conversion
 // ============================================================================
 
-#[pyclass(skip_from_py_object, name = "ReferenceListOp", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "ReferenceListOp", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyReferenceListOp {
     pub(crate) inner: ReferenceListOp,
@@ -4403,7 +4403,7 @@ impl PyReferenceListOp {
 // PayloadListOp — ListOp<Payload> with Python conversion
 // ============================================================================
 
-#[pyclass(skip_from_py_object, name = "PayloadListOp", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "PayloadListOp", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyPayloadListOp {
     pub(crate) inner: PayloadListOp,
@@ -4473,7 +4473,7 @@ impl PyPayloadListOp {
 // RelationshipSpec
 // ============================================================================
 
-#[pyclass(skip_from_py_object, name = "RelationshipSpec", module = "pxr_rs.Sdf")]
+#[pyclass(skip_from_py_object, name = "RelationshipSpec", module = "pxr.Sdf")]
 #[derive(Clone)]
 pub struct PyRelationshipSpec {
     inner: RelationshipSpec,

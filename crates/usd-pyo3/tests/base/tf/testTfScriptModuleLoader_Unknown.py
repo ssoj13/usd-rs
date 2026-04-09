@@ -4,7 +4,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 #
-from pxr_rs import Tf
+from pxr import Tf
 
 # Register this library with a new, previously unknown dependency.  Note, we're
 # just using 'sys' as the module to load here, which is a lie.  It should really

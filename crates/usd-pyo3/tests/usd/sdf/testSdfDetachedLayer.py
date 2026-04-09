@@ -7,7 +7,7 @@
 
 import os, unittest
 
-from pxr_rs import Plug, Sdf
+from pxr import Plug, Sdf
 
 def DetachedLayerRulesEnvVarIsSet():
     return ('SDF_LAYER_INCLUDE_DETACHED' in os.environ or

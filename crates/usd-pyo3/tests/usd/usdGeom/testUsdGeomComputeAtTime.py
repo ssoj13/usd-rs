@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Vt, Gf, Sdf, Usd, UsdGeom
+from pxr import Vt, Gf, Sdf, Usd, UsdGeom
 
 
 # Maximum tolerated error between the values of a matrix during comparison.

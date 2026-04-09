@@ -13,7 +13,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Usd, Sdf, Tf
+from pxr import Usd, Sdf, Tf
 import unittest
 
 def GetSourcePrimIndexPath(stage, prototypePath):

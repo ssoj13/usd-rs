@@ -9,7 +9,7 @@
 import unittest
 import sys
 import math
-from pxr_rs import Vt
+from pxr import Vt
 
 status = 0
 

@@ -7,7 +7,7 @@
 #
 
 from __future__ import print_function
-from pxr_rs.Usdviewq.common import Sdf, Usd, UsdShade
+from pxr.Usdviewq.common import Sdf, Usd, UsdShade
 
 imageIdx = 0
 

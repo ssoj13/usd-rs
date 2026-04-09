@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, unittest
-from pxr_rs import Sdf, Usd, Tf
+from pxr import Sdf, Usd, Tf
 from testUsdNamespaceEditorDependentEditsBase \
       import TestUsdNamespaceEditorDependentEditsBase
 

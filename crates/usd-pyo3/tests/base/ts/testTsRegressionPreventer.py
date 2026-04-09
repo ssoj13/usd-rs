@@ -7,12 +7,12 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Ts
-from pxr_rs.Ts import TsTest_Museum as Museum
-from pxr_rs.Ts import TsTest_TsEvaluator as Evaluator
-from pxr_rs.Ts import TsTest_Baseliner as Baseliner
-from pxr_rs.Ts import TsTest_SampleTimes as STimes
-from pxr_rs.Ts import TsTest_SampleBezier as SampleBezier
+from pxr import Ts
+from pxr.Ts import TsTest_Museum as Museum
+from pxr.Ts import TsTest_TsEvaluator as Evaluator
+from pxr.Ts import TsTest_Baseliner as Baseliner
+from pxr.Ts import TsTest_SampleTimes as STimes
+from pxr.Ts import TsTest_SampleBezier as SampleBezier
 
 import sys, unittest, difflib
 

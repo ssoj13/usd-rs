@@ -7,7 +7,7 @@
 
 
 import unittest
-from pxr_rs import Kind, Sdf, Tf, Usd
+from pxr import Kind, Sdf, Tf, Usd
 
 class TestUsdObjectsChangedNoticesSublayerOps(unittest.TestCase):
     def _listenForNotices(self, stage):

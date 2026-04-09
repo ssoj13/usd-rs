@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest
-from pxr_rs import Usd, Pcp, Sdf, Tf
+from pxr import Usd, Pcp, Sdf, Tf
 
 allFormats = ['usd' + x for x in 'ac']
 

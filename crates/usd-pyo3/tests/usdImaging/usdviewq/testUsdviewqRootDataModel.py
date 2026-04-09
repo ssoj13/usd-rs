@@ -8,9 +8,9 @@
 
 import unittest
 
-from pxr_rs import Usd, Gf
-from pxr_rs.Usdviewq.rootDataModel import RootDataModel
-from pxr_rs.Usdviewq.common import IncludedPurposes
+from pxr import Usd, Gf
+from pxr.Usdviewq.rootDataModel import RootDataModel
+from pxr.Usdviewq.common import IncludedPurposes
 
 
 class SignalCounter(object):

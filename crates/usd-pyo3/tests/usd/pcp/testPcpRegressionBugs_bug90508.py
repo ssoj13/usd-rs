@@ -9,7 +9,7 @@
 # evicting prim indexes for all descendent prims when processing a change
 # that affects only the parent prim. 
 
-from pxr_rs import Pcp, Sdf
+from pxr import Pcp, Sdf
 import unittest
 
 class testPcpRegressionBugs_bug90508(unittest.TestCase):

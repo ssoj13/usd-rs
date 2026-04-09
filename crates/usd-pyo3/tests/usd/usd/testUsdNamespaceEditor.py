@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, os, unittest
-from pxr_rs import Sdf, Usd, Tf, Plug
+from pxr import Sdf, Usd, Tf, Plug
 
 class TestUsdNamespaceEditor(unittest.TestCase):
 

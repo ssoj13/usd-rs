@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Gf, Usd, UsdSkel
+from pxr import Gf, Usd, UsdSkel
 import unittest
 
 

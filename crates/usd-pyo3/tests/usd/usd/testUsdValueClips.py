@@ -9,7 +9,7 @@ import contextlib
 import os
 import shutil
 import unittest
-from pxr_rs import Sdf, Tf, Usd, Vt, Gf
+from pxr import Sdf, Tf, Usd, Vt, Gf
 
 @contextlib.contextmanager
 def InterpolationType(stage, interpolationType):

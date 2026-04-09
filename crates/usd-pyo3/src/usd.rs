@@ -115,6 +115,22 @@ fn value_to_py(py: Python<'_>, val: &Value) -> Py<PyAny> {
             .map(|l| l.into_any().unbind())
             .unwrap_or_else(|_| py.None());
     }
+    // token[] (e.g. xformOpOrder) — pxr expects Vt.TokenArray, not a repr string
+    if let Some(v) = val.downcast_clone::<Array<Token>>() {
+        return Py::new(py, crate::vt::PyTokenArray { inner: v })
+            .map(|p| p.into_any())
+            .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+    }
+    if let Some(v) = val.downcast_clone::<Vec<Token>>() {
+        return Py::new(
+            py,
+            crate::vt::PyTokenArray {
+                inner: Array::from(v),
+            },
+        )
+        .map(|p| p.into_any())
+        .unwrap_or_else(|_| py.None().into_bound(py).unbind());
+    }
     // GfVec types → PyVec (proper Gf.Vec3d etc.)
     if let Some(v) = val.downcast_clone::<usd_gf::Vec3d>() {
         return Py::new(py, crate::gf::vec::PyVec3d(v))
@@ -195,7 +211,7 @@ fn py_to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
 /// Represents a USD time code value.
 ///
 /// Matches C++ `UsdTimeCode`.
-#[pyclass(skip_from_py_object, name = "TimeCode", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "TimeCode", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyTimeCode {
     inner: TimeCode,
@@ -384,6 +400,10 @@ impl PyTimeCode {
     fn to_time_code(&self) -> TimeCode {
         self.inner
     }
+
+    pub(crate) fn from_usd_core(inner: TimeCode) -> Self {
+        Self { inner }
+    }
 }
 
 fn tc_from_py(obj: &Bound<'_, PyAny>) -> PyResult<TimeCode> {
@@ -423,7 +443,7 @@ pub(crate) fn tc_from_py_sdf(obj: &Bound<'_, PyAny>) -> PyResult<usd_sdf::TimeCo
 #[pyclass(
     skip_from_py_object,
     name = "StagePopulationMask",
-    module = "pxr_rs.Usd"
+    module = "pxr.Usd"
 )]
 #[derive(Clone)]
 pub struct PyStagePopulationMask {
@@ -552,7 +572,7 @@ impl PyStagePopulationMask {
 /// Specifies which layer should receive edits on a stage.
 ///
 /// Matches C++ `UsdEditTarget`.
-#[pyclass(skip_from_py_object, name = "EditTarget", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "EditTarget", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyEditTarget {
     inner: EditTarget,
@@ -648,7 +668,7 @@ impl PyEditTarget {
 /// RAII helper that temporarily changes a stage's edit target.
 ///
 /// Matches C++ `UsdEditContext`. Use as `with Usd.EditContext(stage, target):`.
-#[pyclass(skip_from_py_object, name = "EditContext", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "EditContext", module = "pxr.Usd")]
 pub struct PyEditContext {
     inner: Option<EditContext>,
 }
@@ -684,7 +704,7 @@ impl PyEditContext {
 /// Iterator over a range of prims on a stage.
 ///
 /// Matches C++ `UsdPrimRange`.
-#[pyclass(skip_from_py_object, name = "PrimRange", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "PrimRange", module = "pxr.Usd")]
 pub struct PyPrimRange {
     prims: Vec<Py<PyAny>>,
     index: usize,
@@ -764,7 +784,7 @@ fn attr_get_metadata(py: Python<'_>, attr: &Attribute, key: &str) -> PyResult<Py
 /// A composed prim on a stage.
 ///
 /// Matches C++ `UsdPrim`.
-#[pyclass(skip_from_py_object, name = "Prim", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Prim", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyPrim {
     pub(crate) inner: Prim,
@@ -1756,7 +1776,7 @@ impl PyPrim {
 // UsdVariantSets (lightweight helper returned by prim.GetVariantSets())
 // ============================================================================
 
-#[pyclass(skip_from_py_object, name = "VariantSets", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "VariantSets", module = "pxr.Usd")]
 pub struct PyVariantSets {
     prim: Prim,
     _stage: Arc<Stage>,
@@ -1818,7 +1838,7 @@ impl PyVariantSets {
     }
 }
 
-#[pyclass(skip_from_py_object, name = "VariantSet", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "VariantSet", module = "pxr.Usd")]
 pub struct PyVariantSet {
     prim: Prim,
     name: String,
@@ -1924,7 +1944,7 @@ impl PyVariantSet {
 #[pyclass(
     skip_from_py_object,
     name = "VariantEditContext",
-    module = "pxr_rs.Usd"
+    module = "pxr.Usd"
 )]
 pub struct PyVariantEditContext {
     stage: Arc<Stage>,
@@ -1958,7 +1978,7 @@ impl PyVariantEditContext {
 // ============================================================================
 
 /// Stub for UsdPrimDefinition.
-#[pyclass(skip_from_py_object, name = "PrimDefinition", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "PrimDefinition", module = "pxr.Usd")]
 pub struct PyPrimDefinition {
     type_name: String,
 }
@@ -2010,7 +2030,7 @@ fn parse_list_position(s: &str) -> usd_core::common::ListPosition {
 // UsdReferences — proxy for editing reference arcs
 // ============================================================================
 
-#[pyclass(skip_from_py_object, name = "References", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "References", module = "pxr.Usd")]
 pub struct PyReferences {
     prim: Prim,
     _stage: Arc<Stage>,
@@ -2153,7 +2173,7 @@ impl PyReferences {
 // UsdPayloads — proxy for editing payload arcs
 // ============================================================================
 
-#[pyclass(skip_from_py_object, name = "Payloads", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Payloads", module = "pxr.Usd")]
 pub struct PyPayloads {
     prim: Prim,
     _stage: Arc<Stage>,
@@ -2237,7 +2257,7 @@ impl PyPayloads {
 // UsdInherits — proxy for editing inherit arcs
 // ============================================================================
 
-#[pyclass(skip_from_py_object, name = "Inherits", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Inherits", module = "pxr.Usd")]
 pub struct PyInherits {
     prim: Prim,
     _stage: Arc<Stage>,
@@ -2300,7 +2320,7 @@ impl PyInherits {
 // UsdSpecializes — proxy for editing specialize arcs
 // ============================================================================
 
-#[pyclass(skip_from_py_object, name = "Specializes", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Specializes", module = "pxr.Usd")]
 pub struct PySpecializes {
     prim: Prim,
     _stage: Arc<Stage>,
@@ -2368,7 +2388,7 @@ fn resolve_info_source_to_py(s: usd_core::resolve_info::ResolveInfoSource) -> i6
 /// Information about how an attribute value was resolved.
 ///
 /// Matches C++ `UsdResolveInfo`.
-#[pyclass(skip_from_py_object, name = "ResolveInfo", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "ResolveInfo", module = "pxr.Usd")]
 pub struct PyResolveInfo {
     inner: usd_core::resolve_info::ResolveInfo,
 }
@@ -2392,7 +2412,7 @@ impl PyResolveInfo {
 /// A typed, time-varying attribute on a prim.
 ///
 /// Matches C++ `UsdAttribute`.
-#[pyclass(skip_from_py_object, name = "Attribute", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Attribute", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyAttribute {
     pub(crate) inner: Attribute,
@@ -2950,7 +2970,7 @@ impl PyAttribute {
 /// A property that holds paths to other prims/properties.
 ///
 /// Matches C++ `UsdRelationship`.
-#[pyclass(skip_from_py_object, name = "Relationship", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Relationship", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyRelationship {
     inner: Relationship,
@@ -3185,7 +3205,7 @@ impl PyRelationship {
 /// Base class for all USD schema wrappers.
 ///
 /// Matches C++ `UsdSchemaBase`.
-#[pyclass(skip_from_py_object, name = "SchemaBase", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "SchemaBase", module = "pxr.Usd")]
 pub struct PySchemaBase {
     prim: Prim,
     _stage: Arc<Stage>,
@@ -3216,7 +3236,7 @@ impl PySchemaBase {
 /// The outermost container for scene description.
 ///
 /// Matches C++ `UsdStage`.
-#[pyclass(skip_from_py_object, name = "Stage", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Stage", module = "pxr.Usd")]
 pub struct PyStage {
     pub(crate) inner: Arc<Stage>,
 }
@@ -4218,7 +4238,7 @@ fn parse_load_policy(s: &str) -> PyResult<usd_core::common::LoadPolicy> {
 /// Classification of prim resync operations.
 ///
 /// Matches C++ `UsdNotice::ObjectsChanged::PrimResyncType`.
-#[pyclass(skip_from_py_object, name = "PrimResyncType", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "PrimResyncType", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyPrimResyncType {
     value: i32,
@@ -4310,7 +4330,7 @@ impl PyPrimResyncType {
 /// Stub for `UsdNotice::ObjectsChanged`.
 ///
 /// Provides `PrimResyncType` enum and the notice type for listener registration.
-#[pyclass(skip_from_py_object, name = "ObjectsChanged", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "ObjectsChanged", module = "pxr.Usd")]
 pub struct PyObjectsChanged;
 
 #[pymethods]
@@ -4328,7 +4348,7 @@ impl PyObjectsChanged {
 #[pyclass(
     skip_from_py_object,
     name = "StageContentsChanged",
-    module = "pxr_rs.Usd"
+    module = "pxr.Usd"
 )]
 pub struct PyStageContentsChanged;
 
@@ -4336,7 +4356,7 @@ pub struct PyStageContentsChanged;
 #[pyclass(
     skip_from_py_object,
     name = "StageEditTargetChanged",
-    module = "pxr_rs.Usd"
+    module = "pxr.Usd"
 )]
 pub struct PyStageEditTargetChanged;
 
@@ -4347,7 +4367,7 @@ pub struct PyStageEditTargetChanged;
 /// Notice types for USD change notification.
 ///
 /// Matches C++ `UsdNotice`. Sub-types are class attributes.
-#[pyclass(skip_from_py_object, name = "Notice", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "Notice", module = "pxr.Usd")]
 pub struct PyNotice;
 
 /// Manually register `ObjectsChanged` etc. as class-level attributes on Notice.
@@ -4380,7 +4400,7 @@ fn register_notice_attrs(py: Python<'_>) -> PyResult<()> {
 /// Version policy for schema family queries.
 ///
 /// Matches C++ `UsdSchemaRegistry::VersionPolicy`.
-#[pyclass(skip_from_py_object, name = "VersionPolicy", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "VersionPolicy", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyVersionPolicy {
     value: i32,
@@ -4436,7 +4456,7 @@ impl PyVersionPolicy {
 /// Singleton registry of schema types and definitions.
 ///
 /// Matches C++ `UsdSchemaRegistry`.
-#[pyclass(skip_from_py_object, name = "SchemaRegistry", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "SchemaRegistry", module = "pxr.Usd")]
 pub struct PySchemaRegistry;
 
 #[pymethods]
@@ -4548,7 +4568,7 @@ fn register_schema_registry_attrs(py: Python<'_>) -> PyResult<()> {
 /// Batch namespace editing operations for USD stages.
 ///
 /// Matches C++ `UsdNamespaceEditor`.
-#[pyclass(skip_from_py_object, name = "NamespaceEditor", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "NamespaceEditor", module = "pxr.Usd")]
 pub struct PyNamespaceEditor {
     inner: usd_core::namespace_editor::NamespaceEditor,
 }
@@ -4557,7 +4577,7 @@ pub struct PyNamespaceEditor {
 #[pyclass(
     skip_from_py_object,
     name = "NamespaceEditorEditOptions",
-    module = "pxr_rs.Usd"
+    module = "pxr.Usd"
 )]
 #[derive(Clone)]
 pub struct PyNamespaceEditorEditOptions {
@@ -4741,7 +4761,7 @@ fn register_namespace_editor_attrs(py: Python<'_>) -> PyResult<()> {
 /// Caches an attribute for efficient repeated value queries.
 ///
 /// Matches C++ `UsdAttributeQuery`.
-#[pyclass(skip_from_py_object, name = "AttributeQuery", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "AttributeQuery", module = "pxr.Usd")]
 #[derive(Clone)]
 pub struct PyAttributeQuery {
     attr: Option<Attribute>,
@@ -4864,7 +4884,7 @@ impl PyAttributeQuery {
 /// Schema wrapper for model-related metadata.
 ///
 /// Matches C++ `UsdModelAPI`.
-#[pyclass(skip_from_py_object, name = "ModelAPI", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "ModelAPI", module = "pxr.Usd")]
 pub struct PyModelAPI {
     prim: Option<Prim>,
     _stage: Option<Arc<Stage>>,
@@ -4963,7 +4983,7 @@ impl PyModelAPI {
 /// Schema wrapper for USD value clips.
 ///
 /// Matches C++ `UsdClipsAPI`.
-#[pyclass(skip_from_py_object, name = "ClipsAPI", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "ClipsAPI", module = "pxr.Usd")]
 pub struct PyClipsAPI {
     prim: Option<Prim>,
     _stage: Option<Arc<Stage>>,
@@ -5019,7 +5039,7 @@ impl PyClipsAPI {
 /// Wrapper for USD CollectionAPI schema.
 ///
 /// Matches C++ `UsdCollectionAPI`.
-#[pyclass(skip_from_py_object, name = "CollectionAPI", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "CollectionAPI", module = "pxr.Usd")]
 pub struct PyCollectionAPI {
     inner: usd_core::collection_api::CollectionAPI,
     _stage: Arc<Stage>,
@@ -5140,7 +5160,7 @@ impl PyCollectionAPI {
 #[pyclass(
     skip_from_py_object,
     name = "CollectionMembershipQuery",
-    module = "pxr_rs.Usd"
+    module = "pxr.Usd"
 )]
 pub struct PyMembershipQuery {
     inner: usd_core::collection_api::CollectionMembershipQuery,
@@ -5169,7 +5189,7 @@ impl PyMembershipQuery {
 /// Wrapper for USD StageCache.
 ///
 /// Matches C++ `UsdStageCache`.
-#[pyclass(skip_from_py_object, name = "StageCache", module = "pxr_rs.Usd")]
+#[pyclass(skip_from_py_object, name = "StageCache", module = "pxr.Usd")]
 pub struct PyStageCache {
     inner: Arc<usd_core::stage_cache::StageCache>,
 }
@@ -5259,7 +5279,7 @@ impl PyStageCache {
     subclass,
     skip_from_py_object,
     name = "ColorSpaceHashCache",
-    module = "pxr_rs.Usd"
+    module = "pxr.Usd"
 )]
 pub struct PyColorSpaceHashCache;
 

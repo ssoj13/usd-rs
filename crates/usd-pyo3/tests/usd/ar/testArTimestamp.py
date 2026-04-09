@@ -8,7 +8,7 @@
 import math
 import unittest
 
-from pxr_rs import Ar, Tf
+from pxr import Ar, Tf
 
 class TestArTimestamp(unittest.TestCase):
     def testBasic(self):

@@ -1,8 +1,8 @@
-# pxr_rs — Pure Rust OpenUSD Python bindings
+# pxr — Pure Rust OpenUSD Python bindings (usd-rs)
 #
-# Same API as Pixar's pxr package. Use `import pxr_rs as pxr` for drop-in.
+# Drop-in for Pixar's `pxr` package: `import pxr` after installing this wheel.
 
-from pxr_rs._usd import (
+from pxr._usd import (
     Tf, Gf, Vt,
     Ar, Plug, Kind, Sdf, Pcp, Ts, Usd,
     UsdGeom, UsdShade, UsdLux, UsdSkel,

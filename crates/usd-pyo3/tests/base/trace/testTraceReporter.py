@@ -9,7 +9,7 @@
 import unittest
 import time
 
-from pxr_rs import Trace, Tf
+from pxr import Trace, Tf
 
 # Helper function.
 def GetNodesByKey(reporter, key):

@@ -276,32 +276,28 @@ macro_rules! usd_geom_schema_with_xform {
                     .make_invisible(tc(time));
             }
             #[pyo3(name = "ComputeWorldBound")]
-            pub fn compute_world_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+            pub fn compute_world_bound(&self, time: f64, purpose: &str) -> crate::gf::geo::PyBBox3d {
                 let mut cache = BBoxCache::new(
                     TimeCode::new(time),
                     vec![Token::new(purpose)],
                     false,
                     false,
                 );
-                bbox_to_flat(
-                    &cache.compute_world_bound(
-                        crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0).imageable().prim(),
-                    ),
-                )
+                crate::gf::geo::PyBBox3d(cache.compute_world_bound(
+                    crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0).imageable().prim(),
+                ))
             }
             #[pyo3(name = "ComputeLocalBound")]
-            pub fn compute_local_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+            pub fn compute_local_bound(&self, time: f64, purpose: &str) -> crate::gf::geo::PyBBox3d {
                 let mut cache = BBoxCache::new(
                     TimeCode::new(time),
                     vec![Token::new(purpose)],
                     false,
                     false,
                 );
-                bbox_to_flat(
-                    &cache.compute_local_bound(
-                        crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0).imageable().prim(),
-                    ),
-                )
+                crate::gf::geo::PyBBox3d(cache.compute_local_bound(
+                    crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0).imageable().prim(),
+                ))
             }
             #[pyo3(name = "ComputeLocalToWorldTransform", signature = (time=None))]
             pub fn compute_local_to_world_transform(
@@ -608,32 +604,28 @@ macro_rules! usd_geom_schema_with_xform {
                     .make_invisible(tc(time));
             }
             #[pyo3(name = "ComputeWorldBound")]
-            pub fn compute_world_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+            pub fn compute_world_bound(&self, time: f64, purpose: &str) -> crate::gf::geo::PyBBox3d {
                 let mut cache = BBoxCache::new(
                     TimeCode::new(time),
                     vec![Token::new(purpose)],
                     false,
                     false,
                 );
-                bbox_to_flat(
-                    &cache.compute_world_bound(
-                        crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0).imageable().prim(),
-                    ),
-                )
+                crate::gf::geo::PyBBox3d(cache.compute_world_bound(
+                    crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0).imageable().prim(),
+                ))
             }
             #[pyo3(name = "ComputeLocalBound")]
-            pub fn compute_local_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+            pub fn compute_local_bound(&self, time: f64, purpose: &str) -> crate::gf::geo::PyBBox3d {
                 let mut cache = BBoxCache::new(
                     TimeCode::new(time),
                     vec![Token::new(purpose)],
                     false,
                     false,
                 );
-                bbox_to_flat(
-                    &cache.compute_local_bound(
-                        crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0).imageable().prim(),
-                    ),
-                )
+                crate::gf::geo::PyBBox3d(cache.compute_local_bound(
+                    crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0).imageable().prim(),
+                ))
             }
             #[pyo3(name = "ComputeLocalToWorldTransform", signature = (time=None))]
             pub fn compute_local_to_world_transform(
@@ -718,24 +710,24 @@ macro_rules! usd_geom_schema_imageable_scope {
                 self.0.imageable().make_invisible(tc(time));
             }
             #[pyo3(name = "ComputeWorldBound")]
-            pub fn compute_world_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+            pub fn compute_world_bound(&self, time: f64, purpose: &str) -> crate::gf::geo::PyBBox3d {
                 let mut cache = BBoxCache::new(
                     TimeCode::new(time),
                     vec![Token::new(purpose)],
                     false,
                     false,
                 );
-                bbox_to_flat(&cache.compute_world_bound(self.0.imageable().prim()))
+                crate::gf::geo::PyBBox3d(cache.compute_world_bound(self.0.imageable().prim()))
             }
             #[pyo3(name = "ComputeLocalBound")]
-            pub fn compute_local_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+            pub fn compute_local_bound(&self, time: f64, purpose: &str) -> crate::gf::geo::PyBBox3d {
                 let mut cache = BBoxCache::new(
                     TimeCode::new(time),
                     vec![Token::new(purpose)],
                     false,
                     false,
                 );
-                bbox_to_flat(&cache.compute_local_bound(self.0.imageable().prim()))
+                crate::gf::geo::PyBBox3d(cache.compute_local_bound(self.0.imageable().prim()))
             }
             #[pyo3(name = "ComputeLocalToWorldTransform", signature = (time=None))]
             pub fn compute_local_to_world_transform(
@@ -818,7 +810,7 @@ macro_rules! usd_geom_schema_imageable_subset {
                 imageable_for_subset_prim(self.0.prim()).make_invisible(tc(time));
             }
             #[pyo3(name = "ComputeWorldBound")]
-            pub fn compute_world_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+            pub fn compute_world_bound(&self, time: f64, purpose: &str) -> crate::gf::geo::PyBBox3d {
                 let mut cache = BBoxCache::new(
                     TimeCode::new(time),
                     vec![Token::new(purpose)],
@@ -826,10 +818,10 @@ macro_rules! usd_geom_schema_imageable_subset {
                     false,
                 );
                 let img = imageable_for_subset_prim(self.0.prim());
-                bbox_to_flat(&cache.compute_world_bound(img.prim()))
+                crate::gf::geo::PyBBox3d(cache.compute_world_bound(img.prim()))
             }
             #[pyo3(name = "ComputeLocalBound")]
-            pub fn compute_local_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+            pub fn compute_local_bound(&self, time: f64, purpose: &str) -> crate::gf::geo::PyBBox3d {
                 let mut cache = BBoxCache::new(
                     TimeCode::new(time),
                     vec![Token::new(purpose)],
@@ -837,7 +829,7 @@ macro_rules! usd_geom_schema_imageable_subset {
                     false,
                 );
                 let img = imageable_for_subset_prim(self.0.prim());
-                bbox_to_flat(&cache.compute_local_bound(img.prim()))
+                crate::gf::geo::PyBBox3d(cache.compute_local_bound(img.prim()))
             }
             #[pyo3(name = "ComputeLocalToWorldTransform", signature = (time=None))]
             pub fn compute_local_to_world_transform(

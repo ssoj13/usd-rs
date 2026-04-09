@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest
-from pxr_rs import Usd, Sdf, Tf
+from pxr import Usd, Sdf, Tf
 
 class TestUsdStagePopulationMask(unittest.TestCase):
     def test_Basic(self):

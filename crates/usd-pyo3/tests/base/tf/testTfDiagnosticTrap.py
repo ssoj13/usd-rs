@@ -7,7 +7,7 @@
 #
 
 import unittest
-from pxr_rs import Tf
+from pxr import Tf
 
 class TestTfDiagnosticTrap(unittest.TestCase):
     """

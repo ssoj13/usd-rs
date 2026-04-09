@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Tf, Usd, UsdGeom, Gf, Vt
+from pxr import Tf, Usd, UsdGeom, Gf, Vt
 import sys
 
 # Direct TF_DEBUG output to stderr.

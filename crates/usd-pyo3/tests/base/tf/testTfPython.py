@@ -9,7 +9,7 @@
 from __future__ import print_function
 
 import sys
-from pxr_rs import Tf
+from pxr import Tf
 
 import unittest
 

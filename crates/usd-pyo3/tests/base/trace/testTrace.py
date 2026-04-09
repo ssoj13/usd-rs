@@ -12,7 +12,7 @@ import os
 import time
 import unittest
 
-from pxr_rs import Trace, Tf
+from pxr import Trace, Tf
 
 
 # Helper functions

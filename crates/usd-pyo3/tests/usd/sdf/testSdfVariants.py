@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest
-from pxr_rs import Sdf, Tf
+from pxr import Sdf, Tf
 
 class TestSdfVariants(unittest.TestCase):
     def test_VariantNames(self):

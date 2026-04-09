@@ -60,7 +60,7 @@ fn hash_f32_slice(data: &[f32]) -> u64 {
 // Matrix2d
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Matrix2d", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Matrix2d", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyMatrix2d(pub Matrix2d);
 
@@ -346,7 +346,7 @@ impl PyMatrix2d {
 // Matrix2f
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Matrix2f", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Matrix2f", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyMatrix2f(pub Matrix2f);
 
@@ -625,7 +625,7 @@ impl PyMatrix2f {
 // Matrix3d
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Matrix3d", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Matrix3d", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyMatrix3d(pub Matrix3d);
 
@@ -1011,7 +1011,7 @@ impl PyMatrix3d {
 // Matrix3f
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Matrix3f", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Matrix3f", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyMatrix3f(pub Matrix3f);
 
@@ -1425,7 +1425,7 @@ impl PyMatrix3f {
 // Matrix4d
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Matrix4d", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Matrix4d", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyMatrix4d(pub Matrix4d);
 
@@ -2098,7 +2098,7 @@ impl PyMatrix4d {
 // Matrix4f
 // ---------------------------------------------------------------------------
 
-#[pyclass(skip_from_py_object, name = "Matrix4f", module = "pxr_rs.Gf")]
+#[pyclass(skip_from_py_object, name = "Matrix4f", module = "pxr.Gf")]
 #[derive(Clone)]
 pub struct PyMatrix4f(pub Matrix4f);
 

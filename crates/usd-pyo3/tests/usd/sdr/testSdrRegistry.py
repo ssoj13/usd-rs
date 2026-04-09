@@ -6,10 +6,10 @@
 # https://openusd.org/license.
 from __future__ import print_function
 
-from pxr_rs import Plug
-from pxr_rs import Sdf
-from pxr_rs import Sdr
-from pxr_rs import Tf
+from pxr import Plug
+from pxr import Sdf
+from pxr import Sdr
+from pxr import Tf
 
 import os
 import unittest

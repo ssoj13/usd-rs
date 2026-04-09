@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import os, unittest
-from pxr_rs import Plug, Sdf, Usd, Vt, Tf
+from pxr import Plug, Sdf, Usd, Vt, Tf
 
 # Helper for verifying change procesing related to fallback prim type metadata
 # changes. This is used to wrap a call that will change the layer metadata and

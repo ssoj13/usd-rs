@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Gf, Tf, Sdf, Usd, Vt
+from pxr import Gf, Tf, Sdf, Usd, Vt
 import unittest, math
 
 class TestUsdSchemaBase(unittest.TestCase):

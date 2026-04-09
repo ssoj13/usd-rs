@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest, shutil
-from pxr_rs import Sdf, Usd
+from pxr import Sdf, Usd
 
 class TestUsdCrateForPayloadLists(unittest.TestCase):
     # Verify that a payload list has a specific set of explicit items

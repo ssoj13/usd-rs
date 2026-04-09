@@ -9,7 +9,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Usd, UsdGeom, Vt, Sdf
+from pxr import Usd, UsdGeom, Vt, Sdf
 import unittest
 
 class testUsdGeomSubset(unittest.TestCase):

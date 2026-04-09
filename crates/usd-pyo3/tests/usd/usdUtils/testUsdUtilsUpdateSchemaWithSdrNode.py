@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import UsdUtils, Sdf, Usd, Sdr, UsdShade, Tf, Plug
+from pxr import UsdUtils, Sdf, Usd, Sdr, UsdShade, Tf, Plug
 import os, sys
 import unittest
 

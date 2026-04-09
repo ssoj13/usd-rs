@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs import Tf, Sdf, UsdUtils
+from pxr import Tf, Sdf, UsdUtils
 
 # Constructing an sdf path with "" gives a tf warning 
 def _genWarning():

@@ -11,7 +11,7 @@ import shutil
 import textwrap
 import unittest
 
-from pxr_rs import Ar, Pcp, Sdf
+from pxr import Ar, Pcp, Sdf
 
 def CreateLayer(path, layerString):
     l = Sdf.Layer.CreateAnonymous()

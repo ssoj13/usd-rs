@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest, shutil
-from pxr_rs import Sdf, Usd
+from pxr import Sdf, Usd
 
 class TestUsdCrateRelocates(unittest.TestCase):
 

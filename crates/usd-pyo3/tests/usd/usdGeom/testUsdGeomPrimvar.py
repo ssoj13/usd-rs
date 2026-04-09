@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, os, unittest
-from pxr_rs import Gf, Usd, UsdGeom, Sdf, Tf, Vt
+from pxr import Gf, Usd, UsdGeom, Sdf, Tf, Vt
 
 class TestUsdGeomPrimvarsAPI(unittest.TestCase):
     def test_PrimvarsAPI(self):
@@ -485,9 +485,9 @@ class TestUsdGeomPrimvarsAPI(unittest.TestCase):
         self.assertEqual(_2darr.ComputeFlattened(), None)
 
     def test_Bug124579(self):
-        from pxr_rs import Usd
-        from pxr_rs import UsdGeom
-        from pxr_rs import Vt
+        from pxr import Usd
+        from pxr import UsdGeom
+        from pxr import Vt
         
         stage = Usd.Stage.CreateInMemory()
         

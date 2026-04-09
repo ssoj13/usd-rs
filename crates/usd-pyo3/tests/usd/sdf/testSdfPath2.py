@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, os, traceback, unittest
-from pxr_rs import Sdf, Tf
+from pxr import Sdf, Tf
 
 EmptyType = 1 
 RootType = 2 

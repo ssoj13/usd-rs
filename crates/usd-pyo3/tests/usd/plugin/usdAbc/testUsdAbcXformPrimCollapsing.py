@@ -5,8 +5,8 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Usd
-from pxr_rs import UsdGeom
+from pxr import Usd
+from pxr import UsdGeom
 
 import unittest
 

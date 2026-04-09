@@ -6,7 +6,7 @@
 
 import unittest
 
-from pxr_rs import Pcp, Sdf, Tf
+from pxr import Pcp, Sdf, Tf
 
 def _ComposeLayersWithNegativeOffsetScale():
     refLayer = Sdf.Layer.CreateAnonymous("ref")

@@ -7,10 +7,10 @@
 
 import unittest
 
-from pxr_rs import Tf
-from pxr_rs import Gf
-from pxr_rs import Usd
-from pxr_rs import UsdSemantics
+from pxr import Tf
+from pxr import Gf
+from pxr import Usd
+from pxr import UsdSemantics
 
 class TestPseudoRoot(unittest.TestCase):
     def setUp(self):

@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Tf, Usd, Sdf
+from pxr import Tf, Usd, Sdf
 
 class TestUsdzFileFormat(unittest.TestCase):
     def test_CannotCreateNewUsdzStage(self):

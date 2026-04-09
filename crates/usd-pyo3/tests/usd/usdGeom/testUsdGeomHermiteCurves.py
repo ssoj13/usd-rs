@@ -7,10 +7,10 @@
 
 import unittest
 
-from pxr_rs import Tf
-from pxr_rs import Vt
-from pxr_rs import Usd
-from pxr_rs import UsdGeom
+from pxr import Tf
+from pxr import Vt
+from pxr import Usd
+from pxr import UsdGeom
 
 
 class TestUsdGeomHermiteCurves(unittest.TestCase):

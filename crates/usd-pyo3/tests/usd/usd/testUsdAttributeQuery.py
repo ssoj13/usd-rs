@@ -8,7 +8,7 @@
 import contextlib
 import unittest
 
-from pxr_rs import Usd, Sdf, Tf
+from pxr import Usd, Sdf, Tf
 
 @contextlib.contextmanager
 def StageChangeListener(stage):

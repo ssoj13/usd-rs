@@ -6,8 +6,8 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs.UsdAppUtils.complexityArgs import RefinementComplexities
-from pxr_rs.Usdviewq.common import RenderModes
+from pxr.UsdAppUtils.complexityArgs import RefinementComplexities
+from pxr.Usdviewq.common import RenderModes
 
 
 # Remove any unwanted visuals from the view.

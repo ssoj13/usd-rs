@@ -5,7 +5,7 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 
-from pxr_rs import Usd, Vt, Sdf, Tf
+from pxr import Usd, Vt, Sdf, Tf
 import unittest
 
 class TestUsdPathExpressionAttrs(unittest.TestCase):

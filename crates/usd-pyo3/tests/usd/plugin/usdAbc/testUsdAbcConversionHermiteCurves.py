@@ -7,10 +7,10 @@
 
 import unittest
 
-from pxr_rs import Gf
-from pxr_rs import Usd
-from pxr_rs import UsdAbc
-from pxr_rs import UsdGeom
+from pxr import Gf
+from pxr import Usd
+from pxr import UsdAbc
+from pxr import UsdGeom
 
 
 class TestUsdAbcConversionHermiteCurves(unittest.TestCase):

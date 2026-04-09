@@ -32,7 +32,7 @@ fn path_from_str(s: &str) -> PyResult<Path> {
 // Shared stage wrapper
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Stage", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "Stage", module = "pxr.UsdSkel")]
 struct PyStage {
     inner: Arc<Stage>,
 }
@@ -41,7 +41,7 @@ struct PyStage {
 // PySkelRoot
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Root", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "Root", module = "pxr.UsdSkel")]
 struct PySkelRoot {
     inner: SkelRoot,
 }
@@ -100,7 +100,7 @@ impl PySkelRoot {
 // PySkeleton
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Skeleton", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "Skeleton", module = "pxr.UsdSkel")]
 struct PySkeleton {
     inner: Skeleton,
 }
@@ -177,7 +177,7 @@ impl PySkeleton {
 // PySkelAnimation
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Animation", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "Animation", module = "pxr.UsdSkel")]
 struct PySkelAnimation {
     inner: SkelAnimation,
 }
@@ -269,7 +269,7 @@ impl PySkelAnimation {
 // PyBindingAPI
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "BindingAPI", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "BindingAPI", module = "pxr.UsdSkel")]
 struct PyBindingAPI {
     inner: BindingAPI,
 }
@@ -350,7 +350,7 @@ impl PyBindingAPI {
 // PyBlendShape
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "BlendShape", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "BlendShape", module = "pxr.UsdSkel")]
 struct PyBlendShape {
     inner: BlendShape,
 }
@@ -424,7 +424,7 @@ impl PyBlendShape {
 // PyCache
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Cache", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "Cache", module = "pxr.UsdSkel")]
 struct PyCache {
     inner: Cache,
 }
@@ -470,7 +470,7 @@ impl PyCache {
 // PySkeletonQuery
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "SkeletonQuery", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "SkeletonQuery", module = "pxr.UsdSkel")]
 struct PySkeletonQuery {
     inner: SkeletonQuery,
 }
@@ -538,7 +538,7 @@ impl PySkeletonQuery {
 // PySkinningQuery
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "SkinningQuery", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "SkinningQuery", module = "pxr.UsdSkel")]
 struct PySkinningQuery {
     inner: SkinningQuery,
 }
@@ -577,7 +577,7 @@ impl PySkinningQuery {
 // PyTopology
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Topology", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "Topology", module = "pxr.UsdSkel")]
 struct PyTopology {
     inner: Topology,
 }
@@ -626,7 +626,7 @@ impl PyTopology {
 // PyAnimMapper
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "AnimMapper", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "AnimMapper", module = "pxr.UsdSkel")]
 struct PyAnimMapper {
     inner: AnimMapper,
 }
@@ -669,7 +669,7 @@ impl PyAnimMapper {
 // PyAnimQuery
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "AnimQuery", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "AnimQuery", module = "pxr.UsdSkel")]
 struct PyAnimQuery {
     inner: AnimQuery,
 }
@@ -699,7 +699,7 @@ impl PyAnimQuery {
 // PyBinding
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Binding", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "Binding", module = "pxr.UsdSkel")]
 struct PyBinding {
     inner: Binding,
 }
@@ -731,7 +731,7 @@ impl PyBinding {
 // PyInbetweenShape
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "InbetweenShape", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "InbetweenShape", module = "pxr.UsdSkel")]
 struct PyInbetweenShape {
     inner: InbetweenShape,
 }
@@ -759,7 +759,7 @@ impl PyInbetweenShape {
 // PyBlendShapeQuery
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "BlendShapeQuery", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "BlendShapeQuery", module = "pxr.UsdSkel")]
 struct PyBlendShapeQuery {
     inner: BlendShapeQuery,
 }
@@ -791,7 +791,7 @@ impl PyBlendShapeQuery {
 // Tokens — mirrors UsdSkelTokens
 // ---------------------------------------------------------------------------
 
-#[pyclass(name = "Tokens", module = "pxr_rs.UsdSkel")]
+#[pyclass(name = "Tokens", module = "pxr.UsdSkel")]
 struct PyTokens;
 
 #[pymethods]

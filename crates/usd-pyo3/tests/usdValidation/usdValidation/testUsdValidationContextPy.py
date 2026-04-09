@@ -7,7 +7,7 @@
 
 import os, unittest
 
-from pxr_rs import Plug, Sdf, Tf, Gf, Usd, UsdValidation
+from pxr import Plug, Sdf, Tf, Gf, Usd, UsdValidation
 
 class TestUsdValidationContextPy(unittest.TestCase):
 

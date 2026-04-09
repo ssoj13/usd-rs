@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Plug, Sdf, Usd, UsdValidation
+from pxr import Plug, Sdf, Usd, UsdValidation
 
 class TestUsdValidatorMetadata(unittest.TestCase):
     def _VerifyMetadata(

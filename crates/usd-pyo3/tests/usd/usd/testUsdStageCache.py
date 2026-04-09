@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, unittest
-from pxr_rs import Sdf,Usd,Tf,Ar
+from pxr import Sdf,Usd,Tf,Ar
 
 def CheckEmptyCache(cache):
     assert cache.IsEmpty() and cache.Size() == 0

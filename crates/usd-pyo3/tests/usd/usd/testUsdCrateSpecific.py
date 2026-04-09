@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest, tempfile, os
-from pxr_rs import Sdf, Usd
+from pxr import Sdf, Usd
 
 class TestUsdCrateSpecific(unittest.TestCase):
 

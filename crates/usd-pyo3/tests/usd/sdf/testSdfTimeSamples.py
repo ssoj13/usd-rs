@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import unittest
-from pxr_rs import Sdf
+from pxr import Sdf
 
 class TestSdfTimeSampleOrdering(unittest.TestCase):
     layerText = '''#usda 1.0

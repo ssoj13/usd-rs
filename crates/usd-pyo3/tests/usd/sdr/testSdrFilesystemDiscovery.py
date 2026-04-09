@@ -15,7 +15,7 @@ import unittest
 os.environ["PXR_SDR_FS_PLUGIN_SEARCH_PATHS"] = os.getcwd()
 os.environ["PXR_SDR_FS_PLUGIN_ALLOWED_EXTS"] = "oso:args"
 
-from pxr_rs import Sdr
+from pxr import Sdr
 
 class TestSdrFilesystemDiscovery(unittest.TestCase):
     def test_SdrFilesystemDiscovery(self):

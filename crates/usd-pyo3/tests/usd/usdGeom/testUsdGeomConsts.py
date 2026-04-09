@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, os, unittest
-from pxr_rs import Sdf, Usd, UsdGeom
+from pxr import Sdf, Usd, UsdGeom
 
 class TestUsdGeomConsts(unittest.TestCase):
     def _WriteConst(self, prim, attrName, typeStr, constVal):

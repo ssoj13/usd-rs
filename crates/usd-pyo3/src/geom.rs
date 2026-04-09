@@ -1,4 +1,4 @@
-//! pxr.UsdGeom — Python bindings for the USD Geometry module.
+﻿//! pxr.UsdGeom — Python bindings for the USD Geometry module.
 //!
 //! Drop-in replacement for `pxr.UsdGeom` from C++ OpenUSD.
 //! All 38 schema classes, plus BBoxCache, XformCache, Primvar, XformOp, Tokens, Metrics.
@@ -101,18 +101,6 @@ fn mat4_to_flat(m: &usd_gf::Matrix4d) -> Vec<f64> {
     out
 }
 
-fn bbox_to_flat(bbox: &usd_gf::BBox3d) -> Vec<f64> {
-    let r = bbox.range();
-    vec![
-        r.min().x,
-        r.min().y,
-        r.min().z,
-        r.max().x,
-        r.max().y,
-        r.max().z,
-    ]
-}
-
 fn parse_xform_op_type(s: &str) -> PyResult<XformOpType> {
     Ok(match s {
         "translate" => XformOpType::Translate,
@@ -210,7 +198,7 @@ include!("impl_xform_img_macros.rs");
 // Tokens
 // ============================================================================
 
-#[pyclass(name = "Tokens", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Tokens", module = "pxr.UsdGeom")]
 pub struct PyTokens;
 
 #[pymethods]
@@ -471,11 +459,24 @@ impl PyTokens {
     }
 }
 
+/// `UsdGeom.XformOpTypes` — special xform op name tokens (matches pxr `UsdGeomXformOpTypes`).
+#[pyclass(name = "XformOpTypes", module = "pxr.UsdGeom")]
+pub struct PyXformOpTypes;
+
+#[pymethods]
+impl PyXformOpTypes {
+    #[classattr]
+    #[pyo3(name = "resetXformStack")]
+    fn reset_xform_stack() -> &'static str {
+        "!resetXformStack!"
+    }
+}
+
 // ============================================================================
 // XformOp
 // ============================================================================
 
-#[pyclass(name = "XformOp", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "XformOp", module = "pxr.UsdGeom")]
 pub struct PyXformOp(pub XformOp);
 
 #[pymethods]
@@ -561,7 +562,7 @@ impl PyXformOp {
 // Primvar
 // ============================================================================
 
-#[pyclass(name = "Primvar", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Primvar", module = "pxr.UsdGeom")]
 pub struct PyPrimvar(pub Primvar);
 
 #[pymethods]
@@ -640,7 +641,7 @@ impl PyPrimvar {
 // BBoxCache
 // ============================================================================
 
-#[pyclass(name = "BBoxCache", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "BBoxCache", module = "pxr.UsdGeom")]
 pub struct PyBBoxCache(pub BBoxCache);
 
 #[pymethods]
@@ -663,13 +664,13 @@ impl PyBBoxCache {
     }
 
     #[pyo3(name = "ComputeWorldBound")]
-    pub fn compute_world_bound(&mut self, prim: &PyPrim) -> Vec<f64> {
-        bbox_to_flat(&self.0.compute_world_bound(&prim.inner))
+    pub fn compute_world_bound(&mut self, prim: &PyPrim) -> crate::gf::geo::PyBBox3d {
+        crate::gf::geo::PyBBox3d(self.0.compute_world_bound(&prim.inner))
     }
 
     #[pyo3(name = "ComputeLocalBound")]
-    pub fn compute_local_bound(&mut self, prim: &PyPrim) -> Vec<f64> {
-        bbox_to_flat(&self.0.compute_local_bound(&prim.inner))
+    pub fn compute_local_bound(&mut self, prim: &PyPrim) -> crate::gf::geo::PyBBox3d {
+        crate::gf::geo::PyBBox3d(self.0.compute_local_bound(&prim.inner))
     }
 
     #[pyo3(name = "SetTime")]
@@ -700,30 +701,75 @@ impl PyBBoxCache {
 // XformCache
 // ============================================================================
 
-#[pyclass(name = "XformCache", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "XformCache", module = "pxr.UsdGeom")]
 pub struct PyXformCache(pub XformCache);
 
 #[pymethods]
 impl PyXformCache {
     #[new]
     #[pyo3(signature = (time = None))]
-    pub fn new(time: Option<f64>) -> Self {
-        Self(XformCache::new(tc(time)))
+    pub fn new(time: Option<&Bound<'_, pyo3::PyAny>>) -> PyResult<Self> {
+        let tc = match time {
+            None => usd_sdf::TimeCode::default(),
+            Some(o) => crate::usd::tc_from_py_sdf(o)?,
+        };
+        Ok(Self(XformCache::new(tc)))
     }
 
     #[pyo3(name = "GetLocalToWorldTransform")]
-    pub fn get_local_to_world_transform(&mut self, prim: &PyPrim) -> Vec<f64> {
-        mat4_to_flat(&self.0.get_local_to_world_transform(&prim.inner))
+    pub fn get_local_to_world_transform(
+        &mut self,
+        prim: &PyPrim,
+    ) -> crate::gf::matrix::PyMatrix4d {
+        crate::gf::matrix::PyMatrix4d(self.0.get_local_to_world_transform(&prim.inner))
     }
 
     #[pyo3(name = "GetParentToWorldTransform")]
-    pub fn get_parent_to_world_transform(&mut self, prim: &PyPrim) -> Vec<f64> {
-        mat4_to_flat(&self.0.get_parent_to_world_transform(&prim.inner))
+    pub fn get_parent_to_world_transform(
+        &mut self,
+        prim: &PyPrim,
+    ) -> crate::gf::matrix::PyMatrix4d {
+        crate::gf::matrix::PyMatrix4d(self.0.get_parent_to_world_transform(&prim.inner))
+    }
+
+    #[pyo3(name = "GetLocalTransformation")]
+    pub fn get_local_transformation(
+        &mut self,
+        prim: &PyPrim,
+    ) -> (crate::gf::matrix::PyMatrix4d, bool) {
+        let (m, resets) = self.0.get_local_transformation(&prim.inner);
+        (crate::gf::matrix::PyMatrix4d(m), resets)
+    }
+
+    #[pyo3(name = "ComputeRelativeTransform")]
+    pub fn compute_relative_transform(
+        &mut self,
+        prim: &PyPrim,
+        ancestor: &PyPrim,
+    ) -> (crate::gf::matrix::PyMatrix4d, bool) {
+        let (m, resets) = self
+            .0
+            .compute_relative_transform(&prim.inner, &ancestor.inner);
+        (crate::gf::matrix::PyMatrix4d(m), resets)
     }
 
     #[pyo3(name = "SetTime")]
-    pub fn set_time(&mut self, time: f64) {
-        self.0.set_time(TimeCode::new(time));
+    pub fn set_time(&mut self, time: &Bound<'_, pyo3::PyAny>) -> PyResult<()> {
+        self.0.set_time(crate::usd::tc_from_py_sdf(time)?);
+        Ok(())
+    }
+
+    #[pyo3(name = "GetTime")]
+    pub fn get_time(&self) -> crate::usd::PyTimeCode {
+        let sdf = self.0.get_time();
+        crate::usd::PyTimeCode::from_usd_core(usd_core::time_code::TimeCode::from_sdf_time_code(
+            &sdf,
+        ))
+    }
+
+    #[pyo3(name = "Swap")]
+    pub fn swap(&mut self, other: &mut PyXformCache) {
+        self.0.swap(&mut other.0);
     }
 
     #[pyo3(name = "Clear")]
@@ -739,7 +785,7 @@ impl PyXformCache {
 // Imageable
 // ============================================================================
 
-#[pyclass(name = "Imageable", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Imageable", module = "pxr.UsdGeom")]
 pub struct PyImageable(pub Imageable);
 
 #[pymethods]
@@ -805,17 +851,17 @@ impl PyImageable {
     }
 
     #[pyo3(name = "ComputeWorldBound")]
-    pub fn compute_world_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+    pub fn compute_world_bound(&self, time: f64, purpose: &str) -> crate::gf::geo::PyBBox3d {
         let mut cache =
             BBoxCache::new(TimeCode::new(time), vec![Token::new(purpose)], false, false);
-        bbox_to_flat(&cache.compute_world_bound(self.0.prim()))
+        crate::gf::geo::PyBBox3d(cache.compute_world_bound(self.0.prim()))
     }
 
     #[pyo3(name = "ComputeLocalBound")]
-    pub fn compute_local_bound(&self, time: f64, purpose: &str) -> Vec<f64> {
+    pub fn compute_local_bound(&self, time: f64, purpose: &str) -> crate::gf::geo::PyBBox3d {
         let mut cache =
             BBoxCache::new(TimeCode::new(time), vec![Token::new(purpose)], false, false);
-        bbox_to_flat(&cache.compute_local_bound(self.0.prim()))
+        crate::gf::geo::PyBBox3d(cache.compute_local_bound(self.0.prim()))
     }
 
     #[pyo3(name = "ComputeLocalToWorldTransform", signature = (time=None))]
@@ -882,7 +928,7 @@ impl PyImageable {
 // Xformable
 // ============================================================================
 
-#[pyclass(name = "Xformable", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Xformable", module = "pxr.UsdGeom")]
 pub struct PyXformable(pub Xformable);
 
 #[pymethods]
@@ -1163,7 +1209,7 @@ impl PyXformable {
 // Xform
 // ============================================================================
 
-#[pyclass(name = "Xform", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Xform", module = "pxr.UsdGeom")]
 pub struct PyXform(pub Xform);
 
 #[pymethods]
@@ -1387,7 +1433,7 @@ impl PyXform {
 // Boundable
 // ============================================================================
 
-#[pyclass(name = "Boundable", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Boundable", module = "pxr.UsdGeom")]
 pub struct PyBoundable(pub Boundable);
 
 usd_geom_schema_with_xform!(PyBoundable, yes_get_path, {
@@ -1448,7 +1494,7 @@ usd_geom_schema_with_xform!(PyBoundable, yes_get_path, {
 // Scope
 // ============================================================================
 
-#[pyclass(name = "Scope", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Scope", module = "pxr.UsdGeom")]
 pub struct PyScope(pub Scope);
 
 usd_geom_schema_imageable_scope!(PyScope, {
@@ -1504,7 +1550,7 @@ usd_geom_schema_imageable_scope!(PyScope, {
 // Gprim
 // ============================================================================
 
-#[pyclass(name = "Gprim", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Gprim", module = "pxr.UsdGeom")]
 pub struct PyGprim(pub Gprim);
 
 usd_geom_schema_with_xform!(PyGprim, yes_get_path, {
@@ -1583,7 +1629,7 @@ usd_geom_schema_with_xform!(PyGprim, yes_get_path, {
 // Mesh
 // ============================================================================
 
-#[pyclass(name = "Mesh", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Mesh", module = "pxr.UsdGeom")]
 pub struct PyMesh(pub Mesh);
 
 usd_geom_schema_with_xform!(PyMesh, no_get_path, {
@@ -1953,7 +1999,7 @@ usd_geom_schema_with_xform!(PyMesh, no_get_path, {
 // Sphere
 // ============================================================================
 
-#[pyclass(name = "Sphere", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Sphere", module = "pxr.UsdGeom")]
 pub struct PySphere(pub Sphere);
 
 usd_geom_schema_with_xform!(PySphere, yes_get_path, {
@@ -2022,7 +2068,7 @@ usd_geom_schema_with_xform!(PySphere, yes_get_path, {
 // Cube
 // ============================================================================
 
-#[pyclass(name = "Cube", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Cube", module = "pxr.UsdGeom")]
 pub struct PyCube(pub Cube);
 
 usd_geom_schema_with_xform!(PyCube, yes_get_path, {
@@ -2083,7 +2129,7 @@ usd_geom_schema_with_xform!(PyCube, yes_get_path, {
 // Cone
 // ============================================================================
 
-#[pyclass(name = "Cone", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Cone", module = "pxr.UsdGeom")]
 pub struct PyCone(pub Cone);
 
 usd_geom_schema_with_xform!(PyCone, yes_get_path, {
@@ -2160,7 +2206,7 @@ usd_geom_schema_with_xform!(PyCone, yes_get_path, {
 // Cylinder
 // ============================================================================
 
-#[pyclass(name = "Cylinder", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Cylinder", module = "pxr.UsdGeom")]
 pub struct PyCylinder(pub Cylinder);
 
 usd_geom_schema_with_xform!(PyCylinder, yes_get_path, {
@@ -2237,7 +2283,7 @@ usd_geom_schema_with_xform!(PyCylinder, yes_get_path, {
 // Cylinder_1
 // ============================================================================
 
-#[pyclass(name = "Cylinder_1", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Cylinder_1", module = "pxr.UsdGeom")]
 pub struct PyCylinder1(pub Cylinder1);
 
 usd_geom_schema_with_xform!(PyCylinder1, yes_get_path, {
@@ -2323,7 +2369,7 @@ usd_geom_schema_with_xform!(PyCylinder1, yes_get_path, {
 // Capsule
 // ============================================================================
 
-#[pyclass(name = "Capsule", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Capsule", module = "pxr.UsdGeom")]
 pub struct PyCapsule(pub Capsule);
 
 usd_geom_schema_with_xform!(PyCapsule, yes_get_path, {
@@ -2400,7 +2446,7 @@ usd_geom_schema_with_xform!(PyCapsule, yes_get_path, {
 // Capsule_1
 // ============================================================================
 
-#[pyclass(name = "Capsule_1", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Capsule_1", module = "pxr.UsdGeom")]
 pub struct PyCapsule1(pub Capsule1);
 
 usd_geom_schema_with_xform!(PyCapsule1, yes_get_path, {
@@ -2486,7 +2532,7 @@ usd_geom_schema_with_xform!(PyCapsule1, yes_get_path, {
 // Plane
 // ============================================================================
 
-#[pyclass(name = "Plane", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Plane", module = "pxr.UsdGeom")]
 pub struct PyPlane(pub Plane);
 
 usd_geom_schema_with_xform!(PyPlane, yes_get_path, {
@@ -2567,7 +2613,7 @@ usd_geom_schema_with_xform!(PyPlane, yes_get_path, {
 // PointBased
 // ============================================================================
 
-#[pyclass(name = "PointBased", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "PointBased", module = "pxr.UsdGeom")]
 pub struct PyPointBased(pub PointBased);
 
 usd_geom_schema_with_xform!(PyPointBased, yes_get_path, {
@@ -2711,7 +2757,7 @@ usd_geom_schema_with_xform!(PyPointBased, yes_get_path, {
 // Points
 // ============================================================================
 
-#[pyclass(name = "Points", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Points", module = "pxr.UsdGeom")]
 pub struct PyPoints(pub Points);
 
 usd_geom_schema_with_xform!(PyPoints, yes_get_path, {
@@ -2836,7 +2882,7 @@ usd_geom_schema_with_xform!(PyPoints, yes_get_path, {
 // Curves
 // ============================================================================
 
-#[pyclass(name = "Curves", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Curves", module = "pxr.UsdGeom")]
 pub struct PyCurves(pub Curves);
 
 usd_geom_schema_with_xform!(PyCurves, yes_get_path, {
@@ -2923,7 +2969,7 @@ usd_geom_schema_with_xform!(PyCurves, yes_get_path, {
 // BasisCurves
 // ============================================================================
 
-#[pyclass(name = "BasisCurves", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "BasisCurves", module = "pxr.UsdGeom")]
 pub struct PyBasisCurves(pub BasisCurves);
 
 usd_geom_schema_with_xform!(PyBasisCurves, yes_get_path, {
@@ -3056,7 +3102,7 @@ usd_geom_schema_with_xform!(PyBasisCurves, yes_get_path, {
 // NurbsCurves
 // ============================================================================
 
-#[pyclass(name = "NurbsCurves", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "NurbsCurves", module = "pxr.UsdGeom")]
 pub struct PyNurbsCurves(pub NurbsCurves);
 
 usd_geom_schema_with_xform!(PyNurbsCurves, yes_get_path, {
@@ -3172,7 +3218,7 @@ usd_geom_schema_with_xform!(PyNurbsCurves, yes_get_path, {
 // HermiteCurves
 // ============================================================================
 
-#[pyclass(name = "HermiteCurves", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "HermiteCurves", module = "pxr.UsdGeom")]
 pub struct PyHermiteCurves(pub HermiteCurves);
 
 usd_geom_schema_with_xform!(PyHermiteCurves, yes_get_path, {
@@ -3233,7 +3279,7 @@ usd_geom_schema_with_xform!(PyHermiteCurves, yes_get_path, {
 // NurbsPatch
 // ============================================================================
 
-#[pyclass(name = "NurbsPatch", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "NurbsPatch", module = "pxr.UsdGeom")]
 pub struct PyNurbsPatch(pub NurbsPatch);
 
 usd_geom_schema_with_xform!(PyNurbsPatch, yes_get_path, {
@@ -3334,7 +3380,7 @@ usd_geom_schema_with_xform!(PyNurbsPatch, yes_get_path, {
 // TetMesh
 // ============================================================================
 
-#[pyclass(name = "TetMesh", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "TetMesh", module = "pxr.UsdGeom")]
 pub struct PyTetMesh(pub TetMesh);
 
 usd_geom_schema_with_xform!(PyTetMesh, yes_get_path, {
@@ -3399,7 +3445,7 @@ usd_geom_schema_with_xform!(PyTetMesh, yes_get_path, {
 // PointInstancer
 // ============================================================================
 
-#[pyclass(name = "PointInstancer", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "PointInstancer", module = "pxr.UsdGeom")]
 pub struct PyPointInstancer(pub PointInstancer);
 
 usd_geom_schema_with_xform!(PyPointInstancer, no_get_path, {
@@ -3608,7 +3654,7 @@ usd_geom_schema_with_xform!(PyPointInstancer, no_get_path, {
 // Camera
 // ============================================================================
 
-#[pyclass(name = "Camera", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Camera", module = "pxr.UsdGeom")]
 pub struct PyCamera(pub Camera);
 
 usd_geom_schema_with_xform!(PyCamera, yes_get_path, {
@@ -3833,7 +3879,7 @@ usd_geom_schema_with_xform!(PyCamera, yes_get_path, {
 // PrimvarsAPI
 // ============================================================================
 
-#[pyclass(name = "PrimvarsAPI", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "PrimvarsAPI", module = "pxr.UsdGeom")]
 pub struct PyPrimvarsAPI(pub PrimvarsAPI);
 
 #[pymethods]
@@ -3908,7 +3954,7 @@ impl PyPrimvarsAPI {
 // VisibilityAPI
 // ============================================================================
 
-#[pyclass(name = "VisibilityAPI", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "VisibilityAPI", module = "pxr.UsdGeom")]
 pub struct PyVisibilityAPI(pub VisibilityAPI);
 
 #[pymethods]
@@ -3972,7 +4018,7 @@ impl PyVisibilityAPI {
 // ModelAPI
 // ============================================================================
 
-#[pyclass(name = "ModelAPI", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "ModelAPI", module = "pxr.UsdGeom")]
 pub struct PyModelAPI(pub ModelAPI);
 
 #[pymethods]
@@ -4086,7 +4132,7 @@ impl PyModelAPI {
 // MotionAPI
 // ============================================================================
 
-#[pyclass(name = "MotionAPI", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "MotionAPI", module = "pxr.UsdGeom")]
 pub struct PyMotionAPI(pub MotionAPI);
 
 #[pymethods]
@@ -4162,7 +4208,7 @@ impl PyMotionAPI {
 // XformCommonAPI
 // ============================================================================
 
-#[pyclass(name = "XformCommonAPI", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "XformCommonAPI", module = "pxr.UsdGeom")]
 pub struct PyXformCommonAPI(pub XformCommonAPI);
 
 #[pymethods]
@@ -4282,7 +4328,7 @@ impl PyXformCommonAPI {
 // Subset
 // ============================================================================
 
-#[pyclass(name = "Subset", module = "pxr_rs.UsdGeom")]
+#[pyclass(name = "Subset", module = "pxr.UsdGeom")]
 pub struct PySubset(pub Subset);
 
 usd_geom_schema_imageable_subset!(PySubset, {
@@ -4417,6 +4463,7 @@ pub fn set_stage_meters_per_unit(stage: &PyStage, mpu: f64) -> bool {
 pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Tokens
     m.add_class::<PyTokens>()?;
+    m.add_class::<PyXformOpTypes>()?;
 
     // Cache types
     m.add_class::<PyBBoxCache>()?;

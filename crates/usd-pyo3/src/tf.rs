@@ -16,7 +16,7 @@ use std::sync::Mutex;
 /// Interned string for fast O(1) comparison and hashing.
 ///
 /// Mirrors `pxr.Tf.Token` / `TfToken` from C++ OpenUSD.
-#[pyclass(skip_from_py_object, name = "Token", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "Token", module = "pxr.Tf")]
 #[derive(Clone)]
 pub struct PyToken {
     inner: usd_tf::Token,
@@ -84,7 +84,7 @@ impl PyToken {
 /// Runtime type handle — mirrors `pxr.Tf.Type` / `TfType`.
 ///
 /// Use `Type.Find()` / `Type.FindByName()` to look up registered types.
-#[pyclass(skip_from_py_object, name = "Type", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "Type", module = "pxr.Tf")]
 #[derive(Clone)]
 pub struct PyType {
     /// Shared with `Usd` / `UsdGeom` bindings for schema and `IsA` queries.
@@ -287,7 +287,7 @@ impl PyType {
 /// A listener registration key — holds the revoke handle.
 ///
 /// Mirrors `pxr.Tf.Notice.Listener` / `TfNotice::Key`.
-#[pyclass(skip_from_py_object, name = "NoticeListener", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "NoticeListener", module = "pxr.Tf")]
 pub struct PyNoticeListener {
     /// The revoke handle from the Rust registry; None after `Revoke()`.
     key: Option<usd_tf::notice::ListenerKey>,
@@ -328,7 +328,7 @@ impl PyNoticeListener {
 /// Python-level notice types (subclasses of this) carry a string type tag
 /// so they can be dispatched through the Rust notice system via a
 /// string-keyed shim registry.
-#[pyclass(skip_from_py_object, name = "Notice", module = "pxr_rs.Tf", subclass)]
+#[pyclass(skip_from_py_object, name = "Notice", module = "pxr.Tf", subclass)]
 pub struct PyNotice {
     /// Logical type name set by the concrete Python notice subclass.
     notice_type: String,
@@ -511,7 +511,7 @@ impl PythonNoticeShim {
 // ============================================================================
 
 /// High-resolution timer — mirrors `pxr.Tf.Stopwatch` / `TfStopwatch`.
-#[pyclass(skip_from_py_object, name = "Stopwatch", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "Stopwatch", module = "pxr.Tf")]
 pub struct PyStopwatch {
     inner: usd_tf::stopwatch::Stopwatch,
 }
@@ -608,7 +608,7 @@ impl PyStopwatch {
 ///
 /// Debug symbols are named boolean flags that gate diagnostic output.
 /// They can be toggled at runtime or via the `TF_DEBUG` environment variable.
-#[pyclass(skip_from_py_object, name = "Debug", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "Debug", module = "pxr.Tf")]
 pub struct PyDebug;
 
 #[pymethods]
@@ -832,7 +832,7 @@ fn format_msg(template: &str, args: &Bound<'_, PyTuple>) -> PyResult<String> {
 /// Memory tagging system — mirrors `pxr.Tf.MallocTag` / `TfMallocTag`.
 ///
 /// Provides static methods for memory tracking and reporting.
-#[pyclass(skip_from_py_object, name = "MallocTag", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "MallocTag", module = "pxr.Tf")]
 pub struct PyMallocTag;
 
 #[pymethods]
@@ -879,7 +879,7 @@ impl PyMallocTag {
 }
 
 /// Memory usage call tree — mirrors `Tf.MallocTag.CallTree`.
-#[pyclass(skip_from_py_object, name = "CallTree", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "CallTree", module = "pxr.Tf")]
 pub struct PyCallTree {
     inner: usd_tf::malloc_tag::CallTree,
 }
@@ -1205,7 +1205,7 @@ impl PyCallTree {
 }
 
 /// Node in the malloc tag call tree — mirrors `Tf.MallocTag.CallTree.PathNode`.
-#[pyclass(skip_from_py_object, name = "PathNode", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "PathNode", module = "pxr.Tf")]
 #[derive(Clone)]
 pub struct PyPathNode {
     /// Tag name at this site.
@@ -1267,7 +1267,7 @@ impl PyPathNode {
 /// In pure Rust USD this is largely a no-op stub since all modules are
 /// statically linked. The API is preserved for compatibility with tests
 /// that call `_LoadModulesForLibrary` / `_RegisterLibrary`.
-#[pyclass(skip_from_py_object, name = "ScriptModuleLoader", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "ScriptModuleLoader", module = "pxr.Tf")]
 pub struct PyScriptModuleLoader;
 
 #[pymethods]
@@ -1318,7 +1318,7 @@ impl PyScriptModuleLoader {
 /// Mirrors `Tf.Enum` / `TfEnum` usage in Python where int subclasses carry
 /// a type tag.  In practice pxr uses Python ints directly — this wrapper
 /// preserves the `typeName` attribute for introspection.
-#[pyclass(skip_from_py_object, name = "Enum", module = "pxr_rs.Tf")]
+#[pyclass(skip_from_py_object, name = "Enum", module = "pxr.Tf")]
 #[derive(Clone)]
 pub struct PyEnum {
     value: i64,

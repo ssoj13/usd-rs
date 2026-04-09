@@ -9,7 +9,7 @@
 # The OCIO env var is set to the test.ocio config in the test directory before
 # it is run.
 
-from pxr_rs.Usdviewq.common import ColorCorrectionModes
+from pxr.Usdviewq.common import ColorCorrectionModes
 
 def _useOCIO(appController):
     appController._dataModel.viewSettings.colorCorrectionMode = ColorCorrectionModes.OPENCOLORIO

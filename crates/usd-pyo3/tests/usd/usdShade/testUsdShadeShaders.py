@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-from pxr_rs import Tf, Sdf, Usd, UsdGeom, UsdShade
+from pxr import Tf, Sdf, Usd, UsdGeom, UsdShade
 import unittest
 
 palePath = Sdf.Path("/Model/Materials/MaterialSharp/Pale")
@@ -217,7 +217,7 @@ class TestUsdShadeShaders(unittest.TestCase):
         # Pale inherits from ClassPale.
         classPale = UsdShade.Shader.Get(stage, classPalePath)
 
-        from pxr_rs import Sdr
+        from pxr import Sdr
         baseSdrMetadata = {Sdr.NodeMetadata.Primvars : 
                                 "primvarA|primvarB|primvarC"}
         classPale.SetSdrMetadata(baseSdrMetadata)

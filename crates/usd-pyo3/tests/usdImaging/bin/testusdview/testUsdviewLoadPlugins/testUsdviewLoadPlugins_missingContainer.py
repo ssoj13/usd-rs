@@ -8,7 +8,7 @@
 
 import os, sys
 
-from pxr_rs import Plug
+from pxr import Plug
 
 
 # Append to Python's search path a relative path to the plugins directory so

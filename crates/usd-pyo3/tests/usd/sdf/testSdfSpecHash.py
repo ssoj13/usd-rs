@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import sys, unittest
-from pxr_rs import Sdf
+from pxr import Sdf
 
 class TestSdfSpecHash(unittest.TestCase):
     def test_Basic(self):

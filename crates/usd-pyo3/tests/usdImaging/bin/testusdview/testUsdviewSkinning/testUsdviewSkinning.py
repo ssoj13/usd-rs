@@ -7,9 +7,9 @@
 #
 
 from __future__ import print_function
-from pxr_rs.UsdAppUtils.complexityArgs import RefinementComplexities
-from pxr_rs.Usdviewq.common import RenderModes, Usd, UsdGeom
-from pxr_rs import Vt, Gf
+from pxr.UsdAppUtils.complexityArgs import RefinementComplexities
+from pxr.Usdviewq.common import RenderModes, Usd, UsdGeom
+from pxr import Vt, Gf
 
 
 # Remove any unwanted visuals from the view, and enable autoClip

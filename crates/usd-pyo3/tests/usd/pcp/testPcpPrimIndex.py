@@ -7,7 +7,7 @@
 
 import unittest
 
-from pxr_rs import Pcp, Sdf, Tf
+from pxr import Pcp, Sdf, Tf
 
 def LoadPcpCache(rootLayer):
     return Pcp.Cache(Pcp.LayerStackIdentifier(rootLayer))

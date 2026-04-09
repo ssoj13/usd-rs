@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import contextlib, inspect, sys, unittest
-from pxr_rs import Tf, Usd
+from pxr import Tf, Usd
 
 class TestUsdNamespaceEditorDependentEditsBase(unittest.TestCase):
     '''Base class for testUsdNamespaceEditDependentEditsXXX tests which 

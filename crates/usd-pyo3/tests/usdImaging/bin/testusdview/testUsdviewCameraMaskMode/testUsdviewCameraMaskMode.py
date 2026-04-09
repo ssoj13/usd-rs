@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 #
 
-from pxr_rs.Usdviewq.qt import QtWidgets
+from pxr.Usdviewq.qt import QtWidgets
 import string
 
 # Remove any unwanted visuals from the view.

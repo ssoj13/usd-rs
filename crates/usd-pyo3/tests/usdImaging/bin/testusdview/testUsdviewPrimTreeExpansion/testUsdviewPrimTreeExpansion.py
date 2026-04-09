@@ -22,7 +22,7 @@ VARIANT_INFO_NAME = 1
 FIRST_VARIANT = 'a_shapeVariant'
 SECOND_VARIANT = 'b_shapeVariant'
 
-from pxr_rs.Usdviewq.qt import QtWidgets, QtCore
+from pxr.Usdviewq.qt import QtWidgets, QtCore
 
 def _setupWidgets(appController):
     # Select our prim with the variant authored

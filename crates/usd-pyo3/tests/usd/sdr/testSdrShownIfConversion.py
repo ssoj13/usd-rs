@@ -8,7 +8,7 @@
 import os
 import unittest
 
-from pxr_rs import UsdShade, Usd
+from pxr import UsdShade, Usd
 
 class TestSdrShownIfConversion(unittest.TestCase):
     def test_SdrShownIfConversion(self):
