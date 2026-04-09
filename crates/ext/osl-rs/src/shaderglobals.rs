@@ -450,7 +450,7 @@ mod tests {
         let size = mem::size_of::<ShaderGlobals>();
         // Expected ~312–336 bytes on 64-bit (exact size depends on alignment/padding).
         assert!(
-            size >= 300 && size <= 360,
+            (300..=360).contains(&size),
             "ShaderGlobals size {size} is outside expected range 300–360"
         );
 

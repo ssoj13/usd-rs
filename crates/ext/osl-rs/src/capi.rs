@@ -442,7 +442,7 @@ mod tests {
             let ss = osl_shading_system_create();
             assert!(!ss.is_null());
 
-            let name = b"test_group\0".as_ptr() as *const c_char;
+            let name = c"test_group".as_ptr().cast::<c_char>();
             let group = osl_shader_group_begin(ss, name);
             assert!(!group.is_null());
             osl_shader_group_end(ss, group);
@@ -455,12 +455,12 @@ mod tests {
     #[test]
     fn test_ustring_exports() {
         unsafe {
-            let s = b"hello\0".as_ptr() as *const c_char;
+            let s = c"hello".as_ptr().cast::<c_char>();
             let hash = osl_ustring_create(s);
             assert_ne!(hash, 0);
             assert_eq!(osl_ustring_eq(hash, hash), 1);
 
-            let s2 = b"world\0".as_ptr() as *const c_char;
+            let s2 = c"world".as_ptr().cast::<c_char>();
             let hash2 = osl_ustring_create(s2);
             assert_eq!(osl_ustring_eq(hash, hash2), 0);
         }
@@ -469,13 +469,13 @@ mod tests {
     #[test]
     fn test_noise_exports() {
         let v = osl_noise_perlin3(1.0, 2.0, 3.0);
-        assert!(v >= -1.0 && v <= 1.0);
+        assert!((-1.0..=1.0).contains(&v));
 
         let v = osl_noise_uperlin3(1.0, 2.0, 3.0);
-        assert!(v >= 0.0 && v <= 1.0);
+        assert!((0.0..=1.0).contains(&v));
 
         let v = osl_noise_cellnoise3(1.0, 2.0, 3.0);
-        assert!(v >= 0.0 && v <= 1.0);
+        assert!((0.0..=1.0).contains(&v));
     }
 
     #[test]
@@ -486,7 +486,9 @@ mod tests {
     #[test]
     fn test_compile_export() {
         unsafe {
-            let src = b"shader test() { float x = 1.0; }\0".as_ptr() as *const c_char;
+            let src = c"shader test() { float x = 1.0; }"
+                .as_ptr()
+                .cast::<c_char>();
             let oso = osl_compile(src);
             assert!(!oso.is_null());
             let oso_str = CStr::from_ptr(oso).to_str().unwrap();

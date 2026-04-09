@@ -1780,23 +1780,23 @@ shader test() {
         assert!(result.is_ok(), "Parse error: {:?}", result.err());
         let nodes = result.unwrap().ast;
         // Walk into shader > statements > last var decl > init
-        if let ASTNodeKind::ShaderDeclaration { statements, .. } = &nodes[0].kind {
-            if let ASTNodeKind::CompoundStatement { statements: stmts } = &statements[0].kind {
-                // Find the last variable declaration (w = (x, y, z))
-                let last = &stmts[stmts.len() - 1];
-                if let ASTNodeKind::VariableDeclaration {
-                    init: Some(init_expr),
-                    ..
-                } = &last.kind
-                {
-                    assert!(
-                        matches!(init_expr.kind, ASTNodeKind::CommaOperator { .. }),
-                        "Expected CommaOperator, got {:?}",
-                        init_expr.kind
-                    );
-                } else {
-                    panic!("Expected VariableDeclaration with init");
-                }
+        if let ASTNodeKind::ShaderDeclaration { statements, .. } = &nodes[0].kind
+            && let ASTNodeKind::CompoundStatement { statements: stmts } = &statements[0].kind
+        {
+            // Find the last variable declaration (w = (x, y, z))
+            let last = &stmts[stmts.len() - 1];
+            if let ASTNodeKind::VariableDeclaration {
+                init: Some(init_expr),
+                ..
+            } = &last.kind
+            {
+                assert!(
+                    matches!(init_expr.kind, ASTNodeKind::CommaOperator { .. }),
+                    "Expected CommaOperator, got {:?}",
+                    init_expr.kind
+                );
+            } else {
+                panic!("Expected VariableDeclaration with init");
             }
         }
     }

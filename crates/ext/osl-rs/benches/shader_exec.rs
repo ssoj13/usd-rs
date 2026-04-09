@@ -45,13 +45,14 @@ shader math_heavy(output float result = 0) {
 // ---------------------------------------------------------------------------
 
 fn make_globals() -> ShaderGlobals {
-    let mut sg = ShaderGlobals::default();
-    sg.p = Vec3::new(1.5, 2.5, 3.5);
-    sg.n = Vec3::new(0.0, 1.0, 0.0);
-    sg.i = Vec3::new(0.0, 0.0, -1.0);
-    sg.u = 0.5;
-    sg.v = 0.5;
-    sg
+    ShaderGlobals {
+        p: Vec3::new(1.5, 2.5, 3.5),
+        n: Vec3::new(0.0, 1.0, 0.0),
+        i: Vec3::new(0.0, 0.0, -1.0),
+        u: 0.5,
+        v: 0.5,
+        ..Default::default()
+    }
 }
 
 fn make_batched_globals<const W: usize>() -> BatchedShaderGlobals<W> {

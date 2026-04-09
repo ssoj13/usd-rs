@@ -200,12 +200,11 @@ mod tests {
     use crate::typedesc::TypeDesc;
 
     fn make_sym(name: &str, stype: SymType) -> Symbol {
-        let s = Symbol::new(
+        Symbol::new(
             UString::new(name),
             TypeSpec::from_simple(TypeDesc::FLOAT),
             stype,
-        );
-        s
+        )
     }
 
     #[test]

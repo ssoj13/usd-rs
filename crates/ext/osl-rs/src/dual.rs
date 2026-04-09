@@ -718,6 +718,6 @@ mod tests {
         let a = Dual2::new(1.0, 100.0, 200.0);
         let b = Dual2::new(2.0, 0.0, 0.0);
         assert!(a < b);
-        assert!(!(b < a));
+        assert_ne!(b.partial_cmp(&a), Some(std::cmp::Ordering::Less));
     }
 }

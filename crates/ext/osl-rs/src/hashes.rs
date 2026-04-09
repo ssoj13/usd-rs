@@ -429,6 +429,35 @@ const fn hash_len_65_plus(s: &[u8]) -> u64 {
     )
 }
 
+// Bob Jenkins lookup3 hash (OIIO::bjhash) used by OSL's hash() builtin.
+// Uses inthash1..4 defined above.
+
+/// Reinterpret float bits as u32 (bitcast_to_uint)
+#[inline]
+fn f2u(x: f32) -> u32 {
+    x.to_bits()
+}
+
+/// OSL hash(float) -> int
+pub fn osl_hash_f(x: f32) -> i32 {
+    inthash1(f2u(x)) as i32
+}
+
+/// OSL hash(float, float) -> int
+pub fn osl_hash_ff(x: f32, y: f32) -> i32 {
+    inthash2(f2u(x), f2u(y)) as i32
+}
+
+/// OSL hash(point/vector/normal) -> int
+pub fn osl_hash_v(v: &[f32; 3]) -> i32 {
+    inthash3(f2u(v[0]), f2u(v[1]), f2u(v[2])) as i32
+}
+
+/// OSL hash(point, float) -> int
+pub fn osl_hash_vf(v: &[f32; 3], t: f32) -> i32 {
+    inthash4(f2u(v[0]), f2u(v[1]), f2u(v[2]), f2u(t)) as i32
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -537,33 +566,4 @@ mod tests {
             diff_bits
         );
     }
-}
-
-// Bob Jenkins lookup3 hash (OIIO::bjhash) used by OSL's hash() builtin.
-// Uses inthash1..4 defined above.
-
-/// Reinterpret float bits as u32 (bitcast_to_uint)
-#[inline]
-fn f2u(x: f32) -> u32 {
-    x.to_bits()
-}
-
-/// OSL hash(float) -> int
-pub fn osl_hash_f(x: f32) -> i32 {
-    inthash1(f2u(x)) as i32
-}
-
-/// OSL hash(float, float) -> int
-pub fn osl_hash_ff(x: f32, y: f32) -> i32 {
-    inthash2(f2u(x), f2u(y)) as i32
-}
-
-/// OSL hash(point/vector/normal) -> int
-pub fn osl_hash_v(v: &[f32; 3]) -> i32 {
-    inthash3(f2u(v[0]), f2u(v[1]), f2u(v[2])) as i32
-}
-
-/// OSL hash(point, float) -> int
-pub fn osl_hash_vf(v: &[f32; 3], t: f32) -> i32 {
-    inthash4(f2u(v[0]), f2u(v[1]), f2u(v[2]), f2u(t)) as i32
 }

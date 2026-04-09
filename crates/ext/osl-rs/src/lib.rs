@@ -18,6 +18,12 @@
 //! **LPE**: [`lpe`], [`accum`]
 //! **CLI**: [`oslc`], [`oslinfo`]
 
+// Unit tests use readable float literals and incremental `ShaderGlobals` setup.
+#![cfg_attr(
+    test,
+    allow(clippy::approx_constant, clippy::field_reassign_with_default)
+)]
+
 pub mod accum;
 pub mod ast;
 pub mod batched;

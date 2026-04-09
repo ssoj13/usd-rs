@@ -794,7 +794,10 @@ mod tests {
         for i in 0..100 {
             let x = i as Float * 0.137;
             let v = simplex1(x);
-            assert!(v >= -1.0 && v <= 1.0, "simplex1({x}) = {v} out of range");
+            assert!(
+                (-1.0..=1.0).contains(&v),
+                "simplex1({x}) = {v} out of range"
+            );
         }
     }
 
@@ -806,7 +809,7 @@ mod tests {
                 let y = j as Float * 0.173;
                 let v = simplex2(x, y);
                 assert!(
-                    v >= -1.0 && v <= 1.0,
+                    (-1.0..=1.0).contains(&v),
                     "simplex2({x},{y}) = {v} out of range"
                 );
             }
@@ -821,7 +824,7 @@ mod tests {
                     let p = Vec3::new(i as Float * 0.37, j as Float * 0.41, k as Float * 0.43);
                     let v = simplex3(p);
                     assert!(
-                        v >= -1.5 && v <= 1.5,
+                        (-1.5..=1.5).contains(&v),
                         "simplex3({:?}) = {v} out of range",
                         p
                     );
@@ -835,7 +838,7 @@ mod tests {
         for i in 0..10 {
             for j in 0..10 {
                 let v = simplex4(i as Float * 0.7, j as Float * 0.8, 1.0, 2.0);
-                assert!(v >= -2.0 && v <= 2.0, "simplex4 = {v} out of range");
+                assert!((-2.0..=2.0).contains(&v), "simplex4 = {v} out of range");
             }
         }
     }
@@ -843,11 +846,11 @@ mod tests {
     #[test]
     fn test_usimplex_range() {
         let v = usimplex1(0.5);
-        assert!(v >= 0.0 && v <= 1.0);
+        assert!((0.0..=1.0).contains(&v));
         let v = usimplex2(0.5, 0.7);
-        assert!(v >= 0.0 && v <= 1.0);
+        assert!((0.0..=1.0).contains(&v));
         let v = usimplex3(Vec3::new(0.5, 0.7, 0.9));
-        assert!(v >= -0.1 && v <= 1.1);
+        assert!((-0.1..=1.1).contains(&v));
     }
 
     #[test]

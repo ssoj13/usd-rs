@@ -1570,7 +1570,7 @@ mod tests {
         let v1 = cellnoise3(Vec3::new(1.5, 2.5, 3.5));
         let v2 = cellnoise3(Vec3::new(1.5, 2.5, 3.5));
         assert_eq!(v1, v2);
-        assert!(v1 >= 0.0 && v1 < 1.0);
+        assert!((0.0..1.0).contains(&v1));
     }
 
     #[test]
@@ -1628,7 +1628,7 @@ mod tests {
         for i in 0..100 {
             let p = Vec3::new(i as f32 * 0.37, i as f32 * 0.53, i as f32 * 0.71);
             let v = uperlin3(p);
-            assert!(v >= -0.1 && v <= 1.1, "uperlin out of range: {v}");
+            assert!((-0.1..=1.1).contains(&v), "uperlin out of range: {v}");
         }
     }
 

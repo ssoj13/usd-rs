@@ -3,6 +3,8 @@
 //! Each test exercises the full pipeline:
 //! .osl source → preprocess → parse → typecheck → codegen → optimize → interpret → verify
 
+#![allow(clippy::approx_constant, clippy::field_reassign_with_default)]
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -20,15 +22,15 @@ use osl_rs::shaderglobals::ShaderGlobals;
 use osl_rs::shadingsys::ShadingSystem;
 
 fn find_ref_oslc() -> Option<String> {
-    if let Ok(path) = std::env::var("OSL_REF_OSLC") {
-        if Path::new(&path).exists() {
-            return Some(path);
-        }
+    if let Ok(path) = std::env::var("OSL_REF_OSLC")
+        && Path::new(&path).exists()
+    {
+        return Some(path);
     }
-    if let Ok(path) = std::env::var("OSL_OSLC") {
-        if Path::new(&path).exists() {
-            return Some(path);
-        }
+    if let Ok(path) = std::env::var("OSL_OSLC")
+        && Path::new(&path).exists()
+    {
+        return Some(path);
     }
     match Command::new("oslc").arg("--version").output() {
         Ok(_) => Some("oslc".to_string()),
@@ -69,7 +71,7 @@ fn canon_float_g9(v: f32) -> String {
     }
     let abs = (v as f64).abs();
     let exp = abs.log10().floor() as i32;
-    if exp < -4 || exp >= 9 {
+    if !(-4..9).contains(&exp) {
         let s = format!("{:.9e}", v);
         if let Some(pos) = s.find('e') {
             let mant = canon_trim_trailing_zeros(&s[..pos]);
@@ -188,12 +190,12 @@ fn canonicalize_oso(oso: &osl_rs::oso::OsoFile) -> String {
         let kidx = *key_index.get(key).unwrap_or(&0);
         let occ = canon
             .split('_')
-            .last()
+            .next_back()
             .and_then(|v| v.parse::<usize>().ok())
             .unwrap_or(0);
         entries.push((kidx, occ, sym, canon.clone()));
     }
-    entries.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)));
+    entries.sort_by_key(|a| (a.0, a.1));
 
     for (_kidx, _occ, sym, canon_name) in entries {
         out.push_str(&format!(
@@ -1135,7 +1137,7 @@ fn e2e_noise_4d() {
     assert!(v > -2.0 && v < 2.0);
 
     let c = noise::cellnoise4(1.5, 2.5, 3.5, 4.5);
-    assert!(c >= 0.0 && c < 1.0);
+    assert!((0.0..1.0).contains(&c));
 }
 
 #[test]
@@ -1455,7 +1457,7 @@ fn fuzz_deep_nesting() {
 /// Extremely long identifier should not panic.
 #[test]
 fn fuzz_long_identifier() {
-    let long_name: String = std::iter::repeat('a').take(10_000).collect();
+    let long_name: String = "a".repeat(10_000);
     let src = format!(
         "shader test(output float {} = 0) {{ {} = 42.0; }}",
         long_name, long_name
@@ -1552,9 +1554,9 @@ fn fuzz_truncated_oso() {
 #[test]
 fn fuzz_empty_ir_execute() {
     let ir = osl_rs::codegen::ShaderIR::new();
-    let mut sg = ShaderGlobals::default();
+    let sg = ShaderGlobals::default();
     let mut interp = Interpreter::new();
-    interp.execute(&ir, &mut sg, None);
+    interp.execute(&ir, &sg, None);
     // Must complete without panic
 }
 
@@ -2012,6 +2014,8 @@ fn ref_testsuite_execution_parity() {
         .collect();
     entries.sort_by_key(|e| e.file_name());
 
+    let re_float_token = regex::Regex::new(r"-?\d+\.\d+(?:e[+-]?\d+)?").expect("float token regex");
+
     for entry in &entries {
         let test_osl = entry.path().join("test.osl");
         let ref_out = entry.path().join("ref").join("out.txt");
@@ -2170,24 +2174,25 @@ fn ref_testsuite_execution_parity() {
         let expected: String = expected_raw
             .lines()
             .filter(|l| {
-                !l.starts_with("Compiled ") &&
-                !l.starts_with("FAILED ") &&
-                !l.starts_with("Output ") &&
-                !l.starts_with("Optimized ") &&
-                !l.starts_with("shader \"") &&
-                !(l.starts_with("    \"") || l.starts_with("\t\"")) &&
-                !l.starts_with("\t\tDefault value:") &&
-                !l.starts_with("        Default value:") &&
-                !l.starts_with("\t\tmetadata:") &&
-                !l.starts_with("        metadata:") &&
-                // Skip compiler warnings/diagnostics from oslc
-                !l.contains(": warning:") &&
-                !l.starts_with("  Chosen ") &&
-                !l.starts_with("  Other ") &&
-                !l.starts_with("    test.osl:") &&
-                // Skip LLVM batched diagnostics
-                !l.contains("is forced llvm bool") &&
-                !l.starts_with("Connect ")
+                !(l.starts_with("Compiled ")
+                        || l.starts_with("FAILED ")
+                        || l.starts_with("Output ")
+                        || l.starts_with("Optimized ")
+                        || l.starts_with("shader \"")
+                        || l.starts_with("    \"")
+                        || l.starts_with("\t\"")
+                        || l.starts_with("\t\tDefault value:")
+                        || l.starts_with("        Default value:")
+                        || l.starts_with("\t\tmetadata:")
+                        || l.starts_with("        metadata:")
+                        // Skip compiler warnings/diagnostics from oslc
+                        || l.contains(": warning:")
+                        || l.starts_with("  Chosen ")
+                        || l.starts_with("  Other ")
+                        || l.starts_with("    test.osl:")
+                        // Skip LLVM batched diagnostics
+                        || l.contains("is forced llvm bool")
+                        || l.starts_with("Connect "))
             })
             .collect::<Vec<_>>()
             .join("\n");
@@ -2210,8 +2215,7 @@ fn ref_testsuite_execution_parity() {
         };
         // Extract all float-like tokens from a string for comparison
         let extract_floats = |s: &str| -> Vec<f64> {
-            let re_float = regex::Regex::new(r"-?\d+\.\d+(?:e[+-]?\d+)?").unwrap();
-            re_float
+            re_float_token
                 .find_iter(s)
                 .filter_map(|m| m.as_str().parse::<f64>().ok())
                 .collect()
@@ -2243,9 +2247,8 @@ fn ref_testsuite_execution_parity() {
             let fb = extract_floats(b);
             if fa.len() == fb.len() && !fa.is_empty() {
                 // Check non-float text is same
-                let re = regex::Regex::new(r"-?\d+\.\d+(?:e[+-]?\d+)?").unwrap();
-                let text_a = re.replace_all(a, "#").to_string();
-                let text_b = re.replace_all(b, "#").to_string();
+                let text_a = re_float_token.replace_all(a, "#").to_string();
+                let text_b = re_float_token.replace_all(b, "#").to_string();
                 if text_a == text_b {
                     return fa
                         .iter()
@@ -2265,8 +2268,8 @@ fn ref_testsuite_execution_parity() {
                 .replace(" -0)", " 0)")
         };
 
-        let exp_lines: Vec<String> = expected.lines().map(|l| norm_zero(l)).collect();
-        let act_lines: Vec<String> = actual.lines().map(|l| norm_zero(l)).collect();
+        let exp_lines: Vec<String> = expected.lines().map(norm_zero).collect();
+        let act_lines: Vec<String> = actual.lines().map(norm_zero).collect();
         // Check fuzzy match (all lines match with float tolerance)
         let all_fuzzy_match = exp_lines.len() == act_lines.len()
             && exp_lines
@@ -2611,8 +2614,8 @@ fn debug_single_ref_shader() {
             .replace("= -0\n", "= 0\n")
     };
     // Show first divergence
-    let exp_lines: Vec<String> = expected.trim().lines().map(|l| norm_zero(l)).collect();
-    let act_lines: Vec<String> = actual.trim().lines().map(|l| norm_zero(l)).collect();
+    let exp_lines: Vec<String> = expected.trim().lines().map(norm_zero).collect();
+    let act_lines: Vec<String> = actual.trim().lines().map(norm_zero).collect();
     let seq_matching = exp_lines
         .iter()
         .zip(act_lines.iter())

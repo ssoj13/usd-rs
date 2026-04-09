@@ -4879,32 +4879,32 @@ shader test() {
     #[test]
     fn test_wide_array_ref_float() {
         let mut arrs = vec![vec![0.0f32; 4]; W];
-        for lane in 0..W {
-            for i in 0..4 {
-                arrs[lane][i] = (lane * 10 + i) as f32;
+        for (lane, row) in arrs.iter_mut().enumerate().take(W) {
+            for (i, cell) in row.iter_mut().enumerate().take(4) {
+                *cell = (lane * 10 + i) as f32;
             }
         }
         let wv = WideValue::<W>::FloatArray(arrs);
         let idx = Wide { data: [2i32; W] };
         let result = wv.array_ref_float(&idx, Mask::<W>::all());
-        for lane in 0..W {
-            assert_eq!(result.data[lane], (lane * 10 + 2) as f32);
+        for (lane, &val) in result.data.iter().enumerate().take(W) {
+            assert_eq!(val, (lane * 10 + 2) as f32);
         }
     }
 
     #[test]
     fn test_wide_array_ref_int() {
         let mut arrs = vec![vec![0i32; 3]; W];
-        for lane in 0..W {
-            arrs[lane][0] = 100 + lane as i32;
-            arrs[lane][1] = 200 + lane as i32;
-            arrs[lane][2] = 300 + lane as i32;
+        for (lane, row) in arrs.iter_mut().enumerate().take(W) {
+            row[0] = 100 + lane as i32;
+            row[1] = 200 + lane as i32;
+            row[2] = 300 + lane as i32;
         }
         let wv = WideValue::<W>::IntArray(arrs);
         let idx = Wide { data: [1i32; W] };
         let result = wv.array_ref_int(&idx, Mask::<W>::all());
-        for lane in 0..W {
-            assert_eq!(result.data[lane], 200 + lane as i32);
+        for (lane, &val) in result.data.iter().enumerate().take(W) {
+            assert_eq!(val, 200 + lane as i32);
         }
     }
 

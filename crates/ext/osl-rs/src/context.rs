@@ -954,10 +954,12 @@ mod tests {
         assert_eq!(default.interp_mode, 1);
         assert_eq!(default.swrap, 0);
         assert_eq!(default.rwrap, 0);
-        let mut custom = BatchedTextureOptions::default();
-        custom.swrap = 2; // clamp
-        custom.twrap = 3; // periodic
-        custom.rwrap = 4; // mirror (3D)
+        let custom = BatchedTextureOptions {
+            swrap: 2, // clamp
+            twrap: 3, // periodic
+            rwrap: 4, // mirror (3D)
+            ..Default::default()
+        };
         ctx.set_batched_texture_options(custom.clone());
         let got = ctx.batched_texture_options();
         assert_eq!(got.swrap, 2);

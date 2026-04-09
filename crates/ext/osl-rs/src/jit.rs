@@ -8629,6 +8629,123 @@ pub fn jit_execute(ir: &ShaderIR, sg: &mut ShaderGlobals) -> Result<CompiledShad
 }
 
 // ---------------------------------------------------------------------------
+// Batched JIT — process WIDTH shading points through the compiled function
+// ---------------------------------------------------------------------------
+
+/// A compiled shader that can process multiple shading points in a batch.
+///
+/// Internally wraps a scalar `CompiledShader` and loops over the batch.
+/// This is the "trivially batched" approach — each point is processed
+/// independently through the same compiled native code. True vector JIT
+/// (emitting Cranelift SIMD instructions) is a future optimization.
+pub struct BatchedCompiledShader {
+    /// The underlying scalar compiled shader.
+    pub inner: Arc<CompiledShader>,
+}
+
+unsafe impl Send for BatchedCompiledShader {}
+unsafe impl Sync for BatchedCompiledShader {}
+
+impl BatchedCompiledShader {
+    /// Create from an existing scalar compiled shader.
+    pub fn new(compiled: Arc<CompiledShader>) -> Self {
+        Self { inner: compiled }
+    }
+
+    /// Execute the shader for a batch of shading points.
+    ///
+    /// Each `ShaderGlobals` in `sgs` is processed independently through
+    /// the JIT-compiled function. Results are written to `heaps[i]`.
+    ///
+    /// # Panics
+    /// Panics if `sgs.len() != heaps.len()`.
+    pub fn execute_batch(&self, sgs: &mut [ShaderGlobals], heaps: &mut [Vec<u8>]) {
+        assert_eq!(
+            sgs.len(),
+            heaps.len(),
+            "sgs and heaps must have same length"
+        );
+        for (sg, heap) in sgs.iter_mut().zip(heaps.iter_mut()) {
+            if heap.len() < self.inner.heap_size {
+                heap.resize(self.inner.heap_size, 0);
+            }
+            self.inner.execute_with_heap(sg, heap);
+        }
+    }
+
+    /// Execute a batch of WIDTH shading points, using Wide types for input/output.
+    ///
+    /// This is the typed interface: callers provide `BatchedShaderGlobals<WIDTH>`
+    /// and get results back via the heap for each lane.
+    pub fn execute_wide<const WIDTH: usize>(
+        &self,
+        bsg: &mut crate::batched::BatchedShaderGlobals<WIDTH>,
+        mask: &crate::batched::Mask<WIDTH>,
+    ) -> Vec<Vec<u8>> {
+        let mut heaps: Vec<Vec<u8>> = (0..WIDTH)
+            .map(|_| vec![0u8; self.inner.heap_size])
+            .collect();
+
+        for (lane, heap) in heaps.iter_mut().enumerate().take(WIDTH) {
+            if !mask.is_set(lane) {
+                continue;
+            }
+            // Extract a scalar ShaderGlobals for this lane
+            let mut sg = bsg.extract_lane(lane);
+            self.inner.execute_with_heap(&mut sg, heap);
+            // Write back modified globals
+            bsg.inject_lane(lane, &sg);
+        }
+
+        heaps
+    }
+
+    /// Read a float result from a specific lane's heap.
+    pub fn get_float_lane(&self, heaps: &[Vec<u8>], lane: usize, name: &str) -> Option<f32> {
+        if lane < heaps.len() {
+            self.inner.get_float(&heaps[lane], name)
+        } else {
+            None
+        }
+    }
+
+    /// Read a Vec3 result from a specific lane's heap.
+    pub fn get_vec3_lane(&self, heaps: &[Vec<u8>], lane: usize, name: &str) -> Option<Vec3> {
+        if lane < heaps.len() {
+            self.inner.get_vec3(&heaps[lane], name)
+        } else {
+            None
+        }
+    }
+
+    /// Get the required heap size per lane.
+    pub fn heap_size(&self) -> usize {
+        self.inner.heap_size
+    }
+
+    /// Access the symbol offsets map.
+    pub fn symbol_offsets(&self) -> &HashMap<String, (usize, SymLayout)> {
+        &self.inner.symbol_offsets
+    }
+}
+
+impl CraneliftBackend {
+    /// Compile a shader group for batched execution.
+    ///
+    /// Returns a `BatchedCompiledShader` that can process WIDTH shading points.
+    /// Currently wraps the scalar compilation; future versions will emit
+    /// Cranelift SIMD vector instructions for true vectorized execution.
+    pub fn compile_group_batched(
+        &self,
+        layers: &[&ShaderIR],
+        connections: &[crate::shadingsys::Connection],
+        range_checking: bool,
+    ) -> Result<BatchedCompiledShader, JitError> {
+        let compiled = self.compile_group(layers, connections, range_checking)?;
+        Ok(BatchedCompiledShader::new(Arc::new(compiled)))
+    }
+}
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -8642,11 +8759,13 @@ mod tests {
         let ir = crate::codegen::generate(&ast);
         let backend = CraneliftBackend::new();
         let compiled = backend.compile(&ir).expect("JIT compile failed");
-        let mut sg = ShaderGlobals::default();
-        sg.u = 0.5;
-        sg.v = 0.25;
-        sg.p = Vec3::new(1.0, 2.0, 3.0);
-        sg.n = Vec3::new(0.0, 1.0, 0.0);
+        let mut sg = ShaderGlobals {
+            u: 0.5,
+            v: 0.25,
+            p: Vec3::new(1.0, 2.0, 3.0),
+            n: Vec3::new(0.0, 1.0, 0.0),
+            ..Default::default()
+        };
         let mut heap = vec![0u8; compiled.heap_size()];
         compiled.execute_with_heap(&mut sg, &mut heap);
         (compiled, heap, sg)
@@ -8972,123 +9091,5 @@ mod tests {
             (result - 42.0).abs() < 1e-5,
             "(float)42 should be 42.0, got {result}"
         );
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Batched JIT — process WIDTH shading points through the compiled function
-// ---------------------------------------------------------------------------
-
-/// A compiled shader that can process multiple shading points in a batch.
-///
-/// Internally wraps a scalar `CompiledShader` and loops over the batch.
-/// This is the "trivially batched" approach — each point is processed
-/// independently through the same compiled native code. True vector JIT
-/// (emitting Cranelift SIMD instructions) is a future optimization.
-pub struct BatchedCompiledShader {
-    /// The underlying scalar compiled shader.
-    pub inner: Arc<CompiledShader>,
-}
-
-unsafe impl Send for BatchedCompiledShader {}
-unsafe impl Sync for BatchedCompiledShader {}
-
-impl BatchedCompiledShader {
-    /// Create from an existing scalar compiled shader.
-    pub fn new(compiled: Arc<CompiledShader>) -> Self {
-        Self { inner: compiled }
-    }
-
-    /// Execute the shader for a batch of shading points.
-    ///
-    /// Each `ShaderGlobals` in `sgs` is processed independently through
-    /// the JIT-compiled function. Results are written to `heaps[i]`.
-    ///
-    /// # Panics
-    /// Panics if `sgs.len() != heaps.len()`.
-    pub fn execute_batch(&self, sgs: &mut [ShaderGlobals], heaps: &mut [Vec<u8>]) {
-        assert_eq!(
-            sgs.len(),
-            heaps.len(),
-            "sgs and heaps must have same length"
-        );
-        for (sg, heap) in sgs.iter_mut().zip(heaps.iter_mut()) {
-            if heap.len() < self.inner.heap_size {
-                heap.resize(self.inner.heap_size, 0);
-            }
-            self.inner.execute_with_heap(sg, heap);
-        }
-    }
-
-    /// Execute a batch of WIDTH shading points, using Wide types for input/output.
-    ///
-    /// This is the typed interface: callers provide `BatchedShaderGlobals<WIDTH>`
-    /// and get results back via the heap for each lane.
-    pub fn execute_wide<const WIDTH: usize>(
-        &self,
-        bsg: &mut crate::batched::BatchedShaderGlobals<WIDTH>,
-        mask: &crate::batched::Mask<WIDTH>,
-    ) -> Vec<Vec<u8>> {
-        let mut heaps: Vec<Vec<u8>> = (0..WIDTH)
-            .map(|_| vec![0u8; self.inner.heap_size])
-            .collect();
-
-        for (lane, heap) in heaps.iter_mut().enumerate().take(WIDTH) {
-            if !mask.is_set(lane) {
-                continue;
-            }
-            // Extract a scalar ShaderGlobals for this lane
-            let mut sg = bsg.extract_lane(lane);
-            self.inner.execute_with_heap(&mut sg, heap);
-            // Write back modified globals
-            bsg.inject_lane(lane, &sg);
-        }
-
-        heaps
-    }
-
-    /// Read a float result from a specific lane's heap.
-    pub fn get_float_lane(&self, heaps: &[Vec<u8>], lane: usize, name: &str) -> Option<f32> {
-        if lane < heaps.len() {
-            self.inner.get_float(&heaps[lane], name)
-        } else {
-            None
-        }
-    }
-
-    /// Read a Vec3 result from a specific lane's heap.
-    pub fn get_vec3_lane(&self, heaps: &[Vec<u8>], lane: usize, name: &str) -> Option<Vec3> {
-        if lane < heaps.len() {
-            self.inner.get_vec3(&heaps[lane], name)
-        } else {
-            None
-        }
-    }
-
-    /// Get the required heap size per lane.
-    pub fn heap_size(&self) -> usize {
-        self.inner.heap_size
-    }
-
-    /// Access the symbol offsets map.
-    pub fn symbol_offsets(&self) -> &HashMap<String, (usize, SymLayout)> {
-        &self.inner.symbol_offsets
-    }
-}
-
-impl CraneliftBackend {
-    /// Compile a shader group for batched execution.
-    ///
-    /// Returns a `BatchedCompiledShader` that can process WIDTH shading points.
-    /// Currently wraps the scalar compilation; future versions will emit
-    /// Cranelift SIMD vector instructions for true vectorized execution.
-    pub fn compile_group_batched(
-        &self,
-        layers: &[&ShaderIR],
-        connections: &[crate::shadingsys::Connection],
-        range_checking: bool,
-    ) -> Result<BatchedCompiledShader, JitError> {
-        let compiled = self.compile_group(layers, connections, range_checking)?;
-        Ok(BatchedCompiledShader::new(Arc::new(compiled)))
     }
 }

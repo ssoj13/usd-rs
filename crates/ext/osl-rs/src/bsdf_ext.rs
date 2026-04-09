@@ -1941,7 +1941,7 @@ mod tests {
         };
         let r = tf.reflectance(550.0, 1.0);
         assert!(
-            r >= 0.0 && r <= 1.0,
+            (0.0..=1.0).contains(&r),
             "Thin film reflectance should be in [0,1], got {r}"
         );
     }
