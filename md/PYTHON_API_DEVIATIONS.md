@@ -15,6 +15,7 @@
 | G1 | `PyPrim` / `PyAttribute` и stage | `from_prim_auto` / `from_attr` держат **фиктивный** `Arc<Stage>` для GC; логический `Prim` несёт свой `Weak<Stage>`, но публичный API Python может рассчитывать на «тот же» stage, что у обёртки — расхождение с инвариантом «атрибут привязан к живой стадии». | `crates/usd-pyo3/src/usd.rs` (`PyPrim`, `PyAttribute::from_attr`) | P1 |
 | G2 | Имена kwargs | PyO3: часть C++ camelCase kwargs требует `#[pyo3(signature)]` + `allow(non_snake_case)`; полное совпадение имён со всеми тестами референса не гарантировано. | разные `*.rs` | P2 |
 | G3 | Покрытие тестами | По `TODO.md`: ~23% pytest проходят (~887 failed + errors в подмножестве модулей); любой модуль может содержать незадокументированные расхождения до полного прогона. | `crates/usd-pyo3/tests/**` | — |
+| G4 | Один нативный модуль (`_usd`), без встроенного Python для этого API | В OpenUSD **`pxr.usd.sdr.shaderParserTestUtils`** поставляется как **`.py`** (`pxr/usd/sdr/shaderParserTestUtils.py`). В usd-rs те же имена и проверки реализованы **в Rust** (`#[pyfunction]`, подмодуль `pxr.Sdr.shaderParserTestUtils`), без `compile`/`exec` и без копии скрипта в колесе. Поведение — паритет с тестами парсеров (OSL / Args / USD shader defs), не с текстом `.py`. | `crates/usd-pyo3/src/sdr_shader_parser_test_utils.rs`, регистрация в `sdr.rs` | — |
 
 ---
 
@@ -563,6 +564,20 @@ Imageable, Xformable, Xform, Boundable, Scope, Gprim, Mesh, Sphere, Cube, Cone, 
 |----|------|
 | SCH-STATIC | Пакет статических API и extent — **сделано** (этот §) |
 | SCH-LINE | Построчная сверка **каждого** wrap-файла — **в процессе** (§18) |
+
+---
+
+## 21. `Sdr` — `shaderParserTestUtils` (нативная реализация, G4)
+
+**Источник референса:** `usd-refs/OpenUSD/pxr/usd/sdr/shaderParserTestUtils.py` — модуль на **чистом Python**, импортируемый тестами парсеров OSL / Args и тестами `UsdShade` shader definitions.
+
+**Реализация pxr:** `crates/usd-pyo3/src/sdr_shader_parser_test_utils.rs` — те же **публичные имена** (`IsNodeOSL`, `GetType`, `TestBasicProperties`, `TestShadingProperties`, `TestBasicNode`, `TestShaderSpecificNode`, `TestShaderPropertiesNode`), регистрация подмодуля `pxr.Sdr.shaderParserTestUtils` и запись в `sys.modules['pxr.Sdr.shaderParserTestUtils']`. Логика проверок идёт от **`usd_sdr::SdrShaderNode` / `SdrShaderProperty`** (через `PyShaderNode` / `PyShaderProperty::inner`).
+
+**Намеренное отличие от Pixar (см. G4):** нет встроенного исходника `.py` в колесе и нет `compile`/`exec` внутри расширения — только один нативный биндинг + минимальный пакет `pxr`.
+
+**`GetType(property)`:** возвращает `Tf.Type`, сопоставляя SDF-тип свойства через `ValueTypeName::cpp_type_name()` и `TfType::find_by_name` (эквивалент Python: `property.GetTypeAsSdfType().GetSdfType().type`).
+
+**Проверка паритета:** после `maturin develop` прогнать тесты референса, которые импортируют `pxr.Sdr.shaderParserTestUtils`, например (пути от корня OpenUSD): `pxr/usd/plugin/sdrOsl/testenv/testOslParser.py`, `pxr/usd/usdShade/testenv/testUsdShadeShaderDef.py` (секции с `shaderParserTestUtils` / `TestShaderPropertiesNode*`). Локально: соответствующие тесты под `crates/usd-pyo3/tests/`, если перенесены.
 
 ---
 

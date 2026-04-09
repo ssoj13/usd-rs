@@ -7,9 +7,12 @@
 //! `md/PYTHON_API_DEVIATIONS.md`, `md/PYTHON_API_WORK.md`. C++ reference tree:
 //! `C:\projects\projects.rust.cg\usd-refs\OpenUSD` (see `STRUCTURE.md`).
 //!
+//! `pxr.Sdr.shaderParserTestUtils` is implemented in Rust (`sdr_shader_parser_test_utils.rs`), not as
+//! an embedded upstream `.py` — see **G4 / §21** in `md/PYTHON_API_DEVIATIONS.md`.
+//!
 //! Module hierarchy matches C++ OpenUSD:
 //!   pxr.Tf, pxr.Gf, pxr.Vt, pxr.Trace, pxr.Work, pxr.Sdf, pxr.Pcp, pxr.Ar, pxr.Usd,
-//!   pxr.UsdGeom, pxr.UsdShade, pxr.UsdLux, pxr.UsdSkel, ...
+//!   pxr.UsdGeom, pxr.UsdShade, pxr.UsdLux, pxr.UsdSkel, pxr.Sdr, pxr.UsdUtils, pxr.Cli, ...
 
 // CamelCase method names are intentional — mirrors C++ OpenUSD Python API exactly.
 #![allow(non_snake_case)]

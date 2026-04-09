@@ -170,6 +170,7 @@ PyO3/maturin-based Python bindings exposing USD-RS as a `pxr` Python package.
   - `shade.rs` — Shading schemas
   - `lux.rs` — Lighting schemas
   - `skel.rs` — Skeleton/skinning schemas
+  - `sdr.rs` — Shader definition registry (`pxr.Sdr`); test helper submodule `shaderParserTestUtils` is implemented in **`sdr_shader_parser_test_utils.rs`** (Rust only; upstream is a `.py` file — see `md/PYTHON_API_DEVIATIONS.md` §21 / G4)
   - `cli.rs` — CLI integration helpers
 - **Dependencies**: all base + core + schema crates, glam, half
 

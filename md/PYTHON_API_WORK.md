@@ -11,13 +11,14 @@
 
 | Поле | Значение |
 |------|----------|
-| Последний крупный блок | **`wrapNurbsPatch.cpp`:** делегаты **`PointBased`** (points/normals/velocities/accelerations, `ComputePointsAt*`, static **`ComputeExtent`**); kwargs на все **`Create*Attr`**; trim-curve **Get/Create**; **`GetSchemaAttributeNames`**. Ранее: **`HermiteCurves.PointAndTangentArrays`**, **`Vt.Vec*f`** flat-list ctor. |
+| Последний крупный блок | **`pxr.Sdr.shaderParserTestUtils`:** перенос с embedded Python на **чистый Rust** (`sdr_shader_parser_test_utils.rs`); **G4** + **DEVIATIONS §21**; удалён `embed/shader_parser_test_utils.py`. До этого: **`wrapNurbsPatch.cpp`:** делегаты **`PointBased`**, kwargs **`Create*Attr`**, trim-curves, **`GetSchemaAttributeNames`**. |
 | Следующий приоритет (код) | Kwargs **`Create*Attr`** на остальных схемах по DEVIATIONS §4 / §10; следующий **`wrap*.cpp`** по очереди аудита UsdGeom. |
 | Параллельно | Kwargs **`Create*Attr`** на остальных схемах (см. DEVIATIONS §4 / §10). |
 | PointBased | В Python: **`ComputePointsAtTime` / `ComputePointsAtTimes`** (`geom.rs`) — см. журнал PARITY. |
 
 ## Последнее обновление
 
+- **2026-04-09 (е):** **`Sdr.shaderParserTestUtils`:** реализация в Rust, политика одного `.pyd`; документация **PYTHON_API_DEVIATIONS G4 / §21**, **PYTHON_API_PARITY** (инвариант 5, журнал, очередь). `cargo check -p usd-pyo3`; pytest по парсерам — при наличии тестов / `OPENUSD` дерева.
 - **2026-04-09 (д):** **`UsdGeom.NurbsCurves`:** `GetPointWeightsAttr` / `CreatePointWeightsAttr`; kwargs на Order/Knots/Ranges; делегаты **`Curves`**; **`GetSchemaAttributeNames`**. **`UsdGeom.HermiteCurves`:** делегаты **`Curves`**; kwargs **`CreateTangentsAttr`**; **`GetSchemaAttributeNames`**. **`UsdGeom.Sphere`:** **`GetExtentAttr`** / **`CreateExtentAttr`**; kwargs radius/extent; **`GetSchemaAttributeNames`**.
 - **2026-04-09 (г):** **`UsdGeom.Mesh`** (`wrapMesh.cpp`): kwargs на **Create** для топологии / subdiv / creases / PointBased vel·norm·accel; **`GetFaceCount(time)`**; **`SHARPNESS_INFINITE`** как class attr.
 - **2026-04-09 (в):** **`UsdGeom.BasisCurves`:** наследуемые от **`UsdGeom.Curves`** — static **`ComputeExtent`**, **`GetCurveVertexCountsAttr`**, **`CreateCurveVertexCountsAttr`** (kwargs), **`SetWidthsInterpolation`**, **`GetCurveCount`**. **`UsdGeom.Curves`:** **`CreateCurveVertexCountsAttr`** с kwargs.

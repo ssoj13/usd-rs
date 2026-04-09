@@ -117,7 +117,7 @@ impl PyNodeDiscoveryResult {
 
 #[pyclass(name = "ShaderProperty", module = "pxr.Sdr")]
 pub struct PyShaderProperty {
-    inner: SdrShaderProperty,
+    pub(crate) inner: SdrShaderProperty,
 }
 
 impl PyShaderProperty {
@@ -299,7 +299,7 @@ impl PySdfTypeIndicator {
 
 #[pyclass(name = "ShaderNode", module = "pxr.Sdr")]
 pub struct PyShaderNode {
-    inner: SdrShaderNode,
+    pub(crate) inner: SdrShaderNode,
 }
 
 impl PyShaderNode {

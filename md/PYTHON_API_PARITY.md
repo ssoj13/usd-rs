@@ -8,7 +8,7 @@
 **Коррективы порта (Rust + Python):** намеренное отличие от Pixar допустимо только с **ID** в [`PYTHON_API_DEVIATIONS.md`](PYTHON_API_DEVIATIONS.md) и краткой причиной (архитектура PyO3, заглушка до появления Rust-API, и т.д.). Иначе цель — **поведенческий паритет** с `usd-refs/OpenUSD` и портированными тестами в `crates/usd-pyo3/tests/`. Карта C++→Rust: `docs/src/appendix/cpp-rust-mapping.md`; общий указатель на C++ дерево: [`STRUCTURE.md`](../STRUCTURE.md) (раздел *OpenUSD C++ reference*).
 
 **Рабочая память (очередь wrap, процесс):** [`md/PYTHON_API_WORK.md`](PYTHON_API_WORK.md).  
-**Полный реестр отклонений (ID, приоритеты, что ещё не как в референсе):** [`md/PYTHON_API_DEVIATIONS.md`](PYTHON_API_DEVIATIONS.md) — построчные таблицы: **`wrapBBoxCache.cpp`** (§2), **`wrapXformCache.cpp`** (§3), **`wrapBasisCurves.cpp`** (§4), **`wrapBoundable.cpp`** (§5), **`wrapCamera.cpp`** (§6), **`wrapCapsule.cpp` / `wrapCapsule_1.cpp`** (§7), **`wrapCone.cpp`** (§8), **`wrapConstraintTarget.cpp`** (§9), **`wrapCube.cpp`** (§10), **пакет статических API схем** (§20).
+**Полный реестр отклонений (ID, приоритеты, что ещё не как в референсе):** [`md/PYTHON_API_DEVIATIONS.md`](PYTHON_API_DEVIATIONS.md) — построчные таблицы: **`wrapBBoxCache.cpp`** (§2), **`wrapXformCache.cpp`** (§3), **`wrapBasisCurves.cpp`** (§4), **`wrapBoundable.cpp`** (§5), **`wrapCamera.cpp`** (§6), **`wrapCapsule.cpp` / `wrapCapsule_1.cpp`** (§7), **`wrapCone.cpp`** (§8), **`wrapConstraintTarget.cpp`** (§9), **`wrapCube.cpp`** (§10), **пакет статических API схем** (§20), **`Sdr.shaderParserTestUtils`** (§21, G4 — нативная реализация вместо upstream `.py`).
 
 ---
 
@@ -18,6 +18,7 @@
 2. **Usd.Attribute.Set / Create*Attr(default):** используют тот же `py_to_value` (`usd.rs` делегирует в `vt::py_to_value`).
 3. **Время:** `Usd.TimeCode` и `float` → SDF time через `usd.rs::tc_from_py_sdf` для схемных методов с `TimeCode`.
 4. **Имена методов:** CamelCase как в C++ (`#[pyo3(name = "...")]`).
+5. **Один нативный модуль:** вспомогательные тестовые API вроде **`pxr.Sdr.shaderParserTestUtils`** не подгружают Python через `compile`/`exec` и не дублируют upstream-`.py` внутри wheel — реализация в Rust (`sdr_shader_parser_test_utils.rs`), см. **DEVIATIONS G4 / §21**.
 
 ---
 
@@ -47,6 +48,7 @@
 | 2026-04-09 | **`UsdGeom.BasisCurves`:** методы базового **`UsdGeom.Curves`** (static `ComputeExtent`, curve vertex counts attrs, `SetWidthsInterpolation`, `GetCurveCount`). **`UsdGeom.Curves`:** kwargs на **`CreateCurveVertexCountsAttr`**. |
 | 2026-04-09 | **`UsdGeom.Mesh`:** kwargs на **`Create*Attr`** (как `wrapMesh.cpp`); **`GetFaceCount`** с временем как `UsdTimeCode`; **`SHARPNESS_INFINITE`** — атрибут класса (тест `testUsdGeomConsts`). |
 | 2026-04-09 | **`NurbsCurves` / `HermiteCurves`:** наследуемые методы **`UsdGeom.Curves`** + kwargs; Nurbs: **`PointWeights`**. **`Sphere`:** **`Extent`**, kwargs **Radius**/**Extent**, **`GetSchemaAttributeNames`**. |
+| 2026-04-09 | **`pxr.Sdr.shaderParserTestUtils`:** полностью в Rust (`sdr_shader_parser_test_utils.rs`), без embedded Python; **`PyShaderNode` / `PyShaderProperty`** — `pub(crate) inner` для доступа из хелперов. Док.: **DEVIATIONS G4, §21**. |
 
 ---
 
@@ -79,6 +81,7 @@
 ### Прочее
 
 - [ ] `UsdShade` / `UsdLux` — модули, от которых зависят коллекции тестов (`Sdr`, импорты).
+- [x] `Sdr.shaderParserTestUtils` — нативные функции паритета с OpenUSD (см. **DEVIATIONS §21**); pytest по OSL / shader-def тестам — при появлении в `crates/usd-pyo3/tests/` или прогоне против дерева OpenUSD.
 - [ ] Полный прогон `pytest crates/usd-pyo3/tests` после каждого крупного блока; обновлять счётчики в этом файле.
 
 ---
