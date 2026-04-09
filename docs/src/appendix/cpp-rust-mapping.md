@@ -29,6 +29,13 @@ concepts and their Rust equivalents in usd-rs.
 | `pxr::Hgi*` | `usd::imaging::hgi` | `usd-hgi` |
 | `pxr::Hdx*` | `usd::imaging::hdx` | `usd-hdx` |
 
+## Python (`pxr` package)
+
+The wheel exposes **`import pxr`** via PyO3 (`crates/usd-pyo3`). Public surface should match Pixar’s Python API generated from the same C++ headers (`wrap*.cpp` under `pxr/` in OpenUSD).
+
+- **C++ / test reference tree:** `C:\projects\projects.rust.cg\usd-refs\OpenUSD` (same clone as for Rust parity; see repo root `STRUCTURE.md`, *OpenUSD C++ reference*).
+- **Parity docs (usd-rs):** `md/PYTHON_API_PARITY.md` (invariants + changelog), `md/PYTHON_API_DEVIATIONS.md` (tracked gaps vs OpenUSD), `md/PYTHON_API_WORK.md` (session queue).
+
 ## Type Mapping
 
 ### Smart Pointers

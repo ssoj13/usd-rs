@@ -1,5 +1,12 @@
 //! Python bindings for usd-rs — mirrors the `pxr` Python package from OpenUSD.
 //!
+//! All runtime API is exposed from the single native module `pxr._usd` (`.pyd` / `.so`);
+//! the small `pxr/__init__.py` in the wheel only re-exports names from `pxr._usd`.
+//!
+//! Parity process and deviation register (repo root): `md/PYTHON_API_PARITY.md`,
+//! `md/PYTHON_API_DEVIATIONS.md`, `md/PYTHON_API_WORK.md`. C++ reference tree:
+//! `C:\projects\projects.rust.cg\usd-refs\OpenUSD` (see `STRUCTURE.md`).
+//!
 //! Module hierarchy matches C++ OpenUSD:
 //!   pxr.Tf, pxr.Gf, pxr.Vt, pxr.Trace, pxr.Sdf, pxr.Pcp, pxr.Ar, pxr.Usd,
 //!   pxr.UsdGeom, pxr.UsdShade, pxr.UsdLux, pxr.UsdSkel, ...
@@ -28,6 +35,7 @@ mod trace;
 mod ts;
 mod usd;
 mod utils;
+mod sdr_shader_parser_test_utils;
 mod vt;
 mod xform_img_delegate;
 
@@ -57,9 +65,9 @@ fn _usd(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     register_sub(py, m, "UsdLux", lux::register)?;
     register_sub(py, m, "UsdSkel", skel::register)?;
 
-    // Utilities / SDR (native — merged with pure Python under `pxr.UsdUtils` / `pxr.Sdr`)
-    register_sub(py, m, "UsdUtilsNative", utils::register)?;
-    register_sub(py, m, "SdrNative", sdr::register)?;
+    // Utilities / SDR (entire surface lives in this extension — no separate pxr/*.py logic)
+    register_sub(py, m, "UsdUtils", utils::register)?;
+    register_sub(py, m, "Sdr", sdr::register)?;
 
     // CLI tools as Python functions
     register_sub(py, m, "Cli", cli::register)?;

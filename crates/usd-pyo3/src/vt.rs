@@ -508,29 +508,6 @@ where
     Ok(Array::from(list))
 }
 
-/// Build `Array<T>` mapping from Python elements of type `PyElem`.
-fn build_array_mapped<T, PyElem>(
-    arg: Option<&Bound<'_, PyAny>>,
-    from_py: fn(PyElem) -> T,
-) -> PyResult<Array<T>>
-where
-    T: Clone + Send + Sync + Default + 'static,
-    PyElem: for<'a, 'py> FromPyObject<'a, 'py>,
-{
-    let Some(obj) = arg else {
-        return Ok(Array::new());
-    };
-    if let Ok(n) = obj.extract::<usize>() {
-        return Ok(Array::from_elem(T::default(), n));
-    }
-    let list: Vec<PyElem> = obj
-        .extract()
-        .map_err(|_| PyValueError::new_err("expected int size or sequence"))?;
-    Ok(Array::from(
-        list.into_iter().map(from_py).collect::<Vec<_>>(),
-    ))
-}
-
 // ============================================================================
 // VtArray macro
 // ============================================================================
@@ -1220,7 +1197,9 @@ macro_rules! vt_array {
         elem    = $elem:ty,
         py_elem = $py_elem:ty,
         from_py = $from_py:expr,
-        to_py   = $to_py:expr
+        to_py   = $to_py:expr,
+        flat_dim = $flat_dim:literal,
+        from_flat = $from_flat:expr
     ) => {
         #[pyclass(skip_from_py_object,name = $py_name, module = $py_mod)]
         #[derive(Clone)]
@@ -1233,7 +1212,48 @@ macro_rules! vt_array {
             #[new]
             #[pyo3(signature = (arg = None))]
             fn new(arg: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
-                build_array_mapped::<$elem, $py_elem>(arg, $from_py).map(|inner| Self { inner })
+                let Some(obj) = arg else {
+                    return Ok(Self {
+                        inner: Array::new(),
+                    });
+                };
+                if let Ok(n) = obj.extract::<usize>() {
+                    return Ok(Self {
+                        inner: Array::from_elem(<$elem as Default>::default(), n),
+                    });
+                }
+                if let Ok(list) = obj.extract::<Vec<$py_elem>>() {
+                    return Ok(Self {
+                        inner: Array::from(
+                            list.into_iter().map($from_py).collect::<Vec<_>>(),
+                        ),
+                    });
+                }
+                // pxr: e.g. `Vt.Vec3fArray([x, y, z])` is one Gf.Vec3f (flat components).
+                let flat: Vec<f64> = obj.extract().map_err(|_| {
+                    PyValueError::new_err("expected int size or sequence")
+                })?;
+                if flat.is_empty() {
+                    return Ok(Self {
+                        inner: Array::new(),
+                    });
+                }
+                const DIM: usize = $flat_dim;
+                if !flat.len().is_multiple_of(DIM) {
+                    return Err(PyValueError::new_err(format!(
+                        "sequence length {} is not a multiple of {}",
+                        flat.len(),
+                        DIM,
+                    )));
+                }
+                Ok(Self {
+                    inner: Array::from(
+                        flat
+                            .chunks(DIM)
+                            .map(|c| ($from_flat)(c))
+                            .collect::<Vec<_>>(),
+                    ),
+                })
             }
 
             fn __len__(&self) -> usize {
@@ -1565,7 +1585,9 @@ vt_array!(
     elem = usd_gf::Vec2f,
     py_elem = (f32, f32),
     from_py = |(x, y): (f32, f32)| usd_gf::Vec2f::new(x, y),
-    to_py = |v: usd_gf::Vec2f| (v[0], v[1])
+    to_py = |v: usd_gf::Vec2f| (v[0], v[1]),
+    flat_dim = 2,
+    from_flat = |c: &[f64]| usd_gf::Vec2f::new(c[0] as f32, c[1] as f32)
 );
 
 vt_array!(
@@ -1576,7 +1598,11 @@ vt_array!(
     elem = usd_gf::Vec3f,
     py_elem = (f32, f32, f32),
     from_py = |(x, y, z): (f32, f32, f32)| usd_gf::Vec3f::new(x, y, z),
-    to_py = |v: usd_gf::Vec3f| (v[0], v[1], v[2])
+    to_py = |v: usd_gf::Vec3f| (v[0], v[1], v[2]),
+    flat_dim = 3,
+    from_flat = |c: &[f64]| {
+        usd_gf::Vec3f::new(c[0] as f32, c[1] as f32, c[2] as f32)
+    }
 );
 
 vt_array!(
@@ -1587,7 +1613,11 @@ vt_array!(
     elem = usd_gf::Vec4f,
     py_elem = (f32, f32, f32, f32),
     from_py = |(x, y, z, w): (f32, f32, f32, f32)| usd_gf::Vec4f::new(x, y, z, w),
-    to_py = |v: usd_gf::Vec4f| (v[0], v[1], v[2], v[3])
+    to_py = |v: usd_gf::Vec4f| (v[0], v[1], v[2], v[3]),
+    flat_dim = 4,
+    from_flat = |c: &[f64]| {
+        usd_gf::Vec4f::new(c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32)
+    }
 );
 
 vt_array!(
@@ -1598,7 +1628,9 @@ vt_array!(
     elem = usd_gf::Vec2d,
     py_elem = (f64, f64),
     from_py = |(x, y): (f64, f64)| usd_gf::Vec2d::new(x, y),
-    to_py = |v: usd_gf::Vec2d| (v[0], v[1])
+    to_py = |v: usd_gf::Vec2d| (v[0], v[1]),
+    flat_dim = 2,
+    from_flat = |c: &[f64]| usd_gf::Vec2d::new(c[0], c[1])
 );
 
 vt_array!(
@@ -1609,7 +1641,9 @@ vt_array!(
     elem = usd_gf::Vec3d,
     py_elem = (f64, f64, f64),
     from_py = |(x, y, z): (f64, f64, f64)| usd_gf::Vec3d::new(x, y, z),
-    to_py = |v: usd_gf::Vec3d| (v[0], v[1], v[2])
+    to_py = |v: usd_gf::Vec3d| (v[0], v[1], v[2]),
+    flat_dim = 3,
+    from_flat = |c: &[f64]| usd_gf::Vec3d::new(c[0], c[1], c[2])
 );
 
 vt_array!(
@@ -1620,7 +1654,9 @@ vt_array!(
     elem = usd_gf::Vec4d,
     py_elem = (f64, f64, f64, f64),
     from_py = |(x, y, z, w): (f64, f64, f64, f64)| usd_gf::Vec4d::new(x, y, z, w),
-    to_py = |v: usd_gf::Vec4d| (v[0], v[1], v[2], v[3])
+    to_py = |v: usd_gf::Vec4d| (v[0], v[1], v[2], v[3]),
+    flat_dim = 4,
+    from_flat = |c: &[f64]| usd_gf::Vec4d::new(c[0], c[1], c[2], c[3])
 );
 
 vt_array!(
@@ -1631,7 +1667,9 @@ vt_array!(
     elem = usd_gf::Vec2i,
     py_elem = (i32, i32),
     from_py = |(x, y): (i32, i32)| usd_gf::Vec2i::new(x, y),
-    to_py = |v: usd_gf::Vec2i| (v[0], v[1])
+    to_py = |v: usd_gf::Vec2i| (v[0], v[1]),
+    flat_dim = 2,
+    from_flat = |c: &[f64]| usd_gf::Vec2i::new(c[0] as i32, c[1] as i32)
 );
 
 vt_array!(
@@ -1642,7 +1680,11 @@ vt_array!(
     elem = usd_gf::Vec3i,
     py_elem = (i32, i32, i32),
     from_py = |(x, y, z): (i32, i32, i32)| usd_gf::Vec3i::new(x, y, z),
-    to_py = |v: usd_gf::Vec3i| (v[0], v[1], v[2])
+    to_py = |v: usd_gf::Vec3i| (v[0], v[1], v[2]),
+    flat_dim = 3,
+    from_flat = |c: &[f64]| {
+        usd_gf::Vec3i::new(c[0] as i32, c[1] as i32, c[2] as i32)
+    }
 );
 
 vt_array!(
@@ -1653,7 +1695,11 @@ vt_array!(
     elem = usd_gf::Vec4i,
     py_elem = (i32, i32, i32, i32),
     from_py = |(x, y, z, w): (i32, i32, i32, i32)| usd_gf::Vec4i::new(x, y, z, w),
-    to_py = |v: usd_gf::Vec4i| (v[0], v[1], v[2], v[3])
+    to_py = |v: usd_gf::Vec4i| (v[0], v[1], v[2], v[3]),
+    flat_dim = 4,
+    from_flat = |c: &[f64]| {
+        usd_gf::Vec4i::new(c[0] as i32, c[1] as i32, c[2] as i32, c[3] as i32)
+    }
 );
 
 // ============================================================================

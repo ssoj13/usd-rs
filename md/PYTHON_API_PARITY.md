@@ -5,6 +5,8 @@
 **Пакет:** `pxr` (`import pxr as pxr`)  
 **Правило:** любая публичная поведенческая деталь — сверка с `wrap*.cpp` / `tf*.py` / тестами `pxr/usd/...` в референсе. Отклонения считаются багами, пока не задокументированы как намеренные ограничения порта.
 
+**Коррективы порта (Rust + Python):** намеренное отличие от Pixar допустимо только с **ID** в [`PYTHON_API_DEVIATIONS.md`](PYTHON_API_DEVIATIONS.md) и краткой причиной (архитектура PyO3, заглушка до появления Rust-API, и т.д.). Иначе цель — **поведенческий паритет** с `usd-refs/OpenUSD` и портированными тестами в `crates/usd-pyo3/tests/`. Карта C++→Rust: `docs/src/appendix/cpp-rust-mapping.md`; общий указатель на C++ дерево: [`STRUCTURE.md`](../STRUCTURE.md) (раздел *OpenUSD C++ reference*).
+
 **Рабочая память (очередь wrap, процесс):** [`md/PYTHON_API_WORK.md`](PYTHON_API_WORK.md).  
 **Полный реестр отклонений (ID, приоритеты, что ещё не как в референсе):** [`md/PYTHON_API_DEVIATIONS.md`](PYTHON_API_DEVIATIONS.md) — построчные таблицы: **`wrapBBoxCache.cpp`** (§2), **`wrapXformCache.cpp`** (§3), **`wrapBasisCurves.cpp`** (§4), **`wrapBoundable.cpp`** (§5), **`wrapCamera.cpp`** (§6), **`wrapCapsule.cpp` / `wrapCapsule_1.cpp`** (§7), **`wrapCone.cpp`** (§8), **`wrapConstraintTarget.cpp`** (§9), **`wrapCube.cpp`** (§10), **пакет статических API схем** (§20).
 
@@ -39,6 +41,12 @@
 | 2026-04-08 | `UsdGeom.BBoxCache`: экспорт `ComputePointInstance*Bound(s)` → `Gf.BBox3d`; `instance_ids` — list/tuple/`range` (`geom.rs`). Остаётся паритет по `ComputeWorldBound`→Gf, Relative/Untransformed/Overrides, purposes/base time — см. `PYTHON_API_DEVIATIONS.md` §2. |
 | 2026-04-08 | **Пакет схем UsdGeom (`geom.rs`):** `GetSchemaAttributeNames(includeInherited=True)` с пробросом в `usd_geom` для **Imageable, Xformable, Xform, Boundable, Scope, Gprim, Mesh, Sphere, Cube, Cone, Cylinder, Cylinder_1, Capsule, Capsule_1, Plane, PointBased, Points, Curves, BasisCurves, NurbsCurves, HermiteCurves, NurbsPatch, TetMesh, PointInstancer, Subset, Camera**, а также **VisibilityAPI**, **ModelAPI**. Исправлена передача **`include_inherited`** (раньше часто игнорировался) у **Imageable, Xformable, Scope, Mesh**. **GetExtentAttr/CreateExtentAttr** добавлены/доступны для сферы, цилиндров, плоскости (и ранее для куба/конуса/капсул). Док.: **`PYTHON_API_DEVIATIONS.md` §20**. |
 | 2026-04-08 | **`UsdGeom.PointBased`** и **`UsdGeom.Mesh`:** `ComputePointsAtTime(time, baseTime)`, `ComputePointsAtTimes(times, baseTime)` → списки `Gf.Vec3f` (пустой список при неуспехе core, как в ряде других Compute* в биндинге). Референс: `UsdGeomPointBased::ComputePointsAtTime` / `ComputePointsAtTimes` (`point_based.rs`). |
+| 2026-04-09 | **`UsdGeom.Xformable`:** делегирование **`UsdGeomImageable`** — `GetVisibilityAttr` / `CreateVisibilityAttr`, purpose attrs, `ComputeVisibility` / `ComputePurpose`, `MakeVisible` / `MakeInvisible`, `ComputeWorldBound` / `ComputeLocalBound`, `GetOrderedPurposeTokens` (как `wrapXformable.cpp`, `bases<UsdGeomImageable>`). |
+| 2026-04-09 | **`UsdGeom.Curves`:** `SetWidthsInterpolation`, `GetCurveCount(time)` (`usd_geom::Curves`); static `ComputeExtent` уже был. |
+| 2026-04-09 | **`UsdGeom.BasisCurves`:** пять `Compute*` из `wrapBasisCurves.cpp`; **`GetSchemaAttributeNames`**; **`CreateTypeAttr` / `CreateBasisAttr` / `CreateWrapAttr`** с kwargs как в C++. |
+| 2026-04-09 | **`UsdGeom.BasisCurves`:** методы базового **`UsdGeom.Curves`** (static `ComputeExtent`, curve vertex counts attrs, `SetWidthsInterpolation`, `GetCurveCount`). **`UsdGeom.Curves`:** kwargs на **`CreateCurveVertexCountsAttr`**. |
+| 2026-04-09 | **`UsdGeom.Mesh`:** kwargs на **`Create*Attr`** (как `wrapMesh.cpp`); **`GetFaceCount`** с временем как `UsdTimeCode`; **`SHARPNESS_INFINITE`** — атрибут класса (тест `testUsdGeomConsts`). |
+| 2026-04-09 | **`NurbsCurves` / `HermiteCurves`:** наследуемые методы **`UsdGeom.Curves`** + kwargs; Nurbs: **`PointWeights`**. **`Sphere`:** **`Extent`**, kwargs **Radius**/**Extent**, **`GetSchemaAttributeNames`**. |
 
 ---
 

@@ -1,15 +1,40 @@
-//! pxr.UsdUtils — native surface (backed by `usd-utils` crate).
-//! Merged at import time with pure-Python helpers under `pxr.UsdUtils`.
+//! pxr.UsdUtils — backed by `usd-utils` crate; entire module is native (PyO3).
 
+use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict};
-use std::ffi::CString;
+use pyo3::types::{PyDict, PyList, PyModule, PyTuple, PyType};
 use usd_core::time_code::TimeCode;
 use usd_core::stage_cache::StageCache as UsdStageCache;
 use usd_utils::time_code_range::TimeCodeRange as Utcr;
 use usd_utils::StageCache as UtilsStageCache;
 
 use crate::usd::{PyStageCache, PyTimeCode};
+
+// ---------------------------------------------------------------------------
+// TimeCodeRange.Tokens
+// ---------------------------------------------------------------------------
+
+#[pyclass(name = "Tokens", module = "pxr.UsdUtils")]
+pub struct PyTimeCodeRangeTokens;
+
+#[pymethods]
+impl PyTimeCodeRangeTokens {
+    #[classattr]
+    #[pyo3(name = "EmptyTimeCodeRange")]
+    fn empty_time_code_range() -> &'static str {
+        "NONE"
+    }
+    #[classattr]
+    #[pyo3(name = "RangeSeparator")]
+    fn range_separator() -> &'static str {
+        ":"
+    }
+    #[classattr]
+    #[pyo3(name = "StrideSeparator")]
+    fn stride_separator() -> &'static str {
+        "x"
+    }
+}
 
 // ---------------------------------------------------------------------------
 // TimeCodeRange
@@ -39,7 +64,7 @@ impl PyTimeCodeRange {
 
     #[classmethod]
     #[pyo3(name = "CreateFromFrameSpec")]
-    fn create_from_frame_spec(_cls: &Bound<'_, pyo3::types::PyType>, spec: &str) -> Self {
+    fn create_from_frame_spec(_cls: &Bound<'_, PyType>, spec: &str) -> Self {
         Self {
             inner: Utcr::from_frame_spec(spec),
         }
@@ -102,7 +127,78 @@ impl PyTimeCodeRange {
 }
 
 // ---------------------------------------------------------------------------
-// StageCache (UsdUtils singleton — underlying `usd_utils::StageCache`)
+// constantsGroup.ConstantsGroup  (Rust + PyO3 — behavior may differ slightly from Pixar)
+// ---------------------------------------------------------------------------
+
+#[pyclass(
+    name = "ConstantsGroup",
+    module = "pxr.UsdUtils.constantsGroup",
+    subclass
+)]
+pub struct PyConstantsGroup;
+
+#[pymethods]
+impl PyConstantsGroup {
+    #[new]
+    fn new() -> PyResult<()> {
+        Err(PyTypeError::new_err("ConstantsGroup objects cannot be created."))
+    }
+
+    /// Builds `_all` from class body entries (Pixar-style), wraps bare functions as `staticmethod`.
+    #[classmethod]
+    #[pyo3(signature = (*, **kwargs))]
+    fn __init_subclass__(cls: &Bound<'_, PyType>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<()> {
+        let _ = kwargs;
+        let py = cls.py();
+        let dict_proxy = cls.getattr("__dict__")?;
+        let items = dict_proxy.call_method0("items")?;
+        let builtins = py.import("builtins")?;
+        let list: Bound<'_, PyAny> = builtins.getattr("list")?.call1((items,))?;
+        let list: Bound<'_, PyList> = list.cast_into()?;
+
+        let types_mod = py.import("types")?;
+        let function_type = types_mod.getattr("FunctionType")?;
+        let isinstance = builtins.getattr("isinstance")?;
+        let staticmethod_ctor = builtins.getattr("staticmethod")?;
+
+        let mut collected: Vec<Py<PyAny>> = Vec::new();
+
+        for i in 0..list.len() {
+            let pair = list.get_item(i)?;
+            let key: String = pair.get_item(0)?.extract()?;
+            if key.starts_with('_') {
+                continue;
+            }
+            let val = pair.get_item(1)?;
+
+            let is_classmethod: bool = isinstance
+                .call1((&val, types_mod.getattr("classmethod")?))?
+                .extract()?;
+            let is_staticmethod: bool = isinstance
+                .call1((&val, types_mod.getattr("staticmethod")?))?
+                .extract()?;
+            if is_classmethod || is_staticmethod {
+                continue;
+            }
+
+            let is_func: bool = isinstance.call1((&val, &function_type))?.extract()?;
+            if is_func {
+                collected.push(val.clone().unbind());
+                let wrapped = staticmethod_ctor.call1((&val,))?;
+                cls.setattr(&key, &wrapped)?;
+            } else {
+                collected.push(val.unbind());
+            }
+        }
+
+        let tup = PyTuple::new(py, collected)?;
+        cls.setattr("_all", tup)?;
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// StageCache
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "StageCache", module = "pxr.UsdUtils")]
@@ -120,13 +216,12 @@ impl PyUsdUtilsStageCache {
 impl PyUsdUtilsStageCache {
     #[classmethod]
     #[pyo3(name = "Get")]
-    fn get(_cls: &Bound<'_, pyo3::types::PyType>) -> Self {
+    fn get(_cls: &Bound<'_, PyType>) -> Self {
         Self {
             _inner: UtilsStageCache::get(),
         }
     }
 
-    /// Same underlying data as [`Usd.StageCache`] for the process singleton (for `Usd.StageCacheContext`).
     #[pyo3(name = "GetUsdStageCache")]
     fn get_usd_stage_cache(&self, py: Python<'_>) -> PyResult<Py<PyStageCache>> {
         Py::new(py, PyStageCache::from_arc(self._inner.usd_cache_arc()))
@@ -141,23 +236,16 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTimeCodeRange>()?;
     m.add_class::<PyUsdUtilsStageCache>()?;
 
-    // UsdUtils.TimeCodeRange.Tokens — OpenUSD exposes nested class with string constants.
-    let dict = PyDict::new(py);
-    let code = CString::new(
-        r"
-class _TcrTokens:
-    EmptyTimeCodeRange = 'NONE'
-    RangeSeparator = ':'
-    StrideSeparator = 'x'
-",
-    )
-    .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-    py.run(&code, None, Some(&dict))?;
-    let tokens = dict
-        .get_item("_TcrTokens")?
-        .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("Tokens class"))?;
+    let tokens = Py::new(py, PyTimeCodeRangeTokens)?;
     let tcr = m.getattr("TimeCodeRange")?;
-    tcr.setattr("Tokens", tokens)?;
+    tcr.setattr("Tokens", &tokens)?;
+
+    let cg_mod = PyModule::new(py, "constantsGroup")?;
+    cg_mod.add_class::<PyConstantsGroup>()?;
+    m.add_submodule(&cg_mod)?;
+    py.import("sys")?
+        .getattr("modules")?
+        .set_item("pxr.UsdUtils.constantsGroup", &cg_mod)?;
 
     Ok(())
 }

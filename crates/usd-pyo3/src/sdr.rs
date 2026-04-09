@@ -16,6 +16,7 @@ use usd_sdr::shader_property::SdrShaderProperty;
 use usd_sdr::tokens;
 
 use crate::sdf::PyValueTypeName;
+use crate::sdr_shader_parser_test_utils;
 use crate::tf::PyType;
 use crate::vt::value_to_py;
 
@@ -534,6 +535,79 @@ fn validate_property(node: &PyShaderNode, prop: &PyShaderProperty) -> bool {
     node.inner.get_shader_input(name).is_some() || node.inner.get_shader_output(name).is_some()
 }
 
+/// `Sdr.PropertyTypes` — string tokens for shader property kinds (native, no `types.SimpleNamespace`).
+#[pyclass(name = "PropertyTypes", module = "pxr.Sdr")]
+pub struct PySdrPropertyTypes;
+
+#[pymethods]
+impl PySdrPropertyTypes {
+    #[classattr]
+    #[pyo3(name = "Int")]
+    fn int_token() -> &'static str {
+        tokens().property_types.int.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "String")]
+    fn string_token() -> &'static str {
+        tokens().property_types.string.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Float")]
+    fn float_token() -> &'static str {
+        tokens().property_types.float.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Color")]
+    fn color_token() -> &'static str {
+        tokens().property_types.color.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Color4")]
+    fn color4_token() -> &'static str {
+        tokens().property_types.color4.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Point")]
+    fn point_token() -> &'static str {
+        tokens().property_types.point.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Normal")]
+    fn normal_token() -> &'static str {
+        tokens().property_types.normal.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Vector")]
+    fn vector_token() -> &'static str {
+        tokens().property_types.vector.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Matrix")]
+    fn matrix_token() -> &'static str {
+        tokens().property_types.matrix.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Struct")]
+    fn struct_token() -> &'static str {
+        tokens().property_types.struct_type.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Terminal")]
+    fn terminal_token() -> &'static str {
+        tokens().property_types.terminal.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Vstruct")]
+    fn vstruct_token() -> &'static str {
+        tokens().property_types.vstruct.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Unknown")]
+    fn unknown_token() -> &'static str {
+        tokens().property_types.unknown.as_str()
+    }
+}
+
 pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySdrVersion>()?;
     m.add_class::<PyNodeDiscoveryResult>()?;
@@ -542,24 +616,7 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyShaderNode>()?;
     m.add_class::<PySdrRegistry>()?;
     m.add_function(wrap_pyfunction!(validate_property, m)?)?;
-
-    // Fix PropertyTypes — expose token strings on a simple namespace-like type
-    let pt = &tokens().property_types;
-    let ns = py.import("types")?.getattr("SimpleNamespace")?.call0()?;
-    ns.setattr("Int", pt.int.as_str())?;
-    ns.setattr("String", pt.string.as_str())?;
-    ns.setattr("Float", pt.float.as_str())?;
-    ns.setattr("Color", pt.color.as_str())?;
-    ns.setattr("Color4", pt.color4.as_str())?;
-    ns.setattr("Point", pt.point.as_str())?;
-    ns.setattr("Normal", pt.normal.as_str())?;
-    ns.setattr("Vector", pt.vector.as_str())?;
-    ns.setattr("Matrix", pt.matrix.as_str())?;
-    ns.setattr("Struct", pt.struct_type.as_str())?;
-    ns.setattr("Terminal", pt.terminal.as_str())?;
-    ns.setattr("Vstruct", pt.vstruct.as_str())?;
-    ns.setattr("Unknown", pt.unknown.as_str())?;
-    m.setattr("PropertyTypes", &ns)?;
-
+    m.add_class::<PySdrPropertyTypes>()?;
+    sdr_shader_parser_test_utils::register(py, m)?;
     Ok(())
 }

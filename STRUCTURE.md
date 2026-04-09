@@ -8,27 +8,35 @@
 ## Project Overview
 
 Pure Rust port of Pixar's OpenUSD. Not bindings — a ground-up rewrite preserving
-the same architecture, APIs, and behavior as the C++ reference at `_ref/OpenUSD/`.
+the same architecture, APIs, and behavior as the C++ OpenUSD reference.
+
+## OpenUSD C++ reference (parity source of truth)
+
+**Authoritative clone on this machine (always use for line-by-line parity):**
+
+`C:\projects\projects.rust.cg\usd-refs\OpenUSD`
+
+Typical entry points:
+
+- `pxr/imaging/hd/` — Hydra core (e.g. `flatteningSceneIndex.cpp`)
+- `pxr/usdImaging/usdImaging/` — USD imaging bridge (e.g. `stageSceneIndex.cpp`)
+
+This tree lives **outside** the `usd-rs` repo (sibling `usd-refs` checkout). Do not confuse with any stale `_ref/OpenUSD/` placeholder in older docs.
 
 - **Platform**: Windows 11, MSYS2/bash shell
 - **Renderer**: wgpu (not OpenGL/Vulkan directly)
 - **UI**: egui (not Qt)
 - **Build**: Cargo workspace (71 members), vcpkg at `c:/vcpkg`
-- **Python**: PyO3/maturin bindings (`pxr` package)
+- **Python**: PyO3/maturin bindings (`pxr` package) — паритет с OpenUSD Python документируется в `md/PYTHON_API_PARITY.md` (инварианты, журнал), `md/PYTHON_API_DEVIATIONS.md` (реестр отклонений + ID), `md/PYTHON_API_WORK.md` (очередь сессии); эталон те же `pxr/**` и `wrap*.cpp` в дереве выше
 - **Build tool**: `bootstrap.py` (build, test, check, Python bindings)
-- **Reference**: `_ref/OpenUSD/pxr/` — always consult before implementing
+- **Reference**: `C:\projects\projects.rust.cg\usd-refs\OpenUSD\pxr\` — always consult before implementing
 - **Stats**: ~2480 `.rs` files, ~130k lines of Rust (crates + src + vendor)
 
 ## Repository Layout
 
 ```
 usd-rs/
-  _ref/OpenUSD/pxr/         # C++ reference (read-only, DO NOT MODIFY)
-    base/                    # arch, gf, js, plug, tf, trace, ts, vt, work
-    usd/                     # ar, kind, sdf, pcp, sdr, usd, usdGeom, usdShade, ...
-    imaging/                 # hd, hgi, hdSt, glf, hdx, ...
-    usdImaging/              # usdImaging (scene delegate)
-  crates/
+  crates/                    # Rust workspace (maps to C++ under pxr/; see OpenUSD clone above)
     base/                    # Foundation crates (no USD dependencies)
       usd-arch/              # Platform abstractions (C++ pxr/base/arch)
       usd-gf/                # Graphics foundations: Vec, Matrix, Quat, BBox, Ray, etc.
