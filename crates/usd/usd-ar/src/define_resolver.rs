@@ -164,7 +164,14 @@ pub fn get_resolver_meta(type_name: &str) -> Option<ResolverMeta> {
 pub(crate) fn ensure_resolvers_registered() {
     static INIT: OnceLock<()> = OnceLock::new();
     INIT.get_or_init(|| {
-        define_resolver::<super::resolver::DefaultResolver>("ArDefaultResolver");
+        define_resolver_with_meta::<super::resolver::DefaultResolver>(
+            "ArDefaultResolver",
+            ResolverMeta {
+                uri_schemes: Vec::new(),
+                implements_contexts: true,
+                implements_scoped_caches: true,
+            },
+        );
     });
 }
 
@@ -227,7 +234,7 @@ mod tests {
         assert!(meta.is_some());
         let meta = meta.unwrap();
         assert!(meta.uri_schemes.is_empty());
-        assert!(!meta.implements_contexts);
-        assert!(!meta.implements_scoped_caches);
+        assert!(meta.implements_contexts);
+        assert!(meta.implements_scoped_caches);
     }
 }

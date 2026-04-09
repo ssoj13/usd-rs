@@ -4,6 +4,7 @@
 //! Contexts allow clients to customize resolution behavior per-thread.
 
 use std::any::{Any, TypeId};
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -295,6 +296,56 @@ impl PartialEq for ResolverContext {
 }
 
 impl Eq for ResolverContext {}
+
+impl PartialOrd for ResolverContext {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ResolverContext {
+    /// Total order consistent with [`PartialEq`]: same key set (by [`TypeId`]), then holder
+    /// `hash_value`, then `eq_holder` / `debug_string` when hashes collide.
+    fn cmp(&self, other: &Self) -> Ordering {
+        fn type_id_total_cmp(a: &TypeId, b: &TypeId) -> Ordering {
+            if a == b {
+                return Ordering::Equal;
+            }
+            // `TypeId` has no `Ord`; `Debug` is stable enough for a canonical tie-break.
+            format!("{a:?}").cmp(&format!("{b:?}"))
+        }
+
+        match self.objects.len().cmp(&other.objects.len()) {
+            Ordering::Equal => {}
+            o => return o,
+        }
+
+        let mut a_keys: Vec<TypeId> = self.objects.keys().copied().collect();
+        let mut b_keys: Vec<TypeId> = other.objects.keys().copied().collect();
+        a_keys.sort_by(type_id_total_cmp);
+        b_keys.sort_by(type_id_total_cmp);
+
+        for i in 0..a_keys.len() {
+            let ka = a_keys[i];
+            let kb = b_keys[i];
+            if ka != kb {
+                return type_id_total_cmp(&ka, &kb);
+            }
+            let ha = &self.objects[&ka];
+            let hb = &other.objects[&ka];
+            match ha.hash_value().cmp(&hb.hash_value()) {
+                Ordering::Equal => {
+                    if ha.eq_holder(hb.as_ref()) {
+                        continue;
+                    }
+                    return ha.debug_string().cmp(&hb.debug_string());
+                }
+                o => return o,
+            }
+        }
+        Ordering::Equal
+    }
+}
 
 impl Hash for ResolverContext {
     fn hash<H: Hasher>(&self, state: &mut H) {

@@ -12,7 +12,36 @@ use std::sync::{
     atomic::{AtomicI64, Ordering},
 };
 use usd_ar::ResolverContext;
-use usd_sdf::LayerHandle;
+use usd_sdf::{Layer, LayerHandle};
+
+/// Whether a stage's stored resolver context matches a `Find*` query.
+///
+/// Stages created via `CreateInMemory` store `None`; those match only an **empty** query context
+/// (C++ "null" / empty `ArResolverContext`), matching OpenUSD cache semantics.
+fn resolver_query_matches_stage(
+    stage: &Arc<Stage>,
+    query: &ResolverContext,
+) -> bool {
+    match stage.get_path_resolver_context() {
+        Some(ctx) => ctx == *query,
+        None => query.is_empty(),
+    }
+}
+
+/// Whether `stage_session` matches a `Find*` query with optional `session_layer` handle.
+fn session_matches_stage_query(
+    stage_session: Option<&Arc<Layer>>,
+    query_session: Option<&LayerHandle>,
+) -> bool {
+    match (query_session, stage_session) {
+        (None, None) => true,
+        (Some(qh), Some(st)) => qh
+            .upgrade()
+            .map(|l| l.identifier() == st.identifier())
+            .unwrap_or(false),
+        _ => false,
+    }
+}
 
 /// Global counter for generating unique IDs
 static ID_COUNTER: AtomicI64 = AtomicI64::new(9223000);
@@ -264,11 +293,7 @@ impl StageCache {
             for &ptr in stage_ptrs {
                 if let Some(&id) = inner.by_stage.get(&ptr) {
                     if let Some(stage) = inner.by_id.get(&id) {
-                        let matches =
-                            match (stage.get_path_resolver_context(), path_resolver_context) {
-                                (Some(ctx1), ctx2) => ctx1 == *ctx2,
-                                (None, _) => false,
-                            };
+                        let matches = resolver_query_matches_stage(stage, path_resolver_context);
                         if matches {
                             return Some(stage.clone());
                         }
@@ -300,6 +325,63 @@ impl StageCache {
             }
         }
         result
+    }
+
+    /// Find all stages with `rootLayer` whose session layer matches `session_layer` when provided.
+    ///
+    /// When `session_layer` is `None`, only stages with **no** session layer match.
+    pub fn find_all_matching_with_session(
+        &self,
+        root_layer: &LayerHandle,
+        session_layer: Option<&LayerHandle>,
+    ) -> Vec<Arc<Stage>> {
+        self.find_all_matching(root_layer)
+            .into_iter()
+            .filter(|stage| {
+                session_matches_stage_query(stage.get_session_layer().as_ref(), session_layer)
+            })
+            .collect()
+    }
+
+    /// Find all stages with `rootLayer` and `pathResolverContext`.
+    pub fn find_all_matching_with_resolver(
+        &self,
+        root_layer: &LayerHandle,
+        path_resolver_context: &ResolverContext,
+    ) -> Vec<Arc<Stage>> {
+        self.find_all_matching(root_layer)
+            .into_iter()
+            .filter(|stage| resolver_query_matches_stage(stage, path_resolver_context))
+            .collect()
+    }
+
+    /// Find all stages matching root, optional session layer, and resolver context.
+    pub fn find_all_matching_with_session_and_resolver(
+        &self,
+        root_layer: &LayerHandle,
+        session_layer: Option<&LayerHandle>,
+        path_resolver_context: &ResolverContext,
+    ) -> Vec<Arc<Stage>> {
+        self.find_all_matching_with_session(root_layer, session_layer)
+            .into_iter()
+            .filter(|stage| resolver_query_matches_stage(stage, path_resolver_context))
+            .collect()
+    }
+
+    /// `FindOneMatching` for (root, session, resolver) — arbitrary match if multiple.
+    pub fn find_one_matching_with_session_and_resolver(
+        &self,
+        root_layer: &LayerHandle,
+        session_layer: Option<&LayerHandle>,
+        path_resolver_context: &ResolverContext,
+    ) -> Option<Arc<Stage>> {
+        self.find_all_matching_with_session_and_resolver(
+            root_layer,
+            session_layer,
+            path_resolver_context,
+        )
+        .into_iter()
+        .next()
     }
 
     /// Return the Id associated with stage in this cache.
@@ -418,6 +500,59 @@ impl StageCache {
             }
         }
 
+        count
+    }
+
+    /// Erase all stages matching `rootLayer` and session layer filter (see `find_all_matching_with_session`).
+    pub fn erase_all_with_session(
+        &self,
+        root_layer: &LayerHandle,
+        session_layer: Option<&LayerHandle>,
+    ) -> usize {
+        let stages = self.find_all_matching_with_session(root_layer, session_layer);
+        let mut count = 0;
+        for s in stages {
+            if self.erase_stage(&s) {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    /// Erase all stages matching `rootLayer` and resolver context.
+    pub fn erase_all_with_resolver(
+        &self,
+        root_layer: &LayerHandle,
+        path_resolver_context: &ResolverContext,
+    ) -> usize {
+        let stages = self.find_all_matching_with_resolver(root_layer, path_resolver_context);
+        let mut count = 0;
+        for s in stages {
+            if self.erase_stage(&s) {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    /// Erase all stages matching root, optional session, and resolver context.
+    pub fn erase_all_with_session_and_resolver(
+        &self,
+        root_layer: &LayerHandle,
+        session_layer: Option<&LayerHandle>,
+        path_resolver_context: &ResolverContext,
+    ) -> usize {
+        let stages = self.find_all_matching_with_session_and_resolver(
+            root_layer,
+            session_layer,
+            path_resolver_context,
+        );
+        let mut count = 0;
+        for s in stages {
+            if self.erase_stage(&s) {
+                count += 1;
+            }
+        }
         count
     }
 

@@ -1,7 +1,7 @@
 //! Python bindings for usd-rs — mirrors the `pxr` Python package from OpenUSD.
 //!
 //! Module hierarchy matches C++ OpenUSD:
-//!   pxr.Tf, pxr.Gf, pxr.Vt, pxr.Sdf, pxr.Pcp, pxr.Ar, pxr.Usd,
+//!   pxr.Tf, pxr.Gf, pxr.Vt, pxr.Trace, pxr.Sdf, pxr.Pcp, pxr.Ar, pxr.Usd,
 //!   pxr.UsdGeom, pxr.UsdShade, pxr.UsdLux, pxr.UsdSkel, ...
 
 // CamelCase method names are intentional — mirrors C++ OpenUSD Python API exactly.
@@ -21,10 +21,13 @@ mod pcp;
 mod plug;
 mod sdf;
 mod shade;
+mod sdr;
 mod skel;
 mod tf;
+mod trace;
 mod ts;
 mod usd;
+mod utils;
 mod vt;
 mod xform_img_delegate;
 
@@ -37,6 +40,7 @@ fn _usd(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     register_sub(py, m, "Tf", tf::register)?;
     register_sub(py, m, "Gf", gf::register)?;
     register_sub(py, m, "Vt", vt::register)?;
+    register_sub(py, m, "Trace", trace::register)?;
 
     // Core USD modules
     register_sub(py, m, "Ar", ar::register)?;
@@ -52,6 +56,10 @@ fn _usd(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     register_sub(py, m, "UsdShade", shade::register)?;
     register_sub(py, m, "UsdLux", lux::register)?;
     register_sub(py, m, "UsdSkel", skel::register)?;
+
+    // Utilities / SDR (native — merged with pure Python under `pxr.UsdUtils` / `pxr.Sdr`)
+    register_sub(py, m, "UsdUtilsNative", utils::register)?;
+    register_sub(py, m, "SdrNative", sdr::register)?;
 
     // CLI tools as Python functions
     register_sub(py, m, "Cli", cli::register)?;

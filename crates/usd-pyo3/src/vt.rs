@@ -2229,7 +2229,7 @@ fn py_dict_to_dict(d: &Bound<'_, PyDict>) -> PyResult<Dictionary> {
     Ok(dict)
 }
 
-fn value_to_py(py: Python<'_>, v: &Value) -> PyResult<Py<PyAny>> {
+pub(crate) fn value_to_py(py: Python<'_>, v: &Value) -> PyResult<Py<PyAny>> {
     if v.is_empty() {
         return Ok(py.None());
     }

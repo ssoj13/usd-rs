@@ -298,8 +298,10 @@ impl DispatchingResolver {
                 type_name: "ArDefaultResolver".into(),
                 uri_schemes: Vec::new(),
                 can_be_primary: true,
-                implements_contexts: false,
-                implements_scoped_caches: false,
+                // C++ `ArDefaultResolver` implements contexts and scoped caches; if plugin metadata
+                // is missing, these must still be true or `CreateDefaultContextForAsset` returns empty.
+                implements_contexts: true,
+                implements_scoped_caches: true,
             });
 
         let resolver =

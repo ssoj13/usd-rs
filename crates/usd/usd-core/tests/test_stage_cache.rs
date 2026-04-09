@@ -6,6 +6,7 @@
 mod common;
 
 use std::sync::Arc;
+use usd_ar::ResolverContext;
 use usd_core::{InitialLoadSet, Stage, StageCache};
 use usd_sdf::{Layer, LayerHandle};
 
@@ -190,4 +191,23 @@ fn cache_duplicate_insert() {
     // Same stage inserted twice should return same ID
     assert_eq!(id1, id2, "duplicate insert should return same ID");
     assert_eq!(cache.get_all_stages().len(), 1, "should still have 1 stage");
+}
+
+/// Stages from `CreateInMemory` store no path resolver (`None`); an empty `ResolverContext`
+/// query must still find them (matches `testUsdStageCache` / OpenUSD semantics).
+#[test]
+fn cache_find_matching_empty_resolver_query_matches_none_storage() {
+    common::setup();
+
+    let cache = StageCache::new();
+    let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("create");
+    let root = stage.get_root_layer();
+    let handle = LayerHandle::from_layer(&root);
+    cache.insert(Arc::clone(&stage));
+
+    let empty = ResolverContext::new();
+    assert!(empty.is_empty());
+    let found = cache.find_all_matching_with_resolver(&handle, &empty);
+    assert_eq!(found.len(), 1);
+    assert!(Arc::ptr_eq(&found[0], &stage));
 }

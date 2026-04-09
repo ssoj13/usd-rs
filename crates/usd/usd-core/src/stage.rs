@@ -25,6 +25,7 @@ use super::interpolation::InterpolationType;
 use super::load_rules::StageLoadRules;
 use super::population_mask::StagePopulationMask;
 use super::prim::Prim;
+use super::stage_cache_context::StageCacheContext;
 use super::prim_data::PrimData;
 use super::prim_flags::{PrimFlags, PrimFlagsPredicate};
 use super::prim_range;
@@ -232,9 +233,10 @@ impl Stage {
         let edit_target = EditTarget::for_local_layer(root_layer.clone());
 
         // Create PCP cache for composition (include session layer so PCP walks it)
-        let layer_stack_id = LayerStackIdentifier::with_session(
-            AssetPath::new(root_layer.identifier()),
-            session.as_ref().map(|s| AssetPath::new(s.identifier())),
+        let layer_stack_id = Self::make_layer_stack_identifier(
+            root_layer.as_ref(),
+            session.as_ref(),
+            resolver_context.clone(),
         );
         let pcp_cache = PcpCache::new_with_session(layer_stack_id, session.clone(), true);
 
@@ -248,20 +250,7 @@ impl Stage {
         // For LoadAll, all paths are loaded. For LoadNone, none are.
         Self::set_payload_predicate_for_rules(&pcp_cache, &initial_load_rules);
 
-        // C++ _InitStage: _cache->SetVariantFallbacks(GetGlobalVariantFallbacks())
-        let global_fallbacks = Self::get_global_variant_fallbacks();
-        if !global_fallbacks.is_empty() {
-            let pcp_fallbacks: std::collections::HashMap<String, Vec<String>> = global_fallbacks
-                .iter()
-                .map(|(k, v)| {
-                    (
-                        k.as_str().to_string(),
-                        v.iter().map(|t| t.as_str().to_string()).collect(),
-                    )
-                })
-                .collect();
-            pcp_cache.set_variant_fallbacks(pcp_fallbacks, None);
-        }
+        Self::apply_global_variant_fallbacks_to_pcp_cache(&pcp_cache);
 
         let stage = Arc::new(Self {
             root_layer,
@@ -361,9 +350,10 @@ impl Stage {
         let session = session_layer.or_else(|| Some(Layer::create_anonymous(Some("session"))));
 
         // Include session layer so PCP walks it (matches C++ UsdStage ctor)
-        let layer_stack_id = LayerStackIdentifier::with_session(
-            AssetPath::new(root_layer.identifier()),
-            session.as_ref().map(|s| AssetPath::new(s.identifier())),
+        let layer_stack_id = Self::make_layer_stack_identifier(
+            root_layer.as_ref(),
+            session.as_ref(),
+            resolver_context.clone(),
         );
         let pcp_cache = PcpCache::new_with_session(layer_stack_id, session.clone(), true);
 
@@ -373,20 +363,7 @@ impl Stage {
         };
         Self::set_payload_predicate_for_rules(&pcp_cache, &initial_load_rules);
 
-        // C++ _InitStage: _cache->SetVariantFallbacks(GetGlobalVariantFallbacks())
-        let global_fallbacks = Self::get_global_variant_fallbacks();
-        if !global_fallbacks.is_empty() {
-            let pcp_fallbacks: std::collections::HashMap<String, Vec<String>> = global_fallbacks
-                .iter()
-                .map(|(k, v)| {
-                    (
-                        k.as_str().to_string(),
-                        v.iter().map(|t| t.as_str().to_string()).collect(),
-                    )
-                })
-                .collect();
-            pcp_cache.set_variant_fallbacks(pcp_fallbacks, None);
-        }
+        Self::apply_global_variant_fallbacks_to_pcp_cache(&pcp_cache);
 
         let stage = Arc::new(Self {
             root_layer,
@@ -434,11 +411,21 @@ impl Stage {
     }
 
     /// Opens an existing stage from a root layer (matches C++ Open overload).
+    ///
+    /// Uses an implicit anonymous session layer when none is supplied.
     pub fn open_with_root_layer(
         root_layer: Arc<Layer>,
         load: InitialLoadSet,
     ) -> Result<Arc<Self>, Error> {
         Self::open_with_layer_impl(root_layer, None, None, load)
+    }
+
+    /// Open from root layer with **no** session layer (Python `sessionLayer=None`).
+    pub fn open_with_root_layer_no_session(
+        root_layer: Arc<Layer>,
+        load: InitialLoadSet,
+    ) -> Result<Arc<Self>, Error> {
+        Self::open_with_layer_impl(root_layer, Some(None), None, load)
     }
 
     /// Opens an existing stage from a root layer and session layer (matches C++ Open overload).
@@ -447,7 +434,7 @@ impl Stage {
         session_layer: Arc<Layer>,
         load: InitialLoadSet,
     ) -> Result<Arc<Self>, Error> {
-        Self::open_with_layer_impl(root_layer, Some(session_layer), None, load)
+        Self::open_with_layer_impl(root_layer, Some(Some(session_layer)), None, load)
     }
 
     /// Opens an existing stage from a root layer and resolver context (matches C++ Open overload).
@@ -466,12 +453,120 @@ impl Stage {
         resolver_context: Option<ResolverContext>,
         load: InitialLoadSet,
     ) -> Result<Arc<Self>, Error> {
-        Self::open_with_layer_impl(root_layer, Some(session_layer), resolver_context, load)
+        Self::open_with_layer_impl(root_layer, Some(Some(session_layer)), resolver_context, load)
     }
 
+    /// If any `UsdStageCacheContext` binds a readable cache, return a matching stage when present.
+    #[allow(unsafe_code)]
+    fn try_find_in_readable_stage_caches(
+        root_layer: &Arc<Layer>,
+        session_spec: &Option<Option<Arc<Layer>>>,
+        resolver_context: &Option<ResolverContext>,
+    ) -> Option<Arc<Self>> {
+        let root_handle = root_layer.get_handle();
+        let caches = StageCacheContext::get_readable_caches();
+        for ptr in caches {
+            // SAFETY: pointers originate from `StageCacheContext` stack; same invariants as
+            // `stage_cache_context` internal lookups.
+            let cache = unsafe { &*ptr };
+            let found = match (session_spec.as_ref(), resolver_context.as_ref()) {
+                // Implicit anonymous session — do not filter by session layer (C++ "don't care").
+                (None, Some(res)) => cache.find_one_matching_with_resolver(&root_handle, res),
+                (None, None) => cache.find_one_matching(&root_handle),
+                // Explicit `sessionLayer=None` — only stages with no session layer.
+                (Some(None), Some(res)) => cache.find_one_matching_with_session_and_resolver(
+                    &root_handle,
+                    None,
+                    res,
+                ),
+                (Some(None), None) => cache.find_one_matching_with_session(&root_handle, None),
+                (Some(Some(sess)), Some(res)) => cache.find_one_matching_with_session_and_resolver(
+                    &root_handle,
+                    Some(&sess.get_handle()),
+                    res,
+                ),
+                (Some(Some(sess)), None) => cache.find_one_matching_with_session(
+                    &root_handle,
+                    Some(&sess.get_handle()),
+                ),
+            };
+            if found.is_some() {
+                return found;
+            }
+        }
+        None
+    }
+
+    #[allow(unsafe_code)]
+    fn publish_to_writable_stage_caches(stage: &Arc<Self>) {
+        for ptr in StageCacheContext::get_writable_caches() {
+            // SAFETY: same as `try_find_in_readable_stage_caches`.
+            let cache = unsafe { &*ptr };
+            cache.insert(stage.clone());
+        }
+    }
+
+    /// Path resolver context for a root layer when the caller did not supply one.
+    ///
+    /// Port of `UsdStage::_CreatePathResolverContext` (`pxr/usd/usd/stage.cpp`): non-anonymous
+    /// layers use `CreateDefaultContextForAsset` with non-empty repository path, otherwise
+    /// `GetRealPath()`; anonymous layers use `CreateDefaultContext()`.
+    ///
+    /// [`Stage::create_in_memory`] does not use this helper and leaves resolver context unset
+    /// (`None`), matching C++ `CreateInMemory`.
+    fn create_path_resolver_context_for_root_layer(root_layer: &Layer) -> ResolverContext {
+        let resolver = usd_ar::resolver::get_resolver();
+        let guard = resolver.read().expect("rwlock poisoned");
+        if root_layer.is_anonymous() {
+            guard.create_default_context()
+        } else {
+            let asset_path = match root_layer.get_repository_path() {
+                Some(ref s) if !s.is_empty() => s.clone(),
+                _ => root_layer.get_resolved_path().unwrap_or_default(),
+            };
+            guard.create_default_context_for_asset(&asset_path)
+        }
+    }
+
+    /// [`PcpLayerStackIdentifier`] / [`LayerStackIdentifier`] for this stage's Pcp cache.
+    ///
+    /// Must carry the same `path_resolver_context` as [`Stage::resolver_context`] (C++
+    /// `PcpLayerStackIdentifier` stores `pathResolverContext` alongside root and session handles).
+    fn make_layer_stack_identifier(
+        root_layer: &Layer,
+        session_layer: Option<&Arc<Layer>>,
+        path_resolver_context: Option<ResolverContext>,
+    ) -> LayerStackIdentifier {
+        LayerStackIdentifier::with_parts(
+            AssetPath::new(root_layer.identifier()),
+            session_layer.map(|s| AssetPath::new(s.identifier())),
+            path_resolver_context,
+        )
+    }
+
+    /// C++ `UsdStage::_InitStage`: `_cache->SetVariantFallbacks(GetGlobalVariantFallbacks())`.
+    fn apply_global_variant_fallbacks_to_pcp_cache(pcp_cache: &PcpCache) {
+        let global_fallbacks = Self::get_global_variant_fallbacks();
+        if global_fallbacks.is_empty() {
+            return;
+        }
+        let pcp_fallbacks: std::collections::HashMap<String, Vec<String>> = global_fallbacks
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.as_str().to_string(),
+                    v.iter().map(|t| t.as_str().to_string()).collect(),
+                )
+            })
+            .collect();
+        pcp_cache.set_variant_fallbacks(pcp_fallbacks, None);
+    }
+
+    /// `session_spec`: `None` = implicit anonymous session; `Some(None)` = no session;
+    /// `Some(Some(layer))` = explicit session.
     fn open_with_layer_impl(
         root_layer: Arc<Layer>,
-        session_layer: Option<Arc<Layer>>,
+        session_spec: Option<Option<Arc<Layer>>>,
         resolver_context: Option<ResolverContext>,
         load: InitialLoadSet,
     ) -> Result<Arc<Self>, Error> {
@@ -479,21 +574,31 @@ impl Stage {
         // Ensure builtin schemas are registered (C++ does this via TfType plugin system)
         crate::schema_registry::register_builtin_schemas();
 
-        // Auto-create resolver context from root layer identifier if not provided
-        let resolver_context = resolver_context.or_else(|| {
-            let resolver = usd_ar::resolver::get_resolver();
-            let guard = resolver.read().expect("rwlock poisoned");
-            Some(guard.create_default_context_for_asset(&root_layer.identifier()))
-        });
+        // Auto-create resolver context from root layer if not provided (C++ `_CreatePathResolverContext`)
+        let resolver_context = resolver_context
+            .or_else(|| Some(Self::create_path_resolver_context_for_root_layer(root_layer.as_ref())));
 
-        let session = session_layer.or_else(|| Some(Layer::create_anonymous(Some("session"))));
+        if let Some(cached) = Self::try_find_in_readable_stage_caches(
+            &root_layer,
+            &session_spec,
+            &resolver_context,
+        ) {
+            return Ok(cached);
+        }
+
+        let session: Option<Arc<Layer>> = match session_spec {
+            None => Some(Layer::create_anonymous(Some("session"))),
+            Some(None) => None,
+            Some(Some(s)) => Some(s),
+        };
 
         let edit_target = EditTarget::for_local_layer(root_layer.clone());
 
         // Create PCP cache for composition (include session layer so PCP walks it)
-        let layer_stack_id = LayerStackIdentifier::with_session(
-            AssetPath::new(root_layer.identifier()),
-            session.as_ref().map(|s| AssetPath::new(s.identifier())),
+        let layer_stack_id = Self::make_layer_stack_identifier(
+            root_layer.as_ref(),
+            session.as_ref(),
+            resolver_context.clone(),
         );
         let pcp_cache = PcpCache::new_with_session(layer_stack_id, session.clone(), true);
 
@@ -503,6 +608,8 @@ impl Stage {
             InitialLoadSet::LoadNone => StageLoadRules::load_none(),
         };
         Self::set_payload_predicate_for_rules(&pcp_cache, &initial_load_rules);
+
+        Self::apply_global_variant_fallbacks_to_pcp_cache(&pcp_cache);
 
         let stage = Arc::new(Self {
             root_layer,
@@ -536,12 +643,14 @@ impl Stage {
         // Populate prim tree from layer
         stage.populate_from_layer();
 
+        Self::publish_to_writable_stage_caches(&stage);
+
         Ok(stage)
     }
 
     fn open_impl(
         file_path: String,
-        session_layer: Option<Arc<Layer>>,
+        session_spec: Option<Option<Arc<Layer>>>,
         resolver_context: Option<ResolverContext>,
         load: InitialLoadSet,
     ) -> Result<Arc<Self>, Error> {
@@ -553,21 +662,32 @@ impl Stage {
         let root_layer =
             Layer::find_or_open(&file_path).map_err(|e| Error::LayerError(e.to_string()))?;
 
-        // Auto-create resolver context from asset path if not provided
+        // Auto-create resolver context from opened root layer if not provided (same as `Open(SdfLayer)`)
         let resolver_context = resolver_context.or_else(|| {
-            let resolver = usd_ar::resolver::get_resolver();
-            let guard = resolver.read().expect("rwlock poisoned");
-            Some(guard.create_default_context_for_asset(&file_path))
+            Some(Self::create_path_resolver_context_for_root_layer(root_layer.as_ref()))
         });
 
-        let session = session_layer.or_else(|| Some(Layer::create_anonymous(Some("session"))));
+        if let Some(cached) = Self::try_find_in_readable_stage_caches(
+            &root_layer,
+            &session_spec,
+            &resolver_context,
+        ) {
+            return Ok(cached);
+        }
+
+        let session: Option<Arc<Layer>> = match session_spec {
+            None => Some(Layer::create_anonymous(Some("session"))),
+            Some(None) => None,
+            Some(Some(s)) => Some(s),
+        };
 
         let edit_target = EditTarget::for_local_layer(root_layer.clone());
 
         // Create PCP cache for composition (include session layer so PCP walks it)
-        let layer_stack_id = LayerStackIdentifier::with_session(
-            AssetPath::new(root_layer.identifier()),
-            session.as_ref().map(|s| AssetPath::new(s.identifier())),
+        let layer_stack_id = Self::make_layer_stack_identifier(
+            root_layer.as_ref(),
+            session.as_ref(),
+            resolver_context.clone(),
         );
         let pcp_cache = PcpCache::new_with_session(layer_stack_id, session.clone(), true);
 
@@ -577,6 +697,8 @@ impl Stage {
             InitialLoadSet::LoadNone => StageLoadRules::load_none(),
         };
         Self::set_payload_predicate_for_rules(&pcp_cache, &initial_load_rules);
+
+        Self::apply_global_variant_fallbacks_to_pcp_cache(&pcp_cache);
 
         let stage = Arc::new(Self {
             root_layer,
@@ -609,6 +731,8 @@ impl Stage {
 
         // Populate prim tree from layer
         stage.populate_from_layer();
+
+        Self::publish_to_writable_stage_caches(&stage);
 
         Ok(stage)
     }
@@ -685,7 +809,8 @@ impl Stage {
         mask: StagePopulationMask,
         load: InitialLoadSet,
     ) -> Result<Arc<Self>, Error> {
-        let stage_result = Self::open_impl(file_path, session_layer, resolver_context, load)?;
+        let session_spec = session_layer.map(|s| Some(s));
+        let stage_result = Self::open_impl(file_path, session_spec, resolver_context, load)?;
 
         // Set the population mask
         *stage_result
@@ -703,8 +828,9 @@ impl Stage {
         mask: StagePopulationMask,
         load: InitialLoadSet,
     ) -> Result<Arc<Self>, Error> {
+        let session_spec = session_layer.map(|s| Some(s));
         let stage_result =
-            Self::open_with_layer_impl(root_layer, session_layer, resolver_context, load)?;
+            Self::open_with_layer_impl(root_layer, session_spec, resolver_context, load)?;
 
         // Set the population mask
         *stage_result
@@ -1208,26 +1334,28 @@ impl Stage {
     }
 
     /// Gets composed child names for a path via PCP.
-    /// For the pseudo-root, falls back to root_layer's root prims.
+    ///
+    /// For [`Path::absolute_root()`], merges `primChildren` across the full root layer stack.
+    /// If the layer stack cannot be computed, returns an empty list (does not substitute
+    /// root-layer-only data — that would hide PCP / resolver failures).
     pub(crate) fn get_composed_child_names(&self, parent_path: &Path) -> Vec<Path> {
-        // For root, use root layer's root prims as seed paths
         if parent_path == &Path::absolute_root() {
-            // Compose root children from ALL layers in the layer stack.
-            // Ensure layer stack is computed (may not be initialized yet).
             let pcp_cache_guard = self.pcp_cache.read().expect("rwlock poisoned");
             if let Some(ref pcp_cache) = *pcp_cache_guard {
-                // Trigger layer stack computation if not yet done
-                let layer_stack = pcp_cache.layer_stack().or_else(|| {
-                    pcp_cache
-                        .compute_layer_stack(pcp_cache.layer_stack_identifier())
-                        .ok()
-                });
+                let layer_stack = if let Some(ls) = pcp_cache.layer_stack() {
+                    Some(ls)
+                } else {
+                    match pcp_cache.compute_layer_stack(pcp_cache.layer_stack_identifier()) {
+                        Ok(ls) => Some(ls),
+                        Err(_) => None,
+                    }
+                };
+
                 if let Some(layer_stack) = layer_stack {
                     let mut seen = std::collections::HashSet::new();
                     let mut children = Vec::new();
                     let children_token = Token::new("primChildren");
 
-                    // Walk all layers in the stack (strongest to weakest)
                     for layer in layer_stack.get_layers() {
                         let tokens: Vec<Token> = layer
                             .get_field(parent_path, &children_token)
@@ -1245,13 +1373,7 @@ impl Stage {
                 }
             }
 
-            // Fallback: root_layer only
-            return self
-                .root_layer
-                .root_prims()
-                .iter()
-                .map(|s| s.path())
-                .collect();
+            return Vec::new();
         }
 
         // Non-root: compute via PrimIndex
@@ -1798,60 +1920,28 @@ impl Stage {
     }
 
     /// Returns an edit target for the given layer.
+    ///
+    /// Matches C++ `UsdStage::GetEditTargetForLocalLayer(const SdfLayerHandle &layer)`:
+    /// uses the root [`usd_pcp::Cache`] layer stack and
+    /// [`usd_pcp::LayerStack::get_layer_offset`] for that layer only.
     pub fn get_edit_target_for_local_layer(&self, layer: &Arc<Layer>) -> EditTarget {
-        if let Some(pcp_cache) = self.pcp_cache() {
-            let root_layer_stack = pcp_cache.layer_stack().or_else(|| {
-                pcp_cache
-                    .compute_layer_stack(pcp_cache.layer_stack_identifier())
-                    .ok()
-            });
+        let Some(pcp_cache) = self.pcp_cache() else {
+            return EditTarget::for_local_layer(layer.clone());
+        };
 
-            if let Some(layer_stack) = root_layer_stack {
-                if layer_stack
-                    .get_layers()
-                    .iter()
-                    .any(|l| Arc::ptr_eq(l, layer))
-                {
-                    let offset = layer_stack
-                        .get_layer_offset(layer)
-                        .unwrap_or_else(usd_sdf::LayerOffset::identity);
-                    return EditTarget::for_local_layer_with_offset(layer.clone(), offset);
-                }
+        let layer_stack = if let Some(ls) = pcp_cache.layer_stack() {
+            ls
+        } else {
+            match pcp_cache.compute_layer_stack(pcp_cache.layer_stack_identifier()) {
+                Ok(ls) => ls,
+                Err(_) => return EditTarget::for_local_layer(layer.clone()),
             }
+        };
 
-            let prim_paths: Vec<Path> = self
-                .prim_cache
-                .read()
-                .expect("rwlock poisoned")
-                .keys()
-                .cloned()
-                .collect();
-
-            for prim_path in prim_paths {
-                let (prim_index, _errors) = pcp_cache.compute_prim_index(&prim_path);
-                for node in prim_index.nodes() {
-                    let Some(layer_stack) = node.layer_stack() else {
-                        continue;
-                    };
-                    if !layer_stack
-                        .get_layers()
-                        .iter()
-                        .any(|l| Arc::ptr_eq(l, layer))
-                    {
-                        continue;
-                    }
-
-                    let map_to_root = node.map_to_root().evaluate();
-                    let layer_offset = layer_stack
-                        .get_layer_offset(layer)
-                        .unwrap_or_else(usd_sdf::LayerOffset::identity);
-                    let map_function = map_to_root.compose_offset(&layer_offset);
-                    return EditTarget::for_layer_with_map_function(layer.clone(), map_function);
-                }
-            }
-        }
-
-        EditTarget::for_local_layer(layer.clone())
+        let offset = layer_stack
+            .get_layer_offset(layer)
+            .unwrap_or_else(usd_sdf::LayerOffset::identity);
+        EditTarget::for_local_layer_with_offset(layer.clone(), offset)
     }
 
     /// Returns an edit target for the layer at index i in the layer stack (matches C++ GetEditTargetForLocalLayer overload).
@@ -5452,14 +5542,17 @@ mod tests {
     }
 
     #[test]
-    fn test_resolver_context_auto_creation() {
-        // open_with_layer_impl auto-creates resolver context when None
+    fn test_path_resolver_context_anonymous_open_matches_create_default_context() {
+        // C++ `_CreatePathResolverContext`: anonymous root → `ArGetResolver().CreateDefaultContext()`.
         let layer = usd_sdf::layer::Layer::create_anonymous(Some("test_auto_ctx"));
         let stage = Stage::open_with_root_layer(layer, InitialLoadSet::LoadAll).unwrap();
 
-        // Resolver context should be auto-created (not None)
+        let resolver = usd_ar::resolver::get_resolver();
+        let guard = resolver.read().expect("rwlock poisoned");
+        let expected = guard.create_default_context();
+
         let ctx = stage.get_path_resolver_context();
-        assert!(ctx.is_some(), "Resolver context should be auto-created");
+        assert_eq!(ctx, Some(expected));
     }
 
     #[test]

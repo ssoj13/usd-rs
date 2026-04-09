@@ -19,8 +19,8 @@ static STAGE_CACHE: OnceLock<Arc<StageCache>> = OnceLock::new();
 /// location to use the same cache to maximize stage reuse.
 /// Matches C++ `UsdUtilsStageCache`.
 pub struct StageCache {
-    /// The underlying USD stage cache.
-    cache: RwLock<UsdStageCache>,
+    /// The underlying USD stage cache (shared so `UsdStageCacheContext` can bind a stable `&StageCache`).
+    cache: Arc<UsdStageCache>,
     /// Cache of session layers for variant selections.
     session_layers: RwLock<HashMap<String, Arc<Layer>>>,
 }
@@ -29,7 +29,7 @@ impl StageCache {
     /// Creates a new stage cache.
     fn new() -> Self {
         Self {
-            cache: RwLock::new(UsdStageCache::new()),
+            cache: Arc::new(UsdStageCache::new()),
             session_layers: RwLock::new(HashMap::new()),
         }
     }
@@ -44,14 +44,16 @@ impl StageCache {
             .clone()
     }
 
-    /// Returns a reference to the underlying USD stage cache.
-    pub fn inner(&self) -> std::sync::RwLockReadGuard<'_, UsdStageCache> {
-        self.cache.read().expect("StageCache lock poisoned")
+    /// Reference to the underlying `usd_core::StageCache` (thread-safe).
+    #[must_use]
+    pub fn usd_cache(&self) -> &UsdStageCache {
+        self.cache.as_ref()
     }
 
-    /// Returns a mutable reference to the underlying USD stage cache.
-    pub fn inner_mut(&self) -> std::sync::RwLockWriteGuard<'_, UsdStageCache> {
-        self.cache.write().expect("StageCache lock poisoned")
+    /// Clone of the [`Arc`] holding the process-wide USD stage cache (for `UsdStageCacheContext` / Python).
+    #[must_use]
+    pub fn usd_cache_arc(&self) -> Arc<UsdStageCache> {
+        Arc::clone(&self.cache)
     }
 
     /// Gets or creates a session layer with variant selections for a model.
@@ -151,7 +153,7 @@ mod tests {
     #[test]
     fn test_cache_creation() {
         let cache = StageCache::get();
-        assert!(cache.inner().is_empty());
+        assert!(cache.usd_cache().is_empty());
     }
 
     #[test]

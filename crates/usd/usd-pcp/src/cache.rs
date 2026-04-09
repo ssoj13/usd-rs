@@ -499,9 +499,7 @@ impl Cache {
         // Resolve root layer from identifier asset path.
         // C++ _BuildLayerStack: open root layer, iterate sublayer paths,
         // resolve each via SdfLayer::FindOrOpen, recurse.
-        // If the layer cannot be opened we still build a valid (empty) layer
-        // stack — matching C++ behaviour where PcpCache always produces a
-        // valid PrimIndex even for prims in layers that aren't on disk yet.
+        // Do not substitute a fake layer when open fails — that masks resolver / IO errors.
         let resolved = identifier.root_layer.get_resolved_path();
         let authored = identifier.root_layer.get_asset_path();
         let root_layer_path = if !resolved.is_empty() {
@@ -511,7 +509,7 @@ impl Cache {
         };
 
         let root_layer = if !root_layer_path.is_empty() {
-            // Try resolved path first, then authored path.
+            // Try resolved path first, then authored path (when they differ).
             let first_attempt = Layer::find_or_open(root_layer_path);
             let layer_result = match first_attempt {
                 Ok(layer) => Ok(layer),
@@ -522,28 +520,31 @@ impl Cache {
             };
             match layer_result {
                 Ok(layer) => layer,
-                Err(_) => {
-                    // Layer not on disk yet — create an anonymous placeholder so
-                    // composition can still produce a valid (empty) PrimIndex.
-                    Layer::create_anonymous(None)
-                }
+                Err(_) => return Err(vec![ErrorType::InvalidAssetPath]),
             }
         } else {
             Layer::create_anonymous(None)
         };
 
-        // Resolve session layer: prefer stored handle (works for anonymous layers),
-        // fall back to find_or_open by identifier path (C++ PcpLayerStackIdentifier stores
-        // SdfLayerHandle directly; we approximate by caching the handle in Cache).
-        let session_layer = self.session_layer_handle.clone().or_else(|| {
-            identifier.session_layer.as_ref().and_then(|sl| {
-                let sp = sl.get_asset_path();
-                if sp.is_empty() {
-                    return None;
+        // Session layer: prefer handle cached on this `Cache` (C++ stores `SdfLayerHandle`).
+        // Otherwise resolve by path; failed open is an error (do not swallow `find_or_open`).
+        let session_layer = if let Some(h) = self.session_layer_handle.clone() {
+            Some(h)
+        } else if let Some(sl) = identifier.session_layer.as_ref() {
+            let sp = sl.get_asset_path();
+            if sp.is_empty() {
+                None
+            } else if let Some(l) = Layer::find(&sp) {
+                Some(l)
+            } else {
+                match Layer::find_or_open(sp) {
+                    Ok(l) => Some(l),
+                    Err(_) => return Err(vec![ErrorType::InvalidSublayerPath]),
                 }
-                Layer::find(sp).or_else(|| Layer::find_or_open(sp).ok())
-            })
-        });
+            }
+        } else {
+            None
+        };
 
         let layer_stack = LayerStack::from_root_layer_with_session(root_layer, session_layer);
 
@@ -2005,6 +2006,59 @@ pub type CachePtr = Arc<Cache>;
 mod tests {
     use super::*;
 
+    /// Minimal on-disk root layer so `compute_layer_stack` can open the asset (parity with real stages).
+    fn temp_layer_stack_id_with_scene() -> (tempfile::TempDir, LayerStackIdentifier) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("root.usda");
+        std::fs::write(
+            &path,
+            r#"#usda 1.0
+(
+)
+
+def Xform "World"
+{
+}
+
+def Xform "A"
+{
+    def Xform "C"
+    {
+    }
+}
+
+def Xform "B"
+{
+    def Xform "D"
+    {
+    }
+}
+"#,
+        )
+        .expect("write usda");
+        let id = LayerStackIdentifier::new(path.to_str().expect("utf8 path"));
+        (dir, id)
+    }
+
+    fn temp_layer_stack_id_minimal() -> (tempfile::TempDir, LayerStackIdentifier) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("root.usda");
+        std::fs::write(
+            &path,
+            r#"#usda 1.0
+(
+)
+
+def Xform "World"
+{
+}
+"#,
+        )
+        .expect("write usda");
+        let id = LayerStackIdentifier::new(path.to_str().expect("utf8 path"));
+        (dir, id)
+    }
+
     #[test]
     fn test_cache_creation() {
         let id = LayerStackIdentifier::new("root.usda");
@@ -2074,7 +2128,7 @@ mod tests {
 
     #[test]
     fn test_compute_layer_stack() {
-        let id = LayerStackIdentifier::new("root.usda");
+        let (_dir, id) = temp_layer_stack_id_minimal();
         let cache = Cache::new(id.clone(), true);
 
         let result = cache.compute_layer_stack(&id);
@@ -2088,8 +2142,15 @@ mod tests {
     }
 
     #[test]
+    fn test_compute_layer_stack_errors_when_root_asset_missing() {
+        let id = LayerStackIdentifier::new("definitely_missing_root_28473921.usda");
+        let cache = Cache::new(id.clone(), true);
+        assert!(cache.compute_layer_stack(&id).is_err());
+    }
+
+    #[test]
     fn test_compute_prim_index() {
-        let id = LayerStackIdentifier::new("root.usda");
+        let (_dir, id) = temp_layer_stack_id_minimal();
         let cache = Cache::new(id, true);
 
         let path = Path::from_string("/World").unwrap();
@@ -2106,7 +2167,7 @@ mod tests {
 
     #[test]
     fn test_cache_clear() {
-        let id = LayerStackIdentifier::new("root.usda");
+        let (_dir, id) = temp_layer_stack_id_minimal();
         let cache = Cache::new(id.clone(), true);
 
         // Populate cache
@@ -2124,7 +2185,7 @@ mod tests {
 
     #[test]
     fn test_compute_prim_indexes_in_parallel() {
-        let id = LayerStackIdentifier::new("root.usda");
+        let (_dir, id) = temp_layer_stack_id_with_scene();
         let cache = Cache::new(id, true);
 
         let paths: Vec<Path> = ["/A", "/B", "/A/C", "/B/D"]
@@ -2145,7 +2206,7 @@ mod tests {
 
     #[test]
     fn test_compute_prim_indexes_parallel_empty() {
-        let id = LayerStackIdentifier::new("root.usda");
+        let (_dir, id) = temp_layer_stack_id_minimal();
         let cache = Cache::new(id, true);
 
         let (results, errors) = cache.compute_prim_indexes_in_parallel(&[]);
@@ -2156,7 +2217,7 @@ mod tests {
 
     #[test]
     fn test_compute_subtree_indexes() {
-        let id = LayerStackIdentifier::new("root.usda");
+        let (_dir, id) = temp_layer_stack_id_minimal();
         let cache = Cache::new(id, true);
 
         let root = Path::from_string("/World").unwrap();

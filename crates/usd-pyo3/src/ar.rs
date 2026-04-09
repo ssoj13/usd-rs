@@ -186,7 +186,7 @@ pub struct PyResolverContext {
 
 impl PyResolverContext {
     /// Build a Rust `ResolverContext` from our stored objects.
-    fn to_rust_context(&self) -> ResolverContext {
+    pub(crate) fn to_rust_context(&self) -> ResolverContext {
         if self.context_objs.is_empty() {
             ResolverContext::new()
         } else {
@@ -204,6 +204,20 @@ impl PyResolverContext {
         Self {
             context_objs: vec![ctx],
         }
+    }
+
+    /// Build from a Rust [`ResolverContext`] (e.g. `Usd.Stage.GetPathResolverContext`).
+    pub(crate) fn from_ar_resolver_context(
+        py: Python<'_>,
+        ctx: &ResolverContext,
+    ) -> PyResult<Py<Self>> {
+        let mut context_objs = Vec::new();
+        if let Some(d) = ctx.get::<DefaultResolverContext>() {
+            context_objs.push(PyDefaultResolverContext {
+                inner: d.clone(),
+            });
+        }
+        Py::new(py, Self { context_objs })
     }
 }
 

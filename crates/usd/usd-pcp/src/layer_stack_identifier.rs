@@ -178,24 +178,31 @@ impl PartialOrd for LayerStackIdentifier {
 
 impl Ord for LayerStackIdentifier {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        use std::cmp::Ordering;
         match self
             .root_layer
             .get_authored_path()
             .cmp(other.root_layer.get_authored_path())
         {
-            std::cmp::Ordering::Equal => {}
+            Ordering::Equal => {}
             ord => return ord,
         }
         match (&self.session_layer, &other.session_layer) {
             (Some(a), Some(b)) => match a.get_authored_path().cmp(b.get_authored_path()) {
-                std::cmp::Ordering::Equal => {}
+                Ordering::Equal => {}
                 ord => return ord,
             },
-            (None, Some(_)) => return std::cmp::Ordering::Less,
-            (Some(_), None) => return std::cmp::Ordering::Greater,
+            (None, Some(_)) => return Ordering::Less,
+            (Some(_), None) => return Ordering::Greater,
             (None, None) => {}
         }
-        std::cmp::Ordering::Equal
+        // C++ `PcpLayerStackIdentifier` includes `pathResolverContext`; ordering must match `PartialEq`.
+        match (&self.resolver_context, &other.resolver_context) {
+            (None, None) => Ordering::Equal,
+            (None, Some(_)) => Ordering::Less,
+            (Some(_), None) => Ordering::Greater,
+            (Some(a), Some(b)) => a.cmp(b),
+        }
     }
 }
 
@@ -279,6 +286,18 @@ mod tests {
 
         assert!(id_a < id_b);
         assert!(id_b > id_a);
+    }
+
+    #[test]
+    fn test_ordering_includes_resolver_context() {
+        use usd_ar::DefaultResolverContext;
+        let a = ResolverContext::with_object(DefaultResolverContext::empty());
+        let b = ResolverContext::new();
+        assert_ne!(a, b);
+        let id_a = LayerStackIdentifier::with_parts(AssetPath::new("root.usda"), None, Some(a));
+        let id_b = LayerStackIdentifier::with_parts(AssetPath::new("root.usda"), None, Some(b));
+        assert_ne!(id_a, id_b);
+        assert!(id_a.cmp(&id_b) != std::cmp::Ordering::Equal);
     }
 
     #[test]

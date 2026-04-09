@@ -3,16 +3,18 @@
 //! Drop-in replacement for the C++ OpenUSD `pxr.Usd` Python module.
 //! Wraps usd-core Rust types with PyO3.
 
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::exceptions::{PyException, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, OnceLock};
 
 use usd_core::{
     attribute::Attribute, common::InitialLoadSet, edit_context::EditContext,
     edit_target::EditTarget, population_mask::StagePopulationMask, prim::Prim,
     relationship::Relationship, schema_registry::SchemaRegistry, stage::Stage, time_code::TimeCode,
 };
+use usd_core::stage_cache_context::{StageCacheContext, StageCacheContextBlockType};
 use usd_sdf::Path;
 use usd_tf::Token;
 use usd_vt::{Array, Value};
@@ -3236,9 +3238,24 @@ impl PySchemaBase {
 /// The outermost container for scene description.
 ///
 /// Matches C++ `UsdStage`.
-#[pyclass(skip_from_py_object, name = "Stage", module = "pxr.Usd")]
+#[pyclass(weakref, skip_from_py_object, name = "Stage", module = "pxr.Usd")]
 pub struct PyStage {
     pub(crate) inner: Arc<Stage>,
+}
+
+/// One Python `Usd.Stage` object per underlying `Arc<Stage>` so `stage_a is stage_b` matches C++.
+static PY_STAGE_INTERN: OnceLock<Mutex<HashMap<usize, Py<PyStage>>>> = OnceLock::new();
+
+fn intern_py_stage(py: Python<'_>, inner: Arc<Stage>) -> PyResult<Py<PyStage>> {
+    let key = Arc::as_ptr(&inner) as usize;
+    let lock = PY_STAGE_INTERN.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut guard = lock.lock().expect("py stage intern lock poisoned");
+    if let Some(p) = guard.get(&key) {
+        return Ok(p.clone_ref(py));
+    }
+    let p = Py::new(py, PyStage { inner })?;
+    guard.insert(key, p.clone_ref(py));
+    Ok(p)
 }
 
 #[pymethods]
@@ -3249,11 +3266,10 @@ impl PyStage {
     #[staticmethod]
     #[pyo3(signature = (identifier, load = "LoadAll"))]
     #[allow(non_snake_case)]
-    fn CreateNew(identifier: &str, load: &str) -> PyResult<Self> {
+    fn CreateNew(py: Python<'_>, identifier: &str, load: &str) -> PyResult<Py<PyStage>> {
         let load_set = parse_load(load)?;
-        Stage::create_new(identifier, load_set)
-            .map(|s| Self { inner: s })
-            .map_err(to_py_err)
+        let s = Stage::create_new(identifier, load_set).map_err(to_py_err)?;
+        intern_py_stage(py, s)
     }
 
     /// Create a new stage with an anonymous (in-memory) root layer.
@@ -3266,7 +3282,7 @@ impl PyStage {
     fn CreateInMemory(
         args: &Bound<'_, PyTuple>,
         kwargs: Option<&Bound<'_, PyDict>>,
-    ) -> PyResult<Self> {
+    ) -> PyResult<Py<PyStage>> {
         let mut identifier: Option<String> = None;
         let mut session_layer: Option<Arc<usd_sdf::Layer>> = None;
         let mut load_str = "LoadAll".to_string();
@@ -3311,13 +3327,14 @@ impl PyStage {
 
         let load_set = parse_load(&load_str)?;
 
+        let py = args.py();
         let stage = match (identifier.as_deref(), session_layer) {
             (Some(id), Some(sess)) => Stage::create_in_memory_with_session(id, sess, load_set),
             (Some(id), None) => Stage::create_in_memory_with_identifier(id, load_set),
             (None, _) => Stage::create_in_memory(load_set),
         }
         .map_err(to_py_err)?;
-        Ok(Self { inner: stage })
+        intern_py_stage(py, stage)
     }
 
     /// Open an existing stage from a file path or a `Sdf.Layer`.
@@ -3327,7 +3344,8 @@ impl PyStage {
     #[staticmethod]
     #[pyo3(signature = (*args, **kwargs))]
     #[allow(non_snake_case)]
-    fn Open(args: &Bound<'_, PyTuple>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
+    fn Open(args: &Bound<'_, PyTuple>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Py<PyStage>> {
+        let py = args.py();
         if args.is_empty() {
             return Err(PyValueError::new_err(
                 "Stage.Open() requires at least 1 argument",
@@ -3336,64 +3354,123 @@ impl PyStage {
 
         let file_path = args.get_item(0)?;
 
-        // Parse session layer from 2nd positional or keyword
-        let mut session_layer: Option<Arc<usd_sdf::Layer>> = None;
-        let mut load_str = "LoadAll".to_string();
+        // First argument: root `Sdf.Layer`
+        if let Ok(py_layer) = file_path.extract::<crate::sdf::PyLayer>() {
+            let load_str_layer = kwargs
+                .and_then(|kw| kw.get_item("load").ok().flatten())
+                .and_then(|v| v.extract::<String>().ok())
+                .unwrap_or_else(|| "LoadAll".to_string());
+            let load_set = parse_load(&load_str_layer)?;
 
-        // Check 2nd positional: could be Layer (session) or str (load policy)
-        if args.len() >= 2 {
-            let arg1 = args.get_item(1)?;
-            if let Ok(py_layer) = arg1.extract::<crate::sdf::PyLayer>() {
-                session_layer = Some(py_layer.layer().clone());
-            } else if let Ok(s) = arg1.extract::<String>() {
-                load_str = s;
-            } else if !arg1.is_none() {
-                // sessionLayer=None → ignore
-            }
-        }
+            let root_layer = py_layer.layer().clone();
 
-        // Check 3rd positional (load string) if 2nd was session layer
-        if args.len() >= 3 {
-            if let Ok(s) = args.get_item(2)?.extract::<String>() {
-                load_str = s;
-            }
-        }
-
-        // Override from kwargs
-        if let Some(kw) = kwargs {
-            if let Some(val) = kw.get_item("sessionLayer")? {
-                if val.is_none() {
-                    session_layer = None;
-                } else {
-                    let py_layer: crate::sdf::PyLayer = val.extract()?;
-                    session_layer = Some(py_layer.layer().clone());
+            // `Open(root, sessionLayer, pathResolverContext)` — third arg is `Ar.ResolverContext`.
+            if args.len() >= 3 {
+                let arg1 = args.get_item(1)?;
+                let arg2 = args.get_item(2)?;
+                if let Ok(sess_cell) = arg1.cast::<crate::sdf::PyLayer>() {
+                    let rc: crate::ar::PyResolverContext = arg2.extract().map_err(|_| {
+                        PyValueError::new_err(
+                            "Stage.Open: third argument must be Ar.ResolverContext when the second is Sdf.Layer",
+                        )
+                    })?;
+                    let session_layer = sess_cell.borrow().layer().clone();
+                    let stage = Stage::open_with_root_session_and_resolver_context(
+                        root_layer,
+                        session_layer,
+                        Some(rc.to_rust_context()),
+                        load_set,
+                    )
+                    .map_err(to_py_err)?;
+                    return intern_py_stage(py, stage);
                 }
             }
-            if let Some(val) = kw.get_item("load")? {
-                load_str = val.extract()?;
+
+            // `Open(root, pathResolverContext)` — second arg is not a session layer.
+            if args.len() == 2 {
+                let arg1 = args.get_item(1)?;
+                if let Ok(rc) = arg1.extract::<crate::ar::PyResolverContext>() {
+                    let stage = Stage::open_with_root_layer_and_resolver_context(
+                        root_layer,
+                        Some(rc.to_rust_context()),
+                        load_set,
+                    )
+                    .map_err(to_py_err)?;
+                    return intern_py_stage(py, stage);
+                }
             }
+
+            // `session_spec`: None = implicit anonymous session; Some(None) = no session;
+            // Some(Some(layer)) = explicit session.
+            let mut session_layer: Option<Arc<usd_sdf::Layer>> = None;
+            let mut session_explicit_none = false;
+
+            let mut kw_session = false;
+            if let Some(kw) = kwargs {
+                if kw.contains("sessionLayer")? {
+                    kw_session = true;
+                    if let Some(val) = kw.get_item("sessionLayer")? {
+                        if val.is_none() {
+                            session_explicit_none = true;
+                            session_layer = None;
+                        } else {
+                            let l: crate::sdf::PyLayer = val.extract()?;
+                            session_layer = Some(l.layer().clone());
+                            session_explicit_none = false;
+                        }
+                    }
+                }
+            }
+
+            if !kw_session {
+                if args.len() >= 2 {
+                    let arg1 = args.get_item(1)?;
+                    if arg1.is_none() {
+                        session_explicit_none = true;
+                        session_layer = None;
+                    } else if let Ok(sl) = arg1.cast::<crate::sdf::PyLayer>() {
+                        session_layer = Some(sl.borrow().layer().clone());
+                    }
+                }
+            }
+
+            let stage = if session_explicit_none {
+                Stage::open_with_root_layer_no_session(root_layer, load_set)
+            } else if let Some(sess) = session_layer {
+                Stage::open_with_root_and_session_layer(root_layer, sess, load_set)
+            } else {
+                Stage::open_with_root_layer(root_layer, load_set)
+            }
+            .map_err(to_py_err)?;
+            return intern_py_stage(py, stage);
         }
 
-        let load_set = parse_load(&load_str)?;
-
-        // Accept either a string path or a Layer object
-        if let Ok(py_layer) = file_path.extract::<crate::sdf::PyLayer>() {
-            let root_layer = py_layer.layer().clone();
-            match session_layer {
-                Some(sess) => Stage::open_with_root_and_session_layer(root_layer, sess, load_set),
-                None => Stage::open_with_root_layer(root_layer, load_set),
+        // String path: `Open(path)` or `Open(path, loadPolicyStr)` (matches C++ overloads).
+        if let Ok(path_str) = file_path.extract::<String>() {
+            let mut load_str = "LoadAll".to_string();
+            if args.len() >= 2 {
+                if let Ok(s) = args.get_item(1)?.extract::<String>() {
+                    load_str = s;
+                }
             }
-            .map(|s| Self { inner: s })
-            .map_err(to_py_err)
-        } else if let Ok(path_str) = file_path.extract::<String>() {
-            Stage::open(&path_str, load_set)
-                .map(|s| Self { inner: s })
-                .map_err(to_py_err)
-        } else {
-            Err(PyValueError::new_err(
-                "Stage.Open() expects a file path (str) or an Sdf.Layer",
-            ))
+            if args.len() >= 3 {
+                if let Ok(s) = args.get_item(2)?.extract::<String>() {
+                    load_str = s;
+                }
+            }
+            if let Some(kw) = kwargs {
+                if let Some(val) = kw.get_item("load")? {
+                    load_str = val.extract()?;
+                }
+            }
+            let load_set_path = parse_load(&load_str)?;
+            let stage = Stage::open(&path_str, load_set_path).map_err(to_py_err)?;
+            return intern_py_stage(py, stage);
         }
+
+        Err(PyValueError::new_err(
+            "Stage.Open() expects a file path (str) or an Sdf.Layer",
+        ))
     }
 
     /// Open an existing stage with a population mask.
@@ -3401,14 +3478,14 @@ impl PyStage {
     #[pyo3(signature = (file_path, population_mask, load = "LoadAll"))]
     #[allow(non_snake_case)]
     fn OpenMasked(
+        py: Python<'_>,
         file_path: &str,
         population_mask: &PyStagePopulationMask,
         load: &str,
-    ) -> PyResult<Self> {
+    ) -> PyResult<Py<PyStage>> {
         let load_set = parse_load(load)?;
-        Stage::open_masked(file_path, population_mask.inner.clone(), load_set)
-            .map(|s| Self { inner: s })
-            .map_err(to_py_err)
+        let stage = Stage::open_masked(file_path, population_mask.inner.clone(), load_set).map_err(to_py_err)?;
+        intern_py_stage(py, stage)
     }
 
     /// Returns true if the given file can be opened as a USD stage.
@@ -4112,8 +4189,12 @@ impl PyStage {
     }
 
     #[allow(non_snake_case)]
-    fn GetPathResolverContext(&self) -> String {
-        format!("{:?}", self.inner.get_path_resolver_context())
+    fn GetPathResolverContext(&self, py: Python<'_>) -> PyResult<Py<crate::ar::PyResolverContext>> {
+        let rc = self
+            .inner
+            .get_path_resolver_context()
+            .unwrap_or_else(usd_ar::ResolverContext::new);
+        crate::ar::PyResolverContext::from_ar_resolver_context(py, &rc)
     }
 
     #[pyo3(signature = (paths_to_load, paths_to_unload, policy=None))]
@@ -4187,6 +4268,17 @@ impl PyStage {
     #[allow(non_snake_case)]
     fn SetLoadRules(&self, _rules: &Bound<'_, PyAny>) {
         // TODO: proper StageLoadRules binding
+    }
+
+    fn __eq__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+        if let Ok(o) = other.extract::<PyRef<PyStage>>() {
+            return Ok(Arc::ptr_eq(&self.inner, &o.inner));
+        }
+        Ok(false)
+    }
+
+    fn __hash__(&self) -> isize {
+        Arc::as_ptr(&self.inner) as usize as isize
     }
 
     // -- Repr --------------------------------------------------------------
@@ -5186,12 +5278,81 @@ impl PyMembershipQuery {
 // UsdStageCache — thread-safe stage registry
 // ============================================================================
 
+/// `Usd.StageCache.Id` — lightweight stage cache identifier.
+#[pyclass(skip_from_py_object, name = "Id", module = "pxr.Usd.StageCache")]
+#[derive(Clone)]
+pub struct PyStageCacheId {
+    pub(crate) inner: usd_core::stage_cache::StageCacheId,
+}
+
+#[pymethods]
+impl PyStageCacheId {
+    #[new]
+    #[pyo3(signature = ())]
+    fn new() -> Self {
+        Self {
+            inner: usd_core::stage_cache::StageCacheId::invalid(),
+        }
+    }
+
+    #[classmethod]
+    #[pyo3(name = "FromLongInt")]
+    fn from_long_int(_cls: &Bound<'_, pyo3::types::PyType>, v: i64) -> Self {
+        Self {
+            inner: usd_core::stage_cache::StageCacheId::from_long_int(v),
+        }
+    }
+
+    #[classmethod]
+    #[pyo3(name = "FromString")]
+    fn from_string(_cls: &Bound<'_, pyo3::types::PyType>, s: &str) -> Self {
+        Self {
+            inner: usd_core::stage_cache::StageCacheId::from_string(s),
+        }
+    }
+
+    #[pyo3(name = "ToLongInt")]
+    fn to_long_int(&self) -> i64 {
+        self.inner.to_long_int()
+    }
+
+    #[pyo3(name = "ToString")]
+    fn to_string_py(&self) -> String {
+        self.inner.to_string()
+    }
+
+    fn __eq__(&self, other: &Bound<'_, PyAny>) -> PyResult<bool> {
+        if let Ok(o) = other.extract::<PyRef<Self>>() {
+            return Ok(self.inner.to_long_int() == o.inner.to_long_int());
+        }
+        Ok(false)
+    }
+
+    fn __bool__(&self) -> bool {
+        self.inner.is_valid()
+    }
+
+    fn __hash__(&self) -> isize {
+        self.inner.to_long_int() as isize
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Usd.StageCache.Id({})", self.inner.to_long_int())
+    }
+}
+
 /// Wrapper for USD StageCache.
 ///
 /// Matches C++ `UsdStageCache`.
-#[pyclass(skip_from_py_object, name = "StageCache", module = "pxr.Usd")]
+#[pyclass(weakref, skip_from_py_object, name = "StageCache", module = "pxr.Usd")]
 pub struct PyStageCache {
     inner: Arc<usd_core::stage_cache::StageCache>,
+}
+
+impl PyStageCache {
+    pub(crate) fn from_arc(inner: Arc<usd_core::stage_cache::StageCache>) -> Self {
+        Self { inner }
+    }
 }
 
 #[pymethods]
@@ -5203,42 +5364,230 @@ impl PyStageCache {
         }
     }
 
-    /// Insert a stage into the cache and return its ID as an integer.
+    /// Insert a stage into the cache and return its ID.
     ///
     /// Matches C++ `UsdStageCache::Insert(stage)`.
     #[allow(non_snake_case)]
-    fn Insert(&self, stage: &PyStage) -> i64 {
+    fn Insert(&self, py: Python<'_>, stage: Option<&PyStage>) -> PyResult<Py<PyStageCacheId>> {
+        let Some(stage) = stage else {
+            return Err(PyException::new_err(
+                "Usd.StageCache.Insert: stage cannot be None",
+            ));
+        };
         let id = self.inner.insert(stage.inner.clone());
-        id.to_long_int()
+        Py::new(py, PyStageCacheId { inner: id })
     }
 
-    /// Find a stage by its integer ID.
+    /// Find a stage by cache id (int or [`PyStageCacheId`]).
     ///
     /// Matches C++ `UsdStageCache::Find(id)`.
     #[allow(non_snake_case)]
-    fn Find(&self, id: i64) -> Option<PyStage> {
-        let cache_id = usd_core::stage_cache::StageCacheId::from_long_int(id);
-        self.inner.find(cache_id).map(|s| PyStage { inner: s })
+    fn Find(&self, py: Python<'_>, id: Bound<'_, PyAny>) -> PyResult<Option<Py<PyStage>>> {
+        let cache_id = if let Ok(pid) = id.extract::<PyRef<PyStageCacheId>>() {
+            pid.inner
+        } else if let Ok(v) = id.extract::<i64>() {
+            usd_core::stage_cache::StageCacheId::from_long_int(v)
+        } else {
+            return Err(PyValueError::new_err(
+                "Usd.StageCache.Find: expected int or Usd.StageCache.Id",
+            ));
+        };
+        let Some(s) = self.inner.find(cache_id) else {
+            return Ok(None);
+        };
+        Ok(Some(intern_py_stage(py, s)?))
     }
 
-    /// Erase a stage by its integer ID. Returns true if erased.
-    ///
-    /// Matches C++ `UsdStageCache::Erase(id)`.
     #[allow(non_snake_case)]
-    fn Erase(&self, id: i64) -> bool {
-        let cache_id = usd_core::stage_cache::StageCacheId::from_long_int(id);
-        self.inner.erase(cache_id)
+    #[pyo3(name = "GetId")]
+    fn get_id(&self, py: Python<'_>, stage: Option<&PyStage>) -> PyResult<Py<PyStageCacheId>> {
+        let id = if let Some(s) = stage {
+            self.inner.get_id(&s.inner)
+        } else {
+            usd_core::stage_cache::StageCacheId::invalid()
+        };
+        Py::new(py, PyStageCacheId { inner: id })
+    }
+
+    #[allow(non_snake_case)]
+    #[pyo3(name = "FindOneMatching")]
+    #[pyo3(signature = (*args))]
+    fn find_one_matching_py(
+        &self,
+        py: Python<'_>,
+        args: &Bound<'_, PyTuple>,
+    ) -> PyResult<Option<Py<PyStage>>> {
+        let n = args.len();
+        if !(1..=3).contains(&n) {
+            return Err(PyValueError::new_err(
+                "Usd.StageCache.FindOneMatching: expected 1 to 3 arguments",
+            ));
+        }
+        let arg0 = args.get_item(0)?;
+        let root = arg0.cast::<crate::sdf::PyLayer>()?;
+        let root_layer = root.borrow().layer().clone();
+        let rh = root_layer.get_handle();
+        let slf = &self.inner;
+        let found = match n {
+            1 => slf.find_one_matching(&rh),
+            2 => {
+                let second = args.get_item(1)?;
+                if let Ok(sl) = second.cast::<crate::sdf::PyLayer>() {
+                    let h = sl.borrow().layer().get_handle();
+                    slf.find_one_matching_with_session(&rh, Some(&h))
+                } else if let Ok(ctx) = second.extract::<crate::ar::PyResolverContext>() {
+                    let r = ctx.to_rust_context();
+                    slf.find_one_matching_with_resolver(&rh, &r)
+                } else {
+                    return Err(PyValueError::new_err(
+                        "Usd.StageCache.FindOneMatching: second argument must be Sdf.Layer or Ar.ResolverContext",
+                    ));
+                }
+            }
+            3 => {
+                let arg1 = args.get_item(1)?;
+                let arg2 = args.get_item(2)?;
+                let sl = arg1.cast::<crate::sdf::PyLayer>()?;
+                let ctx = arg2.extract::<crate::ar::PyResolverContext>()?;
+                let sh = sl.borrow().layer().get_handle();
+                let r = ctx.to_rust_context();
+                slf.find_one_matching_with_session_and_resolver(&rh, Some(&sh), &r)
+            }
+            _ => unreachable!(),
+        };
+        let Some(s) = found else {
+            return Ok(None);
+        };
+        Ok(Some(intern_py_stage(py, s)?))
+    }
+
+    #[allow(non_snake_case)]
+    #[pyo3(name = "FindAllMatching")]
+    #[pyo3(signature = (*args))]
+    fn find_all_matching_py(
+        &self,
+        py: Python<'_>,
+        args: &Bound<'_, PyTuple>,
+    ) -> PyResult<Vec<Py<PyStage>>> {
+        let n = args.len();
+        if !(1..=3).contains(&n) {
+            return Err(PyValueError::new_err(
+                "Usd.StageCache.FindAllMatching: expected 1 to 3 arguments",
+            ));
+        }
+        let arg0 = args.get_item(0)?;
+        let root = arg0.cast::<crate::sdf::PyLayer>()?;
+        let root_layer = root.borrow().layer().clone();
+        let rh = root_layer.get_handle();
+        let slf = &self.inner;
+        let out = match n {
+            1 => slf.find_all_matching(&rh),
+            2 => {
+                let second = args.get_item(1)?;
+                if let Ok(sl) = second.cast::<crate::sdf::PyLayer>() {
+                    let h = sl.borrow().layer().get_handle();
+                    slf.find_all_matching_with_session(&rh, Some(&h))
+                } else if let Ok(ctx) = second.extract::<crate::ar::PyResolverContext>() {
+                    let r = ctx.to_rust_context();
+                    slf.find_all_matching_with_resolver(&rh, &r)
+                } else {
+                    return Err(PyValueError::new_err(
+                        "Usd.StageCache.FindAllMatching: second argument must be Sdf.Layer or Ar.ResolverContext",
+                    ));
+                }
+            }
+            3 => {
+                let arg1 = args.get_item(1)?;
+                let arg2 = args.get_item(2)?;
+                let sl = arg1.cast::<crate::sdf::PyLayer>()?;
+                let ctx = arg2.extract::<crate::ar::PyResolverContext>()?;
+                let sh = sl.borrow().layer().get_handle();
+                let r = ctx.to_rust_context();
+                slf.find_all_matching_with_session_and_resolver(&rh, Some(&sh), &r)
+            }
+            _ => unreachable!(),
+        };
+        out.into_iter()
+            .map(|s| intern_py_stage(py, s))
+            .collect()
+    }
+
+    /// Erase a stage by id (`int`, [`PyStageCacheId`]), by [`PyStage`], or None / invalid id → false).
+    #[allow(non_snake_case)]
+    fn Erase(&self, id_or_stage: Option<Bound<'_, PyAny>>) -> PyResult<bool> {
+        let Some(id_or_stage) = id_or_stage else {
+            return Ok(false);
+        };
+        if id_or_stage.is_none() {
+            return Ok(false);
+        }
+        if let Ok(stage) = id_or_stage.extract::<PyRef<PyStage>>() {
+            return Ok(self.inner.erase_stage(&stage.inner));
+        }
+        let cache_id = if let Ok(pid) = id_or_stage.extract::<PyRef<PyStageCacheId>>() {
+            pid.inner
+        } else if let Ok(v) = id_or_stage.extract::<i64>() {
+            usd_core::stage_cache::StageCacheId::from_long_int(v)
+        } else {
+            return Ok(false);
+        };
+        Ok(self.inner.erase(cache_id))
+    }
+
+    #[allow(non_snake_case)]
+    #[pyo3(name = "EraseAll")]
+    #[pyo3(signature = (*args))]
+    fn erase_all_py(&self, args: &Bound<'_, PyTuple>) -> PyResult<usize> {
+        let n = args.len();
+        if !(1..=3).contains(&n) {
+            return Err(PyValueError::new_err(
+                "Usd.StageCache.EraseAll: expected 1 to 3 arguments",
+            ));
+        }
+        let arg0 = args.get_item(0)?;
+        let root = arg0.cast::<crate::sdf::PyLayer>()?;
+        let root_layer = root.borrow().layer().clone();
+        let rh = root_layer.get_handle();
+        let slf = &self.inner;
+        let count = match n {
+            1 => slf.erase_all(&rh),
+            2 => {
+                let second = args.get_item(1)?;
+                if let Ok(sl) = second.cast::<crate::sdf::PyLayer>() {
+                    let h = sl.borrow().layer().get_handle();
+                    slf.erase_all_with_session(&rh, Some(&h))
+                } else if let Ok(ctx) = second.extract::<crate::ar::PyResolverContext>() {
+                    let r = ctx.to_rust_context();
+                    slf.erase_all_with_resolver(&rh, &r)
+                } else {
+                    return Err(PyValueError::new_err(
+                        "Usd.StageCache.EraseAll: second argument must be Sdf.Layer or Ar.ResolverContext",
+                    ));
+                }
+            }
+            3 => {
+                let arg1 = args.get_item(1)?;
+                let arg2 = args.get_item(2)?;
+                let sl = arg1.cast::<crate::sdf::PyLayer>()?;
+                let ctx = arg2.extract::<crate::ar::PyResolverContext>()?;
+                let sh = sl.borrow().layer().get_handle();
+                let r = ctx.to_rust_context();
+                slf.erase_all_with_session_and_resolver(&rh, Some(&sh), &r)
+            }
+            _ => unreachable!(),
+        };
+        Ok(count)
     }
 
     /// Return all stages currently in the cache.
     ///
     /// Matches C++ `UsdStageCache::GetAllStages()`.
     #[allow(non_snake_case)]
-    fn GetAllStages(&self) -> Vec<PyStage> {
+    fn GetAllStages(&self, py: Python<'_>) -> PyResult<Vec<Py<PyStage>>> {
         self.inner
             .get_all_stages()
             .into_iter()
-            .map(|s| PyStage { inner: s })
+            .map(|s| intern_py_stage(py, s))
             .collect()
     }
 
@@ -5263,8 +5612,143 @@ impl PyStageCache {
         self.inner.size()
     }
 
+    fn __bool__(&self) -> bool {
+        true
+    }
+
     fn __repr__(&self) -> String {
         format!("Usd.StageCache(size={})", self.inner.size())
+    }
+}
+
+// ============================================================================
+// UsdStageCacheContext — thread-local cache binding (see `stage_cache_context.rs`)
+// ============================================================================
+
+/// Argument encoded by `Usd.StageCacheContext.__new__` until `__enter__`.
+enum PyStageCacheContextSpec {
+    ReadWrite(std::sync::Arc<usd_core::stage_cache::StageCache>),
+    ReadOnly(std::sync::Arc<usd_core::stage_cache::StageCache>),
+    Block(StageCacheContextBlockType),
+}
+
+/// Read-only wrapper around `Usd.StageCache` (C++ `UsdUseButDoNotPopulateCache`).
+#[pyclass(weakref, skip_from_py_object, name = "UseButDoNotPopulateCache", module = "pxr.Usd")]
+pub struct PyUseButDoNotPopulateCache {
+    pub(crate) cache: std::sync::Arc<usd_core::stage_cache::StageCache>,
+    /// Keeps the Python `Usd.StageCache` alive (see `testUsdStageCache.test_CacheContextLifetime`).
+    _py_cache: Py<PyStageCache>,
+}
+
+#[pymethods]
+impl PyUseButDoNotPopulateCache {
+    #[new]
+    fn new(py: Python<'_>, cache: Py<PyStageCache>) -> Self {
+        let arc = cache.borrow(py).inner.clone();
+        Self {
+            cache: arc,
+            _py_cache: cache,
+        }
+    }
+
+    fn __repr__(&self) -> &'static str {
+        "Usd.UseButDoNotPopulateCache"
+    }
+}
+
+/// Sentinel for `Usd.StageCacheContext(Usd.BlockStageCaches)`.
+#[pyclass(frozen, name = "BlockStageCaches", module = "pxr.Usd")]
+pub struct PyUsdBlockStageCaches;
+
+#[pymethods]
+impl PyUsdBlockStageCaches {
+    fn __repr__(&self) -> &'static str {
+        "Usd.BlockStageCaches"
+    }
+}
+
+/// Sentinel for `Usd.StageCacheContext(Usd.BlockStageCachePopulation)`.
+#[pyclass(frozen, name = "BlockStageCachePopulation", module = "pxr.Usd")]
+pub struct PyUsdBlockStageCachePopulation;
+
+#[pymethods]
+impl PyUsdBlockStageCachePopulation {
+    fn __repr__(&self) -> &'static str {
+        "Usd.BlockStageCachePopulation"
+    }
+}
+
+#[pyclass(skip_from_py_object, name = "StageCacheContext", module = "pxr.Usd")]
+pub struct PyStageCacheContext {
+    spec: Option<PyStageCacheContextSpec>,
+    active: Option<StageCacheContext>,
+    /// Extra Python refs kept for cache lifetime tests.
+    _keepalive: Vec<Py<PyAny>>,
+}
+
+#[pymethods]
+impl PyStageCacheContext {
+    #[new]
+    #[pyo3(signature = (arg,))]
+    fn new(arg: Bound<'_, PyAny>) -> PyResult<Self> {
+        let mut keepalive: Vec<Py<PyAny>> = Vec::new();
+        let spec = if let Ok(c) = arg.cast::<PyStageCache>() {
+            keepalive.push(arg.clone().unbind());
+            PyStageCacheContextSpec::ReadWrite(c.borrow().inner.clone())
+        } else if let Ok(u) = arg.cast::<crate::utils::PyUsdUtilsStageCache>() {
+            keepalive.push(arg.clone().unbind());
+            PyStageCacheContextSpec::ReadWrite(u.borrow().usd_cache_arc())
+        } else if let Ok(w) = arg.cast::<PyUseButDoNotPopulateCache>() {
+            keepalive.push(arg.clone().unbind());
+            PyStageCacheContextSpec::ReadOnly(w.borrow().cache.clone())
+        } else if arg.cast::<PyUsdBlockStageCaches>().is_ok() {
+            PyStageCacheContextSpec::Block(StageCacheContextBlockType::BlockStageCaches)
+        } else if arg.cast::<PyUsdBlockStageCachePopulation>().is_ok() {
+            PyStageCacheContextSpec::Block(StageCacheContextBlockType::BlockStageCachePopulation)
+        } else {
+            return Err(PyValueError::new_err(
+                "Usd.StageCacheContext: expected Usd.StageCache, UsdUtils.StageCache, \
+                 Usd.UseButDoNotPopulateCache, Usd.BlockStageCaches, or Usd.BlockStageCachePopulation",
+            ));
+        };
+        Ok(Self {
+            spec: Some(spec),
+            active: None,
+            _keepalive: keepalive,
+        })
+    }
+
+    fn __enter__(mut slf: PyRefMut<'_, Self>) -> PyResult<()> {
+        if slf.active.is_some() {
+            return Err(PyRuntimeError::new_err(
+                "Usd.StageCacheContext: already entered",
+            ));
+        }
+        let spec = slf.spec.take().ok_or_else(|| {
+            PyRuntimeError::new_err("Usd.StageCacheContext: context already consumed")
+        })?;
+        let ctx = match spec {
+            PyStageCacheContextSpec::ReadWrite(arc) => StageCacheContext::new(arc.as_ref()),
+            PyStageCacheContextSpec::ReadOnly(arc) => StageCacheContext::read_only(arc.as_ref()),
+            PyStageCacheContextSpec::Block(bt) => StageCacheContext::blocking(bt),
+        };
+        slf.active = Some(ctx);
+        Ok(())
+    }
+
+    #[pyo3(signature = (_exc_type=None, _exc_val=None, _exc_tb=None))]
+    fn __exit__(
+        mut slf: PyRefMut<'_, Self>,
+        _exc_type: Option<Bound<'_, PyAny>>,
+        _exc_val: Option<Bound<'_, PyAny>>,
+        _exc_tb: Option<Bound<'_, PyAny>>,
+    ) -> PyResult<()> {
+        slf.active.take();
+        Ok(())
+    }
+
+    fn __repr__(&self) -> &'static str {
+        "Usd.StageCacheContext"
     }
 }
 
@@ -5395,8 +5879,24 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyCollectionAPI>()?;
     m.add_class::<PyMembershipQuery>()?;
 
-    // StageCache
+    // StageCache (nested Id matches pxr.Usd.StageCache.Id)
+    m.add_class::<PyStageCacheId>()?;
     m.add_class::<PyStageCache>()?;
+    m.getattr("StageCache")?
+        .setattr("Id", py.get_type::<PyStageCacheId>())?;
+
+    m.add_class::<PyUseButDoNotPopulateCache>()?;
+    m.add_class::<PyUsdBlockStageCaches>()?;
+    m.add_class::<PyUsdBlockStageCachePopulation>()?;
+    m.add(
+        "BlockStageCaches",
+        Py::new(py, PyUsdBlockStageCaches)?,
+    )?;
+    m.add(
+        "BlockStageCachePopulation",
+        Py::new(py, PyUsdBlockStageCachePopulation)?,
+    )?;
+    m.add_class::<PyStageCacheContext>()?;
 
     // ColorSpaceHashCache
     m.add_class::<PyColorSpaceHashCache>()?;

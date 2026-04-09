@@ -6,6 +6,9 @@
 use pyo3::prelude::*;
 
 use usd_plug::PlugRegistry;
+use usd_tf;
+
+use crate::tf::PyType;
 
 // ============================================================================
 // Registry (PlugRegistry)
@@ -59,6 +62,23 @@ impl PyPlugRegistry {
         let reg = PlugRegistry::get_instance();
         reg.get_plugin_with_name(name)
             .map(|p| p.get_name().to_string())
+    }
+
+    /// Resolve a registered plugin implementation type by name (see `plugInfo.json` / TfType map).
+    ///
+    /// Returns [`Tf.Type`] registered for `name`, or **unknown** if not found (truth-tested in tests).
+    #[pyo3(name = "FindTypeByName")]
+    fn find_type_by_name(&self, py: Python<'_>, name: &str) -> PyResult<Option<Py<PyType>>> {
+        let reg = PlugRegistry::get_instance();
+        if reg.find_type_by_name(name).is_none() {
+            return Ok(None);
+        }
+        Ok(Some(Py::new(
+            py,
+            PyType {
+                inner: usd_tf::TfType::find_by_name(name),
+            },
+        )?))
     }
 
     fn __repr__(&self) -> &str {
