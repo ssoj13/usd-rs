@@ -5,9 +5,6 @@
 # Licensed under the terms set forth in the LICENSE.txt file available at
 # https://openusd.org/license.
 #
-# usd-rs: `ConstantsGroup` is implemented in Rust (PyO3). Metaclass-level
-# immutability matches Pixar only partially; tests use `_all` where the C++
-# build used `in` / `iter` on the class object.
 
 import unittest
 
@@ -34,14 +31,14 @@ class TestConstantsGroup(unittest.TestCase):
             B = 2
             C = 3
 
-        self.assertTrue(Test.A in Test._all)
-        self.assertTrue(Test.B in Test._all)
-        self.assertTrue(Test.C in Test._all)
-        self.assertTrue(1 in Test._all)
-        self.assertTrue(2 in Test._all)
-        self.assertTrue(3 in Test._all)
-        self.assertFalse(4 in Test._all)
-        self.assertTrue(4 not in Test._all)
+        self.assertTrue(Test.A in Test)
+        self.assertTrue(Test.B in Test)
+        self.assertTrue(Test.C in Test)
+        self.assertTrue(1 in Test)
+        self.assertTrue(2 in Test)
+        self.assertTrue(3 in Test)
+        self.assertFalse(4 in Test)
+        self.assertTrue(4 not in Test)
 
     def test_Iterate(self):
         class Test(ConstantsGroup):
@@ -50,12 +47,12 @@ class TestConstantsGroup(unittest.TestCase):
             C = 3
 
         constants = []
-        for value in Test._all:
+        for value in Test:
             constants.append(value)
         self.assertListEqual(constants, [Test.A, Test.B, Test.C])
-        self.assertListEqual(list(Test._all), [Test.A, Test.B, Test.C])
+        self.assertListEqual(list(Test), [Test.A, Test.B, Test.C])
+        self.assertEqual(len(Test), 3)
 
-    @unittest.skip("Rust port: class-level immutability is not enforced via metaclass")
     def test_Unmodifiable(self):
         class Test(ConstantsGroup):
             A = 1

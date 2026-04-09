@@ -1,13 +1,13 @@
 //! pxr.UsdUtils — backed by `usd-utils` crate; entire module is native (PyO3).
 
-use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList, PyModule, PyTuple, PyType};
+use pyo3::types::{PyModule, PyType};
 use usd_core::stage_cache::StageCache as UsdStageCache;
 use usd_core::time_code::TimeCode;
 use usd_utils::StageCache as UtilsStageCache;
 use usd_utils::time_code_range::TimeCodeRange as Utcr;
 
+use crate::constants_group;
 use crate::usd::{PyStageCache, PyTimeCode};
 
 // ---------------------------------------------------------------------------
@@ -126,82 +126,6 @@ impl PyTimeCodeRange {
 }
 
 // ---------------------------------------------------------------------------
-// constantsGroup.ConstantsGroup  (Rust + PyO3 — behavior may differ slightly from Pixar)
-// ---------------------------------------------------------------------------
-
-#[pyclass(
-    name = "ConstantsGroup",
-    module = "pxr.UsdUtils.constantsGroup",
-    subclass
-)]
-pub struct PyConstantsGroup;
-
-#[pymethods]
-impl PyConstantsGroup {
-    #[new]
-    fn new() -> PyResult<()> {
-        Err(PyTypeError::new_err(
-            "ConstantsGroup objects cannot be created.",
-        ))
-    }
-
-    /// Builds `_all` from class body entries (Pixar-style), wraps bare functions as `staticmethod`.
-    #[classmethod]
-    #[pyo3(signature = (*, **kwargs))]
-    fn __init_subclass__(
-        cls: &Bound<'_, PyType>,
-        kwargs: Option<&Bound<'_, PyDict>>,
-    ) -> PyResult<()> {
-        let _ = kwargs;
-        let py = cls.py();
-        let dict_proxy = cls.getattr("__dict__")?;
-        let items = dict_proxy.call_method0("items")?;
-        let builtins = py.import("builtins")?;
-        let list: Bound<'_, PyAny> = builtins.getattr("list")?.call1((items,))?;
-        let list: Bound<'_, PyList> = list.cast_into()?;
-
-        let types_mod = py.import("types")?;
-        let function_type = types_mod.getattr("FunctionType")?;
-        let isinstance = builtins.getattr("isinstance")?;
-        let staticmethod_ctor = builtins.getattr("staticmethod")?;
-
-        let mut collected: Vec<Py<PyAny>> = Vec::new();
-
-        for i in 0..list.len() {
-            let pair = list.get_item(i)?;
-            let key: String = pair.get_item(0)?.extract()?;
-            if key.starts_with('_') {
-                continue;
-            }
-            let val = pair.get_item(1)?;
-
-            let is_classmethod: bool = isinstance
-                .call1((&val, types_mod.getattr("classmethod")?))?
-                .extract()?;
-            let is_staticmethod: bool = isinstance
-                .call1((&val, types_mod.getattr("staticmethod")?))?
-                .extract()?;
-            if is_classmethod || is_staticmethod {
-                continue;
-            }
-
-            let is_func: bool = isinstance.call1((&val, &function_type))?.extract()?;
-            if is_func {
-                collected.push(val.clone().unbind());
-                let wrapped = staticmethod_ctor.call1((&val,))?;
-                cls.setattr(&key, &wrapped)?;
-            } else {
-                collected.push(val.unbind());
-            }
-        }
-
-        let tup = PyTuple::new(py, collected)?;
-        cls.setattr("_all", tup)?;
-        Ok(())
-    }
-}
-
-// ---------------------------------------------------------------------------
 // StageCache
 // ---------------------------------------------------------------------------
 
@@ -245,7 +169,7 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     tcr.setattr("Tokens", &tokens)?;
 
     let cg_mod = PyModule::new(py, "constantsGroup")?;
-    cg_mod.add_class::<PyConstantsGroup>()?;
+    constants_group::register_constants_group(py, &cg_mod)?;
     m.add_submodule(&cg_mod)?;
     py.import("sys")?
         .getattr("modules")?
