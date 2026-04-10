@@ -7,6 +7,7 @@
 use super::point_based::PointBased;
 use super::points::widths_vec_from_usd_value;
 use super::tokens::usd_geom_tokens;
+use crate::schema_create_default::apply_optional_default;
 use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
 use usd_gf::matrix4::Matrix4d;
@@ -108,7 +109,7 @@ impl Curves {
     /// Matches C++ `CreateCurveVertexCountsAttr()`.
     pub fn create_curve_vertex_counts_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -119,19 +120,21 @@ impl Curves {
         if prim.has_authored_attribute(usd_geom_tokens().curve_vertex_counts.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().curve_vertex_counts.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int_array_type = registry.find_type_by_token(&Token::new("int[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().curve_vertex_counts.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().curve_vertex_counts.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================

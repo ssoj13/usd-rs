@@ -387,7 +387,13 @@ fn extract_expression(
                 return String::new();
             }
 
-            format!("({} {} {})", lhs, op_value.to_lowercase(), rhs)
+            // Match OpenUSD `SdfBooleanExpression` text (`&&` / `||`), not Katana op names.
+            let joiner = if op_value.to_lowercase() == "or" {
+                " || "
+            } else {
+                " && "
+            };
+            format!("{lhs}{joiner}{rhs}")
         }
         "equalto"
         | "notequalto"

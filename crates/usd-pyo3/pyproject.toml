@@ -27,3 +27,6 @@ testpaths = ["tests"]
 python_files = ["test*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*", "test*"]
+markers = [
+    "requires_sdr_native_plugins: needs C++ OpenUSD Sdr test DSOs under tests/.../SdrPlugins (Plug.RegisterPlugins); pxr_rs skips if absent",
+]

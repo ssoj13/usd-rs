@@ -6,6 +6,7 @@
 //! attribute representing a typed, externally computed value.
 
 use super::connectable_api::{ConnectableAPI, ConnectionSourceInfo};
+use super::sdr_value_string::sdr_metadata_value_string;
 use super::tokens::tokens;
 use super::types::{AttributeType, AttributeVector, ConnectionModification, SdrTokenMap};
 use super::utils::Utils;
@@ -187,7 +188,7 @@ impl Output {
         if let Some(v) = self.attr.get_metadata(&tokens().sdr_metadata) {
             if let Some(dict) = v.get::<usd_vt::Dictionary>() {
                 for (key, val) in dict.iter() {
-                    result.insert(Token::new(key), val.to_string());
+                    result.insert(Token::new(key), sdr_metadata_value_string(val));
                 }
             }
         }
@@ -201,7 +202,7 @@ impl Output {
             .attr
             .get_metadata_by_dict_key(&tokens().sdr_metadata, key)
         {
-            v.to_string()
+            sdr_metadata_value_string(&v)
         } else {
             String::new()
         }

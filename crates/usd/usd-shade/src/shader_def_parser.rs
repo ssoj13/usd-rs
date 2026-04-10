@@ -12,6 +12,7 @@ use super::shader_def_utils;
 use std::sync::Arc;
 use usd_core::{InitialLoadSet, Stage};
 use usd_sdf::Path;
+use usd_sdr::declare::SdrTokenMap;
 use usd_tf::Token;
 
 /// Discovery types supported by the shader definition parser.
@@ -40,6 +41,8 @@ pub struct ShaderDefParseResult {
     pub properties: Vec<shader_def_utils::ShaderPropertyInfo>,
     /// Primvar names metadata string.
     pub metadata_str: String,
+    /// Flattened `sdrMetadata` (plus `primvars`) for constructing [`usd_sdr::SdrShaderNode`].
+    pub shader_node_metadata: SdrTokenMap,
     /// Source type for the shader node.
     pub source_type: Token,
     /// Resolved URI of the implementation (the actual shader source file).
@@ -117,10 +120,19 @@ pub fn parse_shader_node(
         &connectable,
     );
 
+    let mut shader_node_metadata: SdrTokenMap = sdr_metadata
+        .iter()
+        .map(|(k, v)| (Token::new(k.as_str()), v.clone()))
+        .collect();
+    if !metadata_str.is_empty() {
+        shader_node_metadata.insert(Token::new("primvars"), metadata_str.clone());
+    }
+
     Ok(ShaderDefParseResult {
         identifier: identifier.clone(),
         properties,
         metadata_str,
+        shader_node_metadata,
         source_type: source_type.clone(),
         resolved_impl_uri,
         root_layer_path: resolved_uri.to_string(),

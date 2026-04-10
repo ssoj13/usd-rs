@@ -242,9 +242,7 @@ fn get_type(py: Python<'_>, prop: &PyShaderProperty) -> PyResult<Py<PyType>> {
     let cpp = ind.get_sdf_type().cpp_type_name();
     Py::new(
         py,
-        PyType {
-            inner: usd_tf::TfType::find_by_name(cpp),
-        },
+        PyType::from_tf_type_for_bindings(usd_tf::TfType::find_by_name(cpp)),
     )
 }
 

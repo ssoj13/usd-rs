@@ -13,8 +13,13 @@ use usd_sdf::{Path, TimeCode};
 use usd_shade::{
     ConnectableAPI, CoordSysAPI, Input, Material, MaterialBindingAPI, NodeGraph, Output, Shader,
 };
+use usd_shade::shader_def_utils::get_discovery_results;
+use usd_shade::UsdShadeShaderDefParserPlugin;
+use usd_sdr::parser_plugin::SdrParserPlugin;
 use usd_tf::Token;
 use usd_vt::Value;
+
+use crate::sdr::{PyNodeDiscoveryResult, PyShaderNode};
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -32,6 +37,20 @@ fn path_from_str(s: &str) -> PyResult<Path> {
 #[pyclass(name = "Stage", module = "pxr.UsdShade")]
 struct PyStage {
     inner: Arc<Stage>,
+}
+
+/// OpenUSD `UsdShade::*` entry points accept `Usd.Stage`; we also accept `UsdShade.Stage`.
+fn arc_stage_usd_or_shade(stage: &Bound<'_, PyAny>) -> PyResult<Arc<Stage>> {
+    use crate::usd::PyStage as UsdPyStage;
+    if let Ok(s) = stage.cast::<UsdPyStage>() {
+        return Ok(s.borrow().inner.clone());
+    }
+    if let Ok(s) = stage.cast::<PyStage>() {
+        return Ok(s.borrow().inner.clone());
+    }
+    Err(PyValueError::new_err(
+        "expected pxr.Usd.Stage or pxr.UsdShade.Stage",
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -175,18 +194,22 @@ struct PyShader {
 #[pymethods]
 impl PyShader {
     #[staticmethod]
-    fn get(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Get")]
+    fn get(stage: &Bound<'_, PyAny>, path: &str) -> PyResult<Self> {
+        let arc = arc_stage_usd_or_shade(stage)?;
         let p = path_from_str(path)?;
         Ok(Self {
-            inner: Shader::get(&stage.inner, &p),
+            inner: Shader::get(&arc, &p),
         })
     }
 
     #[staticmethod]
-    fn define(stage: &PyStage, path: &str) -> PyResult<Self> {
+    #[pyo3(name = "Define")]
+    fn define(stage: &Bound<'_, PyAny>, path: &str) -> PyResult<Self> {
+        let arc = arc_stage_usd_or_shade(stage)?;
         let p = path_from_str(path)?;
         Ok(Self {
-            inner: Shader::define(&stage.inner, &p),
+            inner: Shader::define(&arc, &p),
         })
     }
 
@@ -812,6 +835,60 @@ impl PyUtils {
 }
 
 // ---------------------------------------------------------------------------
+// ShaderDefUtils / ShaderDefParserPlugin (usdShade shader definition → Sdr)
+// ---------------------------------------------------------------------------
+
+#[pyclass(name = "ShaderDefUtils", module = "pxr.UsdShade")]
+struct PyShaderDefUtils;
+
+#[pymethods]
+impl PyShaderDefUtils {
+    /// GetDiscoveryResults(shaderDef, sourceUri) -> list[NodeDiscoveryResult]
+    ///
+    /// `sourceUri` is typically `stage.GetRootLayer().realPath` for the layer that owns the def.
+    #[staticmethod]
+    #[pyo3(name = "GetDiscoveryResults")]
+    fn get_discovery_results(
+        py: Python<'_>,
+        shader_def: &PyShader,
+        source_uri: &str,
+    ) -> PyResult<Vec<Py<PyNodeDiscoveryResult>>> {
+        let vec = get_discovery_results(&shader_def.inner, source_uri);
+        let mut out = Vec::with_capacity(vec.len());
+        for inner in vec {
+            out.push(Py::new(py, PyNodeDiscoveryResult { inner })?);
+        }
+        Ok(out)
+    }
+}
+
+#[pyclass(name = "ShaderDefParserPlugin", module = "pxr.UsdShade")]
+struct PyShaderDefParserPlugin;
+
+#[pymethods]
+impl PyShaderDefParserPlugin {
+    #[new]
+    fn new() -> Self {
+        Self
+    }
+
+    /// ParseShaderNode(discoveryResult) -> Sdr.ShaderNode or None
+    #[pyo3(name = "ParseShaderNode")]
+    fn parse_shader_node(
+        &self,
+        py: Python<'_>,
+        discovery: &PyNodeDiscoveryResult,
+    ) -> PyResult<Option<Py<PyShaderNode>>> {
+        let plugin = UsdShadeShaderDefParserPlugin::new();
+        let node = SdrParserPlugin::parse_shader_node(&plugin, &discovery.inner);
+        match node {
+            Some(boxed) => Ok(Some(Py::new(py, PyShaderNode::new_node(*boxed))?)),
+            None => Ok(None),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Module registration
 // ---------------------------------------------------------------------------
 
@@ -828,6 +905,8 @@ pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyTokens>()?;
     m.add_class::<PyAttributeType>()?;
     m.add_class::<PyUtils>()?;
+    m.add_class::<PyShaderDefUtils>()?;
+    m.add_class::<PyShaderDefParserPlugin>()?;
 
     // Singleton, matching `UsdShadeTokens` in C++
     m.add("Tokens", PyTokens)?;

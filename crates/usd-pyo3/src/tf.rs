@@ -89,6 +89,28 @@ impl PyToken {
 pub struct PyType {
     /// Shared with `Usd` / `UsdGeom` bindings for schema and `IsA` queries.
     pub(crate) inner: usd_tf::TfType,
+    /// When `FindByName` does not resolve in the Tf registry (typical for C++ plugin types),
+    /// preserve the queried name for `typeName`, `repr`, and `pxr.Sdr` parser selection.
+    find_by_name_query: Option<String>,
+}
+
+impl PyType {
+    /// Build from a resolved [`usd_tf::TfType`] (no `FindByName` fallback string).
+    pub(crate) fn from_tf_type_for_bindings(inner: usd_tf::TfType) -> Self {
+        Self {
+            inner,
+            find_by_name_query: None,
+        }
+    }
+
+    /// Label used by `pxr.Sdr` to pick parser plugins when `Tf.Type.FindByName` has no registry hit.
+    pub(crate) fn effective_name_for_sdr_plugin_match(&self) -> String {
+        let s = self.inner.type_name();
+        if !s.is_empty() {
+            return s;
+        }
+        self.find_by_name_query.clone().unwrap_or_default()
+    }
 }
 
 #[pymethods]
@@ -101,6 +123,7 @@ impl PyType {
     fn unknown(_cls: &Bound<'_, pyo3::types::PyType>) -> Self {
         Self {
             inner: usd_tf::TfType::unknown(),
+            find_by_name_query: None,
         }
     }
 
@@ -110,6 +133,7 @@ impl PyType {
     fn get_root(_cls: &Bound<'_, pyo3::types::PyType>) -> Self {
         Self {
             inner: usd_tf::TfType::get_root(),
+            find_by_name_query: None,
         }
     }
 
@@ -117,8 +141,15 @@ impl PyType {
     #[classmethod]
     #[pyo3(name = "FindByName")]
     fn find_by_name(_cls: &Bound<'_, pyo3::types::PyType>, name: &str) -> Self {
+        let inner = usd_tf::TfType::find_by_name(name);
+        let find_by_name_query = if inner.type_name().is_empty() && !name.is_empty() {
+            Some(name.to_string())
+        } else {
+            None
+        };
         Self {
-            inner: usd_tf::TfType::find_by_name(name),
+            inner,
+            find_by_name_query,
         }
     }
 
@@ -127,6 +158,7 @@ impl PyType {
     fn find_derived_by_name(&self, name: &str) -> Self {
         Self {
             inner: self.inner.find_derived_by_name(name),
+            find_by_name_query: None,
         }
     }
 
@@ -139,6 +171,7 @@ impl PyType {
     fn define(_cls: &Bound<'_, pyo3::types::PyType>, _py_class: &Bound<'_, PyAny>) -> Self {
         Self {
             inner: usd_tf::TfType::unknown(),
+            find_by_name_query: None,
         }
     }
 
@@ -153,10 +186,18 @@ impl PyType {
         } else {
             return Self {
                 inner: usd_tf::TfType::unknown(),
+                find_by_name_query: None,
             };
         };
+        let inner = usd_tf::TfType::find_by_name(&name);
+        let find_by_name_query = if inner.type_name().is_empty() && !name.is_empty() {
+            Some(name)
+        } else {
+            None
+        };
         Self {
-            inner: usd_tf::TfType::find_by_name(&name),
+            inner,
+            find_by_name_query,
         }
     }
 
@@ -196,7 +237,11 @@ impl PyType {
     #[getter]
     #[pyo3(name = "typeName")]
     fn type_name(&self) -> String {
-        self.inner.type_name()
+        let s = self.inner.type_name();
+        if !s.is_empty() {
+            return s;
+        }
+        self.find_by_name_query.clone().unwrap_or_default()
     }
 
     /// Size of the underlying C++ / Rust type in bytes.
@@ -214,7 +259,10 @@ impl PyType {
         self.inner
             .base_types()
             .into_iter()
-            .map(|t| Self { inner: t })
+            .map(|t| Self {
+                inner: t,
+                find_by_name_query: None,
+            })
             .collect()
     }
 
@@ -224,7 +272,10 @@ impl PyType {
         self.inner
             .get_all_ancestor_types()
             .into_iter()
-            .map(|t| Self { inner: t })
+            .map(|t| Self {
+                inner: t,
+                find_by_name_query: None,
+            })
             .collect()
     }
 
@@ -234,7 +285,10 @@ impl PyType {
         self.inner
             .get_directly_derived_types()
             .into_iter()
-            .map(|t| Self { inner: t })
+            .map(|t| Self {
+                inner: t,
+                find_by_name_query: None,
+            })
             .collect()
     }
 
@@ -255,15 +309,16 @@ impl PyType {
     // ---- dunder ----
 
     fn __repr__(&self) -> String {
-        if self.inner.is_unknown() {
+        let n = self.type_name();
+        if n.is_empty() && self.inner.is_unknown() {
             "Tf.Type.Unknown".to_string()
         } else {
-            format!("Tf.Type('{}')", self.inner.type_name())
+            format!("Tf.Type('{}')", n)
         }
     }
 
     fn __str__(&self) -> String {
-        self.inner.type_name()
+        self.type_name()
     }
 
     fn __eq__(&self, other: &Self) -> bool {

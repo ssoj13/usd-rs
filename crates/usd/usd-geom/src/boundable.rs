@@ -9,7 +9,9 @@ use super::tokens::usd_geom_tokens;
 use super::xformable::Xformable;
 use usd_core::{Attribute, Prim};
 use usd_gf::vec3::Vec3f;
+use usd_sdf::TimeCode;
 use usd_tf::Token;
+use usd_vt::Value;
 
 // ============================================================================
 // Boundable
@@ -89,38 +91,44 @@ impl Boundable {
 
     /// Creates the extent attribute.
     ///
-    /// Matches C++ `CreateExtentAttr()`.
-    pub fn create_extent_attr(&self) -> Attribute {
+    /// Matches C++ `CreateExtentAttr(VtValue defaultValue, bool writeSparsely)`.
+    pub fn create_extent_attr(
+        &self,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
         let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Get or create the attribute with proper type (Vec3fArray)
-        if prim.has_authored_attribute(usd_geom_tokens().extent.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().extent.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
-        }
-
-        // Find Vec3fArray type from registry
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let extent_type = registry.find_type_by_token(&Token::new("float3[]"));
-        // If not found, try alternative names
-        let extent_type = if !extent_type.is_valid() {
-            registry.find_type_by_token(&Token::new("Vec3f[]"))
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().extent.as_str()) {
+            prim.get_attribute(usd_geom_tokens().extent.as_str())
+                .unwrap_or_else(|| Attribute::invalid())
         } else {
-            extent_type
+            let registry = usd_sdf::ValueTypeRegistry::instance();
+            let extent_type = registry.find_type_by_token(&Token::new("float3[]"));
+            let extent_type = if !extent_type.is_valid() {
+                registry.find_type_by_token(&Token::new("Vec3f[]"))
+            } else {
+                extent_type
+            };
+
+            prim.create_attribute(
+                usd_geom_tokens().extent.as_str(),
+                &extent_type,
+                false,
+                Some(usd_core::attribute::Variability::Varying),
+            )
+            .unwrap_or_else(Attribute::invalid)
         };
 
-        // Create attribute with proper type and variability
-        prim.create_attribute(
-            usd_geom_tokens().extent.as_str(),
-            &extent_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        if attr.is_valid() {
+            if let Some(v) = default_value {
+                let _ = attr.set(v, TimeCode::default());
+            }
+        }
+        attr
     }
 
     /// Compute the extent for the boundable prim at the specified time.

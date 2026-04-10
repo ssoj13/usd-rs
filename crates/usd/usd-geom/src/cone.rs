@@ -13,6 +13,7 @@ use usd_gf::matrix4::Matrix4d;
 use usd_gf::range::Range3d;
 use usd_gf::vec3::Vec3d;
 use usd_gf::vec3::Vec3f;
+use usd_sdf::TimeCode;
 use usd_sdf::ValueTypeRegistry;
 use usd_tf::Token;
 use usd_vt::Value;
@@ -117,7 +118,7 @@ impl Cone {
     /// Matches C++ `CreateHeightAttr()`.
     pub fn create_height_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -128,19 +129,24 @@ impl Cone {
         if prim.has_authored_attribute(usd_geom_tokens().height.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().height.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double_type = registry.find_type_by_token(&Token::new("double"));
 
-        prim.create_attribute(
-            usd_geom_tokens().height.as_str(),
-            &double_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().height.as_str(),
+                &double_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -163,7 +169,7 @@ impl Cone {
     /// Matches C++ `CreateRadiusAttr()`.
     pub fn create_radius_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -174,19 +180,24 @@ impl Cone {
         if prim.has_authored_attribute(usd_geom_tokens().radius.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().radius.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double_type = registry.find_type_by_token(&Token::new("double"));
 
-        prim.create_attribute(
-            usd_geom_tokens().radius.as_str(),
-            &double_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().radius.as_str(),
+                &double_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -209,7 +220,7 @@ impl Cone {
     /// Matches C++ `CreateAxisAttr()`.
     pub fn create_axis_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -220,19 +231,24 @@ impl Cone {
         if prim.has_authored_attribute(usd_geom_tokens().axis.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().axis.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        prim.create_attribute(
-            usd_geom_tokens().axis.as_str(),
-            &token_type,
-            false,                      // not custom
-            Some(Variability::Uniform), // uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().axis.as_str(),
+                &token_type,
+                false,                      // not custom
+                Some(Variability::Uniform), // uniform
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -253,10 +269,12 @@ impl Cone {
     /// Matches C++ `CreateExtentAttr()`.
     pub fn create_extent_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        self.inner.boundable().create_extent_attr()
+        self.inner
+            .boundable()
+            .create_extent_attr(default_value, write_sparsely)
     }
 
     // ========================================================================
@@ -511,3 +529,25 @@ impl PartialEq for Cone {
 }
 
 impl Eq for Cone {}
+
+#[cfg(test)]
+mod tests {
+    use super::Cone;
+    use usd_core::InitialLoadSet;
+    use usd_core::Stage;
+    use usd_sdf::TimeCode;
+    use usd_vt::Value;
+
+    #[test]
+    fn create_height_attr_writes_default_value() {
+        let _ = usd_sdf::init();
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("stage");
+        let prim = stage.define_prim("/World/Cone", "Cone").expect("prim");
+        let cone = Cone::new(prim);
+        let attr = cone.create_height_attr(Some(Value::from(3.25_f64)), false);
+        assert!(attr.is_valid());
+        let got = attr.get(TimeCode::default()).expect("default sample");
+        let h = *got.get::<f64>().expect("double");
+        assert!((h - 3.25).abs() < 1e-9);
+    }
+}

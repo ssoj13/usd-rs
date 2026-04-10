@@ -228,10 +228,12 @@ impl NodeDefAPI {
 
     /// Returns the sourceAsset attribute for the given source type.
     ///
-    /// Universal source type (empty token or None) maps to "info:sourceAsset".
+    /// Per OpenUSD / `shaderDefUtils.cpp`, typed source assets use
+    /// `info:<sourceType>:sourceAsset` (e.g. `info:glslfx:sourceAsset`).
+    /// Universal source type (empty token or `None`) maps to `info:sourceAsset`.
     pub fn get_source_asset_attr(&self, source_type: Option<&Token>) -> Option<Attribute> {
         let attr_name = match source_type {
-            Some(st) if !st.is_empty() => format!("info:sourceAsset:{}", st.as_str()),
+            Some(st) if !st.is_empty() => format!("info:{}:sourceAsset", st.as_str()),
             _ => "info:sourceAsset".to_string(),
         };
         self.get_prim().get_attribute(&attr_name)
@@ -245,7 +247,7 @@ impl NodeDefAPI {
     ) -> Option<Attribute> {
         let prim = self.get_prim();
         let attr_name = match source_type {
-            Some(st) if !st.is_empty() => format!("info:sourceAsset:{}", st.as_str()),
+            Some(st) if !st.is_empty() => format!("info:{}:sourceAsset", st.as_str()),
             _ => "info:sourceAsset".to_string(),
         };
 

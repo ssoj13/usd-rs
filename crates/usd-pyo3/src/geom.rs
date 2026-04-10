@@ -1528,9 +1528,19 @@ usd_geom_schema_with_xform!(PyBoundable, yes_get_path, {
     pub fn get_extent_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_extent_attr())
     }
-    #[pyo3(name = "CreateExtentAttr")]
-    pub fn create_extent_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_extent_attr())
+    #[pyo3(name = "CreateExtentAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_extent_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_extent_attr(v, write_sparsely),
+        ))
     }
     pub fn is_valid(&self) -> bool {
         self.0.is_valid()
@@ -1645,33 +1655,73 @@ usd_geom_schema_with_xform!(PyGprim, yes_get_path, {
     pub fn get_display_color_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_display_color_attr())
     }
-    #[pyo3(name = "CreateDisplayColorAttr")]
-    pub fn create_display_color_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_display_color_attr())
+    #[pyo3(name = "CreateDisplayColorAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_display_color_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_display_color_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetDisplayOpacityAttr")]
     pub fn get_display_opacity_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_display_opacity_attr())
     }
-    #[pyo3(name = "CreateDisplayOpacityAttr")]
-    pub fn create_display_opacity_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_display_opacity_attr())
+    #[pyo3(name = "CreateDisplayOpacityAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_display_opacity_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_display_opacity_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetDoubleSidedAttr")]
     pub fn get_double_sided_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_double_sided_attr())
     }
-    #[pyo3(name = "CreateDoubleSidedAttr")]
-    pub fn create_double_sided_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_double_sided_attr())
+    #[pyo3(name = "CreateDoubleSidedAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_double_sided_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_double_sided_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetOrientationAttr")]
     pub fn get_orientation_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_orientation_attr())
     }
-    #[pyo3(name = "CreateOrientationAttr")]
-    pub fn create_orientation_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_orientation_attr())
+    #[pyo3(name = "CreateOrientationAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_orientation_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_orientation_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetDisplayColorPrimvar")]
     pub fn get_display_color_primvar(&self) -> PyPrimvar {
@@ -1984,56 +2034,104 @@ usd_geom_schema_with_xform!(PyMesh, no_get_path, {
     #[pyo3(name = "CreateDoubleSidedAttr", signature = (default_value=None, write_sparsely=false))]
     pub fn create_double_sided_attr(
         &self,
-        default_value: Option<bool>,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
         write_sparsely: bool,
     ) -> PyResult<PyAttribute> {
-        let attr = self.0.point_based().gprim().create_double_sided_attr();
-        if let Some(v) = default_value {
-            // Match pxr: sparse default `false` skips authoring only on **defined** prims.
-            let skip_author = write_sparsely && !v && self.0.prim().is_defined();
-            if !skip_author {
-                let _ = attr.set(usd_vt::Value::from(v), usd_sdf::TimeCode::DEFAULT);
-            }
-        }
-        Ok(PyAttribute::from_attr(attr))
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .point_based()
+                .gprim()
+                .create_double_sided_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetOrientationAttr")]
     pub fn get_orientation_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.point_based().gprim().get_orientation_attr())
     }
-    #[pyo3(name = "CreateOrientationAttr")]
-    pub fn create_orientation_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.point_based().gprim().create_orientation_attr())
+    #[pyo3(name = "CreateOrientationAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_orientation_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .point_based()
+                .gprim()
+                .create_orientation_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetExtentAttr")]
     pub fn get_extent_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.point_based().gprim().boundable().get_extent_attr())
     }
-    #[pyo3(name = "CreateExtentAttr")]
-    pub fn create_extent_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(
+    #[pyo3(name = "CreateExtentAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_extent_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
             self.0
                 .point_based()
                 .gprim()
                 .boundable()
-                .create_extent_attr(),
-        )
+                .create_extent_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetDisplayColorAttr")]
     pub fn get_display_color_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.point_based().gprim().get_display_color_attr())
     }
-    #[pyo3(name = "CreateDisplayColorAttr")]
-    pub fn create_display_color_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.point_based().gprim().create_display_color_attr())
+    #[pyo3(name = "CreateDisplayColorAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_display_color_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .point_based()
+                .gprim()
+                .create_display_color_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetDisplayOpacityAttr")]
     pub fn get_display_opacity_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.point_based().gprim().get_display_opacity_attr())
     }
-    #[pyo3(name = "CreateDisplayOpacityAttr")]
-    pub fn create_display_opacity_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.point_based().gprim().create_display_opacity_attr())
+    #[pyo3(name = "CreateDisplayOpacityAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_display_opacity_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .point_based()
+                .gprim()
+                .create_display_opacity_attr(v, write_sparsely),
+        ))
     }
 
     #[pyo3(name = "ComputePointsAtTime", signature = (time, base_time))]
@@ -2216,9 +2314,7 @@ usd_geom_schema_with_xform!(PyMesh, no_get_path, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_mesh(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomMesh"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomMesh"))
     }
 
     /// C++ sets `_class.attr("SHARPNESS_INFINITE") = UsdGeomMesh::SHARPNESS_INFINITE` (`wrapMesh.cpp`).
@@ -2314,9 +2410,7 @@ usd_geom_schema_with_xform!(PySphere, yes_get_path, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_sphere(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomSphere"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomSphere"))
     }
 
     #[staticmethod]
@@ -2421,9 +2515,7 @@ usd_geom_schema_with_xform!(PyCube, yes_get_path, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_cube(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomCube"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomCube"))
     }
 
     #[staticmethod]
@@ -2564,9 +2656,7 @@ usd_geom_schema_with_xform!(PyCone, yes_get_path, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_cone(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomCone"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomCone"))
     }
 
     #[staticmethod]
@@ -2707,9 +2797,7 @@ usd_geom_schema_with_xform!(PyCylinder, yes_get_path, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_cylinder(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomCylinder"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomCylinder"))
     }
 
     #[staticmethod]
@@ -2875,9 +2963,7 @@ usd_geom_schema_with_xform!(PyCylinder1, yes_get_path, {
     pub fn get_static_tf_type_cylinder1(
         _cls: &Bound<'_, pyo3::types::PyType>,
     ) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomCylinder_1"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomCylinder_1"))
     }
 
     #[staticmethod]
@@ -3018,9 +3104,7 @@ usd_geom_schema_with_xform!(PyCapsule, yes_get_path, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_capsule(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomCapsule"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomCapsule"))
     }
 
     #[staticmethod]
@@ -3184,9 +3268,7 @@ usd_geom_schema_with_xform!(PyCapsule1, yes_get_path, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_capsule1(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomCapsule_1"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomCapsule_1"))
     }
 
     #[staticmethod]
@@ -3345,9 +3427,7 @@ usd_geom_schema_with_xform!(PyPlane, yes_get_path, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_plane(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomPlane"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomPlane"))
     }
 
     #[staticmethod]
@@ -3406,17 +3486,55 @@ usd_geom_schema_with_xform!(PyPointBased, yes_get_path, {
     pub fn get_velocities_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_velocities_attr())
     }
-    #[pyo3(name = "CreateVelocitiesAttr")]
-    pub fn create_velocities_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_velocities_attr(None, false))
+    #[pyo3(name = "CreateVelocitiesAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_velocities_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_velocities_attr(v, write_sparsely),
+        ))
+    }
+    #[pyo3(name = "GetAccelerationsAttr")]
+    pub fn get_accelerations_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(self.0.get_accelerations_attr())
+    }
+    #[pyo3(name = "CreateAccelerationsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_accelerations_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_accelerations_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetNormalsAttr")]
     pub fn get_normals_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_normals_attr())
     }
-    #[pyo3(name = "CreateNormalsAttr")]
-    pub fn create_normals_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_normals_attr(None, false))
+    #[pyo3(name = "CreateNormalsAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_normals_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_normals_attr(v, write_sparsely),
+        ))
     }
 
     #[pyo3(name = "GetNormalsInterpolation")]
@@ -5307,9 +5425,7 @@ usd_geom_schema_with_xform!(PyTetMesh, yes_get_path, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_tet_mesh(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomTetMesh"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomTetMesh"))
     }
 
     #[staticmethod]
@@ -5603,9 +5719,7 @@ usd_geom_schema_with_xform!(PyPointInstancer, no_get_path, {
     pub fn get_static_tf_type_point_instancer(
         _cls: &Bound<'_, pyo3::types::PyType>,
     ) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomPointInstancer"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomPointInstancer"))
     }
 
     #[staticmethod]
@@ -6041,9 +6155,7 @@ usd_geom_schema_with_xform!(PyCamera, yes_get_path, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_camera(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomCamera"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomCamera"))
     }
 
     #[staticmethod]
@@ -6666,9 +6778,7 @@ usd_geom_schema_imageable_subset!(PySubset, {
     #[classmethod]
     #[pyo3(name = "_GetStaticTfType")]
     pub fn get_static_tf_type_subset(_cls: &Bound<'_, pyo3::types::PyType>) -> crate::tf::PyType {
-        crate::tf::PyType {
-            inner: TfType::find_by_name("UsdGeomSubset"),
-        }
+        crate::tf::PyType::from_tf_type_for_bindings(TfType::find_by_name("UsdGeomSubset"))
     }
 
     #[staticmethod]

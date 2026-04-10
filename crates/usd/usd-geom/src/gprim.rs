@@ -11,7 +11,9 @@ use super::primvar::Primvar;
 use super::primvars_api::PrimvarsAPI;
 use super::tokens::usd_geom_tokens;
 use usd_core::{Attribute, Prim};
+use usd_sdf::TimeCode;
 use usd_tf::Token;
+use usd_vt::Value;
 
 // ============================================================================
 // Gprim
@@ -93,30 +95,40 @@ impl Gprim {
 
     /// Creates the displayColor attribute.
     ///
-    /// Matches C++ `CreateDisplayColorAttr()`.
-    pub fn create_display_color_attr(&self) -> Attribute {
+    /// Matches C++ `CreateDisplayColorAttr(VtValue defaultValue, bool writeSparsely)`.
+    pub fn create_display_color_attr(
+        &self,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
         let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Get or create the attribute with proper type (Color3fArray) and variability (Varying)
-        if prim.has_authored_attribute(usd_geom_tokens().primvars_display_color.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().primvars_display_color.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().primvars_display_color.as_str())
+        {
+            prim.get_attribute(usd_geom_tokens().primvars_display_color.as_str())
+                .unwrap_or_else(|| Attribute::invalid())
+        } else {
+            let registry = usd_sdf::ValueTypeRegistry::instance();
+            let color3f_array_type = registry.find_type_by_token(&Token::new("color3f[]"));
+
+            prim.create_attribute(
+                usd_geom_tokens().primvars_display_color.as_str(),
+                &color3f_array_type,
+                false,
+                Some(usd_core::attribute::Variability::Varying),
+            )
+            .unwrap_or_else(Attribute::invalid)
+        };
+
+        if attr.is_valid() {
+            if let Some(v) = default_value {
+                let _ = attr.set(v, TimeCode::default());
+            }
         }
-
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let color3f_array_type = registry.find_type_by_token(&Token::new("color3f[]"));
-
-        prim.create_attribute(
-            usd_geom_tokens().primvars_display_color.as_str(),
-            &color3f_array_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        attr
     }
 
     // ========================================================================
@@ -137,30 +149,40 @@ impl Gprim {
 
     /// Creates the displayOpacity attribute.
     ///
-    /// Matches C++ `CreateDisplayOpacityAttr()`.
-    pub fn create_display_opacity_attr(&self) -> Attribute {
+    /// Matches C++ `CreateDisplayOpacityAttr(VtValue defaultValue, bool writeSparsely)`.
+    pub fn create_display_opacity_attr(
+        &self,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
         let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Get or create the attribute with proper type (FloatArray) and variability (Varying)
-        if prim.has_authored_attribute(usd_geom_tokens().primvars_display_opacity.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().primvars_display_opacity.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+        let attr =
+            if prim.has_authored_attribute(usd_geom_tokens().primvars_display_opacity.as_str()) {
+                prim.get_attribute(usd_geom_tokens().primvars_display_opacity.as_str())
+                    .unwrap_or_else(|| Attribute::invalid())
+            } else {
+                let registry = usd_sdf::ValueTypeRegistry::instance();
+                let float_array_type = registry.find_type_by_token(&Token::new("float[]"));
+
+                prim.create_attribute(
+                    usd_geom_tokens().primvars_display_opacity.as_str(),
+                    &float_array_type,
+                    false,
+                    Some(usd_core::attribute::Variability::Varying),
+                )
+                .unwrap_or_else(Attribute::invalid)
+            };
+
+        if attr.is_valid() {
+            if let Some(v) = default_value {
+                let _ = attr.set(v, TimeCode::default());
+            }
         }
-
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let float_array_type = registry.find_type_by_token(&Token::new("float[]"));
-
-        prim.create_attribute(
-            usd_geom_tokens().primvars_display_opacity.as_str(),
-            &float_array_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        attr
     }
 
     // ========================================================================
@@ -182,30 +204,52 @@ impl Gprim {
 
     /// Creates the doubleSided attribute.
     ///
-    /// Matches C++ `CreateDoubleSidedAttr()`.
-    pub fn create_double_sided_attr(&self) -> Attribute {
+    /// Matches C++ `CreateDoubleSidedAttr(VtValue defaultValue, bool writeSparsely)`.
+    /// When `write_sparsely` and default is `false` on a **defined** prim, skips authoring
+    /// the default (matches pxr `UsdGeomGprim` behavior used by Mesh bindings).
+    pub fn create_double_sided_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
         let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Get or create the attribute with proper type (Bool) and variability (Uniform)
-        if prim.has_authored_attribute(usd_geom_tokens().double_sided.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().double_sided.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().double_sided.as_str()) {
+            prim.get_attribute(usd_geom_tokens().double_sided.as_str())
+                .unwrap_or_else(|| Attribute::invalid())
+        } else {
+            let registry = usd_sdf::ValueTypeRegistry::instance();
+            let bool_type = registry.find_type_by_token(&Token::new("bool"));
+
+            prim.create_attribute(
+                usd_geom_tokens().double_sided.as_str(),
+                &bool_type,
+                false,
+                Some(usd_core::attribute::Variability::Uniform),
+            )
+            .unwrap_or_else(Attribute::invalid)
+        };
+
+        if attr.is_valid() {
+            if let Some(v) = default_value {
+                if write_sparsely {
+                    if let Some(b) = v.get::<bool>() {
+                        let skip_author = !b && prim.is_defined();
+                        if !skip_author {
+                            let _ = attr.set(v, TimeCode::default());
+                        }
+                    } else {
+                        let _ = attr.set(v, TimeCode::default());
+                    }
+                } else {
+                    let _ = attr.set(v, TimeCode::default());
+                }
+            }
         }
-
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let bool_type = registry.find_type_by_token(&Token::new("bool"));
-
-        prim.create_attribute(
-            usd_geom_tokens().double_sided.as_str(),
-            &bool_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Uniform), // doubleSided is uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        attr
     }
 
     // ========================================================================
@@ -223,36 +267,45 @@ impl Gprim {
         if let Some(attr) = prim.get_attribute(usd_geom_tokens().orientation.as_str()) {
             attr
         } else {
-            self.create_orientation_attr()
+            self.create_orientation_attr(None, false)
         }
     }
 
     /// Creates the orientation attribute.
     ///
-    /// Matches C++ `CreateOrientationAttr()`.
-    pub fn create_orientation_attr(&self) -> Attribute {
+    /// Matches C++ `CreateOrientationAttr(VtValue defaultValue, bool writeSparsely)`.
+    pub fn create_orientation_attr(
+        &self,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
         let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Get or create the attribute with proper type (Token) and variability (Uniform)
-        if prim.has_authored_attribute(usd_geom_tokens().orientation.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().orientation.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().orientation.as_str()) {
+            prim.get_attribute(usd_geom_tokens().orientation.as_str())
+                .unwrap_or_else(|| Attribute::invalid())
+        } else {
+            let registry = usd_sdf::ValueTypeRegistry::instance();
+            let token_type = registry.find_type_by_token(&Token::new("token"));
+
+            prim.create_attribute(
+                usd_geom_tokens().orientation.as_str(),
+                &token_type,
+                false,
+                Some(usd_core::attribute::Variability::Uniform),
+            )
+            .unwrap_or_else(Attribute::invalid)
+        };
+
+        if attr.is_valid() {
+            if let Some(v) = default_value {
+                let _ = attr.set(v, TimeCode::default());
+            }
         }
-
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
-
-        prim.create_attribute(
-            usd_geom_tokens().orientation.as_str(),
-            &token_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Uniform), // orientation is uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        attr
     }
 
     /// Get the displayColor primvar.

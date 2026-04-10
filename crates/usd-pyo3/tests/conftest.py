@@ -4,6 +4,9 @@ Test data is **not** in this repository. Clone OpenUSD and set **OPENUSD_SRC_ROO
 to its root (directory containing ``pxr/``). Per-module data:
 ``{OPENUSD_SRC_ROOT}/pxr/<path under tests/>/testenv/<stem>/`` or ``<stem>.testenv/``,
 matching upstream beside each ``test*.py``.
+
+**Markers:** use ``pytest -m "not requires_sdr_native_plugins"`` to exclude tests
+that need vendored C++ Sdr plug DSOs (e.g. ``testSdrRegistry.py``).
 """
 import os
 from pathlib import Path

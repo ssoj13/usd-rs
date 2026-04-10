@@ -13,6 +13,8 @@ use usd_sdf::{TimeCode, ValueTypeRegistry};
 use usd_tf::Token;
 use usd_vt::Value;
 
+use crate::schema_create_default::apply_optional_default;
+
 // ============================================================================
 // Mesh
 // ============================================================================
@@ -121,7 +123,7 @@ impl Mesh {
     /// Matches C++ `CreateFaceVertexIndicesAttr()`.
     pub fn create_face_vertex_indices_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -134,13 +136,15 @@ impl Mesh {
 
         // Always call create_attribute — idempotent for the spec but ensures
         // property_names is updated so flatten() copies this attribute.
-        prim.create_attribute(
-            usd_geom_tokens().face_vertex_indices.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().face_vertex_indices.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -163,7 +167,7 @@ impl Mesh {
     /// Matches C++ `CreateFaceVertexCountsAttr()`.
     pub fn create_face_vertex_counts_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -176,13 +180,15 @@ impl Mesh {
 
         // Always call create_attribute — it's idempotent for the spec but
         // ensures property_names is populated so flatten() copies the attr.
-        prim.create_attribute(
-            usd_geom_tokens().face_vertex_counts.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().face_vertex_counts.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -205,7 +211,7 @@ impl Mesh {
     /// Matches C++ `CreateSubdivisionSchemeAttr()`.
     pub fn create_subdivision_scheme_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -216,13 +222,15 @@ impl Mesh {
         let registry = ValueTypeRegistry::instance();
         let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        prim.create_attribute(
-            usd_geom_tokens().subdivision_scheme.as_str(),
-            &token_type,
-            false,                      // not custom
-            Some(Variability::Uniform), // uniform (doesn't vary over time)
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().subdivision_scheme.as_str(),
+                &token_type,
+                false,                      // not custom
+                Some(Variability::Uniform), // uniform (doesn't vary over time)
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -245,7 +253,7 @@ impl Mesh {
     /// Matches C++ `CreateInterpolateBoundaryAttr()`.
     pub fn create_interpolate_boundary_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -256,13 +264,15 @@ impl Mesh {
         let registry = ValueTypeRegistry::instance();
         let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        prim.create_attribute(
-            usd_geom_tokens().interpolate_boundary.as_str(),
-            &token_type,
-            false,                      // not custom
-            Some(Variability::Varying), // C++ mesh.cpp:152 SdfVariabilityVarying
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().interpolate_boundary.as_str(),
+                &token_type,
+                false,                      // not custom
+                Some(Variability::Varying), // C++ mesh.cpp:152 SdfVariabilityVarying
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -286,7 +296,7 @@ impl Mesh {
     /// Matches C++ `CreateFaceVaryingLinearInterpolationAttr()`.
     pub fn create_face_varying_linear_interpolation_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -297,13 +307,15 @@ impl Mesh {
         let registry = ValueTypeRegistry::instance();
         let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        prim.create_attribute(
-            usd_geom_tokens().face_varying_linear_interpolation.as_str(),
-            &token_type,
-            false,                      // not custom
-            Some(Variability::Varying), // C++ mesh.cpp:169 SdfVariabilityVarying
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().face_varying_linear_interpolation.as_str(),
+                &token_type,
+                false,                      // not custom
+                Some(Variability::Varying), // C++ mesh.cpp:169 SdfVariabilityVarying
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -326,7 +338,7 @@ impl Mesh {
     /// Matches C++ `CreateTriangleSubdivisionRuleAttr()`.
     pub fn create_triangle_subdivision_rule_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -337,13 +349,15 @@ impl Mesh {
         let registry = ValueTypeRegistry::instance();
         let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        prim.create_attribute(
-            usd_geom_tokens().triangle_subdivision_rule.as_str(),
-            &token_type,
-            false,                      // not custom
-            Some(Variability::Varying), // C++ mesh.cpp:186 SdfVariabilityVarying
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().triangle_subdivision_rule.as_str(),
+                &token_type,
+                false,                      // not custom
+                Some(Variability::Varying), // C++ mesh.cpp:186 SdfVariabilityVarying
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -366,7 +380,7 @@ impl Mesh {
     /// Matches C++ `CreateHoleIndicesAttr()`.
     pub fn create_hole_indices_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -377,13 +391,15 @@ impl Mesh {
         let registry = ValueTypeRegistry::instance();
         let int_array_type = registry.find_type_by_token(&Token::new("int[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().hole_indices.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().hole_indices.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -406,7 +422,7 @@ impl Mesh {
     /// Matches C++ `CreateCornerIndicesAttr()`.
     pub fn create_corner_indices_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -417,13 +433,15 @@ impl Mesh {
         let registry = ValueTypeRegistry::instance();
         let int_array_type = registry.find_type_by_token(&Token::new("int[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().corner_indices.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().corner_indices.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -446,7 +464,7 @@ impl Mesh {
     /// Matches C++ `CreateCornerSharpnessesAttr()`.
     pub fn create_corner_sharpnesses_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -457,13 +475,15 @@ impl Mesh {
         let registry = ValueTypeRegistry::instance();
         let float_array_type = registry.find_type_by_token(&Token::new("float[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().corner_sharpnesses.as_str(),
-            &float_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().corner_sharpnesses.as_str(),
+                &float_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -486,7 +506,7 @@ impl Mesh {
     /// Matches C++ `CreateCreaseIndicesAttr()`.
     pub fn create_crease_indices_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -497,13 +517,15 @@ impl Mesh {
         let registry = ValueTypeRegistry::instance();
         let int_array_type = registry.find_type_by_token(&Token::new("int[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().crease_indices.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().crease_indices.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -526,7 +548,7 @@ impl Mesh {
     /// Matches C++ `CreateCreaseLengthsAttr()`.
     pub fn create_crease_lengths_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -537,13 +559,15 @@ impl Mesh {
         let registry = ValueTypeRegistry::instance();
         let int_array_type = registry.find_type_by_token(&Token::new("int[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().crease_lengths.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().crease_lengths.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -566,7 +590,7 @@ impl Mesh {
     /// Matches C++ `CreateCreaseSharpnessesAttr()`.
     pub fn create_crease_sharpnesses_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -577,13 +601,15 @@ impl Mesh {
         let registry = ValueTypeRegistry::instance();
         let float_array_type = registry.find_type_by_token(&Token::new("float[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().crease_sharpnesses.as_str(),
-            &float_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().crease_sharpnesses.as_str(),
+                &float_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================

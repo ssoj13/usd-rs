@@ -23,11 +23,12 @@ use super::shader_property::SdrShaderProperty;
 use super::tokens::tokens;
 use usd_gf::matrix4::Matrix4d;
 use usd_gf::vec3::Vec3f;
+use usd_gf::vec4::Vec4f;
 use usd_tf::Token;
 use usd_vt::Value;
 
 use osl_rs::oslquery::{OslQuery, Parameter as OslParameter};
-use osl_rs::{Aggregate, BaseType, VecSemantics};
+use osl_rs::{Aggregate, BaseType, TypeDesc, VecSemantics};
 use std::collections::BTreeMap;
 
 // ---------------------------------------------------------------------------
@@ -343,8 +344,9 @@ impl OslParserPlugin {
     /// Gets a common type + array size (if array) from the OSL parameter.
     /// Matches C++ `_getTypeName`.
     ///
-    /// Uses the binary `TypeDesc` (OIIO layout), not `Display` stringification:
-    /// arrays of `color` must keep the element semantic (`color[2]`, not `float`).
+    /// OpenUSD uses `param->type.c_str()` and splits on `[` (`oslParser.cpp`). Rust only has the
+    /// packed OIIO [`TypeDesc`]; [`osl_type_desc_to_sdr_property_type`] recovers the same Sdr
+    /// tokens structurally (including `color[2]` → `color`, not `float`).
     fn get_type_name(&self, param: &OslParameter, metadata: &SdrTokenMap) -> (Token, usize) {
         let prop_types = &tokens().property_types;
 
@@ -358,41 +360,7 @@ impl OslParserPlugin {
             return (prop_types.terminal.clone(), 0);
         }
 
-        let td = &param.type_desc;
-        let array_size = if td.arraylen > 0 {
-            td.arraylen as usize
-        } else {
-            0
-        };
-
-        // Strip array: `color[2]` → element type `color` + array_size 2
-        let elem = td.elementtype();
-        let bt = elem.base_type();
-        let ag = elem.agg();
-        let vs = elem.vec_semantics();
-
-        let type_name = match (bt, ag, vs) {
-            (BaseType::Int32, Aggregate::Scalar, _) => prop_types.int.clone(),
-            (BaseType::String, Aggregate::Scalar, _) => prop_types.string.clone(),
-            (BaseType::Float, Aggregate::Scalar, _) => prop_types.float.clone(),
-            (BaseType::Double, Aggregate::Scalar, _) => prop_types.float.clone(),
-            (BaseType::Float, Aggregate::Vec3, VecSemantics::Color) => prop_types.color.clone(),
-            (BaseType::Float, Aggregate::Vec3, VecSemantics::Point) => prop_types.point.clone(),
-            (BaseType::Float, Aggregate::Vec3, VecSemantics::Normal) => prop_types.normal.clone(),
-            (BaseType::Float, Aggregate::Vec3, VecSemantics::Vector) => prop_types.vector.clone(),
-            (BaseType::Float, Aggregate::Matrix44, VecSemantics::NoXform) => {
-                prop_types.matrix.clone()
-            }
-            (BaseType::Float, Aggregate::Matrix33, VecSemantics::NoXform) => {
-                prop_types.matrix.clone()
-            }
-            _ => {
-                // Unusual OSL aggregates (e.g. half); keep a stable fallback.
-                prop_types.float.clone()
-            }
-        };
-
-        (type_name, array_size)
+        osl_type_desc_to_sdr_property_type(&param.type_desc)
     }
 
     // -----------------------------------------------------------------------
@@ -462,6 +430,31 @@ impl OslParserPlugin {
                         param.fdefault[3 * i],
                         param.fdefault[3 * i + 1],
                         param.fdefault[3 * i + 2],
+                    ));
+                }
+                return Value::from_no_hash(array);
+            }
+        }
+
+        // COLOR4 — GfVec4f (OIIO float×4 + color semantics)
+        if osl_type == prop_types.color4.as_str() {
+            if !is_array && param.fdefault.len() == 4 {
+                return Value::from(Vec4f::new(
+                    param.fdefault[0],
+                    param.fdefault[1],
+                    param.fdefault[2],
+                    param.fdefault[3],
+                ));
+            } else if is_array && !param.fdefault.is_empty() && param.fdefault.len() % 4 == 0 {
+                let num_elements = param.fdefault.len() / 4;
+                let mut array = Vec::with_capacity(num_elements);
+                for i in 0..num_elements {
+                    let b = i * 4;
+                    array.push(Vec4f::new(
+                        param.fdefault[b],
+                        param.fdefault[b + 1],
+                        param.fdefault[b + 2],
+                        param.fdefault[b + 3],
                     ));
                 }
                 return Value::from_no_hash(array);
@@ -607,6 +600,116 @@ impl SdrParserPlugin for OslParserPlugin {
 // Helpers (free functions matching C++ static helpers)
 // ---------------------------------------------------------------------------
 
+/// True if `bt` is an integer-backed OIIO base type (OSL `int` family).
+fn is_integer_base(bt: BaseType) -> bool {
+    matches!(
+        bt,
+        BaseType::Int32
+            | BaseType::UInt32
+            | BaseType::UInt8
+            | BaseType::Int8
+            | BaseType::UInt16
+            | BaseType::Int16
+            | BaseType::UInt64
+            | BaseType::Int64
+    )
+}
+
+/// Maps OSL/OIIO [`TypeDesc`] to an Sdr property type token and fixed array length.
+///
+/// Reference: `pxr/usd/plugin/sdrOsl/oslParser.cpp` `_getTypeName` (uses `param->type.c_str()`).
+/// We only have the binary descriptor; this function mirrors the same *outcome* as parsing that
+/// string: element type token + `arraylen` (with `arraylen < 0` → 0, matching dynamic arrays).
+fn osl_type_desc_to_sdr_property_type(td: &TypeDesc) -> (Token, usize) {
+    let prop_types = &tokens().property_types;
+    let array_size = if td.arraylen > 0 {
+        td.arraylen as usize
+    } else {
+        0
+    };
+
+    let elem = td.elementtype();
+    let bt = elem.base_type();
+    let ag = elem.agg();
+    let vs = elem.vec_semantics();
+    let fl = matches!(
+        bt,
+        BaseType::Float | BaseType::Half | BaseType::Double
+    );
+
+    if bt == BaseType::String && ag == Aggregate::Scalar {
+        return (prop_types.string.clone(), array_size);
+    }
+    if is_integer_base(bt) && ag == Aggregate::Scalar {
+        return (prop_types.int.clone(), array_size);
+    }
+    if fl && ag == Aggregate::Scalar {
+        return (prop_types.float.clone(), array_size);
+    }
+
+    // Semantic float triples (color/point/normal/vector). NoXform triples are plain float tuples.
+    if fl && ag == Aggregate::Vec3 {
+        let tok = match vs {
+            VecSemantics::NoXform => prop_types.float.clone(),
+            VecSemantics::Color => prop_types.color.clone(),
+            VecSemantics::Point => prop_types.point.clone(),
+            VecSemantics::Normal => prop_types.normal.clone(),
+            VecSemantics::Vector => prop_types.vector.clone(),
+            VecSemantics::Timecode | VecSemantics::Keycode | VecSemantics::Rational => {
+                prop_types.float.clone()
+            }
+        };
+        return (tok, array_size);
+    }
+
+    // float2 / half2 / vector2 — map by OIIO vector semantics
+    if fl && ag == Aggregate::Vec2 {
+        let tok = match vs {
+            VecSemantics::NoXform => prop_types.float.clone(),
+            VecSemantics::Color => prop_types.color.clone(),
+            VecSemantics::Point => prop_types.point.clone(),
+            VecSemantics::Normal => prop_types.normal.clone(),
+            VecSemantics::Vector => prop_types.vector.clone(),
+            VecSemantics::Timecode | VecSemantics::Keycode | VecSemantics::Rational => {
+                prop_types.float.clone()
+            }
+        };
+        return (tok, array_size);
+    }
+
+    // float4: only `color` semantics become Sdr `color4`; raw `float4` stays `float`.
+    if fl && ag == Aggregate::Vec4 {
+        let tok = match vs {
+            VecSemantics::Color => prop_types.color4.clone(),
+            VecSemantics::NoXform
+            | VecSemantics::Point
+            | VecSemantics::Normal
+            | VecSemantics::Vector
+            | VecSemantics::Timecode
+            | VecSemantics::Keycode
+            | VecSemantics::Rational => prop_types.float.clone(),
+        };
+        return (tok, array_size);
+    }
+
+    if fl && matches!(ag, Aggregate::Matrix33 | Aggregate::Matrix44) {
+        return (prop_types.matrix.clone(), array_size);
+    }
+
+    // Integer vectors (rare): still surface as `int` for Sdr.
+    if is_integer_base(bt) && matches!(ag, Aggregate::Vec2 | Aggregate::Vec3 | Aggregate::Vec4) {
+        return (prop_types.int.clone(), array_size);
+    }
+    if is_integer_base(bt) {
+        return (prop_types.int.clone(), array_size);
+    }
+    if fl {
+        return (prop_types.float.clone(), array_size);
+    }
+
+    (prop_types.unknown.clone(), array_size)
+}
+
 /// Gets the specified parameter's value as a string.
 /// Matches C++ `_getParamAsString`.
 fn get_param_as_string(param: &OslParameter) -> String {
@@ -694,6 +797,73 @@ fn get_open_pages_from_properties(properties: &[Box<SdrShaderProperty>]) -> SdrS
 #[cfg(test)]
 mod tests {
     use super::*;
+    use osl_rs::TypeDesc;
+
+    #[test]
+    fn test_osl_type_desc_to_sdr_property_type_parity() {
+        let t = tokens();
+        let c = |(tok, len): (Token, usize), exp: &str, exp_len: usize| {
+            assert_eq!(tok.as_str(), exp);
+            assert_eq!(len, exp_len);
+        };
+
+        c(
+            osl_type_desc_to_sdr_property_type(&TypeDesc::COLOR.array(2)),
+            "color",
+            2,
+        );
+        c(
+            osl_type_desc_to_sdr_property_type(&TypeDesc::FLOAT.array(5)),
+            "float",
+            5,
+        );
+        c(
+            osl_type_desc_to_sdr_property_type(&TypeDesc::INT.array(2)),
+            "int",
+            2,
+        );
+        c(
+            osl_type_desc_to_sdr_property_type(&TypeDesc::POINT.array(2)),
+            "point",
+            2,
+        );
+        c(osl_type_desc_to_sdr_property_type(&TypeDesc::COLOR), "color", 0);
+        c(osl_type_desc_to_sdr_property_type(&TypeDesc::FLOAT2), "float", 0);
+        c(
+            osl_type_desc_to_sdr_property_type(&TypeDesc::VECTOR2),
+            "vector",
+            0,
+        );
+        c(
+            osl_type_desc_to_sdr_property_type(&TypeDesc::new(
+                BaseType::Float,
+                Aggregate::Vec4,
+                VecSemantics::Color,
+            )),
+            "color4",
+            0,
+        );
+        c(
+            osl_type_desc_to_sdr_property_type(&TypeDesc::FLOAT4),
+            "float",
+            0,
+        );
+        c(osl_type_desc_to_sdr_property_type(&TypeDesc::MATRIX), "matrix", 0);
+        c(
+            osl_type_desc_to_sdr_property_type(&TypeDesc::UNKNOWN),
+            "unknown",
+            0,
+        );
+        assert_eq!(
+            osl_type_desc_to_sdr_property_type(&TypeDesc::new(
+                BaseType::Half,
+                Aggregate::Vec3,
+                VecSemantics::Color
+            ))
+            .0,
+            t.property_types.color
+        );
+    }
 
     #[test]
     fn test_osl_parser_plugin_creation() {

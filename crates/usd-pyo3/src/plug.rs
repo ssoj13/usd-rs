@@ -100,7 +100,7 @@ impl PyPlugRegistry {
         if inner.is_unknown() {
             return Ok(None);
         }
-        Ok(Some(Py::new(py, PyType { inner })?))
+        Ok(Some(Py::new(py, PyType::from_tf_type_for_bindings(inner))?))
     }
 
     fn __repr__(&self) -> &str {

@@ -9,6 +9,7 @@ use super::connectable_api::ConnectableAPI;
 use super::input::Input;
 use super::node_def_api::NodeDefAPI;
 use super::output::Output;
+use super::sdr_value_string::sdr_metadata_value_string;
 use super::tokens::tokens;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -306,21 +307,21 @@ impl Shader {
         let mut result = HashMap::new();
         let sdr_key = &tokens().sdr_metadata;
 
-        // Read sdrMetadata from layer stack (matches C++ composed metadata).
-        // We read directly from layers to avoid PrimIndex path-mapping issues
-        // with Dictionary types that don't round-trip through get_metadata<HashMap>.
+        // Composed prim metadata (matches `UsdObject::GetMetadata` / C++ `GetSdrMetadata`).
+        // Must use `Stage::get_metadata_for_object` so prim metadata authored on the
+        // stage resolves; iterating `layer.get_field(prim.path(), …)` misses authored
+        // `sdrMetadata` for typical opened layers.
         let Some(stage) = prim.stage() else {
             return result;
         };
-        for layer in stage.layer_stack() {
-            if let Some(val) = layer.get_field(prim.path(), sdr_key) {
-                if let Some(dict) = val.get::<usd_vt::Dictionary>() {
-                    for (key, v) in dict.iter() {
-                        result
-                            .entry(key.to_string())
-                            .or_insert_with(|| v.to_string());
-                    }
-                }
+        let Some(val) = stage.get_metadata_for_object(prim.path(), sdr_key) else {
+            return result;
+        };
+        if let Some(dict) = val.get::<usd_vt::Dictionary>() {
+            for (key, v) in dict.iter() {
+                result
+                    .entry(key.to_string())
+                    .or_insert_with(|| sdr_metadata_value_string(v));
             }
         }
 

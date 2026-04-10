@@ -6,6 +6,7 @@
 
 use super::curves::Curves;
 use super::tokens::usd_geom_tokens;
+use crate::schema_create_default::apply_optional_default;
 use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
 use usd_gf::vec3::Vec3f;
@@ -115,7 +116,7 @@ impl HermiteCurves {
     /// Matches C++ `CreateTangentsAttr()`.
     pub fn create_tangents_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -126,19 +127,21 @@ impl HermiteCurves {
         if prim.has_authored_attribute(usd_geom_tokens().tangents.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().tangents.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let vector3f_array_type = registry.find_type_by_token(&Token::new("vector3f[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().tangents.as_str(),
-            &vector3f_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().tangents.as_str(),
+                &vector3f_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -161,7 +164,7 @@ impl HermiteCurves {
     /// Matches C++ `CreatePointWeightsAttr()`.
     pub fn create_point_weights_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -172,19 +175,21 @@ impl HermiteCurves {
         if prim.has_authored_attribute(usd_geom_tokens().point_weights.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().point_weights.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let float_array_type = registry.find_type_by_token(&Token::new("float[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().point_weights.as_str(),
-            &float_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().point_weights.as_str(),
+                &float_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================

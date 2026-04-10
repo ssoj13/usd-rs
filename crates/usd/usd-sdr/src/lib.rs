@@ -161,7 +161,7 @@ pub use discovery_result::{SdrShaderNodeDiscoveryResult, SdrShaderNodeDiscoveryR
 
 pub use discovery_plugin::{
     DefaultDiscoveryPluginContext, SdrDiscoveryPlugin, SdrDiscoveryPluginContext,
-    SdrDiscoveryPluginRef, SdrDiscoveryPluginRefVec,
+    SdrDiscoveryPluginRef, SdrDiscoveryPluginRefVec, SdrStandardFilesystemDiscoveryContext,
 };
 
 pub use filesystem_discovery_helpers::{

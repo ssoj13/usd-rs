@@ -5,6 +5,7 @@
 //! This class encapsulates a shader or node-graph input, which is a connectable
 //! attribute representing a typed value.
 
+use super::sdr_value_string::sdr_metadata_value_string;
 use super::tokens::tokens;
 use super::types::{AttributeVector, ConnectionModification, SdrTokenMap};
 use std::collections::HashMap;
@@ -215,8 +216,7 @@ impl Input {
         if let Some(dict_val) = self.attr.get_metadata(&tokens().sdr_metadata) {
             if let Some(dict) = dict_val.get::<usd_vt::Dictionary>() {
                 for (key, value) in dict.iter() {
-                    // Convert value to string (as per C++ implementation)
-                    let value_str = value.to_string();
+                    let value_str = sdr_metadata_value_string(value);
                     result.insert(Token::new(key), value_str);
                 }
             }
@@ -231,7 +231,7 @@ impl Input {
             .attr
             .get_metadata_by_dict_key(&tokens().sdr_metadata, key)
         {
-            v.to_string()
+            sdr_metadata_value_string(&v)
         } else {
             String::new()
         }

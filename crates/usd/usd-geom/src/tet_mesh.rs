@@ -118,7 +118,7 @@ impl TetMesh {
     /// Matches C++ `CreateTetVertexIndicesAttr()`.
     pub fn create_tet_vertex_indices_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -129,13 +129,18 @@ impl TetMesh {
         let registry = ValueTypeRegistry::instance();
         let int4_array_type = registry.find_type_by_token(&Token::new("int4[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().tet_vertex_indices.as_str(),
-            &int4_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().tet_vertex_indices.as_str(),
+                &int4_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -163,7 +168,7 @@ impl TetMesh {
     /// Matches C++ `CreateSurfaceFaceVertexIndicesAttr()`.
     pub fn create_surface_face_vertex_indices_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -174,13 +179,18 @@ impl TetMesh {
         let registry = ValueTypeRegistry::instance();
         let int3_array_type = registry.find_type_by_token(&Token::new("int3[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().surface_face_vertex_indices.as_str(),
-            &int3_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().surface_face_vertex_indices.as_str(),
+                &int3_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     /// Returns the orientation attribute from the prim.
@@ -191,7 +201,7 @@ impl TetMesh {
         if attr.is_valid() {
             attr
         } else {
-            self.inner.gprim().create_orientation_attr()
+            self.inner.gprim().create_orientation_attr(None, false)
         }
     }
 
@@ -661,3 +671,58 @@ impl PartialEq for TetMesh {
 }
 
 impl Eq for TetMesh {}
+
+#[cfg(test)]
+mod tests {
+    use super::TetMesh;
+    use usd_core::InitialLoadSet;
+    use usd_core::Stage;
+    use usd_gf::vec3::Vec3i;
+    use usd_gf::vec4::Vec4i;
+    use usd_sdf::TimeCode;
+    use usd_vt::Value;
+
+    #[test]
+    fn create_tet_vertex_indices_attr_writes_default_value() {
+        let _ = usd_sdf::init();
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("stage");
+        let prim = stage.define_prim("/World/T1", "TetMesh").expect("prim");
+        let tm = TetMesh::new(prim);
+        let data = vec![Vec4i::new(0, 1, 2, 3)];
+        let val = Value::from_no_hash(data.clone());
+        let attr = tm.create_tet_vertex_indices_attr(Some(val), false);
+        assert!(attr.is_valid());
+        let got = attr.get(TimeCode::default()).expect("default sample");
+        let roundtrip: Vec<Vec4i> = got
+            .get::<Vec<Vec4i>>()
+            .cloned()
+            .or_else(|| {
+                got.get::<usd_vt::Array<Vec4i>>()
+                    .map(|a| a.iter().cloned().collect())
+            })
+            .expect("int4[]");
+        assert_eq!(roundtrip, data);
+    }
+
+    #[test]
+    fn create_surface_face_vertex_indices_attr_writes_default_value() {
+        let _ = usd_sdf::init();
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("stage");
+        let prim = stage.define_prim("/World/T2", "TetMesh").expect("prim");
+        let tm = TetMesh::new(prim);
+        let data = vec![Vec3i::new(0, 1, 2)];
+        let val = Value::from_no_hash(data.clone());
+        let attr = tm.create_surface_face_vertex_indices_attr(Some(val), false);
+        assert!(attr.is_valid());
+        let got = attr.get(TimeCode::default()).expect("default sample");
+        let roundtrip: Vec<Vec3i> = got
+            .get::<Vec<Vec3i>>()
+            .cloned()
+            .or_else(|| {
+                got.get::<usd_vt::Array<Vec3i>>()
+                    .map(|a| a.iter().cloned().collect())
+            })
+            .expect("int3[]");
+        assert_eq!(roundtrip, data);
+    }
+}

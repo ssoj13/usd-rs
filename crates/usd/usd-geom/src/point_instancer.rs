@@ -12,6 +12,8 @@ use usd_sdf::{TimeCode, ValueTypeRegistry};
 use usd_tf::Token;
 use usd_vt::Value;
 
+use crate::schema_create_default::apply_optional_default;
+
 // ============================================================================
 // Value extraction helpers
 // ============================================================================
@@ -333,7 +335,7 @@ impl PointInstancer {
     /// Matches C++ `CreateProtoIndicesAttr()`.
     pub fn create_proto_indices_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -344,19 +346,21 @@ impl PointInstancer {
         if prim.has_authored_attribute(usd_geom_tokens().proto_indices.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().proto_indices.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int_array_type = registry.find_type_by_token(&Token::new("int[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().proto_indices.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().proto_indices.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -379,7 +383,7 @@ impl PointInstancer {
     /// Matches C++ `CreateIdsAttr()`.
     pub fn create_ids_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -390,19 +394,21 @@ impl PointInstancer {
         if prim.has_authored_attribute(usd_geom_tokens().ids.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().ids.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int64_array_type = registry.find_type_by_token(&Token::new("int64[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().ids.as_str(),
-            &int64_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().ids.as_str(),
+                &int64_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -425,7 +431,7 @@ impl PointInstancer {
     /// Matches C++ `CreatePositionsAttr()`.
     pub fn create_positions_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -436,19 +442,21 @@ impl PointInstancer {
         if prim.has_authored_attribute(usd_geom_tokens().positions.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().positions.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let point3f_array_type = registry.find_type_by_token(&Token::new("point3f[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().positions.as_str(),
-            &point3f_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().positions.as_str(),
+                &point3f_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -471,7 +479,7 @@ impl PointInstancer {
     /// Matches C++ `CreateOrientationsAttr()`.
     pub fn create_orientations_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -482,19 +490,21 @@ impl PointInstancer {
         if prim.has_authored_attribute(usd_geom_tokens().orientations.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().orientations.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let quath_array_type = registry.find_type_by_token(&Token::new("quath[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().orientations.as_str(),
-            &quath_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().orientations.as_str(),
+                &quath_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     /// Returns the orientationsf attribute (full precision quaternions).
@@ -513,7 +523,7 @@ impl PointInstancer {
     /// Matches C++ `CreateOrientationsfAttr()`.
     pub fn create_orientationsf_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -524,19 +534,21 @@ impl PointInstancer {
         if prim.has_authored_attribute(usd_geom_tokens().orientationsf.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().orientationsf.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let quatf_array_type = registry.find_type_by_token(&Token::new("quatf[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().orientationsf.as_str(),
-            &quatf_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().orientationsf.as_str(),
+                &quatf_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -559,7 +571,7 @@ impl PointInstancer {
     /// Matches C++ `CreateScalesAttr()`.
     pub fn create_scales_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -570,19 +582,21 @@ impl PointInstancer {
         if prim.has_authored_attribute(usd_geom_tokens().scales.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().scales.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let float3_array_type = registry.find_type_by_token(&Token::new("float3[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().scales.as_str(),
-            &float3_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().scales.as_str(),
+                &float3_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -605,7 +619,7 @@ impl PointInstancer {
     /// Matches C++ `CreateVelocitiesAttr()`.
     pub fn create_velocities_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -616,19 +630,21 @@ impl PointInstancer {
         if prim.has_authored_attribute(usd_geom_tokens().velocities.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().velocities.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let vector3f_array_type = registry.find_type_by_token(&Token::new("vector3f[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().velocities.as_str(),
-            &vector3f_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().velocities.as_str(),
+                &vector3f_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -651,7 +667,7 @@ impl PointInstancer {
     /// Matches C++ `CreateAccelerationsAttr()`.
     pub fn create_accelerations_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -662,19 +678,21 @@ impl PointInstancer {
         if prim.has_authored_attribute(usd_geom_tokens().accelerations.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().accelerations.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let vector3f_array_type = registry.find_type_by_token(&Token::new("vector3f[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().accelerations.as_str(),
-            &vector3f_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().accelerations.as_str(),
+                &vector3f_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -697,7 +715,7 @@ impl PointInstancer {
     /// Matches C++ `CreateAngularVelocitiesAttr()`.
     pub fn create_angular_velocities_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -708,19 +726,21 @@ impl PointInstancer {
         if prim.has_authored_attribute(usd_geom_tokens().angular_velocities.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().angular_velocities.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let vector3f_array_type = registry.find_type_by_token(&Token::new("vector3f[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().angular_velocities.as_str(),
-            &vector3f_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().angular_velocities.as_str(),
+                &vector3f_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -743,7 +763,7 @@ impl PointInstancer {
     /// Matches C++ `CreateInvisibleIdsAttr()`.
     pub fn create_invisible_ids_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -754,19 +774,21 @@ impl PointInstancer {
         if prim.has_authored_attribute(usd_geom_tokens().invisible_ids.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().invisible_ids.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int64_array_type = registry.find_type_by_token(&Token::new("int64[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().invisible_ids.as_str(),
-            &int64_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().invisible_ids.as_str(),
+                &int64_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================

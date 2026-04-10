@@ -17,6 +17,36 @@ use usd_sdf::{TimeCode, ValueTypeRegistry};
 use usd_tf::Token;
 use usd_vt::Value;
 
+/// `Create*Attr(defaultValue, writeSparsely)` — get authored attr or create, then set default time sample.
+fn create_camera_schema_attr(
+    prim: &Prim,
+    name: &str,
+    sdf_typename: &str,
+    variability: Variability,
+    default_value: Option<Value>,
+    _write_sparsely: bool,
+) -> Attribute {
+    if !prim.is_valid() {
+        return Attribute::invalid();
+    }
+
+    let attr = if prim.has_authored_attribute(name) {
+        prim.get_attribute(name).unwrap_or_else(Attribute::invalid)
+    } else {
+        let registry = ValueTypeRegistry::instance();
+        let t = registry.find_type_by_token(&Token::new(sdf_typename));
+        prim.create_attribute(name, &t, false, Some(variability))
+            .unwrap_or_else(Attribute::invalid)
+    };
+
+    if attr.is_valid() {
+        if let Some(v) = default_value {
+            let _ = attr.set(v, TimeCode::default());
+        }
+    }
+    attr
+}
+
 // ============================================================================
 // Camera
 // ============================================================================
@@ -112,27 +142,20 @@ impl Camera {
 
     /// Creates the projection attribute.
     ///
-    /// Matches C++ `CreateProjectionAttr()`.
+    /// Matches C++ `CreateProjectionAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_projection_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().projection.as_str(),
-            &token_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "token",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -150,27 +173,20 @@ impl Camera {
 
     /// Creates the horizontalAperture attribute.
     ///
-    /// Matches C++ `CreateHorizontalApertureAttr()`.
+    /// Matches C++ `CreateHorizontalApertureAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_horizontal_aperture_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().horizontal_aperture.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -188,27 +204,20 @@ impl Camera {
 
     /// Creates the verticalAperture attribute.
     ///
-    /// Matches C++ `CreateVerticalApertureAttr()`.
+    /// Matches C++ `CreateVerticalApertureAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_vertical_aperture_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().vertical_aperture.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -226,27 +235,20 @@ impl Camera {
 
     /// Creates the horizontalApertureOffset attribute.
     ///
-    /// Matches C++ `CreateHorizontalApertureOffsetAttr()`.
+    /// Matches C++ `CreateHorizontalApertureOffsetAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_horizontal_aperture_offset_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().horizontal_aperture_offset.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -264,27 +266,20 @@ impl Camera {
 
     /// Creates the verticalApertureOffset attribute.
     ///
-    /// Matches C++ `CreateVerticalApertureOffsetAttr()`.
+    /// Matches C++ `CreateVerticalApertureOffsetAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_vertical_aperture_offset_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().vertical_aperture_offset.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -302,27 +297,20 @@ impl Camera {
 
     /// Creates the focalLength attribute.
     ///
-    /// Matches C++ `CreateFocalLengthAttr()`.
+    /// Matches C++ `CreateFocalLengthAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_focal_length_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().focal_length.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -340,27 +328,20 @@ impl Camera {
 
     /// Creates the clippingRange attribute.
     ///
-    /// Matches C++ `CreateClippingRangeAttr()`.
+    /// Matches C++ `CreateClippingRangeAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_clipping_range_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float2_type = registry.find_type_by_token(&Token::new("float2"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().clipping_range.as_str(),
-            &float2_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float2",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -378,27 +359,20 @@ impl Camera {
 
     /// Creates the clippingPlanes attribute.
     ///
-    /// Matches C++ `CreateClippingPlanesAttr()`.
+    /// Matches C++ `CreateClippingPlanesAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_clipping_planes_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float4_array_type = registry.find_type_by_token(&Token::new("float4[]"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().clipping_planes.as_str(),
-            &float4_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float4[]",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -416,27 +390,20 @@ impl Camera {
 
     /// Creates the fStop attribute.
     ///
-    /// Matches C++ `CreateFStopAttr()`.
+    /// Matches C++ `CreateFStopAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_f_stop_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().f_stop.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -454,27 +421,20 @@ impl Camera {
 
     /// Creates the focusDistance attribute.
     ///
-    /// Matches C++ `CreateFocusDistanceAttr()`.
+    /// Matches C++ `CreateFocusDistanceAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_focus_distance_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().focus_distance.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -492,27 +452,20 @@ impl Camera {
 
     /// Creates the stereoRole attribute.
     ///
-    /// Matches C++ `CreateStereoRoleAttr()`.
+    /// Matches C++ `CreateStereoRoleAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_stereo_role_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().stereo_role.as_str(),
-            &token_type,
-            false,                      // not custom
-            Some(Variability::Uniform), // uniform
+            "token",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -530,27 +483,20 @@ impl Camera {
 
     /// Creates the shutterOpen attribute.
     ///
-    /// Matches C++ `CreateShutterOpenAttr()`.
+    /// Matches C++ `CreateShutterOpenAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_shutter_open_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let double_type = registry.find_type_by_token(&Token::new("double"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().shutter_open.as_str(),
-            &double_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "double",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -568,27 +514,20 @@ impl Camera {
 
     /// Creates the shutterClose attribute.
     ///
-    /// Matches C++ `CreateShutterCloseAttr()`.
+    /// Matches C++ `CreateShutterCloseAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_shutter_close_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let double_type = registry.find_type_by_token(&Token::new("double"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().shutter_close.as_str(),
-            &double_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "double",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -606,27 +545,20 @@ impl Camera {
 
     /// Creates the exposure attribute.
     ///
-    /// Matches C++ `CreateExposureAttr()`.
+    /// Matches C++ `CreateExposureAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_exposure_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().exposure.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -644,27 +576,20 @@ impl Camera {
 
     /// Creates the exposureIso attribute.
     ///
-    /// Matches C++ `CreateExposureIsoAttr()`.
+    /// Matches C++ `CreateExposureIsoAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_exposure_iso_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().exposure_iso.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -682,27 +607,20 @@ impl Camera {
 
     /// Creates the exposureTime attribute.
     ///
-    /// Matches C++ `CreateExposureTimeAttr()`.
+    /// Matches C++ `CreateExposureTimeAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_exposure_time_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().exposure_time.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -720,27 +638,20 @@ impl Camera {
 
     /// Creates the exposureFStop attribute.
     ///
-    /// Matches C++ `CreateExposureFStopAttr()`.
+    /// Matches C++ `CreateExposureFStopAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_exposure_f_stop_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().exposure_f_stop.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================
@@ -758,27 +669,20 @@ impl Camera {
 
     /// Creates the exposureResponsivity attribute.
     ///
-    /// Matches C++ `CreateExposureResponsivityAttr()`.
+    /// Matches C++ `CreateExposureResponsivityAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_exposure_responsivity_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        let prim = self.inner.prim();
-        if !prim.is_valid() {
-            return Attribute::invalid();
-        }
-
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        prim.create_attribute(
+        create_camera_schema_attr(
+            self.inner.prim(),
             usd_geom_tokens().exposure_responsivity.as_str(),
-            &float_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
-        .unwrap_or_else(Attribute::invalid)
     }
 
     // ========================================================================

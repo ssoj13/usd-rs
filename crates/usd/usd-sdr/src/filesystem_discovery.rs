@@ -118,6 +118,22 @@ impl SdrFilesystemDiscoveryPlugin {
         }
     }
 
+    /// Shallow copy of filesystem search configuration for registering an extra
+    /// discovery plugin instance.
+    ///
+    /// Matches C++ `SdrFilesystemDiscoveryPlugin` copy semantics for registry
+    /// registration: custom discovery filter and parse-identifier callbacks are
+    /// dropped because they are not shareable across boxed trait objects.
+    pub fn clone_config(&self) -> Self {
+        Self {
+            search_paths: self.search_paths.clone(),
+            allowed_extensions: self.allowed_extensions.clone(),
+            follow_symlinks: self.follow_symlinks,
+            filter: None,
+            parse_identifier_fn: None,
+        }
+    }
+
     /// Sets a custom identifier parser function.
     pub fn set_parse_identifier_fn(&mut self, parse_fn: SdrParseIdentifierFn) {
         self.parse_identifier_fn = Some(parse_fn);

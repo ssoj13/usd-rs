@@ -39,6 +39,25 @@ impl SdrDiscoveryPluginContext for DefaultDiscoveryPluginContext {
     }
 }
 
+/// Maps filesystem discovery extensions (e.g. `oso`, `args`) to
+/// [`SdrParserPlugin::GetSourceType`](crate::parser_plugin::SdrParserPlugin) tokens.
+///
+/// Used by [`crate::filesystem_discovery::SdrFilesystemDiscoveryPlugin`] and matches
+/// OpenUSD's filesystem discovery context behavior.
+#[derive(Debug, Default)]
+pub struct SdrStandardFilesystemDiscoveryContext;
+
+impl SdrDiscoveryPluginContext for SdrStandardFilesystemDiscoveryContext {
+    fn get_source_type(&self, discovery_type: &Token) -> Token {
+        match discovery_type.as_str() {
+            "oso" => Token::new("OSL"),
+            "args" => Token::new("RmanCpp"),
+            "glslfx" => Token::new("glslfx"),
+            _ => discovery_type.clone(),
+        }
+    }
+}
+
 /// Interface for discovery plugins for finding shader nodes.
 ///
 /// Discovery plugins, like the name implies, find nodes. Where the plugin
@@ -120,6 +139,27 @@ mod tests {
         let discovery_type = Token::new("osl");
         let source_type = context.get_source_type(&discovery_type);
         assert_eq!(source_type.as_str(), "osl");
+    }
+
+    #[test]
+    fn test_standard_filesystem_context_maps_extensions() {
+        let context = SdrStandardFilesystemDiscoveryContext;
+        assert_eq!(
+            context.get_source_type(&Token::new("oso")).as_str(),
+            "OSL"
+        );
+        assert_eq!(
+            context.get_source_type(&Token::new("args")).as_str(),
+            "RmanCpp"
+        );
+        assert_eq!(
+            context.get_source_type(&Token::new("glslfx")).as_str(),
+            "glslfx"
+        );
+        assert_eq!(
+            context.get_source_type(&Token::new("custom")).as_str(),
+            "custom"
+        );
     }
 
     #[test]

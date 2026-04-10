@@ -639,6 +639,18 @@ impl SdrRegistry {
     /// Note: This will cause all nodes in the registry to be parsed in order
     /// to examine data on these nodes in their final form.
     pub fn run_query(&self, query: &SdrShaderNodeQuery) -> SdrShaderNodeQueryResult {
+        self.run_query_with_match_fn(query, |n| query.matches(n))
+    }
+
+    /// Like [`Self::run_query`], but uses a caller-supplied predicate instead of
+    /// [`SdrShaderNodeQuery::matches`].
+    ///
+    /// Used by language bindings that apply additional filters (e.g. Python callbacks)
+    /// that cannot be stored in [`SdrShaderNodeQuery::custom_filter`] (`Send`/`Sync`).
+    pub fn run_query_with_match_fn<F>(&self, query: &SdrShaderNodeQuery, mut node_matches: F) -> SdrShaderNodeQueryResult
+    where
+        F: FnMut(&SdrShaderNode) -> bool,
+    {
         use std::collections::HashSet;
         use std::sync::Arc;
 
@@ -647,7 +659,7 @@ impl SdrRegistry {
         let mut matching_nodes: Vec<SdrShaderNodeArc> = Vec::new();
 
         for node in all_nodes {
-            if query.matches(node) {
+            if node_matches(node) {
                 // Clone node into Arc for query result
                 // Note: In full implementation would need better ownership
                 matching_nodes.push(Arc::new(node.clone()));
@@ -669,12 +681,9 @@ impl SdrRegistry {
         let select_keys = query.get_select_keys();
 
         if select_keys.is_empty() {
-            // No SelectDistinct - return all matching nodes in single group
-            return SdrShaderNodeQueryResult::with_data(
-                Vec::new(),
-                Vec::new(),
-                vec![matching_nodes],
-            );
+            // No SelectDistinct: OpenUSD leaves GetShaderNodesByValues empty and puts
+            // matches only on GetAllShaderNodes.
+            return SdrShaderNodeQueryResult::with_no_select_data(matching_nodes);
         }
 
         // SelectDistinct specified - group by distinct value combinations
@@ -952,18 +961,25 @@ impl SdrRegistry {
 
     /// Parses a node from a discovery result.
     ///
-    /// Delegates to the appropriate parser plugin based on the discovery type.
-    /// If no parser is found, creates a basic node structure.
+    /// Tries every parser that lists this discovery type, in registration order, until one
+    /// returns a node. Matches OpenUSD behavior when multiple parsers share a discovery
+    /// extension (e.g. `UsdShadersParserPlugin` and `UsdShadeShaderDefParserPlugin` both
+    /// handle `usda`; the first returns `None` for non-`builtin://` assets).
     fn parse_node(&self, dr: &SdrShaderNodeDiscoveryResult) -> Option<SdrShaderNodeUniquePtr> {
-        // Try to find a parser plugin for this discovery type
-        if let Some(plugin_index) = self.get_parser_for_discovery_type(&dr.discovery_type) {
-            let plugins = self.parser_plugins.read().expect("rwlock poisoned");
-            if let Some(plugin) = plugins.get(plugin_index) {
-                return plugin.parse_shader_node(dr);
+        let plugins = self.parser_plugins.read().expect("rwlock poisoned");
+        for plugin in plugins.iter() {
+            let supports = plugin
+                .get_discovery_types()
+                .iter()
+                .any(|t| t == &dr.discovery_type);
+            if !supports {
+                continue;
+            }
+            if let Some(node) = plugin.parse_shader_node(dr) {
+                return Some(node);
             }
         }
 
-        // No parser found - create a basic node from discovery result metadata
         self.create_fallback_node(dr)
     }
 

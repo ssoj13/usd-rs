@@ -73,7 +73,11 @@ fn add_cube_model(stage: &Stage, prim_path: &str) -> usd_core::Prim {
 
     // Set extent
     let mesh = Mesh::get(stage, &usd_sdf::Path::from_string(&cube_path).unwrap());
-    let extent_attr = mesh.point_based().gprim().boundable().create_extent_attr();
+    let extent_attr = mesh
+        .point_based()
+        .gprim()
+        .boundable()
+        .create_extent_attr(None, false);
     extent_attr.set(
         Value::from(vec![
             Vec3f::new(-0.5, -0.5, -0.5),

@@ -13,6 +13,7 @@ use usd_gf::matrix4::Matrix4d;
 use usd_gf::range::Range3d;
 use usd_gf::vec3::Vec3d;
 use usd_gf::vec3::Vec3f;
+use usd_sdf::TimeCode;
 use usd_sdf::ValueTypeRegistry;
 use usd_tf::Token;
 use usd_vt::Value;
@@ -117,7 +118,7 @@ impl Sphere {
     /// Matches C++ `CreateRadiusAttr()`.
     pub fn create_radius_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -128,19 +129,24 @@ impl Sphere {
         if prim.has_authored_attribute(usd_geom_tokens().radius.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().radius.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double_type = registry.find_type_by_token(&Token::new("double"));
 
-        prim.create_attribute(
-            usd_geom_tokens().radius.as_str(),
-            &double_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().radius.as_str(),
+                &double_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -161,10 +167,12 @@ impl Sphere {
     /// Matches C++ `CreateExtentAttr()`.
     pub fn create_extent_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        self.inner.boundable().create_extent_attr()
+        self.inner
+            .boundable()
+            .create_extent_attr(default_value, write_sparsely)
     }
 
     // ========================================================================

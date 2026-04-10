@@ -242,7 +242,7 @@ impl PointBased {
     /// Matches C++ `CreateVelocitiesAttr()`.
     pub fn create_velocities_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -253,19 +253,24 @@ impl PointBased {
         if prim.has_authored_attribute(usd_geom_tokens().velocities.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().velocities.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let vector3f_array_type = registry.find_type_by_token(&Token::new("vector3f[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().velocities.as_str(),
-            &vector3f_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().velocities.as_str(),
+                &vector3f_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -289,7 +294,7 @@ impl PointBased {
     /// Matches C++ `CreateAccelerationsAttr()`.
     pub fn create_accelerations_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -300,19 +305,24 @@ impl PointBased {
         if prim.has_authored_attribute(usd_geom_tokens().accelerations.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().accelerations.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let vector3f_array_type = registry.find_type_by_token(&Token::new("vector3f[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().accelerations.as_str(),
-            &vector3f_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().accelerations.as_str(),
+                &vector3f_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -335,7 +345,7 @@ impl PointBased {
     /// Matches C++ `CreateNormalsAttr()`.
     pub fn create_normals_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -346,19 +356,24 @@ impl PointBased {
         if prim.has_authored_attribute(usd_geom_tokens().normals.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().normals.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let normal3f_array_type = registry.find_type_by_token(&Token::new("normal3f[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().normals.as_str(),
-            &normal3f_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().normals.as_str(),
+                &normal3f_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     /// Get the interpolation for the normals attribute.
@@ -791,3 +806,79 @@ impl PartialEq for PointBased {
 }
 
 impl Eq for PointBased {}
+
+#[cfg(test)]
+mod tests {
+    use super::PointBased;
+    use usd_core::InitialLoadSet;
+    use usd_core::Stage;
+    use usd_gf::vec3::Vec3f;
+    use usd_sdf::TimeCode;
+    use usd_vt::Value;
+
+    #[test]
+    fn create_velocities_attr_writes_default_value() {
+        let _ = usd_sdf::init();
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("stage");
+        let prim = stage.define_prim("/World/M", "Mesh").expect("prim");
+        let pb = PointBased::new(prim);
+        let vecs = vec![Vec3f::new(1.0, 2.0, 3.0)];
+        let val = Value::from_no_hash(vecs.clone());
+        let attr = pb.create_velocities_attr(Some(val), false);
+        assert!(attr.is_valid());
+        let got = attr.get(TimeCode::default()).expect("default sample");
+        let roundtrip: Vec<Vec3f> = got
+            .get::<Vec<Vec3f>>()
+            .cloned()
+            .or_else(|| {
+                got.get::<usd_vt::Array<Vec3f>>()
+                    .map(|a| a.iter().cloned().collect())
+            })
+            .expect("vector3f[]");
+        assert_eq!(roundtrip, vecs);
+    }
+
+    #[test]
+    fn create_accelerations_attr_writes_default_value() {
+        let _ = usd_sdf::init();
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("stage");
+        let prim = stage.define_prim("/World/M3", "Mesh").expect("prim");
+        let pb = PointBased::new(prim);
+        let vecs = vec![Vec3f::new(0.0, -9.8, 0.0)];
+        let val = Value::from_no_hash(vecs.clone());
+        let attr = pb.create_accelerations_attr(Some(val), false);
+        assert!(attr.is_valid());
+        let got = attr.get(TimeCode::default()).expect("default sample");
+        let roundtrip: Vec<Vec3f> = got
+            .get::<Vec<Vec3f>>()
+            .cloned()
+            .or_else(|| {
+                got.get::<usd_vt::Array<Vec3f>>()
+                    .map(|a| a.iter().cloned().collect())
+            })
+            .expect("vector3f[]");
+        assert_eq!(roundtrip, vecs);
+    }
+
+    #[test]
+    fn create_normals_attr_writes_default_value() {
+        let _ = usd_sdf::init();
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("stage");
+        let prim = stage.define_prim("/World/M2", "Mesh").expect("prim");
+        let pb = PointBased::new(prim);
+        let normals = vec![Vec3f::new(0.0, 1.0, 0.0)];
+        let val = Value::from_no_hash(normals.clone());
+        let attr = pb.create_normals_attr(Some(val), false);
+        assert!(attr.is_valid());
+        let got = attr.get(TimeCode::default()).expect("default sample");
+        let roundtrip: Vec<Vec3f> = got
+            .get::<Vec<Vec3f>>()
+            .cloned()
+            .or_else(|| {
+                got.get::<usd_vt::Array<Vec3f>>()
+                    .map(|a| a.iter().cloned().collect())
+            })
+            .expect("normal3f[]");
+        assert_eq!(roundtrip, normals);
+    }
+}

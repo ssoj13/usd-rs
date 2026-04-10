@@ -17,6 +17,7 @@ fn p(s: &str) -> Path {
 }
 use usd_shade::{
     ConnectableAPI, ConnectionSourceInfo, Input, Material, NodeGraph, Shader,
+    parse_shader_node,
     tokens::tokens,
     types::{AttributeType, ConnectionModification},
     udim_utils,
@@ -1448,6 +1449,48 @@ fn test_material_bind_subset_create() {
 // ===========================================================================
 // Shader SdrMetadata API
 // ===========================================================================
+
+#[test]
+fn test_parse_shader_node_includes_prim_sdr_metadata() {
+    ensure_formats();
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+        "../../usd-pyo3/tests/usd/sdr/testSdrShaderNodeQuery.testenv/SimpleNodes.usda",
+    );
+    let parsed = parse_shader_node(
+        &Token::new("SimpleNodeA"),
+        &Token::new(""),
+        path.to_string_lossy().as_ref(),
+        &Token::new("glslfx"),
+    )
+    .expect("parse_shader_node");
+    assert_eq!(
+        parsed
+            .shader_node_metadata
+            .get(&Token::new("testMetadata"))
+            .map(String::as_str),
+        Some("bar")
+    );
+}
+
+#[test]
+fn test_simple_nodes_stage_reads_prim_sdr_metadata() {
+    ensure_formats();
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+        "../../usd-pyo3/tests/usd/sdr/testSdrShaderNodeQuery.testenv/SimpleNodes.usda",
+    );
+    let stage = Stage::open(path.to_string_lossy().as_ref(), InitialLoadSet::LoadAll)
+        .expect("open SimpleNodes.usda");
+    let prim = stage
+        .get_prim_at_path(&p("/SimpleNodeA"))
+        .expect("prim /SimpleNodeA");
+    let shader = Shader::new(prim);
+    let meta = shader.get_sdr_metadata();
+    assert_eq!(
+        meta.get("testMetadata").map(String::as_str),
+        Some("bar"),
+        "expected testMetadata=bar from prim sdrMetadata, got {meta:?}"
+    );
+}
 
 #[test]
 fn test_shader_sdr_metadata_api() {

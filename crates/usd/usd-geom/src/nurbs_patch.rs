@@ -12,6 +12,8 @@ use usd_sdf::ValueTypeRegistry;
 use usd_tf::Token;
 use usd_vt::Value;
 
+use crate::schema_create_default::apply_optional_default;
+
 // ============================================================================
 // NurbsPatch
 // ============================================================================
@@ -112,7 +114,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateUVertexCountAttr()`.
     pub fn create_u_vertex_count_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -123,19 +125,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().u_vertex_count.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().u_vertex_count.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int_type = registry.find_type_by_token(&Token::new("int"));
 
-        prim.create_attribute(
-            usd_geom_tokens().u_vertex_count.as_str(),
-            &int_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().u_vertex_count.as_str(),
+                &int_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -158,7 +162,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateVVertexCountAttr()`.
     pub fn create_v_vertex_count_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -169,19 +173,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().v_vertex_count.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().v_vertex_count.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int_type = registry.find_type_by_token(&Token::new("int"));
 
-        prim.create_attribute(
-            usd_geom_tokens().v_vertex_count.as_str(),
-            &int_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().v_vertex_count.as_str(),
+                &int_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -204,7 +210,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateUOrderAttr()`.
     pub fn create_u_order_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -215,19 +221,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().u_order.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().u_order.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int_type = registry.find_type_by_token(&Token::new("int"));
 
-        prim.create_attribute(
-            usd_geom_tokens().u_order.as_str(),
-            &int_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().u_order.as_str(),
+                &int_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -250,7 +258,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateVOrderAttr()`.
     pub fn create_v_order_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -261,19 +269,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().v_order.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().v_order.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int_type = registry.find_type_by_token(&Token::new("int"));
 
-        prim.create_attribute(
-            usd_geom_tokens().v_order.as_str(),
-            &int_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().v_order.as_str(),
+                &int_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -296,7 +306,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateUKnotsAttr()`.
     pub fn create_u_knots_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -307,19 +317,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().u_knots.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().u_knots.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double_array_type = registry.find_type_by_token(&Token::new("double[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().u_knots.as_str(),
-            &double_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().u_knots.as_str(),
+                &double_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -342,7 +354,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateVKnotsAttr()`.
     pub fn create_v_knots_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -353,19 +365,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().v_knots.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().v_knots.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double_array_type = registry.find_type_by_token(&Token::new("double[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().v_knots.as_str(),
-            &double_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().v_knots.as_str(),
+                &double_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -388,7 +402,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateURangeAttr()`.
     pub fn create_u_range_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -399,19 +413,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().u_range.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().u_range.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double2_type = registry.find_type_by_token(&Token::new("double2"));
 
-        prim.create_attribute(
-            usd_geom_tokens().u_range.as_str(),
-            &double2_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().u_range.as_str(),
+                &double2_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -434,7 +450,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateVRangeAttr()`.
     pub fn create_v_range_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -445,19 +461,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().v_range.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().v_range.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double2_type = registry.find_type_by_token(&Token::new("double2"));
 
-        prim.create_attribute(
-            usd_geom_tokens().v_range.as_str(),
-            &double2_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().v_range.as_str(),
+                &double2_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -480,7 +498,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateUFormAttr()`.
     pub fn create_u_form_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -491,19 +509,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().u_form.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().u_form.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        prim.create_attribute(
-            usd_geom_tokens().u_form.as_str(),
-            &token_type,
-            false,                      // not custom
-            Some(Variability::Uniform), // uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().u_form.as_str(),
+                &token_type,
+                false,                      // not custom
+                Some(Variability::Uniform), // uniform
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -526,7 +546,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateVFormAttr()`.
     pub fn create_v_form_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -537,19 +557,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().v_form.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().v_form.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        prim.create_attribute(
-            usd_geom_tokens().v_form.as_str(),
-            &token_type,
-            false,                      // not custom
-            Some(Variability::Uniform), // uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().v_form.as_str(),
+                &token_type,
+                false,                      // not custom
+                Some(Variability::Uniform), // uniform
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -572,7 +594,7 @@ impl NurbsPatch {
     /// Matches C++ `CreatePointWeightsAttr()`.
     pub fn create_point_weights_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -583,19 +605,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().point_weights.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().point_weights.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double_array_type = registry.find_type_by_token(&Token::new("double[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().point_weights.as_str(),
-            &double_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().point_weights.as_str(),
+                &double_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -618,7 +642,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateTrimCurveCountsAttr()`.
     pub fn create_trim_curve_counts_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -629,19 +653,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().trim_curve_counts.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().trim_curve_counts.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int_array_type = registry.find_type_by_token(&Token::new("int[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().trim_curve_counts.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().trim_curve_counts.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -664,7 +690,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateTrimCurveOrdersAttr()`.
     pub fn create_trim_curve_orders_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -675,19 +701,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().trim_curve_orders.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().trim_curve_orders.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int_array_type = registry.find_type_by_token(&Token::new("int[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().trim_curve_orders.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().trim_curve_orders.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -710,7 +738,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateTrimCurveVertexCountsAttr()`.
     pub fn create_trim_curve_vertex_counts_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -721,19 +749,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().trim_curve_vertex_counts.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().trim_curve_vertex_counts.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int_array_type = registry.find_type_by_token(&Token::new("int[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().trim_curve_vertex_counts.as_str(),
-            &int_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().trim_curve_vertex_counts.as_str(),
+                &int_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -756,7 +786,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateTrimCurveKnotsAttr()`.
     pub fn create_trim_curve_knots_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -767,19 +797,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().trim_curve_knots.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().trim_curve_knots.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double_array_type = registry.find_type_by_token(&Token::new("double[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().trim_curve_knots.as_str(),
-            &double_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().trim_curve_knots.as_str(),
+                &double_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -802,7 +834,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateTrimCurveRangesAttr()`.
     pub fn create_trim_curve_ranges_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -813,19 +845,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().trim_curve_ranges.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().trim_curve_ranges.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double2_array_type = registry.find_type_by_token(&Token::new("double2[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().trim_curve_ranges.as_str(),
-            &double2_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().trim_curve_ranges.as_str(),
+                &double2_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -848,7 +882,7 @@ impl NurbsPatch {
     /// Matches C++ `CreateTrimCurvePointsAttr()`.
     pub fn create_trim_curve_points_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -859,19 +893,21 @@ impl NurbsPatch {
         if prim.has_authored_attribute(usd_geom_tokens().trim_curve_points.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().trim_curve_points.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double3_array_type = registry.find_type_by_token(&Token::new("double3[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().trim_curve_points.as_str(),
-            &double3_array_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().trim_curve_points.as_str(),
+                &double3_array_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================

@@ -11,9 +11,11 @@ pub mod material;
 pub mod material_binding_api;
 pub mod node_def_api;
 pub mod node_graph;
+mod sdr_value_string;
 pub mod output;
 pub mod shader;
 pub mod shader_def_parser;
+pub mod shader_def_sdr_plugin;
 pub mod shader_def_utils;
 pub mod tokens;
 pub mod types;
@@ -35,6 +37,7 @@ pub use shader::Shader;
 pub use shader_def_parser::{
     ShaderDefParseResult, get_discovery_types, get_source_type, parse_shader_node,
 };
+pub use shader_def_sdr_plugin::UsdShadeShaderDefParserPlugin;
 pub use shader_def_utils::{
     ShaderPropertyInfo, get_primvar_names_metadata_string, get_properties,
     get_sdr_property_type_and_array_size, get_source_asset,

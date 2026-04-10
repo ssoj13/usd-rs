@@ -8,6 +8,7 @@ use super::basis_curves::BasisCurves;
 use super::imageable::Imageable;
 use super::tet_mesh::TetMesh;
 use super::tokens::usd_geom_tokens;
+use crate::schema_create_default::apply_optional_default;
 use usd_core::attribute::Variability;
 use usd_core::typed::Typed;
 use usd_core::{Attribute, Prim, Stage};
@@ -483,7 +484,7 @@ impl Subset {
     /// Matches C++ `CreateElementTypeAttr()`.
     pub fn create_element_type_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -494,19 +495,21 @@ impl Subset {
         if prim.has_authored_attribute(usd_geom_tokens().element_type.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().element_type.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        prim.create_attribute(
-            usd_geom_tokens().element_type.as_str(),
-            &token_type,
-            false,
-            Some(Variability::Uniform),
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().element_type.as_str(),
+                &token_type,
+                false,
+                Some(Variability::Uniform),
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -530,7 +533,7 @@ impl Subset {
     /// Matches C++ `CreateIndicesAttr()`.
     pub fn create_indices_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -541,19 +544,21 @@ impl Subset {
         if prim.has_authored_attribute(usd_geom_tokens().indices.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().indices.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let int_array_type = registry.find_type_by_token(&Token::new("int[]"));
 
-        prim.create_attribute(
-            usd_geom_tokens().indices.as_str(),
-            &int_array_type,
-            false,
-            Some(Variability::Varying),
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().indices.as_str(),
+                &int_array_type,
+                false,
+                Some(Variability::Varying),
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -577,7 +582,7 @@ impl Subset {
     /// Matches C++ `CreateFamilyNameAttr()`.
     pub fn create_family_name_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -588,19 +593,21 @@ impl Subset {
         if prim.has_authored_attribute(usd_geom_tokens().family_name.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().family_name.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        prim.create_attribute(
-            usd_geom_tokens().family_name.as_str(),
-            &token_type,
-            false,
-            Some(Variability::Uniform),
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().family_name.as_str(),
+                &token_type,
+                false,
+                Some(Variability::Uniform),
+            )
+            .unwrap_or_else(Attribute::invalid);
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================

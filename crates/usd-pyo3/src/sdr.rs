@@ -1,22 +1,36 @@
 //! pxr.Sdr — Shader Definition Registry (`usd-sdr`).
 
+use pyo3::basic::CompareOp;
+use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyList};
+use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::fmt::Write as _;
+use std::sync::{Arc, Mutex};
 use usd_tf::Token;
+use usd_vt::Value;
 
-use usd_sdr::declare::SdrIdentifier;
+use usd_sdr::declare::{SdrIdentifier, SdrVersionFilter};
+use usd_sdr::discovery_plugin::SdrDiscoveryPluginRef;
 use usd_sdr::osl_parser::OslParserPlugin;
 use usd_sdr::parser_plugin::SdrParserPluginRef;
 use usd_sdr::shader_node::SdrShaderNode;
+use usd_sdr::shader_node_query::{SdrShaderNodeQuery, SdrShaderNodeQueryResult};
+use usd_sdr::shader_node_query_utils::{group_query_results, GroupedQueryResult};
 use usd_sdr::shader_property::SdrShaderProperty;
 use usd_sdr::tokens;
-use usd_sdr::{SdrRegistry, SdrSdfTypeIndicator, SdrShaderNodeDiscoveryResult, SdrVersion};
+use usd_sdr::{
+    fs_helpers_discover_files, split_shader_identifier, SdrDiscoveryPlugin, SdrDiscoveryUri,
+    SdrFilesystemDiscoveryPlugin, SdrRegistry, SdrSdfTypeIndicator, SdrShaderNodeDiscoveryResult,
+    SdrStandardFilesystemDiscoveryContext, SdrVersion,
+};
+use usd_shade::UsdShadeShaderDefParserPlugin;
 
 use crate::sdf::PyValueTypeName;
 use crate::sdr_shader_parser_test_utils;
 use crate::tf::PyType;
-use crate::vt::value_to_py;
+use crate::vt::{py_to_value, value_to_py};
 
 fn token_map_to_dict(py: Python<'_>, m: &HashMap<Token, String>) -> PyResult<Py<PyAny>> {
     let d = PyDict::new(py);
@@ -41,9 +55,93 @@ impl PySdrVersion {
     fn new(major: Option<i32>, minor: Option<i32>) -> Self {
         let inner = match (major, minor) {
             (Some(ma), Some(mi)) => SdrVersion::new(ma, mi),
-            _ => SdrVersion::default(),
+            (Some(ma), None) => SdrVersion::new(ma, 0),
+            (None, None) => SdrVersion::default(),
+            (None, Some(_)) => SdrVersion::default(),
         };
         Self { inner }
+    }
+
+    #[pyo3(name = "GetMajor")]
+    fn get_major(&self) -> i32 {
+        self.inner.major()
+    }
+
+    #[pyo3(name = "GetMinor")]
+    fn get_minor(&self) -> i32 {
+        self.inner.minor()
+    }
+
+    #[pyo3(name = "IsDefault")]
+    fn is_default_version(&self) -> bool {
+        self.inner.is_default()
+    }
+
+    #[pyo3(name = "GetAsDefault")]
+    fn get_as_default(&self) -> Self {
+        Self {
+            inner: self.inner.as_default(),
+        }
+    }
+
+    #[pyo3(name = "GetStringSuffix")]
+    fn get_string_suffix(&self) -> String {
+        self.inner.get_string_suffix()
+    }
+
+    fn __bool__(&self) -> bool {
+        self.inner.is_valid()
+    }
+
+    fn __str__(&self) -> String {
+        self.inner.get_string()
+    }
+
+    /// Matches `pxr/usd/sdr/wrapDeclare.cpp` `_Repr` (`TF_PY_REPR_PREFIX` → `Sdr.` for `pxr.Sdr`).
+    fn __repr__(&self) -> String {
+        let mut s = String::from("Sdr.");
+        if !self.inner.is_valid() {
+            s.push_str("Version()");
+        } else {
+            let _ = write!(
+                s,
+                "Version({}, {})",
+                self.inner.major(),
+                self.inner.minor()
+            );
+        }
+        if self.inner.is_default() {
+            s.push_str(".GetAsDefault()");
+        }
+        s
+    }
+
+    fn __hash__(&self) -> u64 {
+        self.inner.get_hash()
+    }
+
+    fn __richcmp__(&self, other: &Bound<'_, PyAny>, op: CompareOp) -> PyResult<bool> {
+        let other = match other.extract::<PyRef<PySdrVersion>>() {
+            Ok(o) => o,
+            Err(_) => {
+                return match op {
+                    CompareOp::Eq => Ok(false),
+                    CompareOp::Ne => Ok(true),
+                    _ => Err(PyTypeError::new_err(
+                        "ordering is not supported between these types",
+                    )),
+                };
+            }
+        };
+        let ord = self.inner.cmp(&other.inner);
+        Ok(match op {
+            CompareOp::Eq => self.inner == other.inner,
+            CompareOp::Ne => self.inner != other.inner,
+            CompareOp::Lt => ord == Ordering::Less,
+            CompareOp::Le => matches!(ord, Ordering::Less | Ordering::Equal),
+            CompareOp::Gt => ord == Ordering::Greater,
+            CompareOp::Ge => matches!(ord, Ordering::Greater | Ordering::Equal),
+        })
     }
 }
 
@@ -111,6 +209,143 @@ impl PyNodeDiscoveryResult {
         );
         Ok(Self { inner })
     }
+
+    #[getter]
+    fn identifier(&self) -> String {
+        self.inner.identifier.as_str().to_string()
+    }
+
+    #[getter]
+    fn name(&self) -> String {
+        self.inner.name.clone()
+    }
+
+    #[getter]
+    fn family(&self) -> String {
+        self.inner.family.as_str().to_string()
+    }
+
+    #[getter]
+    fn version(&self) -> PySdrVersion {
+        PySdrVersion {
+            inner: self.inner.version,
+        }
+    }
+
+    #[getter]
+    fn uri(&self) -> String {
+        self.inner.uri.clone()
+    }
+
+    #[getter]
+    #[pyo3(name = "resolvedUri")]
+    fn resolved_uri(&self) -> String {
+        self.inner.resolved_uri.clone()
+    }
+
+    #[getter]
+    #[pyo3(name = "discoveryType")]
+    fn discovery_type(&self) -> String {
+        self.inner.discovery_type.as_str().to_string()
+    }
+
+    #[getter]
+    #[pyo3(name = "sourceType")]
+    fn source_type(&self) -> String {
+        self.inner.source_type.as_str().to_string()
+    }
+}
+
+// --- Filesystem discovery (parity with pxr.Sdr filesystem helpers) -----------
+
+#[pyclass(name = "FilesystemDiscoveryPluginContext", module = "pxr.Sdr")]
+pub struct PyFilesystemDiscoveryPluginContext;
+
+#[pymethods]
+impl PyFilesystemDiscoveryPluginContext {
+    #[new]
+    fn new() -> Self {
+        Self
+    }
+}
+
+#[pyclass(name = "_FilesystemDiscoveryPlugin", module = "pxr.Sdr")]
+pub struct PyFilesystemDiscoveryPlugin {
+    pub(crate) inner: SdrFilesystemDiscoveryPlugin,
+}
+
+#[pymethods]
+impl PyFilesystemDiscoveryPlugin {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: SdrFilesystemDiscoveryPlugin::new(),
+        }
+    }
+
+    #[pyo3(name = "DiscoverShaderNodes")]
+    fn discover_shader_nodes(
+        &self,
+        _context: &PyFilesystemDiscoveryPluginContext,
+    ) -> Vec<PyNodeDiscoveryResult> {
+        let ctx = SdrStandardFilesystemDiscoveryContext;
+        self.inner
+            .discover_shader_nodes(&ctx)
+            .into_iter()
+            .map(|inner| PyNodeDiscoveryResult { inner })
+            .collect()
+    }
+}
+
+#[pyclass(module = "pxr.Sdr")]
+pub struct PyDiscoveryUri {
+    inner: SdrDiscoveryUri,
+}
+
+#[pymethods]
+impl PyDiscoveryUri {
+    #[getter]
+    fn uri(&self) -> String {
+        self.inner.uri.clone()
+    }
+
+    #[getter]
+    #[pyo3(name = "resolvedUri")]
+    fn resolved_uri(&self) -> String {
+        self.inner.resolved_uri.clone()
+    }
+}
+
+#[pyfunction]
+#[pyo3(name = "FsHelpersSplitShaderIdentifier")]
+fn fs_helpers_split_shader_identifier(
+    identifier: &str,
+) -> Option<(String, String, PySdrVersion)> {
+    let mut family = Token::default();
+    let mut name = Token::default();
+    let mut version = SdrVersion::default();
+    let id = Token::new(identifier);
+    if !split_shader_identifier(&id, &mut family, &mut name, &mut version) {
+        return None;
+    }
+    Some((
+        family.as_str().to_string(),
+        name.as_str().to_string(),
+        PySdrVersion { inner: version },
+    ))
+}
+
+#[pyfunction]
+#[pyo3(name = "FsHelpersDiscoverFiles")]
+fn fs_helpers_discover_files_py(
+    search_paths: Vec<String>,
+    allowed_extensions: Vec<String>,
+    follow_symlinks: bool,
+) -> Vec<PyDiscoveryUri> {
+    fs_helpers_discover_files(&search_paths, &allowed_extensions, follow_symlinks)
+        .into_iter()
+        .map(|inner| PyDiscoveryUri { inner })
+        .collect()
 }
 
 // --- Shader property / node wrappers ----------------------------------------
@@ -268,6 +503,11 @@ impl PyShaderProperty {
     fn get_implementation_name(&self) -> String {
         self.inner.get_implementation_name()
     }
+
+    #[pyo3(name = "GetShownIf")]
+    fn get_shown_if(&self) -> String {
+        self.inner.get_shown_if()
+    }
 }
 
 #[pyclass(name = "SdfTypeIndicator", module = "pxr.Sdr")]
@@ -303,7 +543,7 @@ pub struct PyShaderNode {
 }
 
 impl PyShaderNode {
-    fn new_node(n: SdrShaderNode) -> Self {
+    pub(crate) fn new_node(n: SdrShaderNode) -> Self {
         Self { inner: n }
     }
 }
@@ -471,6 +711,318 @@ impl PyShaderNode {
             .map(|t| t.as_str().to_string())
             .collect()
     }
+
+    #[pyo3(name = "GetIdentifier")]
+    fn get_identifier(&self) -> String {
+        self.inner.get_identifier().as_str().to_string()
+    }
+
+    #[pyo3(name = "GetDataForKey")]
+    fn get_data_for_key(&self, py: Python<'_>, key: &str) -> PyResult<Py<PyAny>> {
+        let t = Token::new(key);
+        value_to_py(py, &self.inner.get_data_for_key(&t))
+    }
+}
+
+fn drain_stored_py_err(slot: &Arc<Mutex<Option<PyErr>>>) -> PyResult<()> {
+    if let Some(e) = slot.lock().expect("mutex poisoned").take() {
+        Err(e)
+    } else {
+        Ok(())
+    }
+}
+
+fn grouped_query_to_py(py: Python<'_>, g: &GroupedQueryResult) -> PyResult<Py<PyAny>> {
+    match g {
+        GroupedQueryResult::Nodes(nodes) => {
+            let mut list = Vec::new();
+            for n in nodes {
+                list.push(Py::new(py, PyShaderNode::new_node((**n).clone()))?);
+            }
+            Ok(PyList::new(py, list)?.into_any().unbind())
+        }
+        GroupedQueryResult::Nested(map) => {
+            let d = PyDict::new(py);
+            for (k, v) in map {
+                d.set_item(k, grouped_query_to_py(py, v)?)?;
+            }
+            Ok(d.into_any().unbind())
+        }
+    }
+}
+
+#[pyclass(name = "NodeFieldKey", module = "pxr.Sdr")]
+pub struct PySdrNodeFieldKey;
+
+#[pymethods]
+impl PySdrNodeFieldKey {
+    #[classattr]
+    #[pyo3(name = "Identifier")]
+    fn identifier() -> &'static str {
+        tokens().node_field_key.identifier.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Name")]
+    fn name() -> &'static str {
+        tokens().node_field_key.name.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "Family")]
+    fn family() -> &'static str {
+        tokens().node_field_key.family.as_str()
+    }
+    #[classattr]
+    #[pyo3(name = "SourceType")]
+    fn source_type() -> &'static str {
+        tokens().node_field_key.source_type.as_str()
+    }
+}
+
+#[pyclass(name = "ShaderNodeQuery", module = "pxr.Sdr", skip_from_py_object)]
+pub struct PyShaderNodeQuery {
+    inner: Arc<Mutex<SdrShaderNodeQuery>>,
+    py_custom_filters: Arc<Mutex<Vec<Py<PyAny>>>>,
+}
+
+impl Clone for PyShaderNodeQuery {
+    fn clone(&self) -> Self {
+        Self {
+            inner: Arc::clone(&self.inner),
+            py_custom_filters: Arc::clone(&self.py_custom_filters),
+        }
+    }
+}
+
+#[pymethods]
+impl PyShaderNodeQuery {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(SdrShaderNodeQuery::new())),
+            py_custom_filters: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    #[pyo3(name = "SelectDistinct")]
+    fn select_distinct(&self, keys: Bound<'_, PyAny>) -> PyResult<Self> {
+        if let Ok(s) = keys.extract::<String>() {
+            let mut g = self.inner.lock().expect("mutex poisoned");
+            *g = std::mem::take(&mut *g).select_distinct(&Token::new(s.as_str()));
+        } else if let Ok(list) = keys.cast::<PyList>() {
+            let mut g = self.inner.lock().expect("mutex poisoned");
+            let mut q = std::mem::take(&mut *g);
+            for item in list.iter() {
+                let s: String = item.extract()?;
+                q = q.select_distinct(&Token::new(s.as_str()));
+            }
+            *g = q;
+        } else {
+            return Err(PyTypeError::new_err(
+                "SelectDistinct expects str or list of str",
+            ));
+        }
+        Ok(self.clone())
+    }
+
+    #[pyo3(name = "NodeValueIs")]
+    fn node_value_is(&self, key: &str, value: Bound<'_, PyAny>) -> PyResult<Self> {
+        let v = py_to_value(&value)?;
+        let mut g = self.inner.lock().expect("mutex poisoned");
+        *g = std::mem::take(&mut *g).node_value_is(&Token::new(key), v);
+        Ok(self.clone())
+    }
+
+    #[pyo3(name = "NodeValueIsNot")]
+    fn node_value_is_not(&self, key: &str, value: Bound<'_, PyAny>) -> PyResult<Self> {
+        let v = py_to_value(&value)?;
+        let mut g = self.inner.lock().expect("mutex poisoned");
+        *g = std::mem::take(&mut *g).node_value_is_not(&Token::new(key), v);
+        Ok(self.clone())
+    }
+
+    #[pyo3(name = "NodeValueIsIn")]
+    fn node_value_is_in(&self, key: &str, values: Bound<'_, PyAny>) -> PyResult<Self> {
+        let list = values
+            .cast::<PyList>()
+            .map_err(|_| PyTypeError::new_err("NodeValueIsIn expects a list of values"))?;
+        let mut out: Vec<Value> = Vec::new();
+        for item in list.iter() {
+            out.push(py_to_value(&item)?);
+        }
+        let mut g = self.inner.lock().expect("mutex poisoned");
+        *g = std::mem::take(&mut *g).node_value_is_in(&Token::new(key), out);
+        Ok(self.clone())
+    }
+
+    #[pyo3(name = "NodeValueIsNotIn")]
+    fn node_value_is_not_in(&self, key: &str, values: Bound<'_, PyAny>) -> PyResult<Self> {
+        let list = values
+            .cast::<PyList>()
+            .map_err(|_| PyTypeError::new_err("NodeValueIsNotIn expects a list of values"))?;
+        let mut out: Vec<Value> = Vec::new();
+        for item in list.iter() {
+            out.push(py_to_value(&item)?);
+        }
+        let mut g = self.inner.lock().expect("mutex poisoned");
+        *g = std::mem::take(&mut *g).node_value_is_not_in(&Token::new(key), out);
+        Ok(self.clone())
+    }
+
+    #[pyo3(name = "NodeHasValueFor")]
+    fn node_has_value_for(&self, key: &str) -> Self {
+        let mut g = self.inner.lock().expect("mutex poisoned");
+        *g = std::mem::take(&mut *g).node_has_value_for(&Token::new(key));
+        self.clone()
+    }
+
+    #[pyo3(name = "NodeHasNoValueFor")]
+    fn node_has_no_value_for(&self, key: &str) -> Self {
+        let mut g = self.inner.lock().expect("mutex poisoned");
+        *g = std::mem::take(&mut *g).node_has_no_value_for(&Token::new(key));
+        self.clone()
+    }
+
+    #[pyo3(name = "CustomFilter")]
+    fn custom_filter(&self, cb: Py<PyAny>) -> Self {
+        self.py_custom_filters
+            .lock()
+            .expect("mutex poisoned")
+            .push(cb);
+        self.clone()
+    }
+
+    #[pyo3(name = "Run")]
+    fn run(&self, py: Python<'_>) -> PyResult<Py<PyShaderNodeQueryResult>> {
+        let registry = SdrRegistry::get_instance();
+        let base = self
+            .inner
+            .lock()
+            .expect("mutex poisoned")
+            .clone_without_custom_filters();
+        let filters: Vec<Py<PyAny>> = self
+            .py_custom_filters
+            .lock()
+            .expect("mutex poisoned")
+            .iter()
+            .map(|p| p.clone_ref(py))
+            .collect();
+        let err_slot: Arc<Mutex<Option<PyErr>>> = Arc::new(Mutex::new(None));
+        let err_slot_cb = err_slot.clone();
+        let result = registry.run_query_with_match_fn(&base, |node| {
+            if !base.matches_inclusion(node) || !base.matches_exclusion(node) {
+                return false;
+            }
+            for f in &filters {
+                let wrapped = match Py::new(py, PyShaderNode::new_node(node.clone())) {
+                    Ok(w) => w,
+                    Err(e) => {
+                        *err_slot_cb.lock().expect("mutex poisoned") = Some(e);
+                        return false;
+                    }
+                };
+                match f.call1(py, (wrapped,)) {
+                    Ok(v) => match v.bind(py).extract::<bool>() {
+                        Ok(b) => {
+                            if !b {
+                                return false;
+                            }
+                        }
+                        Err(_) => {
+                            *err_slot_cb.lock().expect("mutex poisoned") = Some(
+                                PyTypeError::new_err(
+                                    "Sdr.ShaderNodeQuery.CustomFilter callback must return bool",
+                                ),
+                            );
+                            return false;
+                        }
+                    },
+                    Err(e) => {
+                        *err_slot_cb.lock().expect("mutex poisoned") = Some(e);
+                        return false;
+                    }
+                }
+            }
+            true
+        });
+        drain_stored_py_err(&err_slot)?;
+        Py::new(py, PyShaderNodeQueryResult { inner: result })
+    }
+}
+
+#[pyclass(name = "ShaderNodeQueryResult", module = "pxr.Sdr")]
+pub struct PyShaderNodeQueryResult {
+    inner: SdrShaderNodeQueryResult,
+}
+
+#[pymethods]
+impl PyShaderNodeQueryResult {
+    #[pyo3(name = "GetKeys")]
+    fn get_keys(&self) -> Vec<String> {
+        self.inner
+            .get_keys()
+            .iter()
+            .map(|t| t.as_str().to_string())
+            .collect()
+    }
+
+    #[pyo3(name = "GetValues")]
+    fn get_values(&self, py: Python<'_>) -> PyResult<Vec<Vec<Py<PyAny>>>> {
+        let mut rows = Vec::new();
+        for row in self.inner.get_values() {
+            let mut out = Vec::new();
+            for v in row {
+                out.push(value_to_py(py, v)?);
+            }
+            rows.push(out);
+        }
+        Ok(rows)
+    }
+
+    #[pyo3(name = "GetStringifiedValues")]
+    fn get_stringified_values(&self) -> Vec<Vec<String>> {
+        self.inner.get_stringified_values()
+    }
+
+    #[pyo3(name = "GetAllShaderNodes")]
+    fn get_all_shader_nodes(&self, py: Python<'_>) -> PyResult<Vec<Py<PyShaderNode>>> {
+        let mut out = Vec::new();
+        for n in self.inner.get_all_shader_nodes() {
+            out.push(Py::new(py, PyShaderNode::new_node((*n).clone()))?);
+        }
+        Ok(out)
+    }
+
+    #[pyo3(name = "GetShaderNodesByValues")]
+    fn get_shader_nodes_by_values(
+        &self,
+        py: Python<'_>,
+    ) -> PyResult<Vec<Vec<Py<PyShaderNode>>>> {
+        let mut rows = Vec::new();
+        for group in self.inner.get_shader_nodes_by_values() {
+            let mut row = Vec::new();
+            for n in group {
+                row.push(Py::new(py, PyShaderNode::new_node((**n).clone()))?);
+            }
+            rows.push(row);
+        }
+        Ok(rows)
+    }
+}
+
+#[pyclass(name = "ShaderNodeQueryUtils", module = "pxr.Sdr")]
+pub struct PyShaderNodeQueryUtils;
+
+#[pymethods]
+impl PyShaderNodeQueryUtils {
+    #[staticmethod]
+    #[pyo3(name = "GroupQueryResults")]
+    fn group_query_results(
+        py: Python<'_>,
+        result: PyRef<PyShaderNodeQueryResult>,
+    ) -> PyResult<Py<PyAny>> {
+        let grouped = group_query_results(&result.inner);
+        grouped_query_to_py(py, &grouped)
+    }
 }
 
 // --- Registry ---------------------------------------------------------------
@@ -496,9 +1048,13 @@ impl PySdrRegistry {
         let mut out: Vec<SdrParserPluginRef> = Vec::new();
         for item in list.iter() {
             if let Ok(pyty) = item.cast::<PyType>() {
-                let name = pyty.borrow().inner.type_name();
+                let name = pyty.borrow().effective_name_for_sdr_plugin_match();
                 if name.contains("SdrOslParserPlugin") || name.contains("OslParser") {
                     out.push(Box::new(OslParserPlugin::new()) as SdrParserPluginRef);
+                } else if name.contains("ShaderDefParser") || name.contains("UsdShadeShaderDef") {
+                    out.push(
+                        Box::new(UsdShadeShaderDefParserPlugin::new()) as SdrParserPluginRef,
+                    );
                 }
             }
         }
@@ -506,6 +1062,59 @@ impl PySdrRegistry {
             SdrRegistry::get_instance().set_extra_parser_plugins(out);
         }
         Ok(())
+    }
+
+    #[pyo3(name = "SetExtraDiscoveryPlugins")]
+    fn set_extra_discovery_plugins(&self, plugins: Bound<'_, PyAny>) -> PyResult<()> {
+        let list = plugins.cast::<PyList>()?;
+        let mut out: Vec<SdrDiscoveryPluginRef> = Vec::new();
+        for item in list.iter() {
+            if let Ok(plugin) = item.extract::<PyRef<PyFilesystemDiscoveryPlugin>>() {
+                out.push(Box::new(plugin.inner.clone_config()) as SdrDiscoveryPluginRef);
+            }
+        }
+        if !out.is_empty() {
+            SdrRegistry::get_instance().set_extra_discovery_plugins(out);
+        }
+        Ok(())
+    }
+
+    #[pyo3(name = "RunQuery")]
+    fn run_query(
+        &self,
+        py: Python<'_>,
+        query: &PyShaderNodeQuery,
+    ) -> PyResult<Py<PyShaderNodeQueryResult>> {
+        query.run(py)
+    }
+
+    #[pyo3(name = "GetShaderNodeIdentifiers")]
+    #[pyo3(signature = (family = None))]
+    fn get_shader_node_identifiers(&self, family: Option<String>) -> Vec<String> {
+        let fam = family.map(|s| Token::new(s.as_str()));
+        let ids = SdrRegistry::get_instance().get_shader_node_identifiers(
+            fam.as_ref(),
+            SdrVersionFilter::default(),
+        );
+        ids.iter()
+            .map(|id| id.as_str().to_string())
+            .collect()
+    }
+
+    #[pyo3(name = "GetShaderNodeByIdentifierAndType")]
+    fn get_shader_node_by_identifier_and_type(
+        &self,
+        py: Python<'_>,
+        identifier: &str,
+        source_type: &str,
+    ) -> PyResult<Option<Py<PyShaderNode>>> {
+        let id = Token::new(identifier);
+        let st = Token::new(source_type);
+        let node =
+            SdrRegistry::get_instance().get_shader_node_by_identifier_and_type(&id, &st);
+        Ok(node
+            .map(|n| Py::new(py, PyShaderNode::new_node(n.clone())))
+            .transpose()?)
     }
 
     #[pyo3(name = "GetShaderNodeByIdentifier")]
@@ -612,9 +1221,20 @@ impl PySdrPropertyTypes {
 pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySdrVersion>()?;
     m.add_class::<PyNodeDiscoveryResult>()?;
+    m.add_class::<PyFilesystemDiscoveryPlugin>()?;
+    m.add_class::<PyFilesystemDiscoveryPluginContext>()?;
+    m.add_class::<PyDiscoveryUri>()?;
+    m.add_function(wrap_pyfunction!(fs_helpers_split_shader_identifier, m)?)?;
+    m.add_function(wrap_pyfunction!(fs_helpers_discover_files_py, m)?)?;
+    m.getattr("_FilesystemDiscoveryPlugin")?
+        .setattr("Context", m.getattr("FilesystemDiscoveryPluginContext")?)?;
     m.add_class::<PyShaderProperty>()?;
     m.add_class::<PySdfTypeIndicator>()?;
     m.add_class::<PyShaderNode>()?;
+    m.add_class::<PySdrNodeFieldKey>()?;
+    m.add_class::<PyShaderNodeQuery>()?;
+    m.add_class::<PyShaderNodeQueryResult>()?;
+    m.add_class::<PyShaderNodeQueryUtils>()?;
     m.add_class::<PySdrRegistry>()?;
     m.add_function(wrap_pyfunction!(validate_property, m)?)?;
     m.add_class::<PySdrPropertyTypes>()?;

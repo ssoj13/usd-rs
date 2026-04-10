@@ -13,6 +13,7 @@ use usd_gf::matrix4::Matrix4d;
 use usd_gf::range::Range3d;
 use usd_gf::vec3::Vec3d;
 use usd_gf::vec3::Vec3f;
+use usd_sdf::TimeCode;
 use usd_sdf::ValueTypeRegistry;
 use usd_tf::Token;
 use usd_vt::Value;
@@ -116,10 +117,11 @@ impl Plane {
     /// Matches C++ `CreateDoubleSidedAttr()`.
     pub fn create_double_sided_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        self.inner.create_double_sided_attr()
+        self.inner
+            .create_double_sided_attr(default_value, write_sparsely)
     }
 
     // ========================================================================
@@ -142,7 +144,7 @@ impl Plane {
     /// Matches C++ `CreateWidthAttr()`.
     pub fn create_width_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -153,19 +155,24 @@ impl Plane {
         if prim.has_authored_attribute(usd_geom_tokens().width.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().width.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double_type = registry.find_type_by_token(&Token::new("double"));
 
-        prim.create_attribute(
-            usd_geom_tokens().width.as_str(),
-            &double_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().width.as_str(),
+                &double_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -188,7 +195,7 @@ impl Plane {
     /// Matches C++ `CreateLengthAttr()`.
     pub fn create_length_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -199,19 +206,24 @@ impl Plane {
         if prim.has_authored_attribute(usd_geom_tokens().length.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().length.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let double_type = registry.find_type_by_token(&Token::new("double"));
 
-        prim.create_attribute(
-            usd_geom_tokens().length.as_str(),
-            &double_type,
-            false,                      // not custom
-            Some(Variability::Varying), // can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().length.as_str(),
+                &double_type,
+                false,                      // not custom
+                Some(Variability::Varying), // can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -234,7 +246,7 @@ impl Plane {
     /// Matches C++ `CreateAxisAttr()`.
     pub fn create_axis_attr(
         &self,
-        _default_value: Option<Value>,
+        default_value: Option<Value>,
         _write_sparsely: bool,
     ) -> Attribute {
         let prim = self.inner.prim();
@@ -245,19 +257,24 @@ impl Plane {
         if prim.has_authored_attribute(usd_geom_tokens().axis.as_str()) {
             return prim
                 .get_attribute(usd_geom_tokens().axis.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
+                .unwrap_or_else(Attribute::invalid);
         }
 
         let registry = ValueTypeRegistry::instance();
         let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        prim.create_attribute(
-            usd_geom_tokens().axis.as_str(),
-            &token_type,
-            false,                      // not custom
-            Some(Variability::Uniform), // uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        let attr = prim
+            .create_attribute(
+                usd_geom_tokens().axis.as_str(),
+                &token_type,
+                false,                      // not custom
+                Some(Variability::Uniform), // uniform
+            )
+            .unwrap_or_else(Attribute::invalid);
+        if let Some(val) = default_value {
+            let _ = attr.set(val, TimeCode::default());
+        }
+        attr
     }
 
     // ========================================================================
@@ -278,10 +295,12 @@ impl Plane {
     /// Matches C++ `CreateExtentAttr()`.
     pub fn create_extent_attr(
         &self,
-        _default_value: Option<Value>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
-        self.inner.boundable().create_extent_attr()
+        self.inner
+            .boundable()
+            .create_extent_attr(default_value, write_sparsely)
     }
 
     // ========================================================================

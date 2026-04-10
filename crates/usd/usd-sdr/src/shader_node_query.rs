@@ -86,6 +86,21 @@ impl SdrShaderNodeQuery {
         Self::default()
     }
 
+    /// Copies inclusion/exclusion/`select_distinct` state without custom Rust filters.
+    ///
+    /// Used when Python supplies [`Vec<Py<PyAny>>`] custom filters separately
+    /// and the final [`SdrShaderNodeQuery`] must merge them at run time.
+    pub fn clone_without_custom_filters(&self) -> Self {
+        Self {
+            has_values: self.has_values.clone(),
+            has_one_of_values: self.has_one_of_values.clone(),
+            lacks_values: self.lacks_values.clone(),
+            lacks_all_of_values: self.lacks_all_of_values.clone(),
+            select_keys: self.select_keys.clone(),
+            custom_filters: Vec::new(),
+        }
+    }
+
     /// SelectDistinct asks for distinct information from SdrShaderNodes via
     /// the SdrShaderNode::get_data_for_key method.
     ///
@@ -187,7 +202,7 @@ impl SdrShaderNodeQuery {
     }
 
     /// Evaluates whether a node matches the inclusion constraints.
-    pub(crate) fn matches_inclusion(&self, node: &SdrShaderNode) -> bool {
+    pub fn matches_inclusion(&self, node: &SdrShaderNode) -> bool {
         // Check all has_values constraints (AND)
         for (key, expected) in &self.has_values {
             let actual = node.get_data_for_key(key);
@@ -211,7 +226,7 @@ impl SdrShaderNodeQuery {
     }
 
     /// Evaluates whether a node matches the exclusion constraints.
-    pub(crate) fn matches_exclusion(&self, node: &SdrShaderNode) -> bool {
+    pub fn matches_exclusion(&self, node: &SdrShaderNode) -> bool {
         // Check lacks_values constraints (OR - must match NONE)
         for (key, excluded) in &self.lacks_values {
             let actual = node.get_data_for_key(key);
@@ -258,8 +273,54 @@ fn values_match(a: &Value, b: &Value) -> bool {
     if a.is_empty() && b.is_empty() {
         return true;
     }
-    // Simple comparison - in full implementation would use VtValue comparison
-    a == b
+    if a == b {
+        return true;
+    }
+    // `SdrShaderNode::get_data_for_key` returns `TfToken` for Identifier / Family /
+    // SourceType; Python `NodeValueIs` passes `str`. OpenUSD treats these as matching
+    // when the string content is equal.
+    if let Some(ta) = a.get::<Token>() {
+        if let Some(sb) = b.get::<String>() {
+            return ta.as_str() == sb.as_str();
+        }
+    }
+    if let Some(sa) = a.get::<String>() {
+        if let Some(tb) = b.get::<Token>() {
+            return sa.as_str() == tb.as_str();
+        }
+    }
+    false
+}
+
+/// String form of a query result cell for [`SdrShaderNodeQueryResult::get_stringified_values`].
+///
+/// Empty values stringify to `""` (matches OpenUSD `GetStringifiedValues` tests).
+fn stringify_query_result_value(v: &Value) -> String {
+    if v.is_empty() {
+        return String::new();
+    }
+    if let Some(t) = v.get::<Token>() {
+        return t.as_str().to_string();
+    }
+    if let Some(s) = v.get::<String>() {
+        return s.clone();
+    }
+    if let Some(b) = v.get::<bool>() {
+        return b.to_string();
+    }
+    if let Some(i) = v.get::<i32>() {
+        return i.to_string();
+    }
+    if let Some(i) = v.get::<i64>() {
+        return i.to_string();
+    }
+    if let Some(x) = v.get::<f32>() {
+        return x.to_string();
+    }
+    if let Some(x) = v.get::<f64>() {
+        return x.to_string();
+    }
+    format!("{v:?}")
 }
 
 // ============================================================================
@@ -277,6 +338,11 @@ pub struct SdrShaderNodeQueryResult {
 
     /// Nodes grouped by value rows.
     nodes: Vec<SdrShaderNodeArcVec>,
+
+    /// Matches when the query had **no** `SelectDistinct`: flat list for `get_all_shader_nodes`.
+    /// Left empty when `SelectDistinct` was used so `get_shader_nodes_by_values` stays empty
+    /// (matches OpenUSD).
+    no_select_nodes: SdrShaderNodeArcVec,
 }
 
 impl SdrShaderNodeQueryResult {
@@ -295,6 +361,28 @@ impl SdrShaderNodeQueryResult {
             keys,
             values,
             nodes,
+            no_select_nodes: SdrShaderNodeArcVec::new(),
+        }
+    }
+
+    /// Result for a query with no `SelectDistinct`: no value rows, nodes only via
+    /// [`Self::get_all_shader_nodes`].
+    pub fn with_no_select_data(mut matching_nodes: SdrShaderNodeArcVec) -> Self {
+        matching_nodes.sort_by(|a, b| {
+            let id_cmp = a.get_identifier().as_str().cmp(b.get_identifier().as_str());
+            if id_cmp == std::cmp::Ordering::Equal {
+                a.get_source_type()
+                    .as_str()
+                    .cmp(b.get_source_type().as_str())
+            } else {
+                id_cmp
+            }
+        });
+        Self {
+            keys: SdrTokenVec::new(),
+            values: Vec::new(),
+            nodes: Vec::new(),
+            no_select_nodes: matching_nodes,
         }
     }
 
@@ -354,7 +442,7 @@ impl SdrShaderNodeQueryResult {
     pub fn get_stringified_values(&self) -> Vec<Vec<String>> {
         self.values
             .iter()
-            .map(|row| row.iter().map(|v| format!("{:?}", v)).collect())
+            .map(|row| row.iter().map(stringify_query_result_value).collect())
             .collect()
     }
 
@@ -376,6 +464,10 @@ impl SdrShaderNodeQueryResult {
     /// The resulting SdrShaderNodeArcVec is sorted alphabetically by identifier,
     /// then sourceType.
     pub fn get_all_shader_nodes(&self) -> SdrShaderNodeArcVec {
+        if !self.no_select_nodes.is_empty() {
+            return self.no_select_nodes.clone();
+        }
+
         let mut result = SdrShaderNodeArcVec::new();
         for inner in &self.nodes {
             result.extend(inner.iter().cloned());
@@ -398,6 +490,10 @@ impl SdrShaderNodeQueryResult {
 
     /// Returns true if the contents of this result are well-formed.
     pub fn is_valid(&self) -> bool {
+        if !self.no_select_nodes.is_empty() {
+            return self.keys.is_empty() && self.values.is_empty() && self.nodes.is_empty();
+        }
+
         let num_keys = self.keys.len();
 
         // Check that all value rows have the correct number of columns
@@ -413,7 +509,7 @@ impl SdrShaderNodeQueryResult {
 
     /// Returns true if the result is empty.
     pub fn is_empty(&self) -> bool {
-        self.nodes.is_empty()
+        self.no_select_nodes.is_empty() && self.nodes.is_empty() && self.values.is_empty()
     }
 
     /// Returns the number of distinct value combinations.
@@ -472,5 +568,36 @@ mod tests {
         );
 
         assert!(!result.is_valid());
+    }
+
+    #[test]
+    fn test_query_result_no_select_distinct_openusd_shape() {
+        // OpenUSD: no SelectDistinct => GetShaderNodesByValues is empty, GetAllShaderNodes has matches.
+        use crate::declare::SdrVersion;
+        use crate::shader_node::SdrShaderNode;
+        use crate::shader_node_metadata::SdrShaderNodeMetadata;
+
+        let node = std::sync::Arc::new(SdrShaderNode::new(
+            Token::new("TestNode"),
+            SdrVersion::new(1, 0),
+            String::new(),
+            Token::default(),
+            Token::default(),
+            Token::new("OSL"),
+            String::new(),
+            String::new(),
+            Vec::new(),
+            SdrShaderNodeMetadata::new(),
+            String::new(),
+        ));
+        let result = SdrShaderNodeQueryResult::with_no_select_data(vec![node.clone()]);
+
+        assert!(result.is_valid());
+        assert!(result.get_keys().is_empty());
+        assert!(result.get_values().is_empty());
+        assert!(result.get_shader_nodes_by_values().is_empty());
+        assert_eq!(result.get_all_shader_nodes().len(), 1);
+        assert!(!result.is_empty());
+        assert_eq!(result.len(), 0);
     }
 }
