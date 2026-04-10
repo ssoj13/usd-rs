@@ -6,6 +6,7 @@
 //! sequences of component affine transformations to be encoded.
 
 use super::imageable::Imageable;
+use super::schema_create_default::apply_optional_default;
 use super::tokens::usd_geom_tokens;
 use super::xform_op::{XformOp, XformOpPrecision, XformOpType};
 use std::sync::LazyLock;
@@ -15,6 +16,7 @@ use usd_gf::Interval;
 use usd_gf::Matrix4d;
 use usd_sdf::TimeCode;
 use usd_tf::Token;
+use usd_vt::Value;
 
 static DEBUG_XFORM_QUERY_CALLS: AtomicUsize = AtomicUsize::new(0);
 static DEBUG_XFORM_QUERY_TOTAL_NS: AtomicU64 = AtomicU64::new(0);
@@ -165,30 +167,34 @@ impl Xformable {
 
     /// Creates the xformOpOrder attribute.
     ///
-    /// Matches C++ `CreateXformOpOrderAttr()`.
-    pub fn create_xform_op_order_attr(&self) -> Attribute {
+    /// Matches C++ `CreateXformOpOrderAttr(defaultValue, writeSparsely)`.
+    pub fn create_xform_op_order_attr(
+        &self,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
         let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Get or create the attribute with proper type (TokenArray) and variability (Uniform)
-        if prim.has_authored_attribute(usd_geom_tokens().xform_op_order.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().xform_op_order.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
-        }
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().xform_op_order.as_str()) {
+            prim.get_attribute(usd_geom_tokens().xform_op_order.as_str())
+                .unwrap_or_else(Attribute::invalid)
+        } else {
+            let registry = usd_sdf::ValueTypeRegistry::instance();
+            let token_array_type = registry.find_type_by_token(&Token::new("token[]"));
 
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let token_array_type = registry.find_type_by_token(&Token::new("token[]"));
+            prim.create_attribute(
+                usd_geom_tokens().xform_op_order.as_str(),
+                &token_array_type,
+                false,                                           // not custom
+                Some(usd_core::attribute::Variability::Uniform), // xformOpOrder is uniform
+            )
+            .unwrap_or_else(Attribute::invalid)
+        };
 
-        prim.create_attribute(
-            usd_geom_tokens().xform_op_order.as_str(),
-            &token_array_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Uniform), // xformOpOrder is uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -296,7 +302,7 @@ impl Xformable {
         if result.is_valid() {
             xform_op_order.push(result.op_name());
             let order_value = usd_vt::Value::new(xform_op_order);
-            self.create_xform_op_order_attr()
+            self.create_xform_op_order_attr(None, false)
                 .set(order_value, TimeCode::default());
         }
 
@@ -438,7 +444,7 @@ impl Xformable {
         }
 
         let order_value = usd_vt::Value::new(op_names);
-        self.create_xform_op_order_attr()
+        self.create_xform_op_order_attr(None, false)
             .set(order_value, TimeCode::default())
     }
 
@@ -479,7 +485,7 @@ impl Xformable {
         }
 
         let order_value = usd_vt::Value::new(xform_op_order);
-        self.create_xform_op_order_attr()
+        self.create_xform_op_order_attr(None, false)
             .set(order_value, TimeCode::default())
     }
 

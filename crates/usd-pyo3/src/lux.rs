@@ -6,9 +6,11 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use pyo3::types::PyAny;
 use std::sync::Arc;
 
-use usd_core::{Prim, Stage};
+use crate::usd::{PyAttribute, PyPrim};
+use usd_core::{Attribute, Prim, Stage};
 #[allow(deprecated)]
 use usd_lux::geometry_light::GeometryLight;
 use usd_lux::{
@@ -51,6 +53,19 @@ fn get_prim(stage: &Arc<Stage>, path: &str) -> PyResult<Prim> {
         .ok_or_else(|| PyValueError::new_err(format!("No prim at path: {path}")))
 }
 
+fn lux_optional_default(
+    default_value: Option<&Bound<'_, PyAny>>,
+) -> PyResult<Option<usd_vt::Value>> {
+    match default_value {
+        None => Ok(None),
+        Some(o) => Ok(Some(crate::vt::py_to_value(o)?)),
+    }
+}
+
+fn lux_attr_or_invalid(attr: Option<Attribute>) -> PyAttribute {
+    PyAttribute::from_attr(attr.unwrap_or_else(Attribute::invalid))
+}
+
 // ---------------------------------------------------------------------------
 // Shared stage wrapper
 // ---------------------------------------------------------------------------
@@ -91,47 +106,213 @@ impl PyLightAPI {
         self.inner.is_valid()
     }
 
-    fn get_intensity_attr(&self) -> Option<String> {
-        self.inner
-            .get_intensity_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
     }
 
-    fn get_exposure_attr(&self) -> Option<String> {
-        self.inner.get_exposure_attr().map(|a| a.path().to_string())
+    #[pyo3(name = "GetShaderIdAttr")]
+    fn get_shader_id_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shader_id_attr())
     }
 
-    fn get_color_attr(&self) -> Option<String> {
-        self.inner.get_color_attr().map(|a| a.path().to_string())
+    #[pyo3(name = "CreateShaderIdAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shader_id_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_shader_id_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
     }
 
-    fn get_normalize_attr(&self) -> Option<String> {
-        self.inner
-            .get_normalize_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "GetShaderIdAttrForRenderContext")]
+    fn get_shader_id_attr_for_render_context_py(&self, render_context: &str) -> PyAttribute {
+        let t = Token::new(render_context);
+        lux_attr_or_invalid(self.inner.get_shader_id_attr_for_render_context(&t))
     }
 
-    fn get_enable_color_temperature_attr(&self) -> Option<String> {
-        self.inner
-            .get_enable_color_temperature_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(
+        name = "CreateShaderIdAttrForRenderContext",
+        signature = (render_context, default_value=None, write_sparsely=false)
+    )]
+    fn create_shader_id_attr_for_render_context_py(
+        &self,
+        render_context: &str,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(self.inner.create_shader_id_attr_for_render_context(
+            &Token::new(render_context),
+            lux_optional_default(default_value)?,
+            write_sparsely,
+        )))
     }
 
-    fn get_color_temperature_attr(&self) -> Option<String> {
-        self.inner
-            .get_color_temperature_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "GetMaterialSyncModeAttr")]
+    fn get_material_sync_mode_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_material_sync_mode_attr())
     }
 
-    fn get_diffuse_attr(&self) -> Option<String> {
-        self.inner.get_diffuse_attr().map(|a| a.path().to_string())
+    #[pyo3(name = "CreateMaterialSyncModeAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_material_sync_mode_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_material_sync_mode_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
     }
 
-    fn get_specular_attr(&self) -> Option<String> {
-        self.inner.get_specular_attr().map(|a| a.path().to_string())
+    #[pyo3(name = "GetIntensityAttr")]
+    fn get_intensity_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_intensity_attr())
+    }
+
+    #[pyo3(name = "CreateIntensityAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_intensity_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_intensity_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetExposureAttr")]
+    fn get_exposure_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_exposure_attr())
+    }
+
+    #[pyo3(name = "CreateExposureAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_exposure_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_exposure_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetDiffuseAttr")]
+    fn get_diffuse_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_diffuse_attr())
+    }
+
+    #[pyo3(name = "CreateDiffuseAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_diffuse_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_diffuse_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetSpecularAttr")]
+    fn get_specular_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_specular_attr())
+    }
+
+    #[pyo3(name = "CreateSpecularAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_specular_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_specular_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetColorAttr")]
+    fn get_color_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_color_attr())
+    }
+
+    #[pyo3(name = "CreateColorAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_color_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_color_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetEnableColorTemperatureAttr")]
+    fn get_enable_color_temperature_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_enable_color_temperature_attr())
+    }
+
+    #[pyo3(
+        name = "CreateEnableColorTemperatureAttr",
+        signature = (default_value=None, write_sparsely=false)
+    )]
+    fn create_enable_color_temperature_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner.create_enable_color_temperature_attr(
+                lux_optional_default(default_value)?,
+                write_sparsely,
+            ),
+        ))
+    }
+
+    #[pyo3(name = "GetColorTemperatureAttr")]
+    fn get_color_temperature_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_color_temperature_attr())
+    }
+
+    #[pyo3(name = "CreateColorTemperatureAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_color_temperature_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner.create_color_temperature_attr(
+                lux_optional_default(default_value)?,
+                write_sparsely,
+            ),
+        ))
+    }
+
+    #[pyo3(name = "GetNormalizeAttr")]
+    fn get_normalize_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_normalize_attr())
+    }
+
+    #[pyo3(name = "CreateNormalizeAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_normalize_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_normalize_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
     }
 
     /// CreateInput(name, type_name) -> full input name string or None
+    #[pyo3(name = "CreateInput")]
     fn create_input(&self, name: &str, type_name: &str) -> Option<String> {
         let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
         self.inner
@@ -177,28 +358,134 @@ impl PyShapingAPI {
         self.inner.is_valid()
     }
 
-    fn get_shaping_focus_attr(&self) -> Option<String> {
-        self.inner
-            .get_shaping_focus_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
     }
 
-    fn get_shaping_cone_angle_attr(&self) -> Option<String> {
-        self.inner
-            .get_shaping_cone_angle_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "GetShapingFocusAttr")]
+    fn get_shaping_focus_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shaping_focus_attr())
     }
 
-    fn get_shaping_cone_softness_attr(&self) -> Option<String> {
-        self.inner
-            .get_shaping_cone_softness_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "CreateShapingFocusAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shaping_focus_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_shaping_focus_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
     }
 
-    fn get_shaping_ies_file_attr(&self) -> Option<String> {
-        self.inner
-            .get_shaping_ies_file_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "GetShapingFocusTintAttr")]
+    fn get_shaping_focus_tint_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shaping_focus_tint_attr())
+    }
+
+    #[pyo3(name = "CreateShapingFocusTintAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shaping_focus_tint_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_shaping_focus_tint_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetShapingConeAngleAttr")]
+    fn get_shaping_cone_angle_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shaping_cone_angle_attr())
+    }
+
+    #[pyo3(name = "CreateShapingConeAngleAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shaping_cone_angle_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_shaping_cone_angle_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetShapingConeSoftnessAttr")]
+    fn get_shaping_cone_softness_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shaping_cone_softness_attr())
+    }
+
+    #[pyo3(name = "CreateShapingConeSoftnessAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shaping_cone_softness_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner.create_shaping_cone_softness_attr(
+                lux_optional_default(default_value)?,
+                write_sparsely,
+            ),
+        ))
+    }
+
+    #[pyo3(name = "GetShapingIesFileAttr")]
+    fn get_shaping_ies_file_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shaping_ies_file_attr())
+    }
+
+    #[pyo3(name = "CreateShapingIesFileAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shaping_ies_file_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_shaping_ies_file_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetShapingIesAngleScaleAttr")]
+    fn get_shaping_ies_angle_scale_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shaping_ies_angle_scale_attr())
+    }
+
+    #[pyo3(name = "CreateShapingIesAngleScaleAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shaping_ies_angle_scale_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner.create_shaping_ies_angle_scale_attr(
+                lux_optional_default(default_value)?,
+                write_sparsely,
+            ),
+        ))
+    }
+
+    #[pyo3(name = "GetShapingIesNormalizeAttr")]
+    fn get_shaping_ies_normalize_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shaping_ies_normalize_attr())
+    }
+
+    #[pyo3(name = "CreateShapingIesNormalizeAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shaping_ies_normalize_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner.create_shaping_ies_normalize_attr(
+                lux_optional_default(default_value)?,
+                write_sparsely,
+            ),
+        ))
     }
 
     fn __repr__(&self) -> String {
@@ -239,28 +526,96 @@ impl PyShadowAPI {
         self.inner.is_valid()
     }
 
-    fn get_shadow_enable_attr(&self) -> Option<String> {
-        self.inner
-            .get_shadow_enable_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
     }
 
-    fn get_shadow_color_attr(&self) -> Option<String> {
-        self.inner
-            .get_shadow_color_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "GetShadowEnableAttr")]
+    fn get_shadow_enable_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shadow_enable_attr())
     }
 
-    fn get_shadow_distance_attr(&self) -> Option<String> {
-        self.inner
-            .get_shadow_distance_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "CreateShadowEnableAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shadow_enable_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_shadow_enable_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
     }
 
-    fn get_shadow_falloff_attr(&self) -> Option<String> {
-        self.inner
-            .get_shadow_falloff_attr()
-            .map(|a| a.path().to_string())
+    #[pyo3(name = "GetShadowColorAttr")]
+    fn get_shadow_color_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shadow_color_attr())
+    }
+
+    #[pyo3(name = "CreateShadowColorAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shadow_color_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_shadow_color_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetShadowDistanceAttr")]
+    fn get_shadow_distance_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shadow_distance_attr())
+    }
+
+    #[pyo3(name = "CreateShadowDistanceAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shadow_distance_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_shadow_distance_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetShadowFalloffAttr")]
+    fn get_shadow_falloff_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shadow_falloff_attr())
+    }
+
+    #[pyo3(name = "CreateShadowFalloffAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shadow_falloff_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_shadow_falloff_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetShadowFalloffGammaAttr")]
+    fn get_shadow_falloff_gamma_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shadow_falloff_gamma_attr())
+    }
+
+    #[pyo3(name = "CreateShadowFalloffGammaAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shadow_falloff_gamma_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner.create_shadow_falloff_gamma_attr(
+                lux_optional_default(default_value)?,
+                write_sparsely,
+            ),
+        ))
     }
 
     fn __repr__(&self) -> String {
@@ -848,6 +1203,51 @@ impl PyLightFilter {
         self.inner.is_valid()
     }
 
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.prim().clone())
+    }
+
+    #[pyo3(name = "GetShaderIdAttr")]
+    fn get_shader_id_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_shader_id_attr())
+    }
+
+    #[pyo3(name = "CreateShaderIdAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_shader_id_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_shader_id_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetShaderIdAttrForRenderContext")]
+    fn get_shader_id_attr_for_render_context_py(&self, render_context: &str) -> PyAttribute {
+        let t = Token::new(render_context);
+        lux_attr_or_invalid(self.inner.get_shader_id_attr_for_render_context(&t))
+    }
+
+    #[pyo3(
+        name = "CreateShaderIdAttrForRenderContext",
+        signature = (render_context, default_value=None, write_sparsely=false)
+    )]
+    fn create_shader_id_attr_for_render_context_py(
+        &self,
+        render_context: &str,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(self.inner.create_shader_id_attr_for_render_context(
+            &Token::new(render_context),
+            lux_optional_default(default_value)?,
+            write_sparsely,
+        )))
+    }
+
     fn get_path(&self) -> String {
         // LightFilter uses prim() not get_prim()
         self.inner.prim().path().to_string()
@@ -1000,8 +1400,32 @@ impl PyLightListAPI {
         self.inner.is_valid()
     }
 
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
+    }
+
+    #[pyo3(name = "GetLightListCacheBehaviorAttr")]
+    fn get_light_list_cache_behavior_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_light_list_cache_behavior_attr())
+    }
+
+    #[pyo3(name = "CreateLightListCacheBehaviorAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_light_list_cache_behavior_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner.create_light_list_cache_behavior_attr(
+                lux_optional_default(default_value)?,
+                write_sparsely,
+            ),
+        ))
+    }
+
     /// ComputeLightList(mode="ignoreCache") -> list of light prim path strings
-    #[pyo3(signature = (mode = "ignoreCache"))]
+    #[pyo3(name = "ComputeLightList", signature = (mode = "ignoreCache"))]
     fn compute_light_list(&self, mode: &str) -> Vec<String> {
         let compute_mode = if mode.contains("onsult") {
             ComputeMode::ConsultModelHierarchyCache

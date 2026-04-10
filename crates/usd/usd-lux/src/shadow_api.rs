@@ -29,11 +29,14 @@
 //! Port of `pxr/usd/usdLux/shadowAPI.h`
 
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
+use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
 use usd_sdf::Path;
 use usd_sdf::ValueTypeName;
 use usd_shade::{ConnectableAPI, Input, Output};
 use usd_tf::Token;
+use usd_vt::Value;
 
 /// API schema for shadow-related controls on lights.
 ///
@@ -174,10 +177,20 @@ impl ShadowAPI {
     ///
     /// See [`get_shadow_enable_attr`](Self::get_shadow_enable_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShadowAPI::CreateShadowEnableAttr()`.
-    pub fn create_shadow_enable_attr(&self) -> Attribute {
-        self.get_shadow_enable_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShadowAPI::CreateShadowEnableAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shadow_enable_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shadow_enable.as_str(),
+            "bool",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -206,10 +219,20 @@ impl ShadowAPI {
     ///
     /// See [`get_shadow_color_attr`](Self::get_shadow_color_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShadowAPI::CreateShadowColorAttr()`.
-    pub fn create_shadow_color_attr(&self) -> Attribute {
-        self.get_shadow_color_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShadowAPI::CreateShadowColorAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shadow_color_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shadow_color.as_str(),
+            "color3f",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -238,10 +261,20 @@ impl ShadowAPI {
     ///
     /// See [`get_shadow_distance_attr`](Self::get_shadow_distance_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShadowAPI::CreateShadowDistanceAttr()`.
-    pub fn create_shadow_distance_attr(&self) -> Attribute {
-        self.get_shadow_distance_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShadowAPI::CreateShadowDistanceAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shadow_distance_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shadow_distance.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -272,10 +305,20 @@ impl ShadowAPI {
     ///
     /// See [`get_shadow_falloff_attr`](Self::get_shadow_falloff_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShadowAPI::CreateShadowFalloffAttr()`.
-    pub fn create_shadow_falloff_attr(&self) -> Attribute {
-        self.get_shadow_falloff_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShadowAPI::CreateShadowFalloffAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shadow_falloff_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shadow_falloff.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -305,10 +348,20 @@ impl ShadowAPI {
     ///
     /// See [`get_shadow_falloff_gamma_attr`](Self::get_shadow_falloff_gamma_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShadowAPI::CreateShadowFalloffGammaAttr()`.
-    pub fn create_shadow_falloff_gamma_attr(&self) -> Attribute {
-        self.get_shadow_falloff_gamma_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShadowAPI::CreateShadowFalloffGammaAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shadow_falloff_gamma_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shadow_falloff_gamma.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -440,6 +493,8 @@ impl Default for ShadowAPI {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use usd_core::{InitialLoadSet, Stage};
+    use usd_sdf::TimeCode;
 
     #[test]
     fn test_invalid_shadow_api() {
@@ -451,5 +506,16 @@ mod tests {
     fn test_schema_attribute_names() {
         let names = ShadowAPI::get_schema_attribute_names(true);
         assert_eq!(names.len(), 5);
+    }
+
+    #[test]
+    fn create_shadow_distance_attr_sets_optional_default() {
+        let _ = usd_sdf::init();
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("stage");
+        let prim = stage.define_prim("/L", "").expect("prim");
+        let api = ShadowAPI::apply(&prim).expect("apply");
+        let attr = api.create_shadow_distance_attr(Some(Value::from_f32(42.0)), false);
+        assert!(attr.is_valid());
+        assert_eq!(attr.get_typed::<f32>(TimeCode::default()), Some(42.0));
     }
 }

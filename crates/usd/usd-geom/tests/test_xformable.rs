@@ -1598,7 +1598,7 @@ fn test_bug_109853() {
     let xf = x.xformable();
 
     // Set xformOpOrder to reference a non-existent xformOp
-    let order_attr = xf.create_xform_op_order_attr();
+    let order_attr = xf.create_xform_op_order_attr(None, false);
     let bogus_order = vec![Token::new("xformOp:transform")];
     order_attr.set(usd_vt::Value::new(bogus_order), TimeCode::default());
 

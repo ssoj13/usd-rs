@@ -7,6 +7,7 @@
 //! of small particles.
 
 use super::point_based::PointBased;
+use super::schema_create_default::apply_optional_default;
 use super::tokens::usd_geom_tokens;
 use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
@@ -150,7 +151,7 @@ impl Points {
 
     /// Creates the widths attribute.
     ///
-    /// Matches C++ `CreateWidthsAttr()`.
+    /// Matches C++ `CreateWidthsAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_widths_attr(
         &self,
         default_value: Option<Value>,
@@ -161,27 +162,23 @@ impl Points {
             return Attribute::invalid();
         }
 
-        if prim.has_authored_attribute(usd_geom_tokens().widths.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().widths.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
-        }
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().widths.as_str()) {
+            prim.get_attribute(usd_geom_tokens().widths.as_str())
+                .unwrap_or_else(Attribute::invalid)
+        } else {
+            let registry = ValueTypeRegistry::instance();
+            let float_array_type = registry.find_type_by_token(&Token::new("float[]"));
 
-        let registry = ValueTypeRegistry::instance();
-        let float_array_type = registry.find_type_by_token(&Token::new("float[]"));
-
-        let attr = prim
-            .create_attribute(
+            prim.create_attribute(
                 usd_geom_tokens().widths.as_str(),
                 &float_array_type,
-                false,                      // not custom
-                Some(Variability::Varying), // can vary over time
+                false,
+                Some(Variability::Varying),
             )
-            .unwrap_or_else(Attribute::invalid);
-        if let Some(val) = default_value {
-            let _ = attr.set(val, TimeCode::default());
-        }
-        attr
+            .unwrap_or_else(Attribute::invalid)
+        };
+
+        apply_optional_default(attr, default_value)
     }
 
     /// Get the interpolation for the widths attribute.
@@ -254,7 +251,7 @@ impl Points {
 
     /// Creates the ids attribute.
     ///
-    /// Matches C++ `CreateIdsAttr()`.
+    /// Matches C++ `CreateIdsAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_ids_attr(
         &self,
         default_value: Option<Value>,
@@ -265,27 +262,23 @@ impl Points {
             return Attribute::invalid();
         }
 
-        if prim.has_authored_attribute(usd_geom_tokens().ids.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().ids.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
-        }
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().ids.as_str()) {
+            prim.get_attribute(usd_geom_tokens().ids.as_str())
+                .unwrap_or_else(Attribute::invalid)
+        } else {
+            let registry = ValueTypeRegistry::instance();
+            let int64_array_type = registry.find_type_by_token(&Token::new("int64[]"));
 
-        let registry = ValueTypeRegistry::instance();
-        let int64_array_type = registry.find_type_by_token(&Token::new("int64[]"));
-
-        let attr = prim
-            .create_attribute(
+            prim.create_attribute(
                 usd_geom_tokens().ids.as_str(),
                 &int64_array_type,
-                false,                      // not custom
-                Some(Variability::Varying), // can vary over time
+                false,
+                Some(Variability::Varying),
             )
-            .unwrap_or_else(Attribute::invalid);
-        if let Some(val) = default_value {
-            let _ = attr.set(val, TimeCode::default());
-        }
-        attr
+            .unwrap_or_else(Attribute::invalid)
+        };
+
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================

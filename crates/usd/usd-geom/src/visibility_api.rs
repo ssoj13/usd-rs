@@ -5,9 +5,11 @@
 //! UsdGeomVisibilityAPI introduces properties that can be used to author
 //! visibility opinions for specific purposes (guide, proxy, render).
 
+use super::schema_create_default::apply_optional_default;
 use super::tokens::usd_geom_tokens;
 use usd_core::{Attribute, Prim, SchemaBase, Stage};
 use usd_tf::Token;
+use usd_vt::Value;
 
 // ============================================================================
 // VisibilityAPI
@@ -74,9 +76,9 @@ impl VisibilityAPI {
             // Ensure purpose visibility attr specs exist in the layer so
             // get_*_visibility_attr() returns valid attributes and set() works.
             // C++ schema infrastructure creates these automatically.
-            api.create_guide_visibility_attr();
-            api.create_proxy_visibility_attr();
-            api.create_render_visibility_attr();
+            api.create_guide_visibility_attr(None, false);
+            api.create_proxy_visibility_attr(None, false);
+            api.create_render_visibility_attr(None, false);
             api
         } else {
             Self::invalid()
@@ -120,30 +122,34 @@ impl VisibilityAPI {
 
     /// Creates the guideVisibility attribute.
     ///
-    /// Matches C++ `CreateGuideVisibilityAttr()`.
-    pub fn create_guide_visibility_attr(&self) -> Attribute {
-        let prim = self.inner.prim().clone();
+    /// Matches C++ `CreateGuideVisibilityAttr(VtValue defaultValue, bool writeSparsely)`.
+    pub fn create_guide_visibility_attr(
+        &self,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
+        let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Get or create the attribute with proper type (Token) and variability (Uniform)
-        if prim.has_authored_attribute(usd_geom_tokens().guide_visibility.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().guide_visibility.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
-        }
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().guide_visibility.as_str()) {
+            prim.get_attribute(usd_geom_tokens().guide_visibility.as_str())
+                .unwrap_or_else(Attribute::invalid)
+        } else {
+            let registry = usd_sdf::ValueTypeRegistry::instance();
+            let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
+            prim.create_attribute(
+                usd_geom_tokens().guide_visibility.as_str(),
+                &token_type,
+                false, // not custom
+                Some(usd_core::attribute::Variability::Uniform),
+            )
+            .unwrap_or_else(Attribute::invalid)
+        };
 
-        prim.create_attribute(
-            usd_geom_tokens().guide_visibility.as_str(),
-            &token_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Uniform), // guideVisibility is uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -161,30 +167,34 @@ impl VisibilityAPI {
 
     /// Creates the proxyVisibility attribute.
     ///
-    /// Matches C++ `CreateProxyVisibilityAttr()`.
-    pub fn create_proxy_visibility_attr(&self) -> Attribute {
-        let prim = self.inner.prim().clone();
+    /// Matches C++ `CreateProxyVisibilityAttr(VtValue defaultValue, bool writeSparsely)`.
+    pub fn create_proxy_visibility_attr(
+        &self,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
+        let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Get or create the attribute with proper type (Token) and variability (Uniform)
-        if prim.has_authored_attribute(usd_geom_tokens().proxy_visibility.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().proxy_visibility.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
-        }
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().proxy_visibility.as_str()) {
+            prim.get_attribute(usd_geom_tokens().proxy_visibility.as_str())
+                .unwrap_or_else(Attribute::invalid)
+        } else {
+            let registry = usd_sdf::ValueTypeRegistry::instance();
+            let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
+            prim.create_attribute(
+                usd_geom_tokens().proxy_visibility.as_str(),
+                &token_type,
+                false,
+                Some(usd_core::attribute::Variability::Uniform),
+            )
+            .unwrap_or_else(Attribute::invalid)
+        };
 
-        prim.create_attribute(
-            usd_geom_tokens().proxy_visibility.as_str(),
-            &token_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Uniform), // proxyVisibility is uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -202,30 +212,34 @@ impl VisibilityAPI {
 
     /// Creates the renderVisibility attribute.
     ///
-    /// Matches C++ `CreateRenderVisibilityAttr()`.
-    pub fn create_render_visibility_attr(&self) -> Attribute {
-        let prim = self.inner.prim().clone();
+    /// Matches C++ `CreateRenderVisibilityAttr(VtValue defaultValue, bool writeSparsely)`.
+    pub fn create_render_visibility_attr(
+        &self,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
+        let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Get or create the attribute with proper type (Token) and variability (Uniform)
-        if prim.has_authored_attribute(usd_geom_tokens().render_visibility.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().render_visibility.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
-        }
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().render_visibility.as_str()) {
+            prim.get_attribute(usd_geom_tokens().render_visibility.as_str())
+                .unwrap_or_else(Attribute::invalid)
+        } else {
+            let registry = usd_sdf::ValueTypeRegistry::instance();
+            let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
+            prim.create_attribute(
+                usd_geom_tokens().render_visibility.as_str(),
+                &token_type,
+                false,
+                Some(usd_core::attribute::Variability::Uniform),
+            )
+            .unwrap_or_else(Attribute::invalid)
+        };
 
-        prim.create_attribute(
-            usd_geom_tokens().render_visibility.as_str(),
-            &token_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Uniform), // renderVisibility is uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================

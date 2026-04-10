@@ -837,17 +837,37 @@ impl PyImageable {
     pub fn get_visibility_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_visibility_attr())
     }
-    #[pyo3(name = "CreateVisibilityAttr")]
-    pub fn create_visibility_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_visibility_attr())
+    #[pyo3(name = "CreateVisibilityAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_visibility_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_visibility_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetPurposeAttr")]
     pub fn get_purpose_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_purpose_attr())
     }
-    #[pyo3(name = "CreatePurposeAttr")]
-    pub fn create_purpose_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_purpose_attr())
+    #[pyo3(name = "CreatePurposeAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_purpose_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_purpose_attr(v, write_sparsely),
+        ))
     }
 
     #[pyo3(name = "ComputeVisibility", signature = (time=None))]
@@ -980,9 +1000,19 @@ impl PyXformable {
     pub fn get_xform_op_order_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_xform_op_order_attr())
     }
-    #[pyo3(name = "CreateXformOpOrderAttr")]
-    pub fn create_xform_op_order_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_xform_op_order_attr())
+    #[pyo3(name = "CreateXformOpOrderAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_xform_op_order_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_xform_op_order_attr(v, write_sparsely),
+        ))
     }
 
     #[pyo3(name = "AddTranslateOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
@@ -1202,17 +1232,37 @@ impl PyXformable {
     pub fn get_visibility_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.imageable().get_visibility_attr())
     }
-    #[pyo3(name = "CreateVisibilityAttr")]
-    pub fn create_visibility_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.imageable().create_visibility_attr())
+    #[pyo3(name = "CreateVisibilityAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_visibility_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.imageable().create_visibility_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetPurposeAttr")]
     pub fn get_purpose_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.imageable().get_purpose_attr())
     }
-    #[pyo3(name = "CreatePurposeAttr")]
-    pub fn create_purpose_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.imageable().create_purpose_attr())
+    #[pyo3(name = "CreatePurposeAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_purpose_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.imageable().create_purpose_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "ComputeVisibility", signature = (time=None))]
     pub fn compute_visibility(&self, time: Option<f64>) -> String {
@@ -1339,9 +1389,21 @@ impl PyXform {
     pub fn get_xform_op_order_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.xformable().get_xform_op_order_attr())
     }
-    #[pyo3(name = "CreateXformOpOrderAttr")]
-    pub fn create_xform_op_order_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.xformable().create_xform_op_order_attr())
+    #[pyo3(name = "CreateXformOpOrderAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_xform_op_order_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .xformable()
+                .create_xform_op_order_attr(v, write_sparsely),
+        ))
     }
 
     #[pyo3(name = "AddTranslateOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
@@ -6278,25 +6340,55 @@ impl PyVisibilityAPI {
     pub fn get_guide_visibility_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_guide_visibility_attr())
     }
-    #[pyo3(name = "CreateGuideVisibilityAttr")]
-    pub fn create_guide_visibility_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_guide_visibility_attr())
+    #[pyo3(name = "CreateGuideVisibilityAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_guide_visibility_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_guide_visibility_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetProxyVisibilityAttr")]
     pub fn get_proxy_visibility_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_proxy_visibility_attr())
     }
-    #[pyo3(name = "CreateProxyVisibilityAttr")]
-    pub fn create_proxy_visibility_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_proxy_visibility_attr())
+    #[pyo3(name = "CreateProxyVisibilityAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_proxy_visibility_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_proxy_visibility_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetRenderVisibilityAttr")]
     pub fn get_render_visibility_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(self.0.get_render_visibility_attr())
     }
-    #[pyo3(name = "CreateRenderVisibilityAttr")]
-    pub fn create_render_visibility_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(self.0.create_render_visibility_attr())
+    #[pyo3(name = "CreateRenderVisibilityAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_render_visibility_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_render_visibility_attr(v, write_sparsely),
+        ))
     }
     pub fn is_valid(&self) -> bool {
         self.0.is_valid()
@@ -6372,13 +6464,19 @@ impl PyModelAPI {
                 .unwrap_or_else(usd_core::Attribute::invalid),
         )
     }
-    #[pyo3(name = "CreateModelDrawModeAttr")]
-    pub fn create_model_draw_mode_attr(&self) -> PyAttribute {
-        PyAttribute::from_attr(
-            self.0
-                .create_model_draw_mode_attr(None)
-                .unwrap_or_else(usd_core::Attribute::invalid),
-        )
+    #[pyo3(name = "CreateModelDrawModeAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_model_draw_mode_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_model_draw_mode_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetModelApplyDrawModeAttr")]
     pub fn get_model_apply_draw_mode_attr(&self) -> PyAttribute {
@@ -6388,13 +6486,41 @@ impl PyModelAPI {
                 .unwrap_or_else(usd_core::Attribute::invalid),
         )
     }
-    #[pyo3(name = "CreateModelApplyDrawModeAttr")]
-    pub fn create_model_apply_draw_mode_attr(&self) -> PyAttribute {
+    #[pyo3(name = "CreateModelApplyDrawModeAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_model_apply_draw_mode_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_model_apply_draw_mode_attr(v, write_sparsely),
+        ))
+    }
+    #[pyo3(name = "GetModelDrawModeColorAttr")]
+    pub fn get_model_draw_mode_color_attr(&self) -> PyAttribute {
         PyAttribute::from_attr(
             self.0
-                .create_model_apply_draw_mode_attr(None)
+                .get_model_draw_mode_color_attr()
                 .unwrap_or_else(usd_core::Attribute::invalid),
         )
+    }
+    #[pyo3(name = "CreateModelDrawModeColorAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_model_draw_mode_color_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_model_draw_mode_color_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetModelCardGeometryAttr")]
     pub fn get_model_card_geometry_attr(&self) -> PyAttribute {
@@ -6403,6 +6529,158 @@ impl PyModelAPI {
                 .get_model_card_geometry_attr()
                 .unwrap_or_else(usd_core::Attribute::invalid),
         )
+    }
+    #[pyo3(name = "CreateModelCardGeometryAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_model_card_geometry_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0.create_model_card_geometry_attr(v, write_sparsely),
+        ))
+    }
+    #[pyo3(name = "GetModelCardTextureXPosAttr")]
+    pub fn get_model_card_texture_x_pos_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(
+            self.0
+                .get_model_card_texture_x_pos_attr()
+                .unwrap_or_else(usd_core::Attribute::invalid),
+        )
+    }
+    #[pyo3(name = "CreateModelCardTextureXPosAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_model_card_texture_x_pos_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .create_model_card_texture_x_pos_attr(v, write_sparsely),
+        ))
+    }
+    #[pyo3(name = "GetModelCardTextureYPosAttr")]
+    pub fn get_model_card_texture_y_pos_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(
+            self.0
+                .get_model_card_texture_y_pos_attr()
+                .unwrap_or_else(usd_core::Attribute::invalid),
+        )
+    }
+    #[pyo3(name = "CreateModelCardTextureYPosAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_model_card_texture_y_pos_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .create_model_card_texture_y_pos_attr(v, write_sparsely),
+        ))
+    }
+    #[pyo3(name = "GetModelCardTextureZPosAttr")]
+    pub fn get_model_card_texture_z_pos_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(
+            self.0
+                .get_model_card_texture_z_pos_attr()
+                .unwrap_or_else(usd_core::Attribute::invalid),
+        )
+    }
+    #[pyo3(name = "CreateModelCardTextureZPosAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_model_card_texture_z_pos_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .create_model_card_texture_z_pos_attr(v, write_sparsely),
+        ))
+    }
+    #[pyo3(name = "GetModelCardTextureXNegAttr")]
+    pub fn get_model_card_texture_x_neg_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(
+            self.0
+                .get_model_card_texture_x_neg_attr()
+                .unwrap_or_else(usd_core::Attribute::invalid),
+        )
+    }
+    #[pyo3(name = "CreateModelCardTextureXNegAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_model_card_texture_x_neg_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .create_model_card_texture_x_neg_attr(v, write_sparsely),
+        ))
+    }
+    #[pyo3(name = "GetModelCardTextureYNegAttr")]
+    pub fn get_model_card_texture_y_neg_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(
+            self.0
+                .get_model_card_texture_y_neg_attr()
+                .unwrap_or_else(usd_core::Attribute::invalid),
+        )
+    }
+    #[pyo3(name = "CreateModelCardTextureYNegAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_model_card_texture_y_neg_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .create_model_card_texture_y_neg_attr(v, write_sparsely),
+        ))
+    }
+    #[pyo3(name = "GetModelCardTextureZNegAttr")]
+    pub fn get_model_card_texture_z_neg_attr(&self) -> PyAttribute {
+        PyAttribute::from_attr(
+            self.0
+                .get_model_card_texture_z_neg_attr()
+                .unwrap_or_else(usd_core::Attribute::invalid),
+        )
+    }
+    #[pyo3(name = "CreateModelCardTextureZNegAttr", signature = (default_value=None, write_sparsely=false))]
+    pub fn create_model_card_texture_z_neg_attr(
+        &self,
+        default_value: Option<&Bound<'_, pyo3::PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        let v = match default_value {
+            None => None,
+            Some(o) => Some(crate::vt::py_to_value(o)?),
+        };
+        Ok(PyAttribute::from_attr(
+            self.0
+                .create_model_card_texture_z_neg_attr(v, write_sparsely),
+        ))
     }
     #[pyo3(name = "GetExtentsHintAttr")]
     pub fn get_extents_hint_attr(&self) -> PyAttribute {

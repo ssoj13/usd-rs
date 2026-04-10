@@ -22,11 +22,13 @@ use std::sync::Arc;
 use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Relationship, SchemaKind, Stage};
 use usd_geom::XformQuery;
-use usd_sdf::{Path, ValueTypeRegistry};
+use usd_sdf::Path;
 use usd_tf::Token;
+use usd_vt::Value;
 
 use super::nonboundable_light_base::NonboundableLightBase;
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 
 /// Improved dome light with explicit pole axis control.
 ///
@@ -127,15 +129,20 @@ impl DomeLight1 {
     }
 
     /// Create the inputs:texture:file attribute.
-    pub fn create_texture_file_attr(&self) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let asset_type = registry.find_type_by_token(&Token::new("asset"));
-
-        self.get_prim().create_attribute(
+    ///
+    /// Matches C++ `UsdLuxDomeLight_1::CreateTextureFileAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_texture_file_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            self.get_prim(),
             tokens().inputs_texture_file.as_str(),
-            &asset_type,
-            false,
-            None,
+            "asset",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
     }
 
@@ -159,15 +166,20 @@ impl DomeLight1 {
     }
 
     /// Create the inputs:texture:format attribute.
-    pub fn create_texture_format_attr(&self) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
-
-        self.get_prim().create_attribute(
+    ///
+    /// Matches C++ `UsdLuxDomeLight_1::CreateTextureFormatAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_texture_format_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            self.get_prim(),
             tokens().inputs_texture_format.as_str(),
-            &token_type,
-            false,
-            None,
+            "token",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
         )
     }
 
@@ -185,12 +197,21 @@ impl DomeLight1 {
     }
 
     /// Create the guideRadius attribute.
-    pub fn create_guide_radius_attr(&self) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        self.get_prim()
-            .create_attribute(tokens().guide_radius.as_str(), &float_type, false, None)
+    ///
+    /// Matches C++ `UsdLuxDomeLight_1::CreateGuideRadiusAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_guide_radius_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            self.get_prim(),
+            tokens().guide_radius.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -213,15 +234,20 @@ impl DomeLight1 {
     }
 
     /// Create the poleAxis attribute (uniform variability).
-    pub fn create_pole_axis_attr(&self) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
-
-        self.get_prim().create_attribute(
+    ///
+    /// Matches C++ `UsdLuxDomeLight_1::CreatePoleAxisAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_pole_axis_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            self.get_prim(),
             tokens().pole_axis.as_str(),
-            &token_type,
-            false,
-            Some(Variability::Uniform),
+            "token",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
         )
     }
 
@@ -301,6 +327,8 @@ impl AsRef<NonboundableLightBase> for DomeLight1 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use usd_core::{InitialLoadSet, Stage};
+    use usd_sdf::TimeCode;
 
     #[test]
     fn test_schema_type_name() {
@@ -310,5 +338,15 @@ mod tests {
     #[test]
     fn test_schema_kind() {
         assert_eq!(DomeLight1::SCHEMA_KIND, SchemaKind::ConcreteTyped);
+    }
+
+    #[test]
+    fn create_guide_radius_attr_optional_default() {
+        let _ = usd_sdf::init();
+        let stage = std::sync::Arc::new(Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap());
+        let dome = DomeLight1::define(&stage, &Path::from("/Dome1")).expect("define");
+        let attr = dome.create_guide_radius_attr(Some(Value::from_f32(99.0)), false);
+        assert!(attr.is_valid());
+        assert_eq!(attr.get_typed::<f32>(TimeCode::default()), Some(99.0));
     }
 }

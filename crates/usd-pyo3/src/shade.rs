@@ -10,12 +10,12 @@ use std::sync::Arc;
 
 use usd_core::{Relationship, Stage};
 use usd_sdf::{Path, TimeCode};
+use usd_sdr::parser_plugin::SdrParserPlugin;
+use usd_shade::UsdShadeShaderDefParserPlugin;
+use usd_shade::shader_def_utils::get_discovery_results;
 use usd_shade::{
     ConnectableAPI, CoordSysAPI, Input, Material, MaterialBindingAPI, NodeGraph, Output, Shader,
 };
-use usd_shade::shader_def_utils::get_discovery_results;
-use usd_shade::UsdShadeShaderDefParserPlugin;
-use usd_sdr::parser_plugin::SdrParserPlugin;
 use usd_tf::Token;
 use usd_vt::Value;
 

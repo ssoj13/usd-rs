@@ -40,10 +40,13 @@
 use super::boundable_light_base::BoundableLightBase;
 use super::light_api::LightAPI;
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 use std::sync::Arc;
+use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
 use usd_sdf::Path;
 use usd_tf::Token;
+use usd_vt::Value;
 
 /// Light emitted outward from a cylinder.
 ///
@@ -205,9 +208,20 @@ impl CylinderLight {
     ///
     /// See [`get_length_attr`](Self::get_length_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxCylinderLight::CreateLengthAttr()`.
-    pub fn create_length_attr(&self) -> Attribute {
-        self.get_length_attr().unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxCylinderLight::CreateLengthAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_length_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_length.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -234,9 +248,20 @@ impl CylinderLight {
     ///
     /// See [`get_radius_attr`](Self::get_radius_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxCylinderLight::CreateRadiusAttr()`.
-    pub fn create_radius_attr(&self) -> Attribute {
-        self.get_radius_attr().unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxCylinderLight::CreateRadiusAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_radius_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_radius.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -265,10 +290,20 @@ impl CylinderLight {
     ///
     /// See [`get_treat_as_line_attr`](Self::get_treat_as_line_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxCylinderLight::CreateTreatAsLineAttr()`.
-    pub fn create_treat_as_line_attr(&self) -> Attribute {
-        self.get_treat_as_line_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxCylinderLight::CreateTreatAsLineAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_treat_as_line_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().treat_as_line.as_str(),
+            "bool",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 }
 

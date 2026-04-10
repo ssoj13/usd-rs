@@ -17,13 +17,13 @@ use usd_sdr::osl_parser::OslParserPlugin;
 use usd_sdr::parser_plugin::SdrParserPluginRef;
 use usd_sdr::shader_node::SdrShaderNode;
 use usd_sdr::shader_node_query::{SdrShaderNodeQuery, SdrShaderNodeQueryResult};
-use usd_sdr::shader_node_query_utils::{group_query_results, GroupedQueryResult};
+use usd_sdr::shader_node_query_utils::{GroupedQueryResult, group_query_results};
 use usd_sdr::shader_property::SdrShaderProperty;
 use usd_sdr::tokens;
 use usd_sdr::{
-    fs_helpers_discover_files, split_shader_identifier, SdrDiscoveryPlugin, SdrDiscoveryUri,
-    SdrFilesystemDiscoveryPlugin, SdrRegistry, SdrSdfTypeIndicator, SdrShaderNodeDiscoveryResult,
-    SdrStandardFilesystemDiscoveryContext, SdrVersion,
+    SdrDiscoveryPlugin, SdrDiscoveryUri, SdrFilesystemDiscoveryPlugin, SdrRegistry,
+    SdrSdfTypeIndicator, SdrShaderNodeDiscoveryResult, SdrStandardFilesystemDiscoveryContext,
+    SdrVersion, fs_helpers_discover_files, split_shader_identifier,
 };
 use usd_shade::UsdShadeShaderDefParserPlugin;
 
@@ -103,12 +103,7 @@ impl PySdrVersion {
         if !self.inner.is_valid() {
             s.push_str("Version()");
         } else {
-            let _ = write!(
-                s,
-                "Version({}, {})",
-                self.inner.major(),
-                self.inner.minor()
-            );
+            let _ = write!(s, "Version({}, {})", self.inner.major(), self.inner.minor());
         }
         if self.inner.is_default() {
             s.push_str(".GetAsDefault()");
@@ -318,9 +313,7 @@ impl PyDiscoveryUri {
 
 #[pyfunction]
 #[pyo3(name = "FsHelpersSplitShaderIdentifier")]
-fn fs_helpers_split_shader_identifier(
-    identifier: &str,
-) -> Option<(String, String, PySdrVersion)> {
+fn fs_helpers_split_shader_identifier(identifier: &str) -> Option<(String, String, PySdrVersion)> {
     let mut family = Token::default();
     let mut name = Token::default();
     let mut version = SdrVersion::default();
@@ -928,11 +921,10 @@ impl PyShaderNodeQuery {
                             }
                         }
                         Err(_) => {
-                            *err_slot_cb.lock().expect("mutex poisoned") = Some(
-                                PyTypeError::new_err(
+                            *err_slot_cb.lock().expect("mutex poisoned") =
+                                Some(PyTypeError::new_err(
                                     "Sdr.ShaderNodeQuery.CustomFilter callback must return bool",
-                                ),
-                            );
+                                ));
                             return false;
                         }
                     },
@@ -993,10 +985,7 @@ impl PyShaderNodeQueryResult {
     }
 
     #[pyo3(name = "GetShaderNodesByValues")]
-    fn get_shader_nodes_by_values(
-        &self,
-        py: Python<'_>,
-    ) -> PyResult<Vec<Vec<Py<PyShaderNode>>>> {
+    fn get_shader_nodes_by_values(&self, py: Python<'_>) -> PyResult<Vec<Vec<Py<PyShaderNode>>>> {
         let mut rows = Vec::new();
         for group in self.inner.get_shader_nodes_by_values() {
             let mut row = Vec::new();
@@ -1052,9 +1041,7 @@ impl PySdrRegistry {
                 if name.contains("SdrOslParserPlugin") || name.contains("OslParser") {
                     out.push(Box::new(OslParserPlugin::new()) as SdrParserPluginRef);
                 } else if name.contains("ShaderDefParser") || name.contains("UsdShadeShaderDef") {
-                    out.push(
-                        Box::new(UsdShadeShaderDefParserPlugin::new()) as SdrParserPluginRef,
-                    );
+                    out.push(Box::new(UsdShadeShaderDefParserPlugin::new()) as SdrParserPluginRef);
                 }
             }
         }
@@ -1092,13 +1079,9 @@ impl PySdrRegistry {
     #[pyo3(signature = (family = None))]
     fn get_shader_node_identifiers(&self, family: Option<String>) -> Vec<String> {
         let fam = family.map(|s| Token::new(s.as_str()));
-        let ids = SdrRegistry::get_instance().get_shader_node_identifiers(
-            fam.as_ref(),
-            SdrVersionFilter::default(),
-        );
-        ids.iter()
-            .map(|id| id.as_str().to_string())
-            .collect()
+        let ids = SdrRegistry::get_instance()
+            .get_shader_node_identifiers(fam.as_ref(), SdrVersionFilter::default());
+        ids.iter().map(|id| id.as_str().to_string()).collect()
     }
 
     #[pyo3(name = "GetShaderNodeByIdentifierAndType")]
@@ -1110,8 +1093,7 @@ impl PySdrRegistry {
     ) -> PyResult<Option<Py<PyShaderNode>>> {
         let id = Token::new(identifier);
         let st = Token::new(source_type);
-        let node =
-            SdrRegistry::get_instance().get_shader_node_by_identifier_and_type(&id, &st);
+        let node = SdrRegistry::get_instance().get_shader_node_by_identifier_and_type(&id, &st);
         Ok(node
             .map(|n| Py::new(py, PyShaderNode::new_node(n.clone())))
             .transpose()?)

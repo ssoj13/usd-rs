@@ -32,10 +32,13 @@
 use super::boundable_light_base::BoundableLightBase;
 use super::light_api::LightAPI;
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 use std::sync::Arc;
+use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
 use usd_sdf::Path;
 use usd_tf::Token;
+use usd_vt::Value;
 
 /// Light emitted from one side of a circular disk.
 ///
@@ -193,9 +196,20 @@ impl DiskLight {
     ///
     /// See [`get_radius_attr`](Self::get_radius_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxDiskLight::CreateRadiusAttr()`.
-    pub fn create_radius_attr(&self) -> Attribute {
-        self.get_radius_attr().unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxDiskLight::CreateRadiusAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_radius_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_radius.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -222,10 +236,20 @@ impl DiskLight {
     ///
     /// See [`get_texture_file_attr`](Self::get_texture_file_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxDiskLight::CreateTextureFileAttr()`.
-    pub fn create_texture_file_attr(&self) -> Attribute {
-        self.get_texture_file_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxDiskLight::CreateTextureFileAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_texture_file_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_texture_file.as_str(),
+            "asset",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 }
 

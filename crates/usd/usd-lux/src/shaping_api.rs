@@ -39,11 +39,14 @@
 //! Port of `pxr/usd/usdLux/shapingAPI.h`
 
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
+use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
 use usd_sdf::Path;
 use usd_sdf::ValueTypeName;
 use usd_shade::{ConnectableAPI, Input, Output};
 use usd_tf::Token;
+use usd_vt::Value;
 
 /// API schema for shaping light emission (cone angle, focus, IES profiles).
 ///
@@ -192,10 +195,20 @@ impl ShapingAPI {
     ///
     /// See [`get_shaping_focus_attr`](Self::get_shaping_focus_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShapingAPI::CreateShapingFocusAttr()`.
-    pub fn create_shaping_focus_attr(&self) -> Attribute {
-        self.get_shaping_focus_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShapingAPI::CreateShapingFocusAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shaping_focus_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shaping_focus.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -224,10 +237,20 @@ impl ShapingAPI {
     ///
     /// See [`get_shaping_focus_tint_attr`](Self::get_shaping_focus_tint_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShapingAPI::CreateShapingFocusTintAttr()`.
-    pub fn create_shaping_focus_tint_attr(&self) -> Attribute {
-        self.get_shaping_focus_tint_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShapingAPI::CreateShapingFocusTintAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shaping_focus_tint_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shaping_focus_tint.as_str(),
+            "color3f",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -256,10 +279,20 @@ impl ShapingAPI {
     ///
     /// See [`get_shaping_cone_angle_attr`](Self::get_shaping_cone_angle_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShapingAPI::CreateShapingConeAngleAttr()`.
-    pub fn create_shaping_cone_angle_attr(&self) -> Attribute {
-        self.get_shaping_cone_angle_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShapingAPI::CreateShapingConeAngleAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shaping_cone_angle_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shaping_cone_angle.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -291,10 +324,20 @@ impl ShapingAPI {
     ///
     /// See [`get_shaping_cone_softness_attr`](Self::get_shaping_cone_softness_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShapingAPI::CreateShapingConeSoftnessAttr()`.
-    pub fn create_shaping_cone_softness_attr(&self) -> Attribute {
-        self.get_shaping_cone_softness_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShapingAPI::CreateShapingConeSoftnessAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shaping_cone_softness_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shaping_cone_softness.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -322,10 +365,20 @@ impl ShapingAPI {
     ///
     /// See [`get_shaping_ies_file_attr`](Self::get_shaping_ies_file_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShapingAPI::CreateShapingIesFileAttr()`.
-    pub fn create_shaping_ies_file_attr(&self) -> Attribute {
-        self.get_shaping_ies_file_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShapingAPI::CreateShapingIesFileAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shaping_ies_file_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shaping_ies_file.as_str(),
+            "asset",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -357,10 +410,20 @@ impl ShapingAPI {
     ///
     /// See [`get_shaping_ies_angle_scale_attr`](Self::get_shaping_ies_angle_scale_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShapingAPI::CreateShapingIesAngleScaleAttr()`.
-    pub fn create_shaping_ies_angle_scale_attr(&self) -> Attribute {
-        self.get_shaping_ies_angle_scale_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShapingAPI::CreateShapingIesAngleScaleAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shaping_ies_angle_scale_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shaping_ies_angle_scale.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -390,10 +453,20 @@ impl ShapingAPI {
     ///
     /// See [`get_shaping_ies_normalize_attr`](Self::get_shaping_ies_normalize_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxShapingAPI::CreateShapingIesNormalizeAttr()`.
-    pub fn create_shaping_ies_normalize_attr(&self) -> Attribute {
-        self.get_shaping_ies_normalize_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxShapingAPI::CreateShapingIesNormalizeAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shaping_ies_normalize_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_shaping_ies_normalize.as_str(),
+            "bool",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -525,6 +598,8 @@ impl Default for ShapingAPI {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use usd_core::{InitialLoadSet, Stage};
+    use usd_sdf::TimeCode;
 
     #[test]
     fn test_invalid_shaping_api() {
@@ -536,5 +611,16 @@ mod tests {
     fn test_schema_attribute_names() {
         let names = ShapingAPI::get_schema_attribute_names(true);
         assert_eq!(names.len(), 7);
+    }
+
+    #[test]
+    fn create_shaping_cone_angle_attr_sets_optional_default() {
+        let _ = usd_sdf::init();
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("stage");
+        let prim = stage.define_prim("/L", "").expect("prim");
+        let api = ShapingAPI::apply(&prim).expect("apply");
+        let attr = api.create_shaping_cone_angle_attr(Some(Value::from_f32(60.0)), false);
+        assert!(attr.is_valid());
+        assert_eq!(attr.get_typed::<f32>(TimeCode::default()), Some(60.0));
     }
 }

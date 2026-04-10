@@ -13,6 +13,7 @@ use usd_lux::{
 use usd_sdf::{Path, TimeCode, ValueTypeRegistry};
 use usd_shade::{ConnectableAPI, NodeGraph};
 use usd_tf::Token;
+use usd_vt::Value;
 
 static INIT: Once = Once::new();
 fn setup() {
@@ -667,7 +668,7 @@ fn test_shader_ids_light(light: &LightAPI, shader_id_attr_name: &str) {
     // Create a shaderID attr for the "ri" render context with a new ID value.
     let ri_attr = light.create_shader_id_attr_for_render_context(
         &Token::new("ri"),
-        Some(Token::new("SphereLight")),
+        Some(Value::from(Token::new("SphereLight"))),
         false,
     );
     // The create returns the attribute. In our API it writes the value via the
@@ -763,10 +764,11 @@ fn test_shader_ids_light_filter(light_filter: &LightFilter, shader_id_attr_name:
     if let Some(attr) = light_filter.get_shader_id_attr() {
         attr.set(Token::new("DefaultLight"), TimeCode::default());
     } else {
-        // Create it and set
-        let attr = light_filter
-            .create_shader_id_attr(Some(Token::new("DefaultLight")))
-            .expect("create_shader_id_attr should succeed");
+        let attr = light_filter.create_shader_id_attr(
+            Some(Value::from(Token::new("DefaultLight"))),
+            false,
+        );
+        assert!(attr.is_valid());
         attr.set(Token::new("DefaultLight"), TimeCode::default());
     }
 
@@ -797,11 +799,11 @@ fn test_shader_ids_light_filter(light_filter: &LightFilter, shader_id_attr_name:
     // Create a shaderID attr for the "ri" render context.
     let ri_attr = light_filter.create_shader_id_attr_for_render_context(
         &Token::new("ri"),
-        Some(Token::new("SphereLight")),
+        Some(Value::from(Token::new("SphereLight"))),
         false,
     );
-    if let Some(attr) = ri_attr.as_ref() {
-        attr.set(Token::new("SphereLight"), TimeCode::default());
+    if ri_attr.is_valid() {
+        ri_attr.set(Token::new("SphereLight"), TimeCode::default());
     }
 
     // The shaderId attr for "ri" now exists.
@@ -969,30 +971,38 @@ fn test_light_extent_and_bbox() {
     // and bounding boxes are updated.
 
     // RectLight: width=4, height=6
-    rect_light.create_width_attr().set(4.0f32, time);
-    rect_light.create_height_attr().set(6.0f32, time);
+    rect_light
+        .create_width_attr(None, false)
+        .set(4.0f32, time);
+    rect_light
+        .create_height_attr(None, false)
+        .set(6.0f32, time);
     verify_extent_and_bbox(rect_light.get_prim(), (-2.0, -3.0, 0.0), (2.0, 3.0, 0.0));
 
     // DiskLight: radius=5
-    disk_light.create_radius_attr().set(5.0f32, time);
+    disk_light
+        .create_radius_attr(None, false)
+        .set(5.0f32, time);
     verify_extent_and_bbox(disk_light.get_prim(), (-5.0, -5.0, 0.0), (5.0, 5.0, 0.0));
 
     // CylinderLight: radius=4, length=10
-    cyl_light.create_radius_attr().set(4.0f32, time);
-    cyl_light.create_length_attr().set(10.0f32, time);
+    cyl_light
+        .create_radius_attr(None, false)
+        .set(4.0f32, time);
+    cyl_light
+        .create_length_attr(None, false)
+        .set(10.0f32, time);
     verify_extent_and_bbox(cyl_light.get_prim(), (-5.0, -4.0, -4.0), (5.0, 4.0, 4.0));
 
     // SphereLight: radius=3
-    sphere_light.create_radius_attr().set(3.0f32, time);
+    sphere_light
+        .create_radius_attr(None, false)
+        .set(3.0f32, time);
     verify_extent_and_bbox(sphere_light.get_prim(), (-3.0, -3.0, -3.0), (3.0, 3.0, 3.0));
 
     // PortalLight: width=4, height=6
-    portal_light
-        .create_width_attr(Some(4.0))
-        .expect("create portal width");
-    portal_light
-        .create_height_attr(Some(6.0))
-        .expect("create portal height");
+    portal_light.create_width_attr(Some(Value::from_f32(4.0)), false);
+    portal_light.create_height_attr(Some(Value::from_f32(6.0)), false);
     verify_extent_and_bbox(portal_light.prim(), (-2.0, -3.0, 0.0), (2.0, 3.0, 0.0));
 
     // For completeness verify that distant and dome lights are not boundable.

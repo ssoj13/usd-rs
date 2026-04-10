@@ -53,6 +53,7 @@ pub mod plugin_light;
 pub mod plugin_light_filter;
 pub mod portal_light;
 pub mod rect_light;
+mod schema_create_attr;
 pub mod shadow_api;
 pub mod shaping_api;
 pub mod sphere_light;

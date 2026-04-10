@@ -12,11 +12,13 @@ use std::sync::Arc;
 
 use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, SchemaKind, Stage};
-use usd_sdf::{Path, TimeCode, ValueTypeRegistry};
+use usd_sdf::{Path, TimeCode};
 use usd_tf::Token;
+use usd_vt::Value;
 
 use super::boundable_light_base::BoundableLightBase;
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 
 /// A rectangular portal that guides dome light sampling.
 ///
@@ -111,22 +113,21 @@ impl PortalLight {
     }
 
     /// Create the inputs:width attribute.
-    pub fn create_width_attr(&self, default_value: Option<f32>) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        let attr = self.prim().create_attribute(
+    ///
+    /// Matches C++ `UsdLuxPortalLight::CreateWidthAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_width_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            self.prim(),
             tokens().inputs_width.as_str(),
-            &float_type,
-            false,
-            Some(Variability::Varying),
-        )?;
-
-        if let Some(value) = default_value {
-            attr.set(value, TimeCode::default());
-        }
-
-        Some(attr)
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     /// Get the width value at the given time.
@@ -147,22 +148,21 @@ impl PortalLight {
     }
 
     /// Create the inputs:height attribute.
-    pub fn create_height_attr(&self, default_value: Option<f32>) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let float_type = registry.find_type_by_token(&Token::new("float"));
-
-        let attr = self.prim().create_attribute(
+    ///
+    /// Matches C++ `UsdLuxPortalLight::CreateHeightAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_height_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            self.prim(),
             tokens().inputs_height.as_str(),
-            &float_type,
-            false,
-            Some(Variability::Varying),
-        )?;
-
-        if let Some(value) = default_value {
-            attr.set(value, TimeCode::default());
-        }
-
-        Some(attr)
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     /// Get the height value at the given time.
@@ -228,6 +228,8 @@ impl AsRef<BoundableLightBase> for PortalLight {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
+    use usd_core::{InitialLoadSet, Stage};
 
     #[test]
     fn test_schema_type_name() {
@@ -237,5 +239,15 @@ mod tests {
     #[test]
     fn test_schema_kind() {
         assert_eq!(PortalLight::SCHEMA_KIND, SchemaKind::ConcreteTyped);
+    }
+
+    #[test]
+    fn create_width_attr_optional_default() {
+        let _ = usd_sdf::init();
+        let stage = Arc::new(Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap());
+        let pl = PortalLight::define(&stage, &Path::from("/Portal")).expect("define");
+        let attr = pl.create_width_attr(Some(Value::from_f32(3.0)), false);
+        assert!(attr.is_valid());
+        assert_eq!(attr.get_typed::<f32>(TimeCode::default()), Some(3.0));
     }
 }

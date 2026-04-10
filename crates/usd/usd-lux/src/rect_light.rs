@@ -40,9 +40,12 @@
 use super::boundable_light_base::BoundableLightBase;
 use super::light_api::LightAPI;
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 use std::sync::Arc;
+use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
 use usd_sdf::Path;
+use usd_vt::Value;
 use usd_tf::Token;
 
 /// Light emitted from one side of a rectangle.
@@ -205,9 +208,20 @@ impl RectLight {
     ///
     /// See [`get_width_attr`](Self::get_width_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxRectLight::CreateWidthAttr()`.
-    pub fn create_width_attr(&self) -> Attribute {
-        self.get_width_attr().unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxRectLight::CreateWidthAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_width_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_width.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -234,9 +248,20 @@ impl RectLight {
     ///
     /// See [`get_height_attr`](Self::get_height_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxRectLight::CreateHeightAttr()`.
-    pub fn create_height_attr(&self) -> Attribute {
-        self.get_height_attr().unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxRectLight::CreateHeightAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_height_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_height.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -263,10 +288,20 @@ impl RectLight {
     ///
     /// See [`get_texture_file_attr`](Self::get_texture_file_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxRectLight::CreateTextureFileAttr()`.
-    pub fn create_texture_file_attr(&self) -> Attribute {
-        self.get_texture_file_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxRectLight::CreateTextureFileAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_texture_file_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_texture_file.as_str(),
+            "asset",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 }
 

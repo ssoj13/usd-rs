@@ -878,14 +878,14 @@ fn test_proxy_prim() {
     let f = Scope::define(&s, &path("/A/F"));
 
     c.imageable()
-        .create_purpose_attr()
+        .create_purpose_attr(None, false)
         .set(t.render.clone(), default_tc());
     c.imageable().set_proxy_prim(d.prim());
     d.imageable()
-        .create_purpose_attr()
+        .create_purpose_attr(None, false)
         .set(t.proxy.clone(), default_tc());
     f.imageable()
-        .create_purpose_attr()
+        .create_purpose_attr(None, false)
         .set(t.render.clone(), default_tc());
     f.imageable().set_proxy_prim(b.prim());
 
@@ -917,7 +917,7 @@ fn test_proxy_prim() {
 
     // Set purpose 'guide' on A, ensure D's purpose value isn't determined by ancestor
     a.imageable()
-        .create_purpose_attr()
+        .create_purpose_attr(None, false)
         .set(t.guide.clone(), default_tc());
     let e_proxy = e.imageable().compute_proxy_prim();
     assert!(

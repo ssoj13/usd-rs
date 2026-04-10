@@ -30,12 +30,13 @@ use std::sync::Arc;
 use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, SchemaKind, Stage};
 use usd_gf::Vec3f;
-use usd_sdf::{AssetPath, Path, TimeCode, ValueTypeRegistry};
+use usd_sdf::{Path, TimeCode, ValueTypeRegistry};
 use usd_tf::Token;
 use usd_vt::Value;
 
 use super::bbox_cache::BBoxCache;
 use super::constraint_target::ConstraintTarget;
+use super::schema_create_default::apply_optional_default;
 use super::tokens::usd_geom_tokens;
 
 /// UsdGeomModelAPI extends UsdModelAPI with geometry-specific concepts.
@@ -107,6 +108,32 @@ impl ModelAPI {
         &self.prim
     }
 
+    /// Create-or-get a GeomModelAPI attribute; optionally set default time sample.
+    ///
+    /// Matches C++ `Create*Attr(VtValue defaultValue, bool writeSparsely)` pattern.
+    fn create_geom_model_schema_attr(
+        &self,
+        name: &str,
+        sdf_typename: &str,
+        variability: Variability,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
+        let prim = &self.prim;
+        if !prim.is_valid() {
+            return Attribute::invalid();
+        }
+        let attr = if prim.has_authored_attribute(name) {
+            prim.get_attribute(name).unwrap_or_else(Attribute::invalid)
+        } else {
+            let registry = ValueTypeRegistry::instance();
+            let ty = registry.find_type_by_token(&Token::new(sdf_typename));
+            prim.create_attribute(name, &ty, false, Some(variability))
+                .unwrap_or_else(Attribute::invalid)
+        };
+        apply_optional_default(attr, default_value)
+    }
+
     // =========================================================================
     // ModelDrawMode Attribute
     // =========================================================================
@@ -123,22 +150,20 @@ impl ModelAPI {
     }
 
     /// Creates the model:drawMode attribute.
-    pub fn create_model_draw_mode_attr(&self, default_value: Option<Token>) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
-
-        let attr = self.prim.create_attribute(
+    ///
+    /// Matches C++ `CreateModelDrawModeAttr(VtValue defaultValue, bool writeSparsely)`.
+    pub fn create_model_draw_mode_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.create_geom_model_schema_attr(
             usd_geom_tokens().model_draw_mode.as_str(),
-            &token_type,
-            false,
-            Some(Variability::Uniform),
-        )?;
-
-        if let Some(value) = default_value {
-            attr.set(value, TimeCode::default());
-        }
-
-        Some(attr)
+            "token",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -154,25 +179,20 @@ impl ModelAPI {
     }
 
     /// Creates the model:applyDrawMode attribute.
+    ///
+    /// Matches C++ `CreateModelApplyDrawModeAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_model_apply_draw_mode_attr(
         &self,
-        default_value: Option<bool>,
-    ) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let bool_type = registry.find_type_by_token(&Token::new("bool"));
-
-        let attr = self.prim.create_attribute(
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.create_geom_model_schema_attr(
             usd_geom_tokens().model_apply_draw_mode.as_str(),
-            &bool_type,
-            false,
-            Some(Variability::Uniform),
-        )?;
-
-        if let Some(value) = default_value {
-            attr.set(value, TimeCode::default());
-        }
-
-        Some(attr)
+            "bool",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -189,25 +209,20 @@ impl ModelAPI {
     }
 
     /// Creates the model:drawModeColor attribute.
+    ///
+    /// Matches C++ `CreateModelDrawModeColorAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_model_draw_mode_color_attr(
         &self,
-        default_value: Option<Vec3f>,
-    ) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let float3_type = registry.find_type_by_token(&Token::new("float3"));
-
-        let attr = self.prim.create_attribute(
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.create_geom_model_schema_attr(
             usd_geom_tokens().model_draw_mode_color.as_str(),
-            &float3_type,
-            false,
-            Some(Variability::Uniform),
-        )?;
-
-        if let Some(value) = default_value {
-            attr.set(Value::from_no_hash(value), TimeCode::default());
-        }
-
-        Some(attr)
+            "float3",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -224,25 +239,20 @@ impl ModelAPI {
     }
 
     /// Creates the model:cardGeometry attribute.
+    ///
+    /// Matches C++ `CreateModelCardGeometryAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_model_card_geometry_attr(
         &self,
-        default_value: Option<Token>,
-    ) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
-
-        let attr = self.prim.create_attribute(
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.create_geom_model_schema_attr(
             usd_geom_tokens().model_card_geometry.as_str(),
-            &token_type,
-            false,
-            Some(Variability::Uniform),
-        )?;
-
-        if let Some(value) = default_value {
-            attr.set(value, TimeCode::default());
-        }
-
-        Some(attr)
+            "token",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -256,13 +266,19 @@ impl ModelAPI {
     }
 
     /// Creates the model:cardTextureXPos attribute.
+    ///
+    /// Matches C++ `CreateModelCardTextureXPosAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_model_card_texture_x_pos_attr(
         &self,
-        default_value: Option<AssetPath>,
-    ) -> Option<Attribute> {
-        self.create_card_texture_attr(
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.create_geom_model_schema_attr(
             usd_geom_tokens().model_card_texture_x_pos.as_str(),
+            "asset",
+            Variability::Varying,
             default_value,
+            write_sparsely,
         )
     }
 
@@ -273,13 +289,19 @@ impl ModelAPI {
     }
 
     /// Creates the model:cardTextureYPos attribute.
+    ///
+    /// Matches C++ `CreateModelCardTextureYPosAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_model_card_texture_y_pos_attr(
         &self,
-        default_value: Option<AssetPath>,
-    ) -> Option<Attribute> {
-        self.create_card_texture_attr(
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.create_geom_model_schema_attr(
             usd_geom_tokens().model_card_texture_y_pos.as_str(),
+            "asset",
+            Variability::Varying,
             default_value,
+            write_sparsely,
         )
     }
 
@@ -290,13 +312,19 @@ impl ModelAPI {
     }
 
     /// Creates the model:cardTextureZPos attribute.
+    ///
+    /// Matches C++ `CreateModelCardTextureZPosAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_model_card_texture_z_pos_attr(
         &self,
-        default_value: Option<AssetPath>,
-    ) -> Option<Attribute> {
-        self.create_card_texture_attr(
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.create_geom_model_schema_attr(
             usd_geom_tokens().model_card_texture_z_pos.as_str(),
+            "asset",
+            Variability::Varying,
             default_value,
+            write_sparsely,
         )
     }
 
@@ -307,13 +335,19 @@ impl ModelAPI {
     }
 
     /// Creates the model:cardTextureXNeg attribute.
+    ///
+    /// Matches C++ `CreateModelCardTextureXNegAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_model_card_texture_x_neg_attr(
         &self,
-        default_value: Option<AssetPath>,
-    ) -> Option<Attribute> {
-        self.create_card_texture_attr(
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.create_geom_model_schema_attr(
             usd_geom_tokens().model_card_texture_x_neg.as_str(),
+            "asset",
+            Variability::Varying,
             default_value,
+            write_sparsely,
         )
     }
 
@@ -324,13 +358,19 @@ impl ModelAPI {
     }
 
     /// Creates the model:cardTextureYNeg attribute.
+    ///
+    /// Matches C++ `CreateModelCardTextureYNegAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_model_card_texture_y_neg_attr(
         &self,
-        default_value: Option<AssetPath>,
-    ) -> Option<Attribute> {
-        self.create_card_texture_attr(
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.create_geom_model_schema_attr(
             usd_geom_tokens().model_card_texture_y_neg.as_str(),
+            "asset",
+            Variability::Varying,
             default_value,
+            write_sparsely,
         )
     }
 
@@ -341,34 +381,20 @@ impl ModelAPI {
     }
 
     /// Creates the model:cardTextureZNeg attribute.
+    ///
+    /// Matches C++ `CreateModelCardTextureZNegAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_model_card_texture_z_neg_attr(
         &self,
-        default_value: Option<AssetPath>,
-    ) -> Option<Attribute> {
-        self.create_card_texture_attr(
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.create_geom_model_schema_attr(
             usd_geom_tokens().model_card_texture_z_neg.as_str(),
+            "asset",
+            Variability::Varying,
             default_value,
+            write_sparsely,
         )
-    }
-
-    /// Helper to create card texture attributes.
-    fn create_card_texture_attr(
-        &self,
-        name: &str,
-        default_value: Option<AssetPath>,
-    ) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let asset_type = registry.find_type_by_token(&Token::new("asset"));
-
-        let attr =
-            self.prim
-                .create_attribute(name, &asset_type, false, Some(Variability::Varying))?;
-
-        if let Some(value) = default_value {
-            attr.set(value.get_asset_path().to_string(), TimeCode::default());
-        }
-
-        Some(attr)
     }
 
     // =========================================================================
@@ -625,6 +651,9 @@ impl AsRef<Prim> for ModelAPI {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
+    use usd_core::{InitialLoadSet, Stage};
+    use usd_sdf::TimeCode;
 
     #[test]
     fn test_schema_kind() {
@@ -640,5 +669,48 @@ mod tests {
     fn test_schema_attribute_names() {
         let names = ModelAPI::get_schema_attribute_names(false);
         assert!(names.len() >= 10);
+    }
+
+    #[test]
+    fn create_model_draw_mode_attr_writes_default_token() {
+        let _ = usd_sdf::init();
+        let stage = Arc::new(Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap());
+        let prim = stage.define_prim("/GmDraw", "Xform").unwrap();
+        let api = ModelAPI::new(prim);
+        let mode = usd_geom_tokens().cards.clone();
+        let attr = api.create_model_draw_mode_attr(Some(Value::new(mode.clone())), false);
+        assert!(attr.is_valid());
+        assert_eq!(
+            attr.get_typed::<Token>(TimeCode::default()).as_ref(),
+            Some(&mode)
+        );
+    }
+
+    #[test]
+    fn create_model_apply_draw_mode_attr_writes_default_bool() {
+        let _ = usd_sdf::init();
+        let stage = Arc::new(Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap());
+        let prim = stage.define_prim("/GmApply", "Xform").unwrap();
+        let api = ModelAPI::new(prim);
+        let attr = api.create_model_apply_draw_mode_attr(Some(Value::new(true)), false);
+        assert!(attr.is_valid());
+        assert_eq!(attr.get_typed::<bool>(TimeCode::default()), Some(true));
+    }
+
+    #[test]
+    fn create_model_draw_mode_second_call_reuses_attr() {
+        let _ = usd_sdf::init();
+        let stage = Arc::new(Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap());
+        let prim = stage.define_prim("/GmReuse", "Xform").unwrap();
+        let api = ModelAPI::new(prim);
+        let a = api.create_model_draw_mode_attr(None, false);
+        assert!(a.is_valid());
+        let b = api
+            .create_model_draw_mode_attr(Some(Value::new(usd_geom_tokens().bounds.clone())), false);
+        assert!(b.is_valid());
+        assert_eq!(
+            b.get_typed::<Token>(TimeCode::default()).as_ref(),
+            Some(&usd_geom_tokens().bounds)
+        );
     }
 }

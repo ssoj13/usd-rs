@@ -4,7 +4,9 @@
 //!
 //! API schema for motion blur properties.
 
+use super::schema_create_default::apply_optional_default;
 use super::tokens::usd_geom_tokens;
+use usd_core::attribute::Variability;
 use usd_core::schema_base::APISchemaBase;
 use usd_core::{Attribute, Prim};
 use usd_sdf::{TimeCode, ValueTypeRegistry};
@@ -91,6 +93,31 @@ impl MotionAPI {
         Self::new(prim.clone())
     }
 
+    /// Create-or-get a MotionAPI attribute; optional default at default time.
+    ///
+    /// Matches C++ `Create*Attr(VtValue defaultValue, bool writeSparsely)`.
+    fn create_motion_schema_attr(
+        &self,
+        name: &str,
+        sdf_typename: &str,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
+        let prim = self.prim();
+        if !prim.is_valid() {
+            return Attribute::invalid();
+        }
+        let attr = if prim.has_authored_attribute(name) {
+            prim.get_attribute(name).unwrap_or_else(Attribute::invalid)
+        } else {
+            let type_registry = ValueTypeRegistry::instance();
+            let value_type = type_registry.find_type_by_token(&Token::new(sdf_typename));
+            prim.create_attribute(name, &value_type, false, Some(Variability::Varying))
+                .unwrap_or_else(Attribute::invalid)
+        };
+        apply_optional_default(attr, default_value)
+    }
+
     // ========================================================================
     // Motion Blur Attributes
     // ========================================================================
@@ -107,30 +134,14 @@ impl MotionAPI {
 
     /// Creates the motion:blurScale attribute.
     ///
-    /// Matches C++ `CreateMotionBlurScaleAttr()`.
+    /// Matches C++ `CreateMotionBlurScaleAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_motion_blur_scale_attr(
         &self,
         default_value: Option<Value>,
-        _write_sparsely: bool,
+        write_sparsely: bool,
     ) -> Attribute {
-        let tokens = usd_geom_tokens();
-        let attr_name = tokens.motion_blur_scale.as_str();
-        let type_registry = ValueTypeRegistry::instance();
-        let value_type = type_registry.find_type_by_token(&Token::new("float"));
-
-        if let Some(attr) = self.prim().create_attribute(
-            attr_name,
-            &value_type,
-            false, // not custom
-            None,  // variability defaults to varying
-        ) {
-            if let Some(default_val) = default_value {
-                let _ = attr.set(default_val, TimeCode::default());
-            }
-            attr
-        } else {
-            Attribute::invalid()
-        }
+        let name = usd_geom_tokens().motion_blur_scale.as_str();
+        self.create_motion_schema_attr(name, "float", default_value, write_sparsely)
     }
 
     /// Gets the motion:velocityScale attribute.
@@ -145,30 +156,14 @@ impl MotionAPI {
 
     /// Creates the motion:velocityScale attribute.
     ///
-    /// Matches C++ `CreateMotionVelocityScaleAttr()`.
+    /// Matches C++ `CreateMotionVelocityScaleAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_motion_velocity_scale_attr(
         &self,
         default_value: Option<Value>,
-        _write_sparsely: bool,
+        write_sparsely: bool,
     ) -> Attribute {
-        let tokens = usd_geom_tokens();
-        let attr_name = tokens.motion_velocity_scale.as_str();
-        let type_registry = ValueTypeRegistry::instance();
-        let value_type = type_registry.find_type_by_token(&Token::new("float"));
-
-        if let Some(attr) = self.prim().create_attribute(
-            attr_name,
-            &value_type,
-            false, // not custom
-            None,  // variability defaults to varying
-        ) {
-            if let Some(default_val) = default_value {
-                let _ = attr.set(default_val, TimeCode::default());
-            }
-            attr
-        } else {
-            Attribute::invalid()
-        }
+        let name = usd_geom_tokens().motion_velocity_scale.as_str();
+        self.create_motion_schema_attr(name, "float", default_value, write_sparsely)
     }
 
     /// Gets the motion:nonlinearSampleCount attribute.
@@ -183,30 +178,14 @@ impl MotionAPI {
 
     /// Creates the motion:nonlinearSampleCount attribute.
     ///
-    /// Matches C++ `CreateMotionNonlinearSampleCountAttr()`.
+    /// Matches C++ `CreateMotionNonlinearSampleCountAttr(VtValue defaultValue, bool writeSparsely)`.
     pub fn create_motion_nonlinear_sample_count_attr(
         &self,
         default_value: Option<Value>,
-        _write_sparsely: bool,
+        write_sparsely: bool,
     ) -> Attribute {
-        let tokens = usd_geom_tokens();
-        let attr_name = tokens.motion_nonlinear_sample_count.as_str();
-        let type_registry = ValueTypeRegistry::instance();
-        let value_type = type_registry.find_type_by_token(&Token::new("int"));
-
-        if let Some(attr) = self.prim().create_attribute(
-            attr_name,
-            &value_type,
-            false, // not custom
-            None,  // variability defaults to varying
-        ) {
-            if let Some(default_val) = default_value {
-                let _ = attr.set(default_val, TimeCode::default());
-            }
-            attr
-        } else {
-            Attribute::invalid()
-        }
+        let name = usd_geom_tokens().motion_nonlinear_sample_count.as_str();
+        self.create_motion_schema_attr(name, "int", default_value, write_sparsely)
     }
 
     // ========================================================================
@@ -295,3 +274,34 @@ impl PartialEq for MotionAPI {
 }
 
 impl Eq for MotionAPI {}
+
+#[cfg(test)]
+mod tests {
+    use super::MotionAPI;
+    use std::sync::Arc;
+    use usd_core::{InitialLoadSet, Stage};
+    use usd_sdf::TimeCode;
+    use usd_vt::Value;
+
+    #[test]
+    fn create_motion_blur_scale_default_float() {
+        let _ = usd_sdf::init();
+        let stage = Arc::new(Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap());
+        let prim = stage.define_prim("/MotionBlur", "Xform").unwrap();
+        let api = MotionAPI::new(prim);
+        let attr = api.create_motion_blur_scale_attr(Some(Value::from_f32(0.5)), false);
+        assert!(attr.is_valid());
+        assert_eq!(attr.get_typed::<f32>(TimeCode::default()), Some(0.5));
+    }
+
+    #[test]
+    fn create_motion_nonlinear_sample_count_default_int() {
+        let _ = usd_sdf::init();
+        let stage = Arc::new(Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap());
+        let prim = stage.define_prim("/MotionNl", "Xform").unwrap();
+        let api = MotionAPI::new(prim);
+        let attr = api.create_motion_nonlinear_sample_count_attr(Some(Value::new(7i32)), false);
+        assert!(attr.is_valid());
+        assert_eq!(attr.get_typed::<i32>(TimeCode::default()), Some(7));
+    }
+}

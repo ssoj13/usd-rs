@@ -29,10 +29,13 @@
 //! Port of `pxr/usd/usdLux/listAPI.h`
 
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 use std::collections::HashSet;
+use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Relationship, Stage};
 use usd_sdf::Path;
 use usd_tf::Token;
+use usd_vt::Value;
 
 /// Compute mode for light list traversal.
 ///
@@ -193,10 +196,20 @@ impl ListAPI {
     ///
     /// See [`get_light_list_cache_behavior_attr`](Self::get_light_list_cache_behavior_attr) for details.
     ///
-    /// Matches C++ `UsdLuxListAPI::CreateLightListCacheBehaviorAttr()`.
-    pub fn create_light_list_cache_behavior_attr(&self) -> Attribute {
-        self.get_light_list_cache_behavior_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxListAPI::CreateLightListCacheBehaviorAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_light_list_cache_behavior_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().light_list_cache_behavior.as_str(),
+            "token",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================

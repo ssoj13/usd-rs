@@ -1352,7 +1352,7 @@ mod tests {
 
         if let Some(prim) = stage.get_prim_at_path(&prim_path) {
             let imageable = usd_geom::imageable::Imageable::new(prim.clone());
-            let vis_attr = imageable.create_visibility_attr();
+            let vis_attr = imageable.create_visibility_attr(None, false);
             vis_attr.set(
                 Value::from(Token::new("invisible")),
                 usd_sdf::TimeCode::default_time(), // NaN = set default value (not time sample)

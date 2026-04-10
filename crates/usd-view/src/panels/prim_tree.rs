@@ -117,13 +117,19 @@ fn draw_prim_node_depth(
                             .show_ui(ui, |ui| {
                                 for mode in modes {
                                     if ui.selectable_label(current_str == mode, mode).clicked() {
-                                        if let (Some(session), Some(attr)) = (
-                                            stage.get_session_layer(),
-                                            api.create_model_draw_mode_attr(Some(
-                                                usd_tf::Token::new(mode),
-                                            ))
-                                            .or_else(|| api.get_model_draw_mode_attr()),
-                                        ) {
+                                        let attr = {
+                                            let created =
+                                                api.create_model_draw_mode_attr(None, false);
+                                            if created.is_valid() {
+                                                created
+                                            } else {
+                                                api.get_model_draw_mode_attr()
+                                                    .unwrap_or_else(usd_core::Attribute::invalid)
+                                            }
+                                        };
+                                        if let (Some(session), true) =
+                                            (stage.get_session_layer(), attr.is_valid())
+                                        {
                                             let prev = stage.get_edit_target();
                                             stage.set_edit_target(
                                                 usd_core::EditTarget::for_local_layer(session),

@@ -19,12 +19,20 @@ macro_rules! usd_geom_schema_with_xform {
                     crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0).get_xform_op_order_attr(),
                 )
             }
-            #[pyo3(name = "CreateXformOpOrderAttr")]
-            pub fn create_xform_op_order_attr(&self) -> PyAttribute {
-                PyAttribute::from_attr(
+            #[pyo3(name = "CreateXformOpOrderAttr", signature = (default_value=None, write_sparsely=false))]
+            pub fn create_xform_op_order_attr(
+                &self,
+                default_value: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+                write_sparsely: bool,
+            ) -> pyo3::PyResult<PyAttribute> {
+                let v = match default_value {
+                    None => None,
+                    Some(o) => Some(crate::vt::py_to_value(o)?),
+                };
+                Ok(PyAttribute::from_attr(
                     crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0)
-                        .create_xform_op_order_attr(),
-                )
+                        .create_xform_op_order_attr(v, write_sparsely),
+                ))
             }
             #[pyo3(name = "AddTranslateOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
             pub fn add_translate_op(
@@ -223,13 +231,21 @@ macro_rules! usd_geom_schema_with_xform {
                         .get_visibility_attr(),
                 )
             }
-            #[pyo3(name = "CreateVisibilityAttr")]
-            pub fn create_visibility_attr(&self) -> PyAttribute {
-                PyAttribute::from_attr(
+            #[pyo3(name = "CreateVisibilityAttr", signature = (default_value=None, write_sparsely=false))]
+            pub fn create_visibility_attr(
+                &self,
+                default_value: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+                write_sparsely: bool,
+            ) -> pyo3::PyResult<PyAttribute> {
+                let v = match default_value {
+                    None => None,
+                    Some(o) => Some(crate::vt::py_to_value(o)?),
+                };
+                Ok(PyAttribute::from_attr(
                     crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0)
                         .imageable()
-                        .create_visibility_attr(),
-                )
+                        .create_visibility_attr(v, write_sparsely),
+                ))
             }
             #[pyo3(name = "GetPurposeAttr")]
             pub fn get_purpose_attr(&self) -> PyAttribute {
@@ -239,13 +255,21 @@ macro_rules! usd_geom_schema_with_xform {
                         .get_purpose_attr(),
                 )
             }
-            #[pyo3(name = "CreatePurposeAttr")]
-            pub fn create_purpose_attr(&self) -> PyAttribute {
-                PyAttribute::from_attr(
+            #[pyo3(name = "CreatePurposeAttr", signature = (default_value=None, write_sparsely=false))]
+            pub fn create_purpose_attr(
+                &self,
+                default_value: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+                write_sparsely: bool,
+            ) -> pyo3::PyResult<PyAttribute> {
+                let v = match default_value {
+                    None => None,
+                    Some(o) => Some(crate::vt::py_to_value(o)?),
+                };
+                Ok(PyAttribute::from_attr(
                     crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0)
                         .imageable()
-                        .create_purpose_attr(),
-                )
+                        .create_purpose_attr(v, write_sparsely),
+                ))
             }
             #[pyo3(name = "ComputeVisibility", signature = (time=None))]
             pub fn compute_visibility(&self, time: Option<f64>) -> String {
@@ -347,12 +371,20 @@ macro_rules! usd_geom_schema_with_xform {
                     crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0).get_xform_op_order_attr(),
                 )
             }
-            #[pyo3(name = "CreateXformOpOrderAttr")]
-            pub fn create_xform_op_order_attr(&self) -> PyAttribute {
-                PyAttribute::from_attr(
+            #[pyo3(name = "CreateXformOpOrderAttr", signature = (default_value=None, write_sparsely=false))]
+            pub fn create_xform_op_order_attr(
+                &self,
+                default_value: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+                write_sparsely: bool,
+            ) -> pyo3::PyResult<PyAttribute> {
+                let v = match default_value {
+                    None => None,
+                    Some(o) => Some(crate::vt::py_to_value(o)?),
+                };
+                Ok(PyAttribute::from_attr(
                     crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0)
-                        .create_xform_op_order_attr(),
-                )
+                        .create_xform_op_order_attr(v, write_sparsely),
+                ))
             }
             #[pyo3(name = "AddTranslateOp", signature = (precision="PrecisionDouble", suffix=None, is_inverse_op=false))]
             pub fn add_translate_op(
@@ -551,13 +583,21 @@ macro_rules! usd_geom_schema_with_xform {
                         .get_visibility_attr(),
                 )
             }
-            #[pyo3(name = "CreateVisibilityAttr")]
-            pub fn create_visibility_attr(&self) -> PyAttribute {
-                PyAttribute::from_attr(
+            #[pyo3(name = "CreateVisibilityAttr", signature = (default_value=None, write_sparsely=false))]
+            pub fn create_visibility_attr(
+                &self,
+                default_value: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+                write_sparsely: bool,
+            ) -> pyo3::PyResult<PyAttribute> {
+                let v = match default_value {
+                    None => None,
+                    Some(o) => Some(crate::vt::py_to_value(o)?),
+                };
+                Ok(PyAttribute::from_attr(
                     crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0)
                         .imageable()
-                        .create_visibility_attr(),
-                )
+                        .create_visibility_attr(v, write_sparsely),
+                ))
             }
             #[pyo3(name = "GetPurposeAttr")]
             pub fn get_purpose_attr(&self) -> PyAttribute {
@@ -567,13 +607,21 @@ macro_rules! usd_geom_schema_with_xform {
                         .get_purpose_attr(),
                 )
             }
-            #[pyo3(name = "CreatePurposeAttr")]
-            pub fn create_purpose_attr(&self) -> PyAttribute {
-                PyAttribute::from_attr(
+            #[pyo3(name = "CreatePurposeAttr", signature = (default_value=None, write_sparsely=false))]
+            pub fn create_purpose_attr(
+                &self,
+                default_value: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+                write_sparsely: bool,
+            ) -> pyo3::PyResult<PyAttribute> {
+                let v = match default_value {
+                    None => None,
+                    Some(o) => Some(crate::vt::py_to_value(o)?),
+                };
+                Ok(PyAttribute::from_attr(
                     crate::xform_img_delegate::GeomXformImg::geom_xf(&self.0)
                         .imageable()
-                        .create_purpose_attr(),
-                )
+                        .create_purpose_attr(v, write_sparsely),
+                ))
             }
             #[pyo3(name = "ComputeVisibility", signature = (time=None))]
             pub fn compute_visibility(&self, time: Option<f64>) -> String {
@@ -677,17 +725,37 @@ macro_rules! usd_geom_schema_imageable_scope {
             pub fn get_visibility_attr(&self) -> PyAttribute {
                 PyAttribute::from_attr(self.0.imageable().get_visibility_attr())
             }
-            #[pyo3(name = "CreateVisibilityAttr")]
-            pub fn create_visibility_attr(&self) -> PyAttribute {
-                PyAttribute::from_attr(self.0.imageable().create_visibility_attr())
+            #[pyo3(name = "CreateVisibilityAttr", signature = (default_value=None, write_sparsely=false))]
+            pub fn create_visibility_attr(
+                &self,
+                default_value: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+                write_sparsely: bool,
+            ) -> pyo3::PyResult<PyAttribute> {
+                let v = match default_value {
+                    None => None,
+                    Some(o) => Some(crate::vt::py_to_value(o)?),
+                };
+                Ok(PyAttribute::from_attr(
+                    self.0.imageable().create_visibility_attr(v, write_sparsely),
+                ))
             }
             #[pyo3(name = "GetPurposeAttr")]
             pub fn get_purpose_attr(&self) -> PyAttribute {
                 PyAttribute::from_attr(self.0.imageable().get_purpose_attr())
             }
-            #[pyo3(name = "CreatePurposeAttr")]
-            pub fn create_purpose_attr(&self) -> PyAttribute {
-                PyAttribute::from_attr(self.0.imageable().create_purpose_attr())
+            #[pyo3(name = "CreatePurposeAttr", signature = (default_value=None, write_sparsely=false))]
+            pub fn create_purpose_attr(
+                &self,
+                default_value: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+                write_sparsely: bool,
+            ) -> pyo3::PyResult<PyAttribute> {
+                let v = match default_value {
+                    None => None,
+                    Some(o) => Some(crate::vt::py_to_value(o)?),
+                };
+                Ok(PyAttribute::from_attr(
+                    self.0.imageable().create_purpose_attr(v, write_sparsely),
+                ))
             }
             #[pyo3(name = "ComputeVisibility", signature = (time=None))]
             pub fn compute_visibility(&self, time: Option<f64>) -> String {
@@ -775,17 +843,37 @@ macro_rules! usd_geom_schema_imageable_subset {
             pub fn get_visibility_attr(&self) -> PyAttribute {
                 PyAttribute::from_attr(imageable_for_subset_prim(self.0.prim()).get_visibility_attr())
             }
-            #[pyo3(name = "CreateVisibilityAttr")]
-            pub fn create_visibility_attr(&self) -> PyAttribute {
-                PyAttribute::from_attr(imageable_for_subset_prim(self.0.prim()).create_visibility_attr())
+            #[pyo3(name = "CreateVisibilityAttr", signature = (default_value=None, write_sparsely=false))]
+            pub fn create_visibility_attr(
+                &self,
+                default_value: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+                write_sparsely: bool,
+            ) -> pyo3::PyResult<PyAttribute> {
+                let v = match default_value {
+                    None => None,
+                    Some(o) => Some(crate::vt::py_to_value(o)?),
+                };
+                Ok(PyAttribute::from_attr(
+                    imageable_for_subset_prim(self.0.prim()).create_visibility_attr(v, write_sparsely),
+                ))
             }
             #[pyo3(name = "GetPurposeAttr")]
             pub fn get_purpose_attr(&self) -> PyAttribute {
                 PyAttribute::from_attr(imageable_for_subset_prim(self.0.prim()).get_purpose_attr())
             }
-            #[pyo3(name = "CreatePurposeAttr")]
-            pub fn create_purpose_attr(&self) -> PyAttribute {
-                PyAttribute::from_attr(imageable_for_subset_prim(self.0.prim()).create_purpose_attr())
+            #[pyo3(name = "CreatePurposeAttr", signature = (default_value=None, write_sparsely=false))]
+            pub fn create_purpose_attr(
+                &self,
+                default_value: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+                write_sparsely: bool,
+            ) -> pyo3::PyResult<PyAttribute> {
+                let v = match default_value {
+                    None => None,
+                    Some(o) => Some(crate::vt::py_to_value(o)?),
+                };
+                Ok(PyAttribute::from_attr(
+                    imageable_for_subset_prim(self.0.prim()).create_purpose_attr(v, write_sparsely),
+                ))
             }
             #[pyo3(name = "ComputeVisibility", signature = (time=None))]
             pub fn compute_visibility(&self, time: Option<f64>) -> String {

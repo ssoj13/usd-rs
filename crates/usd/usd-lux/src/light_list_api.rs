@@ -27,10 +27,12 @@ use usd_core::prim_flags::{
     USD_PRIM_IS_MODEL,
 };
 use usd_core::{Attribute, Prim, Relationship, SchemaKind, Stage};
-use usd_sdf::{Path, TimeCode, ValueTypeRegistry};
+use usd_sdf::{Path, TimeCode};
 use usd_tf::Token;
+use usd_vt::Value;
 
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 
 /// Compute mode for light list computation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -133,25 +135,21 @@ impl LightListAPI {
     }
 
     /// Create the lightList:cacheBehavior attribute.
+    ///
+    /// Matches C++ `UsdLuxLightListAPI::CreateLightListCacheBehaviorAttr(VtValue const &defaultValue, bool writeSparsely)`.
     pub fn create_light_list_cache_behavior_attr(
         &self,
-        default_value: Option<Token>,
-    ) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
-
-        let attr = self.prim.create_attribute(
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
             tokens().light_list_cache_behavior.as_str(),
-            &token_type,
-            false,
-            Some(Variability::Varying),
-        )?;
-
-        if let Some(value) = default_value {
-            attr.set(value, TimeCode::default());
-        }
-
-        Some(attr)
+            "token",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -220,14 +218,17 @@ impl LightListAPI {
         }
 
         // Set cache behavior to consumeAndContinue
-        self.create_light_list_cache_behavior_attr(Some(tokens().consume_and_continue.clone()));
+        self.create_light_list_cache_behavior_attr(
+            Some(Value::from(tokens().consume_and_continue.clone())),
+            false,
+        );
     }
 
     /// Mark any stored lightlist as invalid.
     ///
     /// Sets the `lightList:cacheBehavior` attribute to "ignore".
     pub fn invalidate_light_list(&self) {
-        self.create_light_list_cache_behavior_attr(Some(tokens().ignore.clone()));
+        self.create_light_list_cache_behavior_attr(Some(Value::from(tokens().ignore.clone())), false);
     }
 
     // =========================================================================
@@ -422,6 +423,9 @@ impl AsRef<Prim> for LightListAPI {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tokens::tokens;
+    use std::sync::Arc;
+    use usd_core::{InitialLoadSet, Stage};
 
     #[test]
     fn test_schema_type_name() {
@@ -464,5 +468,17 @@ mod tests {
         api.store_light_list(&empty);
         api.invalidate_light_list();
         // No panic on invalid prim
+    }
+
+    #[test]
+    fn create_light_list_cache_behavior_attr_sets_token_default() {
+        let _ = usd_sdf::init();
+        let stage = Arc::new(Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap());
+        let prim = stage.define_prim("/World", "").expect("prim");
+        let api = LightListAPI::apply(&prim).expect("apply");
+        let tok = tokens().ignore.clone();
+        let attr = api.create_light_list_cache_behavior_attr(Some(Value::from(tok.clone())), false);
+        assert!(attr.is_valid());
+        assert_eq!(attr.get_typed::<Token>(TimeCode::default()), Some(tok));
     }
 }

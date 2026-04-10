@@ -6,6 +6,7 @@
 //! The primary attributes are visibility and purpose.
 
 use super::bbox_cache::BBoxCache;
+use super::schema_create_default::apply_optional_default;
 use super::tokens::usd_geom_tokens;
 use super::visibility_api::VisibilityAPI;
 use super::xform_cache::XformCache;
@@ -14,6 +15,7 @@ use usd_gf::bbox3d::BBox3d;
 use usd_gf::matrix4::Matrix4d;
 use usd_sdf::TimeCode;
 use usd_tf::Token;
+use usd_vt::Value;
 
 /// Check if the given type name is an Imageable-derived schema type.
 ///
@@ -180,30 +182,34 @@ impl Imageable {
 
     /// Creates the visibility attribute.
     ///
-    /// Matches C++ `CreateVisibilityAttr()`.
-    pub fn create_visibility_attr(&self) -> Attribute {
+    /// Matches C++ `CreateVisibilityAttr(defaultValue, writeSparsely)`.
+    pub fn create_visibility_attr(
+        &self,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
         let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Return existing attr if it has a spec, otherwise create it.
-        if prim.has_authored_attribute(usd_geom_tokens().visibility.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().visibility.as_str())
-                .unwrap_or_else(|| Attribute::invalid());
-        }
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().visibility.as_str()) {
+            prim.get_attribute(usd_geom_tokens().visibility.as_str())
+                .unwrap_or_else(Attribute::invalid)
+        } else {
+            let registry = usd_sdf::ValueTypeRegistry::instance();
+            let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
+            prim.create_attribute(
+                usd_geom_tokens().visibility.as_str(),
+                &token_type,
+                false,                                           // not custom
+                Some(usd_core::attribute::Variability::Varying), // visibility can vary over time
+            )
+            .unwrap_or_else(Attribute::invalid)
+        };
 
-        prim.create_attribute(
-            usd_geom_tokens().visibility.as_str(),
-            &token_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Varying), // visibility can vary over time
-        )
-        .unwrap_or_else(Attribute::invalid)
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -225,30 +231,34 @@ impl Imageable {
 
     /// Creates the purpose attribute.
     ///
-    /// Matches C++ `CreatePurposeAttr()`.
-    pub fn create_purpose_attr(&self) -> Attribute {
+    /// Matches C++ `CreatePurposeAttr(defaultValue, writeSparsely)`.
+    pub fn create_purpose_attr(
+        &self,
+        default_value: Option<Value>,
+        _write_sparsely: bool,
+    ) -> Attribute {
         let prim = self.inner.prim();
         if !prim.is_valid() {
             return Attribute::invalid();
         }
 
-        // Get or create the attribute with proper type (Token) and variability (Uniform)
-        if prim.has_authored_attribute(usd_geom_tokens().purpose.as_str()) {
-            return prim
-                .get_attribute(usd_geom_tokens().purpose.as_str())
-                .unwrap_or_else(Attribute::invalid);
-        }
+        let attr = if prim.has_authored_attribute(usd_geom_tokens().purpose.as_str()) {
+            prim.get_attribute(usd_geom_tokens().purpose.as_str())
+                .unwrap_or_else(Attribute::invalid)
+        } else {
+            let registry = usd_sdf::ValueTypeRegistry::instance();
+            let token_type = registry.find_type_by_token(&Token::new("token"));
 
-        let registry = usd_sdf::ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
+            prim.create_attribute(
+                usd_geom_tokens().purpose.as_str(),
+                &token_type,
+                false,                                           // not custom
+                Some(usd_core::attribute::Variability::Uniform), // purpose is uniform
+            )
+            .unwrap_or_else(Attribute::invalid)
+        };
 
-        prim.create_attribute(
-            usd_geom_tokens().purpose.as_str(),
-            &token_type,
-            false,                                           // not custom
-            Some(usd_core::attribute::Variability::Uniform), // purpose is uniform
-        )
-        .unwrap_or_else(Attribute::invalid)
+        apply_optional_default(attr, default_value)
     }
 
     // ========================================================================
@@ -333,7 +343,7 @@ impl Imageable {
             if let Some(vis_value) = vis_attr.get(time) {
                 if let Some(token) = vis_value.downcast::<Token>() {
                     if *token == usd_geom_tokens().invisible {
-                        let create_vis_attr = self.create_visibility_attr();
+                        let create_vis_attr = self.create_visibility_attr(None, false);
                         let token_value = usd_vt::Value::new(usd_geom_tokens().inherited.clone());
                         create_vis_attr.set(token_value, time);
                         return true;
@@ -374,7 +384,8 @@ impl Imageable {
                                 // _SetVisibility with Token (not String).
                                 let sibling_imageable = Imageable::new(sibling.clone());
                                 if sibling_imageable.is_valid() {
-                                    let vis_attr = sibling_imageable.create_visibility_attr();
+                                    let vis_attr =
+                                        sibling_imageable.create_visibility_attr(None, false);
                                     let token_value =
                                         usd_vt::Value::new(usd_geom_tokens().invisible.clone());
                                     let _ = vis_attr.set(token_value, time);
@@ -391,7 +402,7 @@ impl Imageable {
     ///
     /// Matches C++ `MakeInvisible()`.
     pub fn make_invisible(&self, time: TimeCode) {
-        let vis_attr = self.create_visibility_attr();
+        let vis_attr = self.create_visibility_attr(None, false);
         // Only set if not already invisible
         if let Some(vis_value) = vis_attr.get(time) {
             if let Some(token) = vis_value.downcast::<Token>() {

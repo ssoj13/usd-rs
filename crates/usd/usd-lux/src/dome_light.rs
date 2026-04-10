@@ -53,10 +53,13 @@
 use super::light_api::LightAPI;
 use super::nonboundable_light_base::NonboundableLightBase;
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 use std::sync::Arc;
+use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Relationship, Stage};
 use usd_sdf::Path;
 use usd_tf::Token;
+use usd_vt::Value;
 
 /// Light emitted inward from a distant external environment.
 ///
@@ -225,10 +228,20 @@ impl DomeLight {
     ///
     /// See [`get_texture_file_attr`](Self::get_texture_file_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxDomeLight::CreateTextureFileAttr()`.
-    pub fn create_texture_file_attr(&self) -> Attribute {
-        self.get_texture_file_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxDomeLight::CreateTextureFileAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_texture_file_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_texture_file.as_str(),
+            "asset",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -264,10 +277,20 @@ impl DomeLight {
     ///
     /// See [`get_texture_format_attr`](Self::get_texture_format_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxDomeLight::CreateTextureFormatAttr()`.
-    pub fn create_texture_format_attr(&self) -> Attribute {
-        self.get_texture_format_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxDomeLight::CreateTextureFormatAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_texture_format_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_texture_format.as_str(),
+            "token",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -295,10 +318,20 @@ impl DomeLight {
     ///
     /// See [`get_guide_radius_attr`](Self::get_guide_radius_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxDomeLight::CreateGuideRadiusAttr()`.
-    pub fn create_guide_radius_attr(&self) -> Attribute {
-        self.get_guide_radius_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxDomeLight::CreateGuideRadiusAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_guide_radius_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().guide_radius.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================

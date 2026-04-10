@@ -20,10 +20,13 @@
 use super::boundable_light_base::BoundableLightBase;
 use super::light_api::LightAPI;
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 use std::sync::Arc;
+use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
 use usd_sdf::Path;
 use usd_tf::Token;
+use usd_vt::Value;
 
 /// Light emitted outward from a sphere.
 ///
@@ -212,10 +215,20 @@ impl SphereLight {
     /// # Returns
     /// The radius attribute (existing or newly created).
     ///
-    /// Matches C++ `UsdLuxSphereLight::CreateRadiusAttr()`.
-    pub fn create_radius_attr(&self) -> Attribute {
-        // Return existing attribute or create stub
-        self.get_radius_attr().unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxSphereLight::CreateRadiusAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_radius_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_radius.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -247,10 +260,20 @@ impl SphereLight {
     /// # Returns
     /// The treatAsPoint attribute (existing or newly created).
     ///
-    /// Matches C++ `UsdLuxSphereLight::CreateTreatAsPointAttr()`.
-    pub fn create_treat_as_point_attr(&self) -> Attribute {
-        self.get_treat_as_point_attr()
-            .unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxSphereLight::CreateTreatAsPointAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_treat_as_point_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().treat_as_point.as_str(),
+            "bool",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 }
 

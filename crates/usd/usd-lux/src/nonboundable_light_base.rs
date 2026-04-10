@@ -28,6 +28,7 @@ use super::light_api::LightAPI;
 use usd_core::{Attribute, Prim, Relationship, Stage};
 use usd_gf::Vec3f;
 use usd_sdf::Path;
+use usd_vt::Value;
 use usd_sdf::TimeCode;
 use usd_tf::Token;
 
@@ -151,8 +152,13 @@ impl NonboundableLightBase {
     /// Creates the shader ID attribute.
     ///
     /// See [`LightAPI::create_shader_id_attr`].
-    pub fn create_shader_id_attr(&self) -> Attribute {
-        self.light_api().create_shader_id_attr()
+    pub fn create_shader_id_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_shader_id_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -170,8 +176,13 @@ impl NonboundableLightBase {
     /// Creates the material sync mode attribute.
     ///
     /// See [`LightAPI::create_material_sync_mode_attr`].
-    pub fn create_material_sync_mode_attr(&self) -> Attribute {
-        self.light_api().create_material_sync_mode_attr()
+    pub fn create_material_sync_mode_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_material_sync_mode_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -189,8 +200,13 @@ impl NonboundableLightBase {
     /// Creates the intensity attribute.
     ///
     /// See [`LightAPI::create_intensity_attr`].
-    pub fn create_intensity_attr(&self) -> Attribute {
-        self.light_api().create_intensity_attr()
+    pub fn create_intensity_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_intensity_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -208,8 +224,13 @@ impl NonboundableLightBase {
     /// Creates the exposure attribute.
     ///
     /// See [`LightAPI::create_exposure_attr`].
-    pub fn create_exposure_attr(&self) -> Attribute {
-        self.light_api().create_exposure_attr()
+    pub fn create_exposure_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_exposure_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -227,8 +248,13 @@ impl NonboundableLightBase {
     /// Creates the diffuse attribute.
     ///
     /// See [`LightAPI::create_diffuse_attr`].
-    pub fn create_diffuse_attr(&self) -> Attribute {
-        self.light_api().create_diffuse_attr()
+    pub fn create_diffuse_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_diffuse_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -246,8 +272,13 @@ impl NonboundableLightBase {
     /// Creates the specular attribute.
     ///
     /// See [`LightAPI::create_specular_attr`].
-    pub fn create_specular_attr(&self) -> Attribute {
-        self.light_api().create_specular_attr()
+    pub fn create_specular_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_specular_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -265,8 +296,13 @@ impl NonboundableLightBase {
     /// Creates the normalize attribute.
     ///
     /// See [`LightAPI::create_normalize_attr`].
-    pub fn create_normalize_attr(&self) -> Attribute {
-        self.light_api().create_normalize_attr()
+    pub fn create_normalize_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_normalize_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -284,8 +320,13 @@ impl NonboundableLightBase {
     /// Creates the color attribute.
     ///
     /// See [`LightAPI::create_color_attr`].
-    pub fn create_color_attr(&self) -> Attribute {
-        self.light_api().create_color_attr()
+    pub fn create_color_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_color_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -303,8 +344,13 @@ impl NonboundableLightBase {
     /// Creates the enable color temperature attribute.
     ///
     /// See [`LightAPI::create_enable_color_temperature_attr`].
-    pub fn create_enable_color_temperature_attr(&self) -> Attribute {
-        self.light_api().create_enable_color_temperature_attr()
+    pub fn create_enable_color_temperature_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_enable_color_temperature_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -322,8 +368,13 @@ impl NonboundableLightBase {
     /// Creates the color temperature attribute.
     ///
     /// See [`LightAPI::create_color_temperature_attr`].
-    pub fn create_color_temperature_attr(&self) -> Attribute {
-        self.light_api().create_color_temperature_attr()
+    pub fn create_color_temperature_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_color_temperature_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------

@@ -88,7 +88,7 @@ impl PrimvarsAPI {
         // Get or create the attribute
         let attr = if prim.has_authored_attribute(attr_name.as_str()) {
             prim.get_attribute(attr_name.as_str())
-                .unwrap_or_else(|| Attribute::invalid())
+                .unwrap_or_else(Attribute::invalid)
         } else {
             // Create new attribute with proper type and variability
             match prim.create_attribute(

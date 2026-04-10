@@ -31,6 +31,7 @@ pub mod primvar;
 pub mod primvars_api;
 pub mod sampling_utils;
 mod schema_create_default;
+pub use schema_create_default::apply_optional_default;
 pub mod scope;
 pub mod sphere;
 pub mod subset;

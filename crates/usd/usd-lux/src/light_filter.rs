@@ -20,11 +20,13 @@ use usd_core::collection_api::CollectionAPI;
 use usd_core::{Attribute, Prim, SchemaKind, Stage};
 use usd_geom::{XformQuery, Xformable};
 
-use usd_sdf::{Path, TimeCode, ValueTypeName, ValueTypeRegistry};
+use usd_sdf::{Path, TimeCode, ValueTypeName};
 use usd_shade::{ConnectableAPI, Input, Output};
 use usd_tf::Token;
+use usd_vt::Value;
 
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 
 /// A light filter modifies the effect of a light.
 ///
@@ -127,22 +129,21 @@ impl LightFilter {
     }
 
     /// Create the lightFilter:shaderId attribute.
-    pub fn create_shader_id_attr(&self, default_value: Option<Token>) -> Option<Attribute> {
-        let registry = ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
-
-        let attr = self.prim().create_attribute(
+    ///
+    /// Matches C++ `UsdLuxLightFilter::CreateShaderIdAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shader_id_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            self.prim(),
             tokens().light_filter_shader_id.as_str(),
-            &token_type,
-            false,
-            Some(Variability::Uniform),
-        )?;
-
-        if let Some(value) = default_value {
-            attr.set(value, TimeCode::default());
-        }
-
-        Some(attr)
+            "token",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
+        )
     }
 
     /// Returns the shader ID attribute for the given render context.
@@ -288,11 +289,11 @@ impl LightFilter {
     pub fn create_shader_id_attr_for_render_context(
         &self,
         render_context: &Token,
-        default_value: Option<Token>,
-        _write_sparsely: bool,
-    ) -> Option<Attribute> {
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
         if render_context.as_str().is_empty() {
-            return self.create_shader_id_attr(default_value);
+            return self.create_shader_id_attr(default_value, write_sparsely);
         }
 
         let attr_name = format!(
@@ -301,21 +302,14 @@ impl LightFilter {
             tokens().light_filter_shader_id.as_str()
         );
 
-        let registry = ValueTypeRegistry::instance();
-        let token_type = registry.find_type_by_token(&Token::new("token"));
-
-        let attr = self.prim().create_attribute(
+        create_lux_schema_attr(
+            self.prim(),
             &attr_name,
-            &token_type,
-            false,
-            Some(Variability::Uniform),
-        )?;
-
-        if let Some(value) = default_value {
-            attr.set(value, TimeCode::default());
-        }
-
-        Some(attr)
+            "token",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -407,6 +401,9 @@ impl AsRef<Xformable> for LightFilter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
+    use usd_core::{InitialLoadSet, Stage};
+    use usd_sdf::Path;
 
     #[test]
     fn test_schema_type_name() {
@@ -421,5 +418,18 @@ mod tests {
     #[test]
     fn test_collection_name() {
         assert_eq!(LightFilter::FILTER_LINK_COLLECTION_NAME, "filterLink");
+    }
+
+    #[test]
+    fn create_shader_id_attr_sets_optional_default() {
+        let _ = usd_sdf::init();
+        let stage = Arc::new(Stage::create_in_memory(InitialLoadSet::LoadAll).unwrap());
+        let f = LightFilter::define(&stage, &Path::from("/Filter")).expect("define");
+        let attr = f.create_shader_id_attr(Some(Value::from(Token::new("MyFilter"))), false);
+        assert!(attr.is_valid());
+        assert_eq!(
+            attr.get_typed::<Token>(TimeCode::default()),
+            Some(Token::new("MyFilter"))
+        );
     }
 }

@@ -775,8 +775,9 @@ impl ViewerApp {
         stage.set_edit_target(usd_core::EditTarget::for_local_layer(session_layer));
         // Apply API schema and write the draw mode token.
         if let Some(model_api) = usd_geom::model_api::ModelAPI::apply(&prim) {
-            if let Some(attr) = model_api.create_model_draw_mode_attr(None) {
-                attr.set(usd_tf::Token::new(mode_str), usd_sdf::TimeCode::default());
+            let attr = model_api.create_model_draw_mode_attr(None, false);
+            if attr.is_valid() {
+                let _ = attr.set(usd_tf::Token::new(mode_str), usd_sdf::TimeCode::default());
             }
         }
         stage.set_edit_target(prev_target);
@@ -823,7 +824,7 @@ impl ViewerApp {
         stage.set_edit_target(usd_core::EditTarget::for_local_layer(session_layer));
         let vis_api = usd_geom::visibility_api::VisibilityAPI::apply(&prim);
         if vis_api.is_valid() {
-            let attr = vis_api.create_guide_visibility_attr();
+            let attr = vis_api.create_guide_visibility_attr(None, false);
             if attr.is_valid() {
                 let tokens = usd_geom::tokens::usd_geom_tokens();
                 let tc = usd_sdf::TimeCode::default();

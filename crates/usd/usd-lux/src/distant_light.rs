@@ -38,10 +38,13 @@
 use super::light_api::LightAPI;
 use super::nonboundable_light_base::NonboundableLightBase;
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
 use std::sync::Arc;
+use usd_core::attribute::Variability;
 use usd_core::{Attribute, Prim, Stage};
 use usd_sdf::Path;
 use usd_tf::Token;
+use usd_vt::Value;
 
 /// Light emitted from a distant source along the -Z axis.
 ///
@@ -204,9 +207,20 @@ impl DistantLight {
     ///
     /// See [`get_angle_attr`](Self::get_angle_attr) for attribute details.
     ///
-    /// Matches C++ `UsdLuxDistantLight::CreateAngleAttr()`.
-    pub fn create_angle_attr(&self) -> Attribute {
-        self.get_angle_attr().unwrap_or_else(Attribute::invalid)
+    /// Matches C++ `UsdLuxDistantLight::CreateAngleAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_angle_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        create_lux_schema_attr(
+            &self.prim,
+            tokens().inputs_angle.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 }
 

@@ -26,6 +26,8 @@
 //! Port of `pxr/usd/usdLux/lightAPI.h`
 
 use super::tokens::tokens;
+use crate::schema_create_attr::create_lux_schema_attr;
+use usd_core::attribute::Variability;
 use usd_core::collection_api::CollectionAPI;
 use usd_core::{Attribute, Prim, Relationship, Stage};
 use usd_gf::Vec3f;
@@ -35,6 +37,7 @@ use usd_sdf::TimeCode;
 use usd_sdf::ValueTypeName;
 use usd_shade::{ConnectableAPI, Input, Output};
 use usd_tf::Token;
+use usd_vt::Value;
 
 /// API schema that imparts the quality of being a light onto a prim.
 ///
@@ -177,8 +180,22 @@ impl LightAPI {
     }
 
     /// Creates the shader ID attribute.
-    pub fn create_shader_id_attr(&self) -> Attribute {
-        self.get_shader_id_attr().unwrap_or_else(Attribute::invalid)
+    ///
+    /// Matches C++ `UsdLuxLightAPI::CreateShaderIdAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_shader_id_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        let t = tokens();
+        create_lux_schema_attr(
+            &self.prim,
+            t.light_shader_id.as_str(),
+            "token",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -206,9 +223,22 @@ impl LightAPI {
     }
 
     /// Creates the material sync mode attribute.
-    pub fn create_material_sync_mode_attr(&self) -> Attribute {
-        self.get_material_sync_mode_attr()
-            .unwrap_or_else(Attribute::invalid)
+    ///
+    /// Matches C++ `UsdLuxLightAPI::CreateMaterialSyncModeAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_material_sync_mode_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        let t = tokens();
+        create_lux_schema_attr(
+            &self.prim,
+            t.light_material_sync_mode.as_str(),
+            "token",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -230,8 +260,22 @@ impl LightAPI {
     }
 
     /// Creates the intensity attribute.
-    pub fn create_intensity_attr(&self) -> Attribute {
-        self.get_intensity_attr().unwrap_or_else(Attribute::invalid)
+    ///
+    /// Matches C++ `UsdLuxLightAPI::CreateIntensityAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_intensity_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        let t = tokens();
+        create_lux_schema_attr(
+            &self.prim,
+            t.inputs_intensity.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -253,8 +297,22 @@ impl LightAPI {
     }
 
     /// Creates the exposure attribute.
-    pub fn create_exposure_attr(&self) -> Attribute {
-        self.get_exposure_attr().unwrap_or_else(Attribute::invalid)
+    ///
+    /// Matches C++ `UsdLuxLightAPI::CreateExposureAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_exposure_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        let t = tokens();
+        create_lux_schema_attr(
+            &self.prim,
+            t.inputs_exposure.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -275,8 +333,22 @@ impl LightAPI {
     }
 
     /// Creates the diffuse attribute.
-    pub fn create_diffuse_attr(&self) -> Attribute {
-        self.get_diffuse_attr().unwrap_or_else(Attribute::invalid)
+    ///
+    /// Matches C++ `UsdLuxLightAPI::CreateDiffuseAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_diffuse_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        let t = tokens();
+        create_lux_schema_attr(
+            &self.prim,
+            t.inputs_diffuse.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -297,8 +369,22 @@ impl LightAPI {
     }
 
     /// Creates the specular attribute.
-    pub fn create_specular_attr(&self) -> Attribute {
-        self.get_specular_attr().unwrap_or_else(Attribute::invalid)
+    ///
+    /// Matches C++ `UsdLuxLightAPI::CreateSpecularAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_specular_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        let t = tokens();
+        create_lux_schema_attr(
+            &self.prim,
+            t.inputs_specular.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -319,8 +405,22 @@ impl LightAPI {
     }
 
     /// Creates the color attribute.
-    pub fn create_color_attr(&self) -> Attribute {
-        self.get_color_attr().unwrap_or_else(Attribute::invalid)
+    ///
+    /// Matches C++ `UsdLuxLightAPI::CreateColorAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_color_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        let t = tokens();
+        create_lux_schema_attr(
+            &self.prim,
+            t.inputs_color.as_str(),
+            "color3f",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -342,9 +442,22 @@ impl LightAPI {
     }
 
     /// Creates the enable color temperature attribute.
-    pub fn create_enable_color_temperature_attr(&self) -> Attribute {
-        self.get_enable_color_temperature_attr()
-            .unwrap_or_else(Attribute::invalid)
+    ///
+    /// Matches C++ `UsdLuxLightAPI::CreateEnableColorTemperatureAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_enable_color_temperature_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        let t = tokens();
+        create_lux_schema_attr(
+            &self.prim,
+            t.inputs_enable_color_temperature.as_str(),
+            "bool",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -367,9 +480,22 @@ impl LightAPI {
     }
 
     /// Creates the color temperature attribute.
-    pub fn create_color_temperature_attr(&self) -> Attribute {
-        self.get_color_temperature_attr()
-            .unwrap_or_else(Attribute::invalid)
+    ///
+    /// Matches C++ `UsdLuxLightAPI::CreateColorTemperatureAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_color_temperature_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        let t = tokens();
+        create_lux_schema_attr(
+            &self.prim,
+            t.inputs_color_temperature.as_str(),
+            "float",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -391,8 +517,22 @@ impl LightAPI {
     }
 
     /// Creates the normalize attribute.
-    pub fn create_normalize_attr(&self) -> Attribute {
-        self.get_normalize_attr().unwrap_or_else(Attribute::invalid)
+    ///
+    /// Matches C++ `UsdLuxLightAPI::CreateNormalizeAttr(VtValue const &defaultValue, bool writeSparsely)`.
+    pub fn create_normalize_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        let t = tokens();
+        create_lux_schema_attr(
+            &self.prim,
+            t.inputs_normalize.as_str(),
+            "bool",
+            Variability::Varying,
+            default_value,
+            write_sparsely,
+        )
     }
 
     // =========================================================================
@@ -716,22 +856,30 @@ impl LightAPI {
     ///
     /// # Arguments
     /// * `render_context` - Render context namespace
-    /// * `default_value` - Default value for the attribute
-    /// * `_write_sparsely` - Unused in this implementation
+    /// * `default_value` - Default value for the attribute (VtValue parity)
+    /// * `write_sparsely` - Parity with pxr `writeSparsely` (not yet applied in Rust)
     ///
     /// Matches C++ `UsdLuxLightAPI::CreateShaderIdAttrForRenderContext()`.
     pub fn create_shader_id_attr_for_render_context(
         &self,
         render_context: &Token,
-        _default_value: Option<Token>,
-        _write_sparsely: bool,
+        default_value: Option<Value>,
+        write_sparsely: bool,
     ) -> Attribute {
         if render_context.as_str().is_empty() {
-            return self.create_shader_id_attr();
+            return self.create_shader_id_attr(default_value, write_sparsely);
         }
 
-        self.get_shader_id_attr_for_render_context(render_context)
-            .unwrap_or_else(Attribute::invalid)
+        let t = tokens();
+        let name = format!("{}:{}", render_context.as_str(), t.light_shader_id.as_str());
+        create_lux_schema_attr(
+            &self.prim,
+            &name,
+            "token",
+            Variability::Uniform,
+            default_value,
+            write_sparsely,
+        )
     }
 
     /// Returns the light's shader ID for the given list of render contexts.
@@ -781,6 +929,7 @@ impl Default for LightAPI {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use usd_core::{InitialLoadSet, Stage};
 
     #[test]
     fn test_invalid_light_api() {
@@ -809,5 +958,30 @@ mod tests {
         let render_context = "ri";
         let expected = format!("{}:{}", render_context, t.light_shader_id.as_str());
         assert_eq!(expected, "ri:light:shaderId");
+    }
+
+    #[test]
+    fn create_intensity_attr_sets_optional_default() {
+        let _ = usd_sdf::init();
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("stage");
+        let prim = stage.define_prim("/Light", "").expect("prim");
+        let api = LightAPI::apply(&prim).expect("apply");
+        let attr = api.create_intensity_attr(Some(Value::from_f32(2.5)), false);
+        assert!(attr.is_valid());
+        assert_eq!(attr.get_typed::<f32>(TimeCode::default()), Some(2.5));
+        let attr2 = api.create_intensity_attr(None, false);
+        assert_eq!(attr.path(), attr2.path());
+    }
+
+    #[test]
+    fn create_shader_id_attr_sets_optional_default() {
+        let _ = usd_sdf::init();
+        let stage = Stage::create_in_memory(InitialLoadSet::LoadAll).expect("stage");
+        let prim = stage.define_prim("/Light2", "").expect("prim");
+        let api = LightAPI::apply(&prim).expect("apply");
+        let tok = Token::new("MyLightShader");
+        let attr = api.create_shader_id_attr(Some(Value::from(tok.clone())), false);
+        assert!(attr.is_valid());
+        assert_eq!(attr.get_typed::<Token>(TimeCode::default()), Some(tok));
     }
 }

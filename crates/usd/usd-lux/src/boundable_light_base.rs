@@ -28,6 +28,7 @@ use super::light_api::LightAPI;
 use super::tokens::tokens;
 use usd_core::{Attribute, Prim, Relationship, Stage};
 use usd_gf::Vec3f;
+use usd_vt::Value;
 use usd_sdf::Path;
 use usd_sdf::TimeCode;
 use usd_tf::Token;
@@ -146,8 +147,13 @@ impl BoundableLightBase {
     }
 
     /// Creates the shader ID attribute.
-    pub fn create_shader_id_attr(&self) -> Attribute {
-        self.get_shader_id_attr().unwrap_or_else(Attribute::invalid)
+    pub fn create_shader_id_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_shader_id_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -164,9 +170,13 @@ impl BoundableLightBase {
     }
 
     /// Creates the material sync mode attribute.
-    pub fn create_material_sync_mode_attr(&self) -> Attribute {
-        self.get_material_sync_mode_attr()
-            .unwrap_or_else(Attribute::invalid)
+    pub fn create_material_sync_mode_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_material_sync_mode_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -187,8 +197,13 @@ impl BoundableLightBase {
     }
 
     /// Creates the intensity attribute.
-    pub fn create_intensity_attr(&self) -> Attribute {
-        self.get_intensity_attr().unwrap_or_else(Attribute::invalid)
+    pub fn create_intensity_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_intensity_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -210,8 +225,13 @@ impl BoundableLightBase {
     }
 
     /// Creates the exposure attribute.
-    pub fn create_exposure_attr(&self) -> Attribute {
-        self.get_exposure_attr().unwrap_or_else(Attribute::invalid)
+    pub fn create_exposure_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_exposure_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -232,8 +252,13 @@ impl BoundableLightBase {
     }
 
     /// Creates the diffuse attribute.
-    pub fn create_diffuse_attr(&self) -> Attribute {
-        self.get_diffuse_attr().unwrap_or_else(Attribute::invalid)
+    pub fn create_diffuse_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_diffuse_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -254,8 +279,13 @@ impl BoundableLightBase {
     }
 
     /// Creates the specular attribute.
-    pub fn create_specular_attr(&self) -> Attribute {
-        self.get_specular_attr().unwrap_or_else(Attribute::invalid)
+    pub fn create_specular_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_specular_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -276,8 +306,13 @@ impl BoundableLightBase {
     }
 
     /// Creates the normalize attribute.
-    pub fn create_normalize_attr(&self) -> Attribute {
-        self.get_normalize_attr().unwrap_or_else(Attribute::invalid)
+    pub fn create_normalize_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_normalize_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -298,8 +333,13 @@ impl BoundableLightBase {
     }
 
     /// Creates the color attribute.
-    pub fn create_color_attr(&self) -> Attribute {
-        self.get_color_attr().unwrap_or_else(Attribute::invalid)
+    pub fn create_color_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_color_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -321,9 +361,13 @@ impl BoundableLightBase {
     }
 
     /// Creates the enable color temperature attribute.
-    pub fn create_enable_color_temperature_attr(&self) -> Attribute {
-        self.get_enable_color_temperature_attr()
-            .unwrap_or_else(Attribute::invalid)
+    pub fn create_enable_color_temperature_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_enable_color_temperature_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------
@@ -346,9 +390,13 @@ impl BoundableLightBase {
     }
 
     /// Creates the color temperature attribute.
-    pub fn create_color_temperature_attr(&self) -> Attribute {
-        self.get_color_temperature_attr()
-            .unwrap_or_else(Attribute::invalid)
+    pub fn create_color_temperature_attr(
+        &self,
+        default_value: Option<Value>,
+        write_sparsely: bool,
+    ) -> Attribute {
+        self.light_api()
+            .create_color_temperature_attr(default_value, write_sparsely)
     }
 
     // -------------------------------------------------------------------------

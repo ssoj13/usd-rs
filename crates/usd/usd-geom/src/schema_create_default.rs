@@ -6,7 +6,7 @@ use usd_vt::Value;
 
 /// If `default_value` is `Some`, set it at default time on `attr` (no-op when `None`).
 #[must_use]
-pub(crate) fn apply_optional_default(attr: Attribute, default_value: Option<Value>) -> Attribute {
+pub fn apply_optional_default(attr: Attribute, default_value: Option<Value>) -> Attribute {
     if let Some(val) = default_value {
         let _ = attr.set(val, TimeCode::default());
     }
