@@ -2980,6 +2980,17 @@ impl PyValueTypeName {
     }
 }
 
+/// Resolve an [`usd_sdf::ValueTypeName`] from Python `str` or [`PyValueTypeName`].
+pub fn value_type_from_py_any(o: &Bound<'_, PyAny>) -> PyResult<usd_sdf::ValueTypeName> {
+    if let Ok(t) = o.clone().cast::<PyValueTypeName>() {
+        return Ok(t.borrow().inner());
+    }
+    let s: String = o
+        .extract()
+        .map_err(|_| PyValueError::new_err("expected str or Sdf.ValueTypeName"))?;
+    Ok(usd_sdf::ValueTypeRegistry::instance().find_type(&s))
+}
+
 /// Namespace containing standard value type names.
 ///
 /// Registered at module level via `setattr` in `register()` rather than

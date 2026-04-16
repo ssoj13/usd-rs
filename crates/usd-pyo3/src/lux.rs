@@ -9,6 +9,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use std::sync::Arc;
 
+use crate::sdf::value_type_from_py_any;
+use crate::shade::{PyConnectableAPI, PyInput, PyOutput};
 use crate::usd::{PyAttribute, PyPrim};
 use usd_core::{Attribute, Prim, Stage};
 #[allow(deprecated)]
@@ -311,13 +313,71 @@ impl PyLightAPI {
         ))
     }
 
-    /// CreateInput(name, type_name) -> full input name string or None
+    #[pyo3(name = "ConnectableAPI")]
+    fn connectable_api_py(&self) -> PyConnectableAPI {
+        PyConnectableAPI::from_inner(self.inner.connectable_api())
+    }
+
     #[pyo3(name = "CreateInput")]
-    fn create_input(&self, name: &str, type_name: &str) -> Option<String> {
-        let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        self.inner
+    fn create_input_py(
+        &self,
+        name: &str,
+        type_name: &Bound<'_, PyAny>,
+    ) -> PyResult<PyInput> {
+        let tn = value_type_from_py_any(type_name)?;
+        let inp = self
+            .inner
             .create_input(&Token::new(name), &tn)
-            .map(|inp| inp.get_full_name().as_str().to_string())
+            .ok_or_else(|| PyValueError::new_err("CreateInput failed"))?;
+        Ok(PyInput::from_inner(inp))
+    }
+
+    #[pyo3(name = "CreateOutput")]
+    fn create_output_py(
+        &self,
+        name: &str,
+        type_name: &Bound<'_, PyAny>,
+    ) -> PyResult<PyOutput> {
+        let tn = value_type_from_py_any(type_name)?;
+        let out = self
+            .inner
+            .create_output(&Token::new(name), &tn)
+            .ok_or_else(|| PyValueError::new_err("CreateOutput failed"))?;
+        Ok(PyOutput::from_inner(out))
+    }
+
+    #[pyo3(name = "GetInput")]
+    fn get_input_py(&self, name: &str) -> Option<PyInput> {
+        self.inner
+            .get_input(&Token::new(name))
+            .map(PyInput::from_inner)
+    }
+
+    #[pyo3(name = "GetOutput")]
+    fn get_output_py(&self, name: &str) -> Option<PyOutput> {
+        self.inner
+            .get_output(&Token::new(name))
+            .map(PyOutput::from_inner)
+    }
+
+    #[pyo3(name = "GetInputs", signature = (only_authored = false))]
+    fn get_inputs_py(&self, only_authored: bool) -> Vec<PyInput> {
+        self.inner
+            .connectable_api()
+            .get_inputs(only_authored)
+            .into_iter()
+            .map(PyInput::from_inner)
+            .collect()
+    }
+
+    #[pyo3(name = "GetOutputs", signature = (only_authored = false))]
+    fn get_outputs_py(&self, only_authored: bool) -> Vec<PyOutput> {
+        self.inner
+            .connectable_api()
+            .get_outputs(only_authored)
+            .into_iter()
+            .map(PyOutput::from_inner)
+            .collect()
     }
 
     fn __repr__(&self) -> String {
@@ -488,6 +548,73 @@ impl PyShapingAPI {
         ))
     }
 
+    #[pyo3(name = "ConnectableAPI")]
+    fn connectable_api_py(&self) -> PyConnectableAPI {
+        PyConnectableAPI::from_inner(self.inner.connectable_api())
+    }
+
+    #[pyo3(name = "CreateInput")]
+    fn create_input_py(
+        &self,
+        name: &str,
+        type_name: &Bound<'_, PyAny>,
+    ) -> PyResult<PyInput> {
+        let tn = value_type_from_py_any(type_name)?;
+        let inp = self
+            .inner
+            .create_input(&Token::new(name), &tn)
+            .ok_or_else(|| PyValueError::new_err("CreateInput failed"))?;
+        Ok(PyInput::from_inner(inp))
+    }
+
+    #[pyo3(name = "CreateOutput")]
+    fn create_output_py(
+        &self,
+        name: &str,
+        type_name: &Bound<'_, PyAny>,
+    ) -> PyResult<PyOutput> {
+        let tn = value_type_from_py_any(type_name)?;
+        let out = self
+            .inner
+            .create_output(&Token::new(name), &tn)
+            .ok_or_else(|| PyValueError::new_err("CreateOutput failed"))?;
+        Ok(PyOutput::from_inner(out))
+    }
+
+    #[pyo3(name = "GetInput")]
+    fn get_input_py(&self, name: &str) -> Option<PyInput> {
+        self.inner
+            .get_input(&Token::new(name))
+            .map(PyInput::from_inner)
+    }
+
+    #[pyo3(name = "GetOutput")]
+    fn get_output_py(&self, name: &str) -> Option<PyOutput> {
+        self.inner
+            .get_output(&Token::new(name))
+            .map(PyOutput::from_inner)
+    }
+
+    #[pyo3(name = "GetInputs", signature = (only_authored = false))]
+    fn get_inputs_py(&self, only_authored: bool) -> Vec<PyInput> {
+        self.inner
+            .connectable_api()
+            .get_inputs(only_authored)
+            .into_iter()
+            .map(PyInput::from_inner)
+            .collect()
+    }
+
+    #[pyo3(name = "GetOutputs", signature = (only_authored = false))]
+    fn get_outputs_py(&self, only_authored: bool) -> Vec<PyOutput> {
+        self.inner
+            .connectable_api()
+            .get_outputs(only_authored)
+            .into_iter()
+            .map(PyOutput::from_inner)
+            .collect()
+    }
+
     fn __repr__(&self) -> String {
         "UsdLux.ShapingAPI".to_string()
     }
@@ -618,6 +745,73 @@ impl PyShadowAPI {
         ))
     }
 
+    #[pyo3(name = "ConnectableAPI")]
+    fn connectable_api_py(&self) -> PyConnectableAPI {
+        PyConnectableAPI::from_inner(self.inner.connectable_api())
+    }
+
+    #[pyo3(name = "CreateInput")]
+    fn create_input_py(
+        &self,
+        name: &str,
+        type_name: &Bound<'_, PyAny>,
+    ) -> PyResult<PyInput> {
+        let tn = value_type_from_py_any(type_name)?;
+        let inp = self
+            .inner
+            .create_input(&Token::new(name), &tn)
+            .ok_or_else(|| PyValueError::new_err("CreateInput failed"))?;
+        Ok(PyInput::from_inner(inp))
+    }
+
+    #[pyo3(name = "CreateOutput")]
+    fn create_output_py(
+        &self,
+        name: &str,
+        type_name: &Bound<'_, PyAny>,
+    ) -> PyResult<PyOutput> {
+        let tn = value_type_from_py_any(type_name)?;
+        let out = self
+            .inner
+            .create_output(&Token::new(name), &tn)
+            .ok_or_else(|| PyValueError::new_err("CreateOutput failed"))?;
+        Ok(PyOutput::from_inner(out))
+    }
+
+    #[pyo3(name = "GetInput")]
+    fn get_input_py(&self, name: &str) -> Option<PyInput> {
+        self.inner
+            .get_input(&Token::new(name))
+            .map(PyInput::from_inner)
+    }
+
+    #[pyo3(name = "GetOutput")]
+    fn get_output_py(&self, name: &str) -> Option<PyOutput> {
+        self.inner
+            .get_output(&Token::new(name))
+            .map(PyOutput::from_inner)
+    }
+
+    #[pyo3(name = "GetInputs", signature = (only_authored = false))]
+    fn get_inputs_py(&self, only_authored: bool) -> Vec<PyInput> {
+        self.inner
+            .connectable_api()
+            .get_inputs(only_authored)
+            .into_iter()
+            .map(PyInput::from_inner)
+            .collect()
+    }
+
+    #[pyo3(name = "GetOutputs", signature = (only_authored = false))]
+    fn get_outputs_py(&self, only_authored: bool) -> Vec<PyOutput> {
+        self.inner
+            .connectable_api()
+            .get_outputs(only_authored)
+            .into_iter()
+            .map(PyOutput::from_inner)
+            .collect()
+    }
+
     fn __repr__(&self) -> String {
         "UsdLux.ShadowAPI".to_string()
     }
@@ -737,6 +931,46 @@ impl PyDiskLight {
     fn get_path(&self) -> String {
         self.inner.get_prim().path().to_string()
     }
+
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
+    }
+
+    #[pyo3(name = "GetRadiusAttr")]
+    fn get_radius_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_radius_attr())
+    }
+
+    #[pyo3(name = "CreateRadiusAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_radius_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_radius_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetTextureFileAttr")]
+    fn get_texture_file_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_texture_file_attr())
+    }
+
+    #[pyo3(name = "CreateTextureFileAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_texture_file_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_texture_file_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
     fn light_api(&self) -> PyLightAPI {
         PyLightAPI {
             inner: self.inner.light_api(),
@@ -783,6 +1017,63 @@ impl PyRectLight {
     fn get_path(&self) -> String {
         self.inner.get_prim().path().to_string()
     }
+
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
+    }
+
+    #[pyo3(name = "GetWidthAttr")]
+    fn get_width_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_width_attr())
+    }
+
+    #[pyo3(name = "CreateWidthAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_width_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_width_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetHeightAttr")]
+    fn get_height_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_height_attr())
+    }
+
+    #[pyo3(name = "CreateHeightAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_height_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_height_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetTextureFileAttr")]
+    fn get_texture_file_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_texture_file_attr())
+    }
+
+    #[pyo3(name = "CreateTextureFileAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_texture_file_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_texture_file_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
     fn light_api(&self) -> PyLightAPI {
         PyLightAPI {
             inner: self.inner.light_api(),
@@ -829,6 +1120,46 @@ impl PySphereLight {
     fn get_path(&self) -> String {
         self.inner.get_prim().path().to_string()
     }
+
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
+    }
+
+    #[pyo3(name = "GetRadiusAttr")]
+    fn get_radius_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_radius_attr())
+    }
+
+    #[pyo3(name = "CreateRadiusAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_radius_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_radius_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetTreatAsPointAttr")]
+    fn get_treat_as_point_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_treat_as_point_attr())
+    }
+
+    #[pyo3(name = "CreateTreatAsPointAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_treat_as_point_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_treat_as_point_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
     // SphereLight exposes both light_api() and get_light_api() names
     fn light_api(&self) -> PyLightAPI {
         PyLightAPI {
@@ -881,6 +1212,63 @@ impl PyCylinderLight {
     fn get_path(&self) -> String {
         self.inner.get_prim().path().to_string()
     }
+
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
+    }
+
+    #[pyo3(name = "GetLengthAttr")]
+    fn get_length_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_length_attr())
+    }
+
+    #[pyo3(name = "CreateLengthAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_length_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_length_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetRadiusAttr")]
+    fn get_radius_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_radius_attr())
+    }
+
+    #[pyo3(name = "CreateRadiusAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_radius_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_radius_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetTreatAsLineAttr")]
+    fn get_treat_as_line_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_treat_as_line_attr())
+    }
+
+    #[pyo3(name = "CreateTreatAsLineAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_treat_as_line_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_treat_as_line_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
     fn light_api(&self) -> PyLightAPI {
         PyLightAPI {
             inner: self.inner.light_api(),
@@ -927,6 +1315,29 @@ impl PyDistantLight {
     fn get_path(&self) -> String {
         self.inner.get_prim().path().to_string()
     }
+
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
+    }
+
+    #[pyo3(name = "GetAngleAttr")]
+    fn get_angle_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_angle_attr())
+    }
+
+    #[pyo3(name = "CreateAngleAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_angle_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_angle_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
     fn light_api(&self) -> PyLightAPI {
         PyLightAPI {
             inner: self.inner.light_api(),
@@ -973,6 +1384,63 @@ impl PyDomeLight {
     fn get_path(&self) -> String {
         self.inner.get_prim().path().to_string()
     }
+
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
+    }
+
+    #[pyo3(name = "GetTextureFileAttr")]
+    fn get_texture_file_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_texture_file_attr())
+    }
+
+    #[pyo3(name = "CreateTextureFileAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_texture_file_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_texture_file_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetTextureFormatAttr")]
+    fn get_texture_format_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_texture_format_attr())
+    }
+
+    #[pyo3(name = "CreateTextureFormatAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_texture_format_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_texture_format_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetGuideRadiusAttr")]
+    fn get_guide_radius_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_guide_radius_attr())
+    }
+
+    #[pyo3(name = "CreateGuideRadiusAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_guide_radius_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_guide_radius_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
     fn light_api(&self) -> PyLightAPI {
         PyLightAPI {
             inner: self.inner.light_api(),
@@ -1017,6 +1485,79 @@ impl PyDomeLight1 {
 
     fn get_path(&self) -> String {
         self.inner.get_prim().path().to_string()
+    }
+
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.get_prim().clone())
+    }
+
+    #[pyo3(name = "GetTextureFileAttr")]
+    fn get_texture_file_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_texture_file_attr())
+    }
+
+    #[pyo3(name = "CreateTextureFileAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_texture_file_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_texture_file_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetTextureFormatAttr")]
+    fn get_texture_format_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_texture_format_attr())
+    }
+
+    #[pyo3(name = "CreateTextureFormatAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_texture_format_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_texture_format_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetGuideRadiusAttr")]
+    fn get_guide_radius_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_guide_radius_attr())
+    }
+
+    #[pyo3(name = "CreateGuideRadiusAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_guide_radius_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_guide_radius_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetPoleAxisAttr")]
+    fn get_pole_axis_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_pole_axis_attr())
+    }
+
+    #[pyo3(name = "CreatePoleAxisAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_pole_axis_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_pole_axis_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
     }
 
     fn light_api(&self) -> PyLightAPI {
@@ -1112,6 +1653,45 @@ impl PyPortalLight {
 
     fn get_path(&self) -> String {
         self.inner.prim().path().to_string()
+    }
+
+    #[pyo3(name = "GetPrim")]
+    fn get_prim_py(&self) -> PyPrim {
+        PyPrim::from_prim_auto(self.inner.prim().clone())
+    }
+
+    #[pyo3(name = "GetWidthAttr")]
+    fn get_width_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_width_attr())
+    }
+
+    #[pyo3(name = "CreateWidthAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_width_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_width_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
+    }
+
+    #[pyo3(name = "GetHeightAttr")]
+    fn get_height_attr_py(&self) -> PyAttribute {
+        lux_attr_or_invalid(self.inner.get_height_attr())
+    }
+
+    #[pyo3(name = "CreateHeightAttr", signature = (default_value=None, write_sparsely=false))]
+    fn create_height_attr_py(
+        &self,
+        default_value: Option<&Bound<'_, PyAny>>,
+        write_sparsely: bool,
+    ) -> PyResult<PyAttribute> {
+        Ok(PyAttribute::from_attr(
+            self.inner
+                .create_height_attr(lux_optional_default(default_value)?, write_sparsely),
+        ))
     }
 
     fn light_api(&self) -> PyLightAPI {
@@ -1246,6 +1826,73 @@ impl PyLightFilter {
             lux_optional_default(default_value)?,
             write_sparsely,
         )))
+    }
+
+    #[pyo3(name = "ConnectableAPI")]
+    fn connectable_api_py(&self) -> PyConnectableAPI {
+        PyConnectableAPI::from_inner(self.inner.connectable_api())
+    }
+
+    #[pyo3(name = "CreateInput")]
+    fn create_input_py(
+        &self,
+        name: &str,
+        type_name: &Bound<'_, PyAny>,
+    ) -> PyResult<PyInput> {
+        let tn = value_type_from_py_any(type_name)?;
+        let inp = self
+            .inner
+            .create_input(&Token::new(name), &tn)
+            .ok_or_else(|| PyValueError::new_err("CreateInput failed"))?;
+        Ok(PyInput::from_inner(inp))
+    }
+
+    #[pyo3(name = "CreateOutput")]
+    fn create_output_py(
+        &self,
+        name: &str,
+        type_name: &Bound<'_, PyAny>,
+    ) -> PyResult<PyOutput> {
+        let tn = value_type_from_py_any(type_name)?;
+        let out = self
+            .inner
+            .create_output(&Token::new(name), &tn)
+            .ok_or_else(|| PyValueError::new_err("CreateOutput failed"))?;
+        Ok(PyOutput::from_inner(out))
+    }
+
+    #[pyo3(name = "GetInput")]
+    fn get_input_py(&self, name: &str) -> Option<PyInput> {
+        self.inner
+            .get_input(&Token::new(name))
+            .map(PyInput::from_inner)
+    }
+
+    #[pyo3(name = "GetOutput")]
+    fn get_output_py(&self, name: &str) -> Option<PyOutput> {
+        self.inner
+            .get_output(&Token::new(name))
+            .map(PyOutput::from_inner)
+    }
+
+    #[pyo3(name = "GetInputs", signature = (only_authored = false))]
+    fn get_inputs_py(&self, only_authored: bool) -> Vec<PyInput> {
+        self.inner
+            .connectable_api()
+            .get_inputs(only_authored)
+            .into_iter()
+            .map(PyInput::from_inner)
+            .collect()
+    }
+
+    #[pyo3(name = "GetOutputs", signature = (only_authored = false))]
+    fn get_outputs_py(&self, only_authored: bool) -> Vec<PyOutput> {
+        self.inner
+            .connectable_api()
+            .get_outputs(only_authored)
+            .into_iter()
+            .map(PyOutput::from_inner)
+            .collect()
     }
 
     fn get_path(&self) -> String {

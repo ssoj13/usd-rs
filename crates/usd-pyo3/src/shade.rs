@@ -6,6 +6,7 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use pyo3::types::PyAny;
 use std::sync::Arc;
 
 use usd_core::{Relationship, Stage};
@@ -19,6 +20,7 @@ use usd_shade::{
 use usd_tf::Token;
 use usd_vt::Value;
 
+use crate::sdf::value_type_from_py_any;
 use crate::sdr::{PyNodeDiscoveryResult, PyShaderNode};
 
 // ---------------------------------------------------------------------------
@@ -232,52 +234,52 @@ impl PyShader {
     }
 
     /// CreateInput(name, type_name) -> Input
-    fn create_input(&self, name: &str, type_name: &str) -> PyInput {
-        let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyInput {
-            inner: self.inner.create_input(&Token::new(name), &tn),
-        }
+    #[pyo3(name = "CreateInput")]
+    fn create_input(&self, name: &str, type_name: &Bound<'_, PyAny>) -> PyResult<PyInput> {
+        let tn = value_type_from_py_any(type_name)?;
+        Ok(PyInput::from_inner(
+            self.inner.create_input(&Token::new(name), &tn),
+        ))
     }
 
     /// CreateOutput(name, type_name) -> Output
-    fn create_output(&self, name: &str, type_name: &str) -> PyOutput {
-        let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyOutput {
-            inner: self.inner.create_output(&Token::new(name), &tn),
-        }
+    #[pyo3(name = "CreateOutput")]
+    fn create_output(&self, name: &str, type_name: &Bound<'_, PyAny>) -> PyResult<PyOutput> {
+        let tn = value_type_from_py_any(type_name)?;
+        Ok(PyOutput::from_inner(
+            self.inner.create_output(&Token::new(name), &tn),
+        ))
     }
 
     /// GetInput(name) -> Input
+    #[pyo3(name = "GetInput")]
     fn get_input(&self, name: &str) -> PyInput {
-        PyInput {
-            inner: self.inner.get_input(&Token::new(name)),
-        }
+        PyInput::from_inner(self.inner.get_input(&Token::new(name)))
     }
 
     /// GetOutput(name) -> Output
+    #[pyo3(name = "GetOutput")]
     fn get_output(&self, name: &str) -> PyOutput {
-        PyOutput {
-            inner: self.inner.get_output(&Token::new(name)),
-        }
+        PyOutput::from_inner(self.inner.get_output(&Token::new(name)))
     }
 
     /// GetInputs(only_authored=False) -> list[Input]
-    #[pyo3(signature = (only_authored = false))]
+    #[pyo3(name = "GetInputs", signature = (only_authored = false))]
     fn get_inputs(&self, only_authored: bool) -> Vec<PyInput> {
         self.inner
             .get_inputs(only_authored)
             .into_iter()
-            .map(|i| PyInput { inner: i })
+            .map(PyInput::from_inner)
             .collect()
     }
 
     /// GetOutputs(only_authored=False) -> list[Output]
-    #[pyo3(signature = (only_authored = false))]
+    #[pyo3(name = "GetOutputs", signature = (only_authored = false))]
     fn get_outputs(&self, only_authored: bool) -> Vec<PyOutput> {
         self.inner
             .get_outputs(only_authored)
             .into_iter()
-            .map(|o| PyOutput { inner: o })
+            .map(PyOutput::from_inner)
             .collect()
     }
 
@@ -325,30 +327,30 @@ impl PyNodeGraph {
         self.inner.path().to_string()
     }
 
-    fn create_input(&self, name: &str, type_name: &str) -> PyInput {
-        let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyInput {
-            inner: self.inner.create_input(&Token::new(name), &tn),
-        }
+    #[pyo3(name = "CreateInput")]
+    fn create_input(&self, name: &str, type_name: &Bound<'_, PyAny>) -> PyResult<PyInput> {
+        let tn = value_type_from_py_any(type_name)?;
+        Ok(PyInput::from_inner(
+            self.inner.create_input(&Token::new(name), &tn),
+        ))
     }
 
-    fn create_output(&self, name: &str, type_name: &str) -> PyOutput {
-        let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyOutput {
-            inner: self.inner.create_output(&Token::new(name), &tn),
-        }
+    #[pyo3(name = "CreateOutput")]
+    fn create_output(&self, name: &str, type_name: &Bound<'_, PyAny>) -> PyResult<PyOutput> {
+        let tn = value_type_from_py_any(type_name)?;
+        Ok(PyOutput::from_inner(
+            self.inner.create_output(&Token::new(name), &tn),
+        ))
     }
 
+    #[pyo3(name = "GetInput")]
     fn get_input(&self, name: &str) -> PyInput {
-        PyInput {
-            inner: self.inner.get_input(&Token::new(name)),
-        }
+        PyInput::from_inner(self.inner.get_input(&Token::new(name)))
     }
 
+    #[pyo3(name = "GetOutput")]
     fn get_output(&self, name: &str) -> PyOutput {
-        PyOutput {
-            inner: self.inner.get_output(&Token::new(name)),
-        }
+        PyOutput::from_inner(self.inner.get_output(&Token::new(name)))
     }
 
     /// ComputeOutputSource(output_name) -> (Shader, outputName, outputType) or None
@@ -385,8 +387,14 @@ impl PyNodeGraph {
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "Input", module = "pxr.UsdShade")]
-struct PyInput {
+pub(crate) struct PyInput {
     inner: Input,
+}
+
+impl PyInput {
+    pub(crate) fn from_inner(inner: Input) -> Self {
+        Self { inner }
+    }
 }
 
 #[pymethods]
@@ -455,8 +463,14 @@ impl PyInput {
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "Output", module = "pxr.UsdShade")]
-struct PyOutput {
+pub(crate) struct PyOutput {
     inner: Output,
+}
+
+impl PyOutput {
+    pub(crate) fn from_inner(inner: Output) -> Self {
+        Self { inner }
+    }
 }
 
 #[pymethods]
@@ -511,8 +525,14 @@ impl PyOutput {
 // ---------------------------------------------------------------------------
 
 #[pyclass(name = "ConnectableAPI", module = "pxr.UsdShade")]
-struct PyConnectableAPI {
+pub(crate) struct PyConnectableAPI {
     inner: ConnectableAPI,
+}
+
+impl PyConnectableAPI {
+    pub(crate) fn from_inner(inner: ConnectableAPI) -> Self {
+        Self { inner }
+    }
 }
 
 #[pymethods]
@@ -534,18 +554,48 @@ impl PyConnectableAPI {
         self.inner.is_valid()
     }
 
-    fn create_input(&self, name: &str, type_name: &str) -> PyInput {
-        let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyInput {
-            inner: self.inner.create_input(&Token::new(name), &tn),
-        }
+    #[pyo3(name = "CreateInput")]
+    fn create_input(&self, name: &str, type_name: &Bound<'_, PyAny>) -> PyResult<PyInput> {
+        let tn = value_type_from_py_any(type_name)?;
+        Ok(PyInput::from_inner(
+            self.inner.create_input(&Token::new(name), &tn),
+        ))
     }
 
-    fn create_output(&self, name: &str, type_name: &str) -> PyOutput {
-        let tn = usd_sdf::ValueTypeRegistry::instance().find_type(type_name);
-        PyOutput {
-            inner: self.inner.create_output(&Token::new(name), &tn),
-        }
+    #[pyo3(name = "CreateOutput")]
+    fn create_output(&self, name: &str, type_name: &Bound<'_, PyAny>) -> PyResult<PyOutput> {
+        let tn = value_type_from_py_any(type_name)?;
+        Ok(PyOutput::from_inner(
+            self.inner.create_output(&Token::new(name), &tn),
+        ))
+    }
+
+    #[pyo3(name = "GetInput")]
+    fn get_input_py(&self, name: &str) -> PyInput {
+        PyInput::from_inner(self.inner.get_input(&Token::new(name)))
+    }
+
+    #[pyo3(name = "GetOutput")]
+    fn get_output_py(&self, name: &str) -> PyOutput {
+        PyOutput::from_inner(self.inner.get_output(&Token::new(name)))
+    }
+
+    #[pyo3(name = "GetInputs", signature = (only_authored = false))]
+    fn get_inputs_py(&self, only_authored: bool) -> Vec<PyInput> {
+        self.inner
+            .get_inputs(only_authored)
+            .into_iter()
+            .map(PyInput::from_inner)
+            .collect()
+    }
+
+    #[pyo3(name = "GetOutputs", signature = (only_authored = false))]
+    fn get_outputs_py(&self, only_authored: bool) -> Vec<PyOutput> {
+        self.inner
+            .get_outputs(only_authored)
+            .into_iter()
+            .map(PyOutput::from_inner)
+            .collect()
     }
 
     fn __repr__(&self) -> String {
